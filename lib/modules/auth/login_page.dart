@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/services/auth_service.dart';
 import '../dashboard/dashboard_page.dart';
+import '../../core/services/storage_service.dart';
+import '../superadmin/superadmin_dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -27,9 +29,9 @@ class _LoginPageState extends State<LoginPage> {
     final senha = _senhaController.text.trim();
 
     if (email.isEmpty || senha.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha e-mail e senha.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Preencha e-mail e senha.')));
       return;
     }
 
@@ -40,17 +42,21 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await AuthService.login(email, senha);
 
+      final isSuperAdmin = await StorageService.isSuperAdmin();
+
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => const DashboardPage(),
+          builder: (_) => isSuperAdmin
+              ? const SuperAdminDashboardPage()
+              : const DashboardPage(),
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
     } finally {
       if (mounted) {
         setState(() {

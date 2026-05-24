@@ -56,9 +56,11 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
   }
 
   Future<void> _carregarLojas() async {
-    setState(() {
-      _carregandoLojas = true;
-    });
+    if (mounted) {
+      setState(() {
+        _carregandoLojas = true;
+      });
+    }
 
     try {
       final lista = await _lojaRepository.listar(widget.organizacaoId);
@@ -69,6 +71,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
       if (lista.isNotEmpty && lojaSelecionada != null) {
         final existe = lista.any((loja) => loja.lojaId == lojaSelecionada);
+
         if (!existe) {
           lojaSelecionada = null;
         }
@@ -154,126 +157,153 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF080808),
       appBar: AppBar(
         title: Text(editando ? 'Editar Usuário' : 'Novo Usuário'),
         centerTitle: true,
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 650),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                children: [
-                  TextFormField(
-                    controller: _nomeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome do usuário',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Informe o nome do usuário';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'E-mail',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Informe o e-mail';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _senhaController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: editando ? 'Nova senha (opcional)' : 'Senha',
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (!editando &&
-                          (value == null || value.trim().isEmpty)) {
-                        return 'Informe a senha';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _carregandoLojas
-                      ? const Center(child: CircularProgressIndicator())
-                      : DropdownButtonFormField<int?>(
-                          initialValue: _lojaIdSelecionada,
-                          decoration: const InputDecoration(
-                            labelText: 'Loja',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: [
-                            const DropdownMenuItem<int?>(
-                              value: null,
-                              child: Text('Sem loja'),
-                            ),
-                            ..._lojas.map((loja) {
-                              return DropdownMenuItem<int?>(
-                                value: loja.lojaId,
-                                child: Text(loja.nmloja),
-                              );
-                            }),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _lojaIdSelecionada = value;
-                            });
-                          },
-                        ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: _statusSelecionado,
-                    decoration: const InputDecoration(
-                      labelText: 'Status',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'ATIVO', child: Text('ATIVO')),
-                      DropdownMenuItem(
-                        value: 'INATIVO',
-                        child: Text('INATIVO'),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 650),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  children: [
+                    TextFormField(
+                      controller: _nomeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome do usuário',
+                        prefixIcon: Icon(Icons.person),
                       ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _statusSelecionado = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _salvando ? null : _salvar,
-                      child: _salvando
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Salvar'),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Informe o nome do usuário';
+                        }
+
+                        return null;
+                      },
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'E-mail',
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Informe o e-mail';
+                        }
+
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: _senhaController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: editando ? 'Nova senha (opcional)' : 'Senha',
+                        prefixIcon: const Icon(Icons.lock),
+                      ),
+                      validator: (value) {
+                        if (!editando &&
+                            (value == null || value.trim().isEmpty)) {
+                          return 'Informe a senha';
+                        }
+
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    _carregandoLojas
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : DropdownButtonFormField<int?>(
+                            value: _lojaIdSelecionada,
+                            dropdownColor: const Color(0xFF111111),
+                            decoration: const InputDecoration(
+                              labelText: 'Loja',
+                              prefixIcon: Icon(Icons.store),
+                            ),
+                            items: [
+                              const DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('Sem loja'),
+                              ),
+                              ..._lojas.map((loja) {
+                                return DropdownMenuItem<int?>(
+                                  value: loja.lojaId,
+                                  child: Text(loja.nmloja),
+                                );
+                              }),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _lojaIdSelecionada = value;
+                              });
+                            },
+                          ),
+
+                    const SizedBox(height: 16),
+
+                    DropdownButtonFormField<String>(
+                      value: _statusSelecionado,
+                      dropdownColor: const Color(0xFF111111),
+                      decoration: const InputDecoration(
+                        labelText: 'Status',
+                        prefixIcon: Icon(Icons.verified_user),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'ATIVO', child: Text('ATIVO')),
+                        DropdownMenuItem(
+                          value: 'INATIVO',
+                          child: Text('INATIVO'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _statusSelecionado = value;
+                          });
+                        }
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    SizedBox(
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: _salvando ? null : _salvar,
+                        icon: _salvando
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.save),
+                        label: Text(_salvando ? 'Salvando...' : 'Salvar'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -2,11 +2,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
   static const String _tokenKey = 'auth_token';
+
   static const String _lojaIdKey = 'loja_id';
   static const String _organizacaoIdKey = 'organizacao_id';
   static const String _usuarioIdKey = 'usuario_id';
+
   static const String _nomeUsuarioKey = 'nome_usuario';
   static const String _nomeOrganizacaoKey = 'nome_organizacao';
+
+  // NOVOS
+  static const String _cargoKey = 'dscargo';
+  static const String _superAdminKey = 'is_superadmin';
 
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -68,8 +74,32 @@ class StorageService {
     return prefs.getString(_nomeOrganizacaoKey);
   }
 
+  // NOVOS
+
+  static Future<void> saveCargo(String cargo) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_cargoKey, cargo);
+  }
+
+  static Future<String?> getCargo() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_cargoKey);
+  }
+
+  static Future<void> saveSuperAdmin(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_superAdminKey, value);
+  }
+
+  static Future<bool> isSuperAdmin() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    return prefs.getBool(_superAdminKey) ?? false;
+  }
+
   static Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
+
     await prefs.clear();
   }
 }

@@ -126,8 +126,8 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       ),
     );
 
-    if (result == true) {
-      _carregarTudo();
+    if (result == true && mounted) {
+      await _carregarTudo();
     }
   }
 
@@ -141,8 +141,8 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       ),
     );
 
-    if (result == true) {
-      _carregarTudo();
+    if (result == true && mounted) {
+      await _carregarTudo();
     }
   }
 
