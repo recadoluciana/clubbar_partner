@@ -1,105 +1,236 @@
 import 'package:flutter/material.dart';
 import '../../core/services/storage_service.dart';
 import '../auth/login_page.dart';
+import '../../core/repositories/superadmin_repository.dart';
 
-class SuperAdminDashboardPage extends StatelessWidget {
+class SuperAdminDashboardPage extends StatefulWidget {
   const SuperAdminDashboardPage({super.key});
+
+  @override
+  State<SuperAdminDashboardPage> createState() =>
+      _SuperAdminDashboardPageState();
+}
+
+class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
+  final _repo = SuperAdminRepository();
+
+  bool carregando = true;
+
+  Map<String, dynamic> dados = {};
+
+  @override
+  void initState() {
+    super.initState();
+
+    carregar();
+  }
+
+  Future<void> carregar() async {
+    try {
+      final result = await _repo.dashboard();
+
+      if (!mounted) return;
+
+      setState(() {
+        dados = result;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          carregando = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF080808),
-
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        centerTitle: true,
         title: const Text('CLUBBAR • SUPERADMIN'),
+
+        centerTitle: true,
+
         actions: [
           IconButton(
+            tooltip: 'Atualizar',
+
+            icon: const Icon(Icons.refresh),
+
+            onPressed: carregar,
+          ),
+
+          const SizedBox(width: 8),
+
+          IconButton(
             tooltip: 'Sair',
+
             icon: const Icon(Icons.logout),
+
             onPressed: () async {
+              final sair = await showDialog<bool>(
+                context: context,
+
+                builder: (_) => AlertDialog(
+                  title: const Text('Sair'),
+
+                  content: const Text('Deseja encerrar a sessão?'),
+
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+
+                      child: const Text('Cancelar'),
+                    ),
+
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+
+                      child: const Text('Sair'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (sair != true) {
+                return;
+              }
+
               await StorageService.clearToken();
 
-              if (!context.mounted) return;
+              if (!context.mounted) {
+                return;
+              }
 
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
+                (_) => false,
               );
             },
           ),
+
+          const SizedBox(width: 12),
         ],
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      body: carregando
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(24),
 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+              child: Wrap(
+                spacing: 20,
+                runSpacing: 20,
 
-          children: [
-            const Text(
-              'Painel Interno',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 34,
-                fontWeight: FontWeight.bold,
+                children: [
+                  _card(
+                    'Leads Novos',
+                    '${dados['leads_novos']}',
+                    Icons.handshake,
+                  ),
+
+                  _card(
+                    'Organizações',
+                    '${dados['organizacoes']}',
+                    Icons.business,
+                  ),
+
+                  _card('Lojas', '${dados['lojas']}', Icons.store),
+
+                  _card(
+                    'Vendas Hoje',
+                    '${dados['vendas_hoje']}',
+                    Icons.shopping_cart,
+                  ),
+
+                  _card(
+                    'Faturamento Hoje',
+
+                    'R\$ ${((dados['valor_vendas_hoje'] ?? 0).toDouble().toStringAsFixed(2))}',
+
+                    Icons.monetization_on,
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 12),
-
-            const Text(
-              'Gerencie parceiros e organizações.',
-              style: TextStyle(color: Colors.white70),
-            ),
-
-            const SizedBox(height: 30),
-
-            Wrap(
-              spacing: 20,
-              runSpacing: 20,
-
-              children: [
-                _card('Leads Parceiros', Icons.handshake),
-
-                _card('Organizações', Icons.business),
-
-                _card('Financeiro', Icons.attach_money),
-
-                _card('Usuários', Icons.people),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _card(String titulo, IconData icone) {
+  Widget _card(String titulo, String valor, IconData icone) {
     return Container(
-      width: 260,
-      height: 180,
+      width: 280,
+      height: 250,
+
+      margin: const EdgeInsets.all(10),
+
+      padding: const EdgeInsets.all(18),
 
       decoration: BoxDecoration(
-        color: const Color(0xFF111111),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
 
-        borderRadius: BorderRadius.circular(22),
+          colors: [Color(0xFF1A1A1A), Color(0xFF080808)],
+        ),
+
+        borderRadius: BorderRadius.circular(26),
+
+        border: Border.all(color: const Color(0x33F5C542)),
+
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x66F5C542),
+
+            blurRadius: 18,
+
+            spreadRadius: 1,
+
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
 
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
 
         children: [
-          Icon(icone, size: 60, color: Colors.amber),
+          Container(
+            width: 64,
+            height: 64,
 
-          const SizedBox(height: 18),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF5C542), Color(0xFFFFD84D)],
+              ),
+            ),
+
+            child: Icon(icone, size: 32, color: Colors.black),
+          ),
+
+          const SizedBox(height: 12),
+
+          Text(
+            valor,
+
+            style: const TextStyle(
+              color: Colors.white,
+
+              fontSize: 34,
+
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 4),
 
           Text(
             titulo,
 
-            style: const TextStyle(color: Colors.white, fontSize: 18),
+            textAlign: TextAlign.center,
+
+            style: const TextStyle(color: Colors.white70, fontSize: 20),
           ),
         ],
       ),
