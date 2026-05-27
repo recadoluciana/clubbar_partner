@@ -115,42 +115,36 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
 
       body: carregando
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(24),
-
-              child: Wrap(
-                spacing: 20,
-                runSpacing: 20,
-
-                children: [
-                  _card(
-                    'Leads Novos',
-                    '${dados['leads_novos']}',
-                    Icons.handshake,
-                  ),
-
-                  _card(
-                    'Organizações',
-                    '${dados['organizacoes']}',
-                    Icons.business,
-                  ),
-
-                  _card('Lojas', '${dados['lojas']}', Icons.store),
-
-                  _card(
-                    'Vendas Hoje',
-                    '${dados['vendas_hoje']}',
-                    Icons.shopping_cart,
-                  ),
-
-                  _card(
-                    'Faturamento Hoje',
-
-                    'R\$ ${((dados['valor_vendas_hoje'] ?? 0).toDouble().toStringAsFixed(2))}',
-
-                    Icons.monetization_on,
-                  ),
-                ],
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Wrap(
+                  spacing: 20,
+                  runSpacing: 20,
+                  children: [
+                    _card(
+                      'Leads Novos',
+                      '${dados['leads_novos']}',
+                      Icons.handshake,
+                    ),
+                    _card(
+                      'Organizações',
+                      '${dados['organizacoes']}',
+                      Icons.business,
+                    ),
+                    _card('Lojas', '${dados['lojas']}', Icons.store),
+                    _card(
+                      'Vendas Hoje',
+                      '${dados['vendas_hoje']}',
+                      Icons.shopping_cart,
+                    ),
+                    _card(
+                      'Faturamento Hoje',
+                      'R\$ ${((dados['valor_vendas_hoje'] ?? 0).toDouble().toStringAsFixed(2))}',
+                      Icons.monetization_on,
+                    ),
+                  ],
+                ),
               ),
             ),
     );
