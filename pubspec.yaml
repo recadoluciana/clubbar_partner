@@ -1,5 +1,6 @@
 name: clubbar_admin
-description: "A new Flutter project."
+description: "Venda de ingressos e produtos para bares e casas noturnas."
+
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -10,6 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
   shared_preferences: ^2.2.3
   cupertino_icons: ^1.0.8
   image_picker: ^1.1.2
@@ -23,7 +25,27 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
   flutter_lints: ^6.0.0
+
+  flutter_launcher_icons: ^0.14.3
+
+
+flutter_launcher_icons:
+  android: true
+
+  ios: true
+
+  image_path: "assets/images/coruja.jpg"
+
+  adaptive_icon_background: "#000000"
+
+  adaptive_icon_foreground:
+    "assets/images/coruja.jpg"
+
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/
