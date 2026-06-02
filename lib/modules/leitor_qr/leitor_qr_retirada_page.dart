@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:audioplayers/audioplayers.dart';
-
 import '../../core/services/api_service.dart';
+import 'package:vibration/vibration.dart';
 
 class LeitorQrRetiradaScreen extends StatefulWidget {
   const LeitorQrRetiradaScreen({super.key});
@@ -18,6 +18,18 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
   bool lendoQr = false;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
+
+  Future<void> vibrarSucesso() async {
+    if (await Vibration.hasVibrator() ?? false) {
+      Vibration.vibrate(duration: 200);
+    }
+  }
+
+  Future<void> vibrarErro() async {
+    if (await Vibration.hasVibrator() ?? false) {
+      Vibration.vibrate(pattern: [0, 300, 150, 300]);
+    }
+  }
 
   Future<void> tocarOk() async {
     await _audioPlayer.play(AssetSource('sounds/ok.mp3'));
@@ -109,6 +121,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
 
                   if (resposta['already'] == true) {
                     await tocarErro();
+                    await vibrarErro();
 
                     if (!mounted) return;
 
@@ -129,6 +142,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                     }
                   } else {
                     await tocarOk();
+                    await vibrarSucesso();
 
                     if (!mounted) return;
 
@@ -154,6 +168,8 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                   Navigator.pop(context);
 
                   await tocarErro();
+                  await tocarErro();
+                  await vibrarErro();
 
                   if (!mounted) return;
 
