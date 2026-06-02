@@ -48,6 +48,10 @@ class ApiService {
   }) async {
     final usuarioId = await StorageService.getUsuarioId();
 
+    if (usuarioId == null || usuarioId == 0) {
+      throw Exception('Usuário não identificado. Faça login novamente.');
+    }
+
     final response = await http.post(
       Uri.parse(
         '${ApiConfig.baseUrl}/entregas/$itvendaId/entregarproduto?usuario_id=$usuarioId',
