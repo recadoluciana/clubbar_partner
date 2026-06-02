@@ -3,6 +3,7 @@ import '../../core/services/auth_service.dart';
 import '../dashboard/dashboard_page.dart';
 import '../../core/services/storage_service.dart';
 import '../superadmin/superadmin_dashboard_page.dart';
+import '../leitor_qr/barman_home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -43,14 +44,24 @@ class _LoginPageState extends State<LoginPage> {
       await AuthService.login(email, senha);
 
       final isSuperAdmin = await StorageService.isSuperAdmin();
+      final cargo = await StorageService.getCargo();
+      final cargoUpper = (cargo ?? '').trim().toUpperCase();
 
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => isSuperAdmin
-              ? const SuperAdminDashboardPage()
-              : const DashboardPage(),
+          builder: (_) {
+            if (cargoUpper == 'GARCOM' || cargoUpper == 'BARMAN') {
+              return const BarmanHomePage();
+            }
+
+            if (isSuperAdmin) {
+              return const SuperAdminDashboardPage();
+            }
+
+            return const DashboardPage();
+          },
         ),
       );
     } catch (e) {
@@ -70,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login - Clubbar Admin'),
+        title: const Text('Login - Clubbar Parceiro'),
         centerTitle: true,
       ),
       body: Center(
