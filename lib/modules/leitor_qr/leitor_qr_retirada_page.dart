@@ -57,22 +57,29 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await ApiService.confirmarRetirada(
+                  final resposta = await ApiService.confirmarRetirada(
                     itvendaId: itvendaId is int
                         ? itvendaId
                         : int.parse(itvendaId.toString()),
                   );
 
-                  if (!context.mounted) return;
+                  if (resposta['already'] == true) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Este produto já foi entregue.'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Produto entregue com sucesso.'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
 
                   Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Produto entregue com sucesso'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
 
                   setState(() {
                     processando = false;

@@ -43,7 +43,9 @@ class ApiService {
     return http.delete(url, headers: await _headers());
   }
 
-  static Future<void> confirmarRetirada({required int itvendaId}) async {
+  static Future<Map<String, dynamic>> confirmarRetirada({
+    required int itvendaId,
+  }) async {
     final usuarioId = await StorageService.getUsuarioId();
 
     final response = await http.post(
@@ -53,8 +55,14 @@ class ApiService {
       headers: await _headers(),
     );
 
+    final data = response.body.isNotEmpty
+        ? jsonDecode(response.body) as Map<String, dynamic>
+        : <String, dynamic>{};
+
     if (response.statusCode != 200) {
       throw Exception(response.body);
     }
+
+    return data;
   }
 }
