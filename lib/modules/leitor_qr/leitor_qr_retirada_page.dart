@@ -23,10 +23,11 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
     try {
       final data = jsonDecode(raw);
 
-      final codigo = data['codigo'];
-      final cliente = data['cliente'];
-      final produto = data['produto'];
-      final observacao = data['observacao'];
+      final itvendaId = data['itvenda_id'];
+      final loja = data['nmloja'];
+      final cliente = data['nmcliente'];
+      final produto = data['nmproduto'];
+      final observacao = data['dsobsitvenda'];
 
       if (!mounted) return;
 
@@ -36,9 +37,10 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
           title: const Text('QR Code lido'),
           content: Text(
             'Cliente: $cliente\n'
+            'Estabelecimento: $loja\n'
             'Produto: $produto\n'
             'Observação: ${observacao ?? ""}\n'
-            'Código: $codigo',
+            'Item Venda: $itvendaId',
           ),
           actions: [
             TextButton(
@@ -56,7 +58,9 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
               onPressed: () async {
                 try {
                   await ApiService.confirmarRetirada(
-                    itvendaId: int.parse(codigo.toString()),
+                    itvendaId: itvendaId is int
+                        ? itvendaId
+                        : int.parse(itvendaId.toString()),
                   );
 
                   if (!context.mounted) return;
