@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
 
 import 'modules/auth/login_page.dart';
 import 'modules/dashboard/dashboard_page.dart';
 import 'modules/superadmin/superadmin_dashboard_page.dart';
+import 'modules/leitor_qr/barman_home_page.dart';
+import 'modules/leitor_qr/porteiro_home_page.dart';
 
 class ClubbarAdminApp extends StatelessWidget {
   const ClubbarAdminApp({super.key});
@@ -14,7 +15,7 @@ class ClubbarAdminApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Clubbar Admin',
+      title: 'Clubbar Parceiro',
       theme: AppTheme.light,
       home: const SplashDeciderPage(),
     );
@@ -32,6 +33,7 @@ class _SplashDeciderPageState extends State<SplashDeciderPage> {
   bool _carregando = true;
   bool _temToken = false;
   bool _isSuperAdmin = false;
+  String? _cargo;
 
   @override
   void initState() {
@@ -42,12 +44,14 @@ class _SplashDeciderPageState extends State<SplashDeciderPage> {
   Future<void> _verificarToken() async {
     final token = await StorageService.getToken();
     final isSuperAdmin = await StorageService.isSuperAdmin();
+    final cargo = await StorageService.getCargo();
 
     if (!mounted) return;
 
     setState(() {
       _temToken = token != null && token.isNotEmpty;
       _isSuperAdmin = isSuperAdmin;
+      _cargo = cargo;
       _carregando = false;
     });
   }
@@ -58,12 +62,27 @@ class _SplashDeciderPageState extends State<SplashDeciderPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (_temToken && _isSuperAdmin) {
-      return const SuperAdminDashboardPage();
-    }
-
     if (_temToken) {
-      return const DashboardPage();
+      final cargoUpper = (_cargo ?? '').trim().toUpperCase();
+
+      if (_isSuperAdmin) {
+        return const SuperAdminDashboardPage();
+      }
+
+      if (cargoUpper == 'PORTEIRO') {
+        return const PorteiroHomePage();
+      }
+
+      if (cargoUpper == 'BARMAN' ||
+          cargoUpper == 'GARCOM' ||
+          cargoUpper == 'CAIXA') {
+        return const BarmanHomePage();
+      }
+
+      if (cargoUpper == 'ADMIN' || cargoUpper == 'GERENTE') {
+        return const DashboardPage();
+      }
+      return const LoginPage();
     }
 
     return const LoginPage();

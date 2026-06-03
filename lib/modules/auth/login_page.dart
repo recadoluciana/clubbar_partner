@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/services/auth_service.dart';
 import '../dashboard/dashboard_page.dart';
 import '../../core/services/storage_service.dart';
 import '../superadmin/superadmin_dashboard_page.dart';
 import '../leitor_qr/barman_home_page.dart';
+import '../leitor_qr/porteiro_home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -49,21 +51,39 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) {
-            if (cargoUpper == 'GARCOM' || cargoUpper == 'BARMAN') {
-              return const BarmanHomePage();
-            }
+      if (cargoUpper == 'CAIXA') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tela do caixa será implementada.')),
+        );
+        return;
+      }
 
-            if (isSuperAdmin) {
-              return const SuperAdminDashboardPage();
-            }
+      Widget? destino;
 
-            return const DashboardPage();
-          },
-        ),
-      );
+      if (cargoUpper == 'GARCOM' || cargoUpper == 'BARMAN') {
+        destino = const BarmanHomePage();
+      } else if (cargoUpper == 'PORTEIRO') {
+        destino = const PorteiroHomePage();
+      } else if (isSuperAdmin) {
+        destino = const SuperAdminDashboardPage();
+      } else if (cargoUpper == 'ADMIN' || cargoUpper == 'GERENTE') {
+        destino = const DashboardPage();
+      }
+
+      if (destino == null) {
+        await StorageService.clearToken();
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuário não possui cargo definido.')),
+        );
+        return;
+      }
+
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => destino!));
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -81,8 +101,30 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login - Clubbar Parceiro'),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         centerTitle: true,
+
+        title: Image.asset('assets/images/logo.png', height: 45),
+
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
+            onPressed: () async {
+              await StorageService.clearToken();
+
+              if (kIsWeb) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
+                );
+              } else {
+                exit(0);
+              }
+            },
+          ),
+        ],
       ),
       body: Center(
         child: ConstrainedBox(
@@ -92,7 +134,17 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.lock_outline, size: 72),
+                const Text(
+                  'Login - Clubbar Parceiro',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+                const Icon(Icons.lock_outline, size: 90),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _emailController,

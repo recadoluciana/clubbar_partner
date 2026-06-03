@@ -63,18 +63,20 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
       appBar: AppBar(
-        title: const Text('Clubbar Barman'),
-        centerTitle: true,
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        centerTitle: true,
+
+        title: Image.asset('assets/images/logo.png', height: 45),
+
         actions: [
           IconButton(
-            tooltip: 'Sair',
             icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
             onPressed: () async {
               await StorageService.clearToken();
 
-              if (!mounted) return;
+              if (!context.mounted) return;
 
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -92,11 +94,23 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const Text(
+                  'Clubbar Barman',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
                 const Icon(
                   Icons.local_bar_rounded,
-                  size: 84,
-                  color: Colors.black,
+                  size: 90,
+                  color: Colors.amber,
                 ),
+
                 const SizedBox(height: 24),
 
                 Text(
