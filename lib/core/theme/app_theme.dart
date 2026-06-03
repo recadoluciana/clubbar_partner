@@ -1,81 +1,43 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static ThemeData dark = ThemeData(
-    useMaterial3: true,
+  static ThemeData get light {
+    return ThemeData(
+      useMaterial3: true,
 
-    scaffoldBackgroundColor: const Color(0xFF080808),
+      scaffoldBackgroundColor: Colors.white,
 
-    colorScheme: ColorScheme.dark(
-      primary: const Color(0xFFF5C542),
-      secondary: const Color(0xFFF5C542),
-
-      surface: const Color(0xFF111111),
-
-      onPrimary: Colors.black,
-      onSurface: Colors.white,
-    ),
-
-    appBarTheme: const AppBarTheme(
-      elevation: 0,
-
-      backgroundColor: Colors.black,
-
-      foregroundColor: Color(0xFFF5C542),
-
-      centerTitle: true,
-    ),
-
-    cardTheme: CardThemeData(
-      color: const Color(0xFF111111),
-
-      elevation: 0,
-
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-    ),
-
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-
-      fillColor: const Color(0xFF111111),
-
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-
-        borderSide: BorderSide.none,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.amber,
+        brightness: Brightness.light,
       ),
 
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-
-        borderSide: const BorderSide(color: Color(0xFF222222)),
-      ),
-
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-
-        borderSide: const BorderSide(color: Color(0xFFF5C542), width: 2),
-      ),
-
-      labelStyle: const TextStyle(color: Colors.white70),
-    ),
-
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFF5C542),
-
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-
-        minimumSize: const Size(120, 52),
-
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 0,
+        centerTitle: true,
       ),
-    ),
 
-    textTheme: const TextTheme(
-      bodyMedium: TextStyle(color: Colors.white),
+      cardTheme: const CardThemeData(color: Colors.white, elevation: 2),
 
-      titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-    ),
-  );
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.amber,
+          foregroundColor: Colors.black,
+          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  static ThemeData get dark {
+    return ThemeData.dark();
+  }
 }

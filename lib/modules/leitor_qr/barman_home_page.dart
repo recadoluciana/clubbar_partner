@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:intl/intl.dart';
 import '../../core/services/storage_service.dart';
 import 'leitor_qr_retirada_page.dart';
@@ -14,11 +15,29 @@ class BarmanHomePage extends StatefulWidget {
 class _BarmanHomePageState extends State<BarmanHomePage> {
   String nomeUsuario = '';
   String dataHoje = '';
+  String dataHoraAtual = '';
+  Timer? _timer;
+
+  void iniciarRelogio() {
+    dataHoraAtual = DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now());
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+
+      setState(() {
+        dataHoraAtual = DateFormat(
+          'dd/MM/yyyy HH:mm:ss',
+        ).format(DateTime.now());
+      });
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+
     carregarUsuario();
+    iniciarRelogio();
   }
 
   Future<void> carregarUsuario() async {
@@ -28,7 +47,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
 
     setState(() {
       nomeUsuario = nome ?? 'Atendente';
-      dataHoje = DateFormat('dd/MM/yyyy').format(DateTime.now());
+      dataHoje = DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now());
     });
   }
 
@@ -93,7 +112,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
                 const SizedBox(height: 8),
 
                 Text(
-                  dataHoje,
+                  dataHoraAtual,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey.shade700,

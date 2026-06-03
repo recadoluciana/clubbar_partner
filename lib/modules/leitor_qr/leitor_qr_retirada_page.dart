@@ -79,6 +79,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
       final cliente = data['nmcliente'];
       final produto = data['nmproduto'];
       final observacao = data['dsobsitvenda'];
+      final fotoUrl = (data['urlfotoproduto'] ?? '').toString();
 
       if (!mounted) return;
 
@@ -87,12 +88,64 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
         barrierDismissible: false,
         builder: (_) => AlertDialog(
           title: const Text('QR Code lido'),
-          content: Text(
-            'Cliente: $cliente\n'
-            'Estabelecimento: $loja\n'
-            'Produto: $produto\n'
-            'Observação: ${observacao ?? ""}\n'
-            'Item Venda: $itvendaId',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                produto.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              if (fotoUrl.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    fotoUrl,
+                    height: 140,
+                    width: 140,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const Icon(Icons.image_not_supported, size: 70),
+                  ),
+                )
+              else
+                const Icon(Icons.local_bar, size: 80, color: Colors.amber),
+
+              const SizedBox(height: 14),
+
+              Text(
+                'Cliente: $cliente',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+
+              const SizedBox(height: 6),
+
+              if ((observacao ?? '').toString().trim().isNotEmpty)
+                Text(
+                  'Observação: $observacao',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                'Estabelecimento: $loja',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -168,7 +221,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                   Navigator.pop(context);
 
                   await tocarErro();
-                  await tocarErro();
+                  await vibrarSucesso();
                   await vibrarErro();
 
                   if (!mounted) return;

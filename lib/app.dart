@@ -15,7 +15,7 @@ class ClubbarAdminApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Clubbar Admin',
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       home: const SplashDeciderPage(),
     );
   }
