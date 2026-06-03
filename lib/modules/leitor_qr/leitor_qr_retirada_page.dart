@@ -39,6 +39,10 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
     await _audioPlayer.play(AssetSource('sounds/error.mp3'));
   }
 
+  Future<void> tocarBeep() async {
+    await _audioPlayer.play(AssetSource('sounds/beep.mp3'));
+  }
+
   Future<void> _mostrarResultado({
     required bool sucesso,
     required String mensagem,
@@ -70,6 +74,8 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
     if (processando) return;
 
     setState(() => processando = true);
+
+    await tocarBeep();
 
     try {
       final data = jsonDecode(raw);
