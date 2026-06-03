@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/services/auth_service.dart';
 import '../dashboard/dashboard_page.dart';
@@ -120,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
                   (route) => false,
                 );
               } else {
-                exit(0);
+                SystemNavigator.pop();
               }
             },
           ),
