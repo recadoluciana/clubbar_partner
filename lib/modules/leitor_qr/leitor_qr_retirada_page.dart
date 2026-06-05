@@ -5,6 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../core/services/api_service.dart';
 import 'package:vibration/vibration.dart';
+import '../../core/config/api_config.dart';
 
 class LeitorQrRetiradaScreen extends StatefulWidget {
   const LeitorQrRetiradaScreen({super.key});
@@ -85,7 +86,12 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
       final cliente = data['nmcliente'];
       final produto = data['nmproduto'];
       final observacao = data['dsobsitvenda'];
-      final fotoUrl = (data['urlfotoproduto'] ?? '').toString();
+      final fotoUrl = ApiConfig.buildUrl(
+        (data['urlfotoproduto'] ?? '').toString(),
+      );
+
+      debugPrint('QR RAW FOTO: ${data['urlfotoproduto']}');
+      debugPrint('QR FOTO FINAL: $fotoUrl');
 
       if (!mounted) return;
 
