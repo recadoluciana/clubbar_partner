@@ -146,7 +146,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
 
                 const SizedBox(height: 20),
-                const Icon(Icons.lock_outline, size: 90),
+                Image.asset('assets/images/coruja.png', height: 120),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _emailController,
