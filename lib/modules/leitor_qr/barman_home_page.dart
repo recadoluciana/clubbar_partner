@@ -134,18 +134,6 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
                   ),
                 ),
 
-                const SizedBox(height: 10),
-
-                Text(
-                  'Use esta tela para entregar produtos aos clientes.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.grey.shade700,
-                    height: 1.4,
-                  ),
-                ),
-
                 const SizedBox(height: 32),
 
                 SizedBox(

@@ -145,7 +145,7 @@ class _PorteiroHomePageState extends State<PorteiroHomePage> {
                     },
                     icon: const Icon(Icons.qr_code_scanner),
                     label: const Text(
-                      'Validar Ingresso',
+                      'Ler QRCode do Ingresso',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
