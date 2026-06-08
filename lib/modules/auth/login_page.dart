@@ -137,7 +137,7 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  'Login - Clubbar Parceiro',
+                  'Clubbar Parceiro',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
