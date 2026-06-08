@@ -20,6 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _senhaController = TextEditingController();
 
   bool _carregando = false;
+  bool _mostrarSenha = false;
 
   @override
   void dispose() {
@@ -149,18 +150,31 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
                 TextField(
                   controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     labelText: 'E-mail',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _senhaController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText: !_mostrarSenha,
+                  decoration: InputDecoration(
                     labelText: 'Senha',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _mostrarSenha ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _mostrarSenha = !_mostrarSenha;
+                        });
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
