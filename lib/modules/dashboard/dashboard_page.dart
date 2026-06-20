@@ -127,8 +127,8 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       _DashboardItem(
         chave: 'eventos',
-        titulo: 'Eventos',
-        subtitulo: 'Cadastre e gerencie eventos e lotes',
+        titulo: 'Agenda de Shows',
+        subtitulo: 'Cadastre e gerencie sua agenda de shows e eventos',
         icone: Icons.event,
       ),
       _DashboardItem(

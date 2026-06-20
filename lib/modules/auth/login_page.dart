@@ -134,7 +134,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 const Text(
                   'Clubbar Parceiro',
