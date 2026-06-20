@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import '../leitor_qr/leitor_qr_retirada_ingresso.dart';
 import '../auth/login_page.dart';
 import '../../core/services/storage_service.dart';
 
@@ -141,7 +141,12 @@ class _PorteiroHomePageState extends State<PorteiroHomePage> {
                   height: 60,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // depois vamos abrir o leitor de ingresso
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const LeitorQrRetiradaIngressoScreen(),
+                        ),
+                      );
                     },
                     icon: const Icon(Icons.qr_code_scanner),
                     label: const Text(
