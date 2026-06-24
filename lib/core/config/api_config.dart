@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'https://bitbeer-production.up.railway.app';
+  static const String baseUrl = 'https://api.clubbar.com.br';
 
   static const String nomeApp = 'Clubbar';
 
