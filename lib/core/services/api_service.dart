@@ -43,6 +43,35 @@ class ApiService {
     return http.delete(url, headers: await _headers());
   }
 
+  String mensagemErroAmigavel(Object e) {
+    final texto = e.toString();
+
+    final textoLower = texto.toLowerCase();
+
+    if (textoLower.contains('socketexception') ||
+        textoLower.contains('failed host lookup') ||
+        textoLower.contains('connection refused')) {
+      return 'Sem conexão com a internet ou servidor indisponível.';
+    }
+
+    if (textoLower.contains('timeout')) {
+      return 'O servidor demorou para responder. Tente novamente.';
+    }
+
+    if (textoLower.contains('502') ||
+        textoLower.contains('503') ||
+        textoLower.contains('500')) {
+      return 'Sistema em atualização. Tente novamente em instantes.';
+    }
+
+    // Preserva a mensagem amigável enviada pela API
+    if (texto.startsWith('Exception: ')) {
+      return texto.replaceFirst('Exception: ', '');
+    }
+
+    return texto;
+  }
+
   static Future<Map<String, dynamic>> confirmarRetirada({
     required int itvendaId,
   }) async {
@@ -68,5 +97,77 @@ class ApiService {
     }
 
     return data;
+  }
+
+  static Future<Map<String, dynamic>> buscarProdutoPorToken({
+    required String token,
+  }) async {
+    try {
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}/itvendas/buscar-por-token/'
+        '${Uri.encodeComponent(token)}',
+      );
+
+      final response = await http.get(uri, headers: await _headers());
+
+      final dynamic decoded = response.body.trim().isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(response.body);
+
+      final body = decoded is Map<String, dynamic>
+          ? decoded
+          : <String, dynamic>{};
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          body['detail']?.toString() ?? 'Não foi possível consultar o produto.',
+        );
+      }
+
+      return body;
+    } catch (e) {
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  static Future<Map<String, dynamic>> confirmarRetiradaPorToken({
+    required String token,
+  }) async {
+    try {
+      final usuarioId = await StorageService.getUsuarioId();
+
+      if (usuarioId == null || usuarioId == 0) {
+        throw Exception(
+          'Usuário responsável não identificado. Faça login novamente.',
+        );
+      }
+
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}/itvendas/entregar-por-token/'
+        '${Uri.encodeComponent(token)}'
+        '?usuario_id=$usuarioId',
+      );
+
+      final response = await http.post(uri, headers: await _headers());
+
+      final dynamic decoded = response.body.trim().isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(response.body);
+
+      final body = decoded is Map<String, dynamic>
+          ? decoded
+          : <String, dynamic>{};
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          body['detail']?.toString() ??
+              'Não foi possível confirmar a retirada.',
+        );
+      }
+
+      return body;
+    } catch (e) {
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 }
