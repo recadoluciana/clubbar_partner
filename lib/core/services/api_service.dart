@@ -103,24 +103,67 @@ class ApiService {
     required String token,
   }) async {
     try {
+      final tokenLimpo = token.trim();
+
+      if (tokenLimpo.isEmpty) {
+        throw Exception('Token do produto não informado.');
+      }
+
       final uri = Uri.parse(
-        '${ApiConfig.baseUrl}/itvendas/buscar-por-token/'
-        '${Uri.encodeComponent(token)}',
+        '${ApiConfig.baseUrl}/entregas/buscar-por-token/'
+        '${Uri.encodeComponent(tokenLimpo)}',
       );
 
       final response = await http.get(uri, headers: await _headers());
 
-      final dynamic decoded = response.body.trim().isEmpty
-          ? <String, dynamic>{}
-          : jsonDecode(response.body);
+      final respostaTexto = response.body.trim();
 
-      final body = decoded is Map<String, dynamic>
-          ? decoded
-          : <String, dynamic>{};
+      final contentType = response.headers['content-type']?.toLowerCase() ?? '';
 
-      if (response.statusCode != 200) {
+      final retornouHtml =
+          contentType.contains('text/html') ||
+          respostaTexto.toLowerCase().startsWith('<!doctype html') ||
+          respostaTexto.toLowerCase().startsWith('<html');
+
+      if (retornouHtml) {
+        final trechoResposta = respostaTexto.length > 600
+            ? respostaTexto.substring(0, 600)
+            : respostaTexto;
+
         throw Exception(
-          body['detail']?.toString() ?? 'Não foi possível consultar o produto.',
+          'URL:\n$uri\n\n'
+          'BASE URL:\n${ApiConfig.baseUrl}\n\n'
+          'STATUS:\n${response.statusCode}\n\n'
+          'CONTENT-TYPE:\n$contentType\n\n'
+          'RESPOSTA:\n$trechoResposta',
+        );
+      }
+
+      Map<String, dynamic> body = {};
+
+      if (respostaTexto.isNotEmpty) {
+        final decoded = jsonDecode(respostaTexto);
+
+        if (decoded is Map<String, dynamic>) {
+          body = decoded;
+        } else if (decoded is Map) {
+          body = Map<String, dynamic>.from(decoded);
+        } else {
+          throw Exception(
+            'A API retornou um formato inesperado.\n\n'
+            'URL:\n$uri\n\n'
+            'Resposta:\n$respostaTexto',
+          );
+        }
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception(
+          body['detail']?.toString() ??
+              body['message']?.toString() ??
+              'Não foi possível consultar o produto.\n\n'
+                  'URL:\n$uri\n\n'
+                  'Status: ${response.statusCode}',
         );
       }
 
@@ -143,7 +186,7 @@ class ApiService {
       }
 
       final uri = Uri.parse(
-        '${ApiConfig.baseUrl}/itvendas/entregar-por-token/'
+        '${ApiConfig.baseUrl}/entregas/entregar-por-token/'
         '${Uri.encodeComponent(token)}'
         '?usuario_id=$usuarioId',
       );

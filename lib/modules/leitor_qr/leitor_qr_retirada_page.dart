@@ -7,6 +7,7 @@ import 'package:vibration/vibration.dart';
 
 import '../../../core/config/api_config.dart';
 import '../../../core/services/api_service.dart';
+import 'package:flutter/services.dart';
 
 class LeitorQrRetiradaScreen extends StatefulWidget {
   const LeitorQrRetiradaScreen({super.key});
@@ -63,6 +64,76 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
 
   Future<void> tocarBeep() async {
     await _audioPlayer.play(AssetSource('sounds/beep.mp3'));
+  }
+
+  Future<void> _mostrarDiagnostico({
+    required String titulo,
+    required String conteudo,
+  }) async {
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFFF6F6F6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.bug_report_rounded, color: Colors.red),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  titulo,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480, maxHeight: 430),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                conteudo,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            OutlinedButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: conteudo));
+
+                if (!dialogContext.mounted) return;
+
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Diagnóstico copiado.')),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded),
+              label: const Text('Copiar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Continuar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _extrairToken(String valorLido) {
@@ -260,7 +331,9 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
     await tocarBeep();
 
     try {
-      final token = _extrairToken(raw);
+      final token = _extrairToken(
+        raw,
+      ); // extrai o token do QR code lido e depois busca o produto na API
 
       debugPrint('TOKEN LIDO: $token');
 
@@ -281,10 +354,11 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
 
       if (!mounted) return;
 
-      await _mostrarResultado(
-        sucesso: false,
-        titulo: 'QR Code inválido',
-        mensagem: _mensagemErro(e),
+      final mensagem = _mensagemErro(e);
+
+      await _mostrarDiagnostico(
+        titulo: 'Erro ao consultar produto',
+        conteudo: mensagem,
       );
 
       await _prepararNovaLeitura();
