@@ -128,7 +128,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                 backgroundColor: Colors.amber,
                 foregroundColor: Colors.black,
               ),
-              child: const Text('Continuar'),
+              child: const Text('Fechar'),
             ),
           ],
         );
