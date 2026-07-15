@@ -83,8 +83,8 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
           ),
           title: Row(
             children: [
-              const Icon(Icons.bug_report_rounded, color: Colors.red),
-              const SizedBox(width: 10),
+              const Icon(Icons.warning_amber_rounded, color: Colors.amber),
+              const SizedBox(width: 15),
               Expanded(
                 child: Text(
                   titulo,
@@ -357,7 +357,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
       final mensagem = _mensagemErro(e);
 
       await _mostrarDiagnostico(
-        titulo: 'Erro ao consultar produto',
+        titulo: 'Produto de outro bar/casa noturna',
         conteudo: mensagem,
       );
 
@@ -568,17 +568,27 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                 ),
               ),
               actions: [
-                TextButton(
+                ElevatedButton.icon(
                   onPressed: confirmandoRetirada
                       ? null
                       : () {
                           Navigator.pop(dialogContext, false);
                         },
-                  child: Text(
+                  icon: Icon(
+                    jaUtilizado ? Icons.close_rounded : Icons.cancel_rounded,
+                    size: 20,
+                  ),
+                  label: Text(
                     jaUtilizado ? 'Fechar' : 'Cancelar',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w700,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    minimumSize: const Size(120, 46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                 ),
@@ -622,7 +632,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
+                      backgroundColor: Colors.green,
                       foregroundColor: Colors.black,
                       elevation: 0,
                       shape: RoundedRectangleBorder(

@@ -103,6 +103,14 @@ class ApiService {
     required String token,
   }) async {
     try {
+      final usuarioId = await StorageService.getUsuarioId();
+
+      if (usuarioId == null || usuarioId == 0) {
+        throw Exception(
+          'Usuário responsável não identificado. Faça login novamente.',
+        );
+      }
+
       final tokenLimpo = token.trim();
 
       if (tokenLimpo.isEmpty) {
@@ -111,59 +119,21 @@ class ApiService {
 
       final uri = Uri.parse(
         '${ApiConfig.baseUrl}/entregas/buscar-por-token/'
-        '${Uri.encodeComponent(tokenLimpo)}',
+        '${Uri.encodeComponent(tokenLimpo)}'
+        '?usuario_id=$usuarioId',
       );
 
       final response = await http.get(uri, headers: await _headers());
 
-      final respostaTexto = response.body.trim();
+      final texto = response.body.trim();
 
-      final contentType = response.headers['content-type']?.toLowerCase() ?? '';
-
-      final retornouHtml =
-          contentType.contains('text/html') ||
-          respostaTexto.toLowerCase().startsWith('<!doctype html') ||
-          respostaTexto.toLowerCase().startsWith('<html');
-
-      if (retornouHtml) {
-        final trechoResposta = respostaTexto.length > 600
-            ? respostaTexto.substring(0, 600)
-            : respostaTexto;
-
-        throw Exception(
-          'URL:\n$uri\n\n'
-          'BASE URL:\n${ApiConfig.baseUrl}\n\n'
-          'STATUS:\n${response.statusCode}\n\n'
-          'CONTENT-TYPE:\n$contentType\n\n'
-          'RESPOSTA:\n$trechoResposta',
-        );
-      }
-
-      Map<String, dynamic> body = {};
-
-      if (respostaTexto.isNotEmpty) {
-        final decoded = jsonDecode(respostaTexto);
-
-        if (decoded is Map<String, dynamic>) {
-          body = decoded;
-        } else if (decoded is Map) {
-          body = Map<String, dynamic>.from(decoded);
-        } else {
-          throw Exception(
-            'A API retornou um formato inesperado.\n\n'
-            'URL:\n$uri\n\n'
-            'Resposta:\n$respostaTexto',
-          );
-        }
-      }
+      final Map<String, dynamic> body = texto.isEmpty
+          ? <String, dynamic>{}
+          : Map<String, dynamic>.from(jsonDecode(texto));
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception(
-          body['detail']?.toString() ??
-              body['message']?.toString() ??
-              'Não foi possível consultar o produto.\n\n'
-                  'URL:\n$uri\n\n'
-                  'Status: ${response.statusCode}',
+          body['detail']?.toString() ?? 'Não foi possível consultar o produto.',
         );
       }
 
@@ -205,6 +175,44 @@ class ApiService {
         throw Exception(
           body['detail']?.toString() ??
               'Não foi possível confirmar a retirada.',
+        );
+      }
+
+      return body;
+    } catch (e) {
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  static Future<Map<String, dynamic>> buscarLojaDoUsuario({
+    required int usuarioId,
+  }) async {
+    try {
+      if (usuarioId <= 0) {
+        throw Exception('Usuário não identificado.');
+      }
+
+      final response = await get('/usuarios/$usuarioId/loja');
+
+      final textoResposta = response.body.trim();
+
+      Map<String, dynamic> body = {};
+
+      if (textoResposta.isNotEmpty) {
+        final decoded = jsonDecode(textoResposta);
+
+        if (decoded is Map<String, dynamic>) {
+          body = decoded;
+        } else if (decoded is Map) {
+          body = Map<String, dynamic>.from(decoded);
+        }
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception(
+          body['detail']?.toString() ??
+              body['message']?.toString() ??
+              'Não foi possível carregar os dados da loja.',
         );
       }
 
