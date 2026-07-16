@@ -83,7 +83,11 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
           ),
           title: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.amber),
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.amber,
+                size: 90,
+              ),
               const SizedBox(width: 15),
               Expanded(
                 child: Text(

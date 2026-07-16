@@ -4,8 +4,8 @@ import 'package:intl/intl.dart';
 import '../../core/config/api_config.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
-import '../../widgets/clubbar_app_bar.dart';
-import '../../widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_page_header.dart';
 import '../auth/login_page.dart';
 import 'leitor_qr_retirada_page.dart';
 

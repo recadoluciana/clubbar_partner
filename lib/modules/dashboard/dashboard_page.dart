@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 
 import 'package:clubbar_admin/core/services/storage_service.dart';
+import 'package:clubbar_admin/core/theme/clubbar_colors.dart';
+import 'package:clubbar_admin/core/widgets/app_snackbar.dart';
+import 'package:clubbar_admin/core/widgets/clubbar_card.dart';
+import 'package:clubbar_admin/core/widgets/dashboard_menu_card.dart';
+
 import 'package:clubbar_admin/modules/auth/login_page.dart';
 import 'package:clubbar_admin/modules/categorias/categoria_list_page.dart';
 import 'package:clubbar_admin/modules/eventos/evento_list_page.dart';
 import 'package:clubbar_admin/modules/lojas/loja_list_page.dart';
 import 'package:clubbar_admin/modules/organizacoes/organizacao_form_page.dart';
-import 'package:clubbar_admin/modules/produtos/produto_list_page.dart';
 import 'package:clubbar_admin/modules/painel_gerencial/painel_gerencial_page.dart';
+import 'package:clubbar_admin/modules/produtos/produto_list_page.dart';
 import 'package:clubbar_admin/modules/usuarios/usuario_list_page.dart';
+
+import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_page_header.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -21,6 +29,8 @@ class _DashboardPageState extends State<DashboardPage> {
   String _nomeUsuario = 'Usuário';
   String _nomeOrganizacao = 'Organização';
 
+  bool _carregando = true;
+
   @override
   void initState() {
     super.initState();
@@ -28,21 +38,155 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _carregarDadosUsuario() async {
-    final nomeUsuario = await StorageService.getNomeUsuario();
-    final nomeOrganizacao = await StorageService.getNomeOrganizacao();
+    try {
+      final nomeUsuario = await StorageService.getNomeUsuario();
+      final nomeOrganizacao = await StorageService.getNomeOrganizacao();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _nomeUsuario = nomeUsuario ?? 'Usuário';
-      _nomeOrganizacao = nomeOrganizacao ?? 'Organização';
-    });
+      setState(() {
+        _nomeUsuario = nomeUsuario?.trim().isNotEmpty == true
+            ? nomeUsuario!.trim()
+            : 'Usuário';
+
+        _nomeOrganizacao = nomeOrganizacao?.trim().isNotEmpty == true
+            ? nomeOrganizacao!.trim()
+            : 'Organização';
+
+        _carregando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _carregando = false;
+      });
+
+      AppSnackBar.erro(
+        context,
+        'Não foi possível carregar os dados do usuário.',
+      );
+    }
   }
 
-  Future<void> _sair(BuildContext context) async {
-    await StorageService.clearToken();
+  Future<int?> _getOrganizacaoId() async {
+    return StorageService.getOrganizacaoId();
+  }
+
+  Future<void> _abrirModulo(BuildContext context, String chaveModulo) async {
+    final organizacaoId = await _getOrganizacaoId();
+
+    if (organizacaoId == null || organizacaoId == 0) {
+      if (!context.mounted) return;
+
+      AppSnackBar.erro(context, 'Organização não encontrada no login.');
+
+      return;
+    }
+
+    Widget? destino;
+
+    switch (chaveModulo) {
+      case 'organizacao':
+        destino = const OrganizacaoFormPage();
+        break;
+
+      case 'lojas':
+        destino = LojaListPage(organizacaoId: organizacaoId);
+        break;
+
+      case 'categorias':
+        destino = CategoriaListPage(organizacaoId: organizacaoId);
+        break;
+
+      case 'produtos':
+        destino = ProdutoListPage(organizacaoId: organizacaoId);
+        break;
+
+      case 'eventos':
+        destino = EventoListPage(organizacaoId: organizacaoId);
+        break;
+
+      case 'usuarios':
+        destino = UsuarioListPage(organizacaoId: organizacaoId);
+        break;
+
+      case 'painel':
+        destino = const PainelGerencialPage();
+        break;
+    }
+
+    if (destino == null) {
+      if (!context.mounted) return;
+
+      AppSnackBar.aviso(context, 'Este módulo ainda não está disponível.');
+
+      return;
+    }
 
     if (!context.mounted) return;
+
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => destino!));
+  }
+
+  Future<void> _sair() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: ClubbarColors.fundo,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.logout_rounded, color: ClubbarColors.erro),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Sair do Clubbar Admin',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Deseja realmente encerrar sua sessão?',
+            style: TextStyle(height: 1.4),
+          ),
+          actions: [
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              icon: const Icon(Icons.close_rounded),
+              label: const Text('Cancelar'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ClubbarColors.textoPrincipal,
+                side: const BorderSide(color: ClubbarColors.borda),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('Sair'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ClubbarColors.erro,
+                foregroundColor: ClubbarColors.branco,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmar != true) return;
+
+    await StorageService.clearToken();
+
+    if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -50,349 +194,224 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Future<int?> _getOrganizacaoId() async {
-    return await StorageService.getOrganizacaoId();
-  }
-
-  Future<void> _abrirModulo(BuildContext context, String chaveModulo) async {
-    final organizacaoId = await _getOrganizacaoId();
-
-    if (organizacaoId == null) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Organização não encontrada no login.')),
-      );
-      return;
-    }
-
-    Widget? destino;
-
-    if (chaveModulo == 'organizacao') {
-      destino = const OrganizacaoFormPage();
-    } else if (chaveModulo == 'lojas') {
-      destino = LojaListPage(organizacaoId: organizacaoId);
-    } else if (chaveModulo == 'categorias') {
-      destino = CategoriaListPage(organizacaoId: organizacaoId);
-    } else if (chaveModulo == 'produtos') {
-      destino = ProdutoListPage(organizacaoId: organizacaoId);
-    } else if (chaveModulo == 'usuarios') {
-      destino = UsuarioListPage(organizacaoId: organizacaoId);
-    } else if (chaveModulo == 'eventos') {
-      destino = EventoListPage(organizacaoId: organizacaoId);
-    } else if (chaveModulo == 'painel') {
-      destino = const PainelGerencialPage();
-    }
-
-    if (destino == null) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Módulo "$chaveModulo" ainda não implementado.'),
-        ),
-      );
-      return;
-    }
-
-    if (!context.mounted) return;
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => destino!));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final modulos = [
-      _DashboardItem(
-        chave: 'organizacao',
-        titulo: 'Minha organização',
-        subtitulo: 'Altere os dados da sua organização',
-        icone: Icons.business,
-      ),
-      _DashboardItem(
-        chave: 'lojas',
-        titulo: 'Bares e casas noturnas',
-        subtitulo:
-            'Cadastre e gerencie os bares e casas noturnas da sua organização',
-        icone: Icons.store,
-      ),
-      _DashboardItem(
-        chave: 'categorias',
-        titulo: 'Categorias de produto',
-        subtitulo: 'Cadastre e gerencie categorias de produtos',
-        icone: Icons.category,
-      ),
-      _DashboardItem(
-        chave: 'produtos',
-        titulo: 'Produtos',
-        subtitulo: 'Cadastre e gerencie os produtos',
-        icone: Icons.inventory_2,
-      ),
-      _DashboardItem(
-        chave: 'eventos',
-        titulo: 'Agenda de Shows',
-        subtitulo: 'Cadastre e gerencie sua agenda de shows e eventos',
-        icone: Icons.event,
-      ),
-      _DashboardItem(
-        chave: 'usuarios',
-        titulo: 'Usuários',
-        subtitulo: 'Cadastre e gerencie usuários da organização',
-        icone: Icons.people,
-      ),
-      _DashboardItem(
-        chave: 'painel',
-        titulo: 'Controle gerencial',
-        subtitulo: 'Indicadores e gráficos gerenciais',
-        icone: Icons.analytics,
-      ),
-    ];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Clubbar Admin'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            tooltip: 'Sair',
-            onPressed: () => _sair(context),
-            icon: const Icon(Icons.logout),
+  Widget _cardUsuario() {
+    return ClubbarCard(
+      elevation: 1,
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: const BoxDecoration(
+              color: ClubbarColors.ambarClaro,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.admin_panel_settings_rounded,
+              size: 31,
+              color: ClubbarColors.preto,
+            ),
           ),
-        ],
-      ),
-      drawer: Drawer(
-        child: SafeArea(
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                color: Colors.orange.shade100,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.account_circle, size: 42),
-                    const SizedBox(height: 10),
-                    Text(
-                      _nomeUsuario,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(_nomeOrganizacao),
-                    const SizedBox(height: 4),
-                    const Text('Administrador'),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.dashboard),
-                      title: const Text('Início'),
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.business),
-                      title: const Text('Minha organização'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _abrirModulo(context, 'organizacao');
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.store),
-                      title: const Text('Bares'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _abrirModulo(context, 'lojas');
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.category),
-                      title: const Text('Categorias de produto'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _abrirModulo(context, 'categorias');
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.inventory_2),
-                      title: const Text('Produtos'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _abrirModulo(context, 'produtos');
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.event),
-                      title: const Text('Eventos'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _abrirModulo(context, 'eventos');
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.people),
-                      title: const Text('Usuários'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _abrirModulo(context, 'usuarios');
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.analytics),
-                      title: const Text('Controle gerencial'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _abrirModulo(context, 'painel');
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('Sair'),
-                onTap: () => _sair(context),
-              ),
-            ],
-          ),
-        ),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          int crossAxisCount = 2;
 
-          if (constraints.maxWidth >= 1200) {
-            crossAxisCount = 4;
-          } else if (constraints.maxWidth >= 800) {
-            crossAxisCount = 2;
-          } else if (constraints.maxWidth < 600) {
-            crossAxisCount = 1;
-          }
+          const SizedBox(width: 14),
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Olá, $_nomeUsuario 👋',
+                  'Olá, $_nomeUsuario',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: ClubbarColors.textoPrincipal,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Você está gerenciando: $_nomeOrganizacao',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Primeiros passos',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Revise sua organização, cadastre bares, categorias, produtos, usuários e eventos.',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                GridView.builder(
-                  itemCount: modulos.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.45,
-                  ),
-                  itemBuilder: (context, index) {
-                    final item = modulos[index];
 
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () => _abrirModulo(context, item.chave),
-                      child: Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CircleAvatar(
-                                radius: 24,
-                                child: Icon(item.icone, size: 26),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                item.titulo,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Expanded(
-                                child: Text(
-                                  item.subtitulo,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Row(
-                                children: [
-                                  Text(
-                                    'Abrir',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  SizedBox(width: 6),
-                                  Icon(Icons.arrow_forward, size: 18),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                const SizedBox(height: 4),
+
+                const Text(
+                  'Administrador',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: ClubbarColors.textoSecundario,
+                  ),
+                ),
+
+                const SizedBox(height: 2),
+
+                Text(
+                  _nomeOrganizacao,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: ClubbarColors.textoSecundario,
+                  ),
                 ),
               ],
             ),
-          );
-        },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _gradeModulos() {
+    final modulos = <_DashboardItem>[
+      _DashboardItem(
+        chave: 'organizacao',
+        titulo: 'Organização',
+        subtitulo: 'Dados da empresa',
+        icone: Icons.business_rounded,
+      ),
+      _DashboardItem(
+        chave: 'lojas',
+        titulo: 'Lojas',
+        subtitulo: 'Bares e casas',
+        icone: Icons.storefront_rounded,
+      ),
+      _DashboardItem(
+        chave: 'categorias',
+        titulo: 'Categorias',
+        subtitulo: 'Categorias dos produtos',
+        icone: Icons.category_rounded,
+      ),
+      _DashboardItem(
+        chave: 'produtos',
+        titulo: 'Produtos',
+        subtitulo: 'Cadastro de produtos',
+        icone: Icons.inventory_2_rounded,
+      ),
+      _DashboardItem(
+        chave: 'eventos',
+        titulo: 'Eventos',
+        subtitulo: 'Agenda de shows',
+        icone: Icons.event_rounded,
+      ),
+      _DashboardItem(
+        chave: 'usuarios',
+        titulo: 'Usuários',
+        subtitulo: 'Acessos da equipe',
+        icone: Icons.people_alt_rounded,
+      ),
+      _DashboardItem(
+        chave: 'painel',
+        titulo: 'Gerencial',
+        subtitulo: 'Indicadores e gráficos',
+        icone: Icons.analytics_rounded,
+      ),
+    ];
+
+    return GridView.builder(
+      itemCount: modulos.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 0.96,
+      ),
+      itemBuilder: (context, index) {
+        final modulo = modulos[index];
+
+        return DashboardMenuCard(
+          titulo: modulo.titulo,
+          subtitulo: modulo.subtitulo,
+          icone: modulo.icone,
+          onTap: () {
+            _abrirModulo(context, modulo.chave);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _conteudo() {
+    if (_carregando) {
+      return const Expanded(
+        child: Center(
+          child: CircularProgressIndicator(color: ClubbarColors.ambar),
+        ),
+      );
+    }
+
+    return Expanded(
+      child: RefreshIndicator(
+        onRefresh: _carregarDadosUsuario,
+        color: ClubbarColors.ambar,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+          children: [
+            _cardUsuario(),
+
+            const SizedBox(height: 22),
+
+            const Text(
+              'Gerenciamento',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: ClubbarColors.textoPrincipal,
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            const Text(
+              'Escolha uma opção para continuar.',
+              style: TextStyle(
+                fontSize: 13,
+                color: ClubbarColors.textoSecundario,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            _gradeModulos(),
+
+            const SizedBox(height: 26),
+
+            const Text(
+              'Clubbar Admin',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: ClubbarColors.textoDesabilitado,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+
+      appBar: ClubbarAppBar(mostrarSair: true, onSair: _sair),
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            ClubbarPageHeader(
+              titulo: 'Painel Administrativo',
+              subtitulo: _nomeOrganizacao,
+              icone: Icons.dashboard_rounded,
+            ),
+
+            _conteudo(),
+          ],
+        ),
       ),
     );
   }
@@ -404,7 +423,7 @@ class _DashboardItem {
   final String subtitulo;
   final IconData icone;
 
-  _DashboardItem({
+  const _DashboardItem({
     required this.chave,
     required this.titulo,
     required this.subtitulo,
