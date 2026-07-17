@@ -24,68 +24,71 @@ class DashboardMenuCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: ClubbarColors.branco,
-      elevation: 2,
+      elevation: 1,
       shadowColor: ClubbarColors.sombra,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Container(
-          height: 165,
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(9),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: ClubbarColors.borda),
           ),
           child: Stack(
             children: [
               if (badge != null) Positioned(top: 0, right: 0, child: badge!),
 
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 66,
-                    height: 66,
-                    decoration: BoxDecoration(
-                      color: ClubbarColors.ambarClaro,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      icone,
-                      size: 34,
-                      color: corIcone ?? ClubbarColors.preto,
-                    ),
-                  ),
-
-                  const SizedBox(height: 18),
-
-                  Text(
-                    titulo,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: ClubbarColors.textoPrincipal,
-                    ),
-                  ),
-
-                  if (subtitulo != null) ...[
-                    const SizedBox(height: 6),
-
-                    Text(
-                      subtitulo!,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: ClubbarColors.textoSecundario,
-                        height: 1.3,
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: ClubbarColors.ambarClaro,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        icone,
+                        size: 23,
+                        color: corIcone ?? ClubbarColors.preto,
                       ),
                     ),
+
+                    const SizedBox(height: 7),
+
+                    Text(
+                      titulo,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: ClubbarColors.textoPrincipal,
+                      ),
+                    ),
+
+                    if (subtitulo != null && subtitulo!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 2),
+
+                      Text(
+                        subtitulo!,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 9.5,
+                          height: 1.1,
+                          color: ClubbarColors.textoSecundario,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ],
           ),

@@ -19,7 +19,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(72);
+  Size get preferredSize => const Size.fromHeight(60);
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +28,14 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
+      toolbarHeight: 60,
       automaticallyImplyLeading: false,
+      titleSpacing: 0,
 
       leading: mostrarVoltar
           ? IconButton(
               tooltip: 'Voltar',
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: const Icon(Icons.arrow_back_rounded, size: 25),
               onPressed:
                   onVoltar ??
                   () {
@@ -42,21 +44,29 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
 
-      title: Image.asset(
-        logoPath,
-        height: 44,
-        fit: BoxFit.contain,
-        errorBuilder: (_, _, _) {
-          return const Text(
-            'CLUBBAR',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 21,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-            ),
-          );
-        },
+      title: SizedBox(
+        height: 54,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Image.asset(
+            logoPath,
+            height: 50,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) {
+              return const Center(
+                child: Text(
+                  'CLUBBAR',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ),
 
       actions: [
@@ -65,7 +75,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (mostrarSair)
           IconButton(
             tooltip: 'Sair',
-            icon: const Icon(Icons.logout_rounded),
+            icon: const Icon(Icons.logout_rounded, size: 24),
             onPressed: onSair,
           ),
       ],

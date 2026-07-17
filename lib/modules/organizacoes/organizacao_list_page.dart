@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../core/repositories/organizacao_repository.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/theme/clubbar_colors.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_footer.dart';
+import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/organizacao.dart';
 import 'organizacao_form_page.dart';
-import 'organizacao_home_page.dart';
 
 class OrganizacaoListPage extends StatefulWidget {
   const OrganizacaoListPage({super.key});
@@ -14,12 +18,46 @@ class OrganizacaoListPage extends StatefulWidget {
 }
 
 class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
-  final TextEditingController _buscaController = TextEditingController();
   final OrganizacaoRepository _repository = OrganizacaoRepository();
 
   bool _carregando = true;
   Organizacao? _organizacao;
-  List<Organizacao> _organizacoesFiltradas = [];
+
+  String _somenteNumeros(String? valor) {
+    return (valor ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
+  String _formatarCnpj(String? valor) {
+    final numeros = _somenteNumeros(valor);
+
+    if (numeros.length != 14) {
+      return _valorOuTraco(valor);
+    }
+
+    return '${numeros.substring(0, 2)}.'
+        '${numeros.substring(2, 5)}.'
+        '${numeros.substring(5, 8)}/'
+        '${numeros.substring(8, 12)}-'
+        '${numeros.substring(12, 14)}';
+  }
+
+  String _formatarTelefone(String? valor) {
+    final numeros = _somenteNumeros(valor);
+
+    if (numeros.length == 11) {
+      return '(${numeros.substring(0, 2)}) '
+          '${numeros.substring(2, 7)}-'
+          '${numeros.substring(7, 11)}';
+    }
+
+    if (numeros.length == 10) {
+      return '(${numeros.substring(0, 2)}) '
+          '${numeros.substring(2, 6)}-'
+          '${numeros.substring(6, 10)}';
+    }
+
+    return _valorOuTraco(valor);
+  }
 
   @override
   void initState() {
@@ -27,22 +65,18 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     _carregarOrganizacao();
   }
 
-  @override
-  void dispose() {
-    _buscaController.dispose();
-    super.dispose();
-  }
-
   Future<void> _carregarOrganizacao() async {
-    setState(() {
-      _carregando = true;
-    });
+    if (mounted) {
+      setState(() {
+        _carregando = true;
+      });
+    }
 
     try {
       final usuarioId = await StorageService.getUsuarioId();
 
-      if (usuarioId == null) {
-        throw Exception('Usuário não encontrado no login');
+      if (usuarioId == null || usuarioId == 0) {
+        throw Exception('Usuário não encontrado no login.');
       }
 
       final organizacao = await _repository.buscarPorUsuario(usuarioId);
@@ -51,19 +85,15 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
 
       setState(() {
         _organizacao = organizacao;
-        _organizacoesFiltradas = [organizacao];
       });
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
         _organizacao = null;
-        _organizacoesFiltradas = [];
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar organização: $e')),
-      );
+      AppSnackBar.erro(context, 'Não foi possível carregar a organização.');
     } finally {
       if (mounted) {
         setState(() {
@@ -73,121 +103,362 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     }
   }
 
-  void _filtrar(String texto) {
-    final busca = texto.trim().toLowerCase();
+  Future<void> _editarOrganizacao() async {
+    final organizacao = _organizacao;
 
-    if (_organizacao == null) {
-      setState(() {
-        _organizacoesFiltradas = [];
-      });
+    if (organizacao == null) {
+      AppSnackBar.aviso(context, 'Organização não encontrada.');
+
       return;
     }
 
-    setState(() {
-      if (busca.isEmpty) {
-        _organizacoesFiltradas = [_organizacao!];
-      } else {
-        final id = _organizacao!.organizacaoId.toString();
-        final nome = _organizacao!.nmorganizacao.toLowerCase();
-        final status = (_organizacao!.sitorganizacao ?? '').toLowerCase();
-        final cnpj = (_organizacao!.cnpjorganizacao ?? '').toLowerCase();
-        final email = (_organizacao!.emailorganizacao ?? '').toLowerCase();
-        final telefone = (_organizacao!.telorganizacao ?? '').toLowerCase();
-
-        final bate = id.contains(busca) ||
-            nome.contains(busca) ||
-            status.contains(busca) ||
-            cnpj.contains(busca) ||
-            email.contains(busca) ||
-            telefone.contains(busca);
-
-        _organizacoesFiltradas = bate ? [_organizacao!] : [];
-      }
-    });
-  }
-
-  Future<void> _abrirOrganizacao(dynamic organizacao) async {
-    Navigator.of(context).push(
+    final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => OrganizacaoHomePage(
-          organizacaoId: organizacao['organizacao_id'],
-          nomeOrganizacao: (organizacao['nmorganizacao'] ?? '').toString(),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _novaOrganizacao() async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => const OrganizacaoFormPage(),
+        builder: (_) => OrganizacaoFormPage(organizacao: organizacao),
       ),
     );
 
-    if (result == true) {
-      _carregarOrganizacao();
+    if (!mounted) return;
+
+    if (resultado == true) {
+      await _carregarOrganizacao();
+
+      if (!mounted) return;
+
+      AppSnackBar.sucesso(context, 'Organização atualizada com sucesso.');
     }
   }
 
-  Future<void> _editarOrganizacao(Organizacao organizacao) async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => OrganizacaoFormPage(
-          organizacao: organizacao,
-        ),
-      ),
-    );
+  String _valorOuTraco(String? valor) {
+    final texto = valor?.trim() ?? '';
 
-    if (result == true) {
-      _carregarOrganizacao();
-    }
+    return texto.isEmpty ? '-' : texto;
   }
 
-  Widget _buildTabela() {
-    if (_organizacoesFiltradas.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(
-            child: Text('Nenhuma organização encontrada.'),
+  Color _corStatus(String? status) {
+    final valor = status?.trim().toUpperCase();
+
+    if (valor == 'ATIVO') {
+      return Colors.green.shade700;
+    }
+
+    if (valor == 'INATIVO') {
+      return ClubbarColors.erro;
+    }
+
+    return ClubbarColors.textoSecundario;
+  }
+
+  Widget _linhaInformacao({
+    required IconData icone,
+    required String titulo,
+    required String valor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: ClubbarColors.ambarClaro,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icone, size: 20, color: ClubbarColors.preto),
           ),
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: ClubbarColors.textoSecundario,
+                  ),
+                ),
+
+                const SizedBox(height: 2),
+
+                SelectableText(
+                  valor,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: ClubbarColors.textoPrincipal,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusOrganizacao(Organizacao organizacao) {
+    final status = _valorOuTraco(organizacao.sitorganizacao);
+
+    final cor = _corStatus(organizacao.sitorganizacao);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: cor.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: cor.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(color: cor, fontSize: 11, fontWeight: FontWeight.w900),
+      ),
+    );
+  }
+
+  Widget _cardOrganizacao(Organizacao organizacao) {
+    return Material(
+      color: ClubbarColors.branco,
+      elevation: 2,
+      shadowColor: ClubbarColors.sombra,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: ClubbarColors.borda),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: const BoxDecoration(
+                    color: ClubbarColors.ambarClaro,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.business_rounded,
+                    size: 27,
+                    color: ClubbarColors.preto,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        organizacao.nmorganizacao,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: ClubbarColors.textoPrincipal,
+                        ),
+                      ),
+
+                      const SizedBox(height: 3),
+
+                      Text(
+                        'Código ${organizacao.organizacaoId}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: ClubbarColors.textoSecundario,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                _statusOrganizacao(organizacao),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            const Divider(color: ClubbarColors.divisor, height: 1),
+
+            const SizedBox(height: 5),
+
+            _linhaInformacao(
+              icone: Icons.badge_outlined,
+              titulo: 'CNPJ',
+              valor: _formatarCnpj(organizacao.cnpjorganizacao),
+            ),
+
+            const Divider(color: ClubbarColors.divisor, height: 1),
+
+            _linhaInformacao(
+              icone: Icons.email_outlined,
+              titulo: 'E-mail',
+              valor: _valorOuTraco(organizacao.emailorganizacao),
+            ),
+
+            const Divider(color: ClubbarColors.divisor, height: 1),
+
+            _linhaInformacao(
+              icone: Icons.phone_outlined,
+              titulo: 'Telefone',
+              valor: _formatarTelefone(organizacao.telorganizacao),
+            ),
+
+            const SizedBox(height: 14),
+
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: _editarOrganizacao,
+                icon: const Icon(Icons.edit_rounded),
+                label: const Text('Alterar organização'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ClubbarColors.ambar,
+                  foregroundColor: ClubbarColors.preto,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: _carregando ? null : _carregarOrganizacao,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Atualizar dados'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ClubbarColors.preto,
+                  side: const BorderSide(color: ClubbarColors.borda),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _estadoVazio() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Material(
+          color: ClubbarColors.branco,
+          elevation: 1,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: ClubbarColors.borda),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.business_center_outlined,
+                  size: 52,
+                  color: ClubbarColors.textoSecundario,
+                ),
+
+                const SizedBox(height: 12),
+
+                const Text(
+                  'Organização não encontrada',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: ClubbarColors.textoPrincipal,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                const Text(
+                  'Não foi possível carregar os dados da organização vinculada ao usuário.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: ClubbarColors.textoSecundario,
+                    height: 1.4,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                ElevatedButton.icon(
+                  onPressed: _carregarOrganizacao,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Tentar novamente'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ClubbarColors.ambar,
+                    foregroundColor: ClubbarColors.preto,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _conteudo() {
+    if (_carregando) {
+      return const Expanded(
+        child: Center(
+          child: CircularProgressIndicator(color: ClubbarColors.ambar),
         ),
       );
     }
 
-    return Card(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columns: const [
-            DataColumn(label: Text('ID')),
-            DataColumn(label: Text('Nome')),
-            DataColumn(label: Text('CNPJ')),
-            DataColumn(label: Text('E-mail')),
-            DataColumn(label: Text('Telefone')),
-            DataColumn(label: Text('Status')),
-            DataColumn(label: Text('Ações')),
-          ],
-          rows: _organizacoesFiltradas.map((organizacao) {
-            return DataRow(
-              cells: [
-                DataCell(Text(organizacao.organizacaoId.toString())),
-                DataCell(Text(organizacao.nmorganizacao)),
-                DataCell(Text(organizacao.cnpjorganizacao ?? '-')),
-                DataCell(Text(organizacao.emailorganizacao ?? '-')),
-                DataCell(Text(organizacao.telorganizacao ?? '-')),
-                DataCell(Text(organizacao.sitorganizacao ?? '-')),
-                DataCell(
-                  IconButton(
-                    tooltip: 'Editar',
-                    onPressed: () => _editarOrganizacao(organizacao),
-                    icon: const Icon(Icons.edit),
-                  ),
-                  
-                ),
-              ],
-            );
-          }).toList(),
+    final organizacao = _organizacao;
+
+    if (organizacao == null) {
+      return Expanded(child: _estadoVazio());
+    }
+
+    return Expanded(
+      child: RefreshIndicator(
+        color: ClubbarColors.ambar,
+        onRefresh: _carregarOrganizacao,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
+          children: [_cardOrganizacao(organizacao)],
         ),
       ),
     );
@@ -196,53 +467,22 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Organizações'),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: ClubbarColors.fundo,
+
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+
+      body: SafeArea(
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _buscaController,
-                    onChanged: _filtrar,
-                    decoration: const InputDecoration(
-                      labelText: 'Buscar organização',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.search),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: _novaOrganizacao,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Nova'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: _carregarOrganizacao,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Atualizar'),
-                  ),
-                ),
-              ],
+            const ClubbarPageHeader(
+              titulo: 'Organização',
+              subtitulo: 'Dados cadastrais da empresa',
+              icone: Icons.business_rounded,
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: _carregando
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildTabela(),
-            ),
+
+            _conteudo(),
+
+            const ClubbarFooter(),
           ],
         ),
       ),

@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
-
 import 'package:clubbar_admin/core/services/storage_service.dart';
 import 'package:clubbar_admin/core/theme/clubbar_colors.dart';
 import 'package:clubbar_admin/core/widgets/app_snackbar.dart';
-import 'package:clubbar_admin/core/widgets/clubbar_card.dart';
 import 'package:clubbar_admin/core/widgets/dashboard_menu_card.dart';
 
 import 'package:clubbar_admin/modules/auth/login_page.dart';
 import 'package:clubbar_admin/modules/categorias/categoria_list_page.dart';
 import 'package:clubbar_admin/modules/eventos/evento_list_page.dart';
 import 'package:clubbar_admin/modules/lojas/loja_list_page.dart';
-import 'package:clubbar_admin/modules/organizacoes/organizacao_form_page.dart';
 import 'package:clubbar_admin/modules/painel_gerencial/painel_gerencial_page.dart';
 import 'package:clubbar_admin/modules/produtos/produto_list_page.dart';
 import 'package:clubbar_admin/modules/usuarios/usuario_list_page.dart';
+import 'package:clubbar_admin/modules/organizacoes/organizacao_list_page.dart';
 
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_footer.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -26,7 +25,6 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  String _nomeUsuario = 'Usuário';
   String _nomeOrganizacao = 'Organização';
 
   bool _carregando = true;
@@ -34,21 +32,24 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
+
     _carregarDadosUsuario();
+
+    if (!mounted) return;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _carregarDadosUsuario() async {
     try {
-      final nomeUsuario = await StorageService.getNomeUsuario();
       final nomeOrganizacao = await StorageService.getNomeOrganizacao();
 
       if (!mounted) return;
 
       setState(() {
-        _nomeUsuario = nomeUsuario?.trim().isNotEmpty == true
-            ? nomeUsuario!.trim()
-            : 'Usuário';
-
         _nomeOrganizacao = nomeOrganizacao?.trim().isNotEmpty == true
             ? nomeOrganizacao!.trim()
             : 'Organização';
@@ -69,7 +70,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  Future<int?> _getOrganizacaoId() async {
+  Future<int?> _getOrganizacaoId() {
     return StorageService.getOrganizacaoId();
   }
 
@@ -88,7 +89,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     switch (chaveModulo) {
       case 'organizacao':
-        destino = const OrganizacaoFormPage();
+        destino = const OrganizacaoListPage();
         break;
 
       case 'lojas':
@@ -150,10 +151,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ],
           ),
-          content: const Text(
-            'Deseja realmente encerrar sua sessão?',
-            style: TextStyle(height: 1.4),
-          ),
+          content: const Text('Deseja realmente encerrar sua sessão?'),
           actions: [
             OutlinedButton.icon(
               onPressed: () {
@@ -161,10 +159,6 @@ class _DashboardPageState extends State<DashboardPage> {
               },
               icon: const Icon(Icons.close_rounded),
               label: const Text('Cancelar'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ClubbarColors.textoPrincipal,
-                side: const BorderSide(color: ClubbarColors.borda),
-              ),
             ),
             ElevatedButton.icon(
               onPressed: () {
@@ -190,132 +184,66 @@ class _DashboardPageState extends State<DashboardPage> {
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
-    );
-  }
-
-  Widget _cardUsuario() {
-    return ClubbarCard(
-      elevation: 1,
-      padding: const EdgeInsets.all(18),
-      child: Row(
-        children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: const BoxDecoration(
-              color: ClubbarColors.ambarClaro,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.admin_panel_settings_rounded,
-              size: 31,
-              color: ClubbarColors.preto,
-            ),
-          ),
-
-          const SizedBox(width: 14),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Olá, $_nomeUsuario',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: ClubbarColors.textoPrincipal,
-                  ),
-                ),
-
-                const SizedBox(height: 4),
-
-                const Text(
-                  'Administrador',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: ClubbarColors.textoSecundario,
-                  ),
-                ),
-
-                const SizedBox(height: 2),
-
-                Text(
-                  _nomeOrganizacao,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: ClubbarColors.textoSecundario,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      (_) => false,
     );
   }
 
   Widget _gradeModulos() {
     final modulos = <_DashboardItem>[
-      _DashboardItem(
+      const _DashboardItem(
         chave: 'organizacao',
         titulo: 'Organização',
         subtitulo: 'Dados da empresa',
         icone: Icons.business_rounded,
       ),
-      _DashboardItem(
+      const _DashboardItem(
         chave: 'lojas',
         titulo: 'Lojas',
-        subtitulo: 'Bares e casas',
+        subtitulo: 'Estabelecimentos',
         icone: Icons.storefront_rounded,
       ),
-      _DashboardItem(
+      const _DashboardItem(
         chave: 'categorias',
         titulo: 'Categorias',
-        subtitulo: 'Categorias dos produtos',
+        subtitulo: 'Organização do menu',
         icone: Icons.category_rounded,
       ),
-      _DashboardItem(
+      const _DashboardItem(
         chave: 'produtos',
         titulo: 'Produtos',
-        subtitulo: 'Cadastro de produtos',
+        subtitulo: 'Cardápio',
         icone: Icons.inventory_2_rounded,
       ),
-      _DashboardItem(
+      const _DashboardItem(
         chave: 'eventos',
         titulo: 'Eventos',
-        subtitulo: 'Agenda de shows',
+        subtitulo: 'Shows e ingressos',
         icone: Icons.event_rounded,
       ),
-      _DashboardItem(
+      const _DashboardItem(
         chave: 'usuarios',
         titulo: 'Usuários',
-        subtitulo: 'Acessos da equipe',
+        subtitulo: 'Acessos',
         icone: Icons.people_alt_rounded,
       ),
-      _DashboardItem(
+      const _DashboardItem(
         chave: 'painel',
         titulo: 'Gerencial',
-        subtitulo: 'Indicadores e gráficos',
+        subtitulo: 'Indicadores',
         icone: Icons.analytics_rounded,
       ),
     ];
 
     return GridView.builder(
+      padding: EdgeInsets.zero,
       itemCount: modulos.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
-        childAspectRatio: 0.96,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1.75,
       ),
       itemBuilder: (context, index) {
         final modulo = modulos[index];
@@ -342,51 +270,33 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     return Expanded(
-      child: RefreshIndicator(
-        onRefresh: _carregarDadosUsuario,
-        color: ClubbarColors.ambar,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _cardUsuario(),
-
-            const SizedBox(height: 22),
-
             const Text(
               'Gerenciamento',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w900,
                 color: ClubbarColors.textoPrincipal,
               ),
             ),
 
-            const SizedBox(height: 6),
+            const SizedBox(height: 2),
 
             const Text(
               'Escolha uma opção para continuar.',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 11,
                 color: ClubbarColors.textoSecundario,
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
-            _gradeModulos(),
-
-            const SizedBox(height: 26),
-
-            const Text(
-              'Clubbar Admin',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: ClubbarColors.textoDesabilitado,
-              ),
-            ),
+            Expanded(child: SingleChildScrollView(child: _gradeModulos())),
           ],
         ),
       ),
@@ -405,11 +315,13 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             ClubbarPageHeader(
               titulo: 'Painel Administrativo',
-              subtitulo: _nomeOrganizacao,
+              subtitulo: 'Gerencia a sua organição',
               icone: Icons.dashboard_rounded,
             ),
 
             _conteudo(),
+
+            const ClubbarFooter(),
           ],
         ),
       ),

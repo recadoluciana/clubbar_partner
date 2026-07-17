@@ -8,6 +8,8 @@ import '../../core/widgets/clubbar_card.dart';
 import '../../models/organizacao.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_footer.dart';
+import 'package:flutter/services.dart';
 
 class OrganizacaoFormPage extends StatefulWidget {
   final Organizacao? organizacao;
@@ -34,6 +36,58 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
   String _status = 'ATIVA';
 
   bool get editando => _editando;
+
+  bool _emailValido(String email) {
+    final regex = RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+
+    return regex.hasMatch(email);
+  }
+
+  bool _cnpjValido(String valor) {
+    final cnpj = valor.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (cnpj.length != 14) {
+      return false;
+    }
+
+    if (RegExp(r'^(\d)\1{13}$').hasMatch(cnpj)) {
+      return false;
+    }
+
+    int calcularDigito(String base, List<int> pesos) {
+      var soma = 0;
+
+      for (var i = 0; i < pesos.length; i++) {
+        soma += int.parse(base[i]) * pesos[i];
+      }
+
+      final resto = soma % 11;
+
+      return resto < 2 ? 0 : 11 - resto;
+    }
+
+    final primeiroDigito = calcularDigito(cnpj.substring(0, 12), [
+      5,
+      4,
+      3,
+      2,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+    ]);
+
+    final segundoDigito = calcularDigito(
+      '${cnpj.substring(0, 12)}$primeiroDigito',
+      [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+    );
+
+    return cnpj.endsWith('$primeiroDigito$segundoDigito');
+  }
 
   @override
   void initState() {
@@ -268,56 +322,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
     }
   }
 
-  Widget _cabecalhoFormulario() {
-    return ClubbarCard(
-      elevation: 1,
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-              color: ClubbarColors.ambarClaro,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.business_rounded,
-              color: ClubbarColors.preto,
-              size: 30,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  editando ? 'Dados da organização' : 'Dados da organização',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: ClubbarColors.textoPrincipal,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  editando
-                      ? 'Atualize os dados principais da empresa.'
-                      : 'Preencha os dados para criar a organização.',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: ClubbarColors.textoSecundario,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _formulario() {
     return Form(
       key: _formKey,
@@ -325,21 +329,29 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
         children: [
           TextFormField(
             controller: _nomeController,
+            maxLength: 120,
+            inputFormatters: [LengthLimitingTextInputFormatter(120)],
             textCapitalization: TextCapitalization.words,
-            decoration: _decoracaoCampo(
-              label: 'Nome da organização',
-              icone: Icons.business_outlined,
-              hint: 'Ex.: Grupo Clubbar',
+            decoration: const InputDecoration(
+              labelText: 'Nome da organização',
+              hintText: 'Digite o nome da organização',
+              prefixIcon: Icon(Icons.business_outlined),
+              border: OutlineInputBorder(),
+              counterText: '',
             ),
-            validator: (value) {
-              final texto = value?.trim() ?? '';
+            validator: (valor) {
+              final texto = valor?.trim() ?? '';
 
               if (texto.isEmpty) {
-                return 'Informe o nome da organização';
+                return 'Informe o nome da organização.';
               }
 
               if (texto.length < 3) {
-                return 'Nome muito curto';
+                return 'O nome deve ter pelo menos 3 caracteres.';
+              }
+
+              if (texto.length > 120) {
+                return 'O nome pode ter no máximo 120 caracteres.';
               }
 
               return null;
@@ -351,30 +363,25 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
           TextFormField(
             controller: _cnpjController,
             keyboardType: TextInputType.number,
-            decoration: _decoracaoCampo(
-              label: 'CNPJ',
-              icone: Icons.badge_outlined,
-              hint: '00.000.000/0000-00',
+            inputFormatters: [
+              CnpjInputFormatter(),
+              LengthLimitingTextInputFormatter(18),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'CNPJ',
+              hintText: '00.000.000/0000-00',
+              prefixIcon: Icon(Icons.badge_outlined),
+              border: OutlineInputBorder(),
             ),
-            onChanged: (value) {
-              final formatado = _formatarCnpj(value);
+            validator: (valor) {
+              final cnpj = valor?.trim() ?? '';
 
-              if (formatado != value) {
-                _cnpjController.value = TextEditingValue(
-                  text: formatado,
-                  selection: TextSelection.collapsed(offset: formatado.length),
-                );
-              }
-            },
-            validator: (value) {
-              final numeros = _somenteNumeros(value ?? '');
-
-              if (numeros.isEmpty) {
-                return null;
+              if (cnpj.isEmpty) {
+                return 'Informe o CNPJ.';
               }
 
-              if (numeros.length != 14) {
-                return 'CNPJ inválido';
+              if (!_cnpjValido(cnpj)) {
+                return 'Informe um CNPJ válido.';
               }
 
               return null;
@@ -387,24 +394,26 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: _decoracaoCampo(
-                label: 'E-mail',
-                icone: Icons.email_outlined,
-                hint: 'contato@empresa.com.br',
+              autocorrect: false,
+              enableSuggestions: false,
+              maxLength: 150,
+              inputFormatters: [LengthLimitingTextInputFormatter(150)],
+              decoration: const InputDecoration(
+                labelText: 'E-mail',
+                hintText: 'contato@empresa.com.br',
+                prefixIcon: Icon(Icons.email_outlined),
+                border: OutlineInputBorder(),
+                counterText: '',
               ),
-              validator: (value) {
-                final texto = value?.trim() ?? '';
+              validator: (valor) {
+                final email = valor?.trim() ?? '';
 
-                if (texto.isEmpty) {
-                  return null;
+                if (email.isEmpty) {
+                  return 'Informe o e-mail.';
                 }
 
-                final emailValido = RegExp(
-                  r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                ).hasMatch(texto);
-
-                if (!emailValido) {
-                  return 'Informe um e-mail válido';
+                if (!_emailValido(email)) {
+                  return 'Informe um e-mail válido.';
                 }
 
                 return null;
@@ -416,32 +425,29 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
             TextFormField(
               controller: _telefoneController,
               keyboardType: TextInputType.phone,
-              decoration: _decoracaoCampo(
-                label: 'Telefone',
-                icone: Icons.phone_outlined,
-                hint: '(00) 00000-0000',
+              inputFormatters: [
+                TelefoneInputFormatter(),
+                LengthLimitingTextInputFormatter(15),
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Telefone / celular',
+                hintText: '(35) 99999-9999',
+                prefixIcon: Icon(Icons.phone_outlined),
+                border: OutlineInputBorder(),
               ),
-              onChanged: (value) {
-                final formatado = _formatarTelefone(value);
-
-                if (formatado != value) {
-                  _telefoneController.value = TextEditingValue(
-                    text: formatado,
-                    selection: TextSelection.collapsed(
-                      offset: formatado.length,
-                    ),
-                  );
-                }
-              },
-              validator: (value) {
-                final numeros = _somenteNumeros(value ?? '');
+              validator: (valor) {
+                final numeros = (valor ?? '').replaceAll(RegExp(r'[^0-9]'), '');
 
                 if (numeros.isEmpty) {
-                  return null;
+                  return 'Informe o telefone.';
                 }
 
-                if (numeros.length < 10 || numeros.length > 11) {
-                  return 'Telefone inválido';
+                if (numeros.length != 10 && numeros.length != 11) {
+                  return 'Informe um telefone válido com DDD.';
+                }
+
+                if (numeros.length == 11 && numeros[2] != '9') {
+                  return 'O celular deve começar com 9 após o DDD.';
                 }
 
                 return null;
@@ -527,10 +533,7 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
         children: [
-          _cabecalhoFormulario(),
-
-          const SizedBox(height: 18),
-
+          const SizedBox(height: 4),
           ClubbarCard(
             elevation: 1,
             padding: const EdgeInsets.all(18),
@@ -552,7 +555,7 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: editando ? 'Minha Organização' : 'Nova Organização',
+              titulo: editando ? 'Organização' : 'Nova Organização',
               subtitulo: editando
                   ? 'Gerencie os dados da empresa'
                   : 'Cadastre os dados da empresa',
@@ -560,9 +563,88 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
             ),
 
             _conteudo(),
+            const ClubbarFooter(),
           ],
         ),
       ),
+    );
+  }
+}
+
+class TelefoneInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var numeros = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (numeros.length > 11) {
+      numeros = numeros.substring(0, 11);
+    }
+
+    String texto;
+
+    if (numeros.isEmpty) {
+      texto = '';
+    } else if (numeros.length <= 2) {
+      texto = '($numeros';
+    } else if (numeros.length <= 6) {
+      texto = '(${numeros.substring(0, 2)}) ${numeros.substring(2)}';
+    } else if (numeros.length <= 10) {
+      texto =
+          '(${numeros.substring(0, 2)}) '
+          '${numeros.substring(2, 6)}-'
+          '${numeros.substring(6)}';
+    } else {
+      texto =
+          '(${numeros.substring(0, 2)}) '
+          '${numeros.substring(2, 7)}-'
+          '${numeros.substring(7)}';
+    }
+
+    return TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
+    );
+  }
+}
+
+class CnpjInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var numeros = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (numeros.length > 14) {
+      numeros = numeros.substring(0, 14);
+    }
+
+    final buffer = StringBuffer();
+
+    for (var i = 0; i < numeros.length; i++) {
+      if (i == 2 || i == 5) {
+        buffer.write('.');
+      }
+
+      if (i == 8) {
+        buffer.write('/');
+      }
+
+      if (i == 12) {
+        buffer.write('-');
+      }
+
+      buffer.write(numeros[i]);
+    }
+
+    final texto = buffer.toString();
+
+    return TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
     );
   }
 }
