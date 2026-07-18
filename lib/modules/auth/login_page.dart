@@ -87,9 +87,15 @@ class _LoginPageState extends State<LoginPage> {
         context,
       ).pushReplacement(MaterialPageRoute(builder: (_) => destino!));
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
