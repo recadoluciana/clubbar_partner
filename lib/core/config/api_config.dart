@@ -1,5 +1,8 @@
 class ApiConfig {
-  static const String baseUrl = 'https://api.clubbar.com.br';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://api.clubbar.com.br',
+  );
 
   static const String nomeApp = 'Clubbar';
 
