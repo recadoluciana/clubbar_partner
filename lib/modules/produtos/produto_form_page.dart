@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -57,8 +55,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
   Uint8List? _imagemBytes;
 
   bool get editando => widget.produto != null;
-  bool get _descontoAtivo =>
-      _tipoDescontoSelecionado != 'NENHUM';
+  bool get _descontoAtivo => _tipoDescontoSelecionado != 'NENHUM';
 
   @override
   void initState() {
@@ -70,24 +67,22 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     final produto = widget.produto;
 
     if (produto != null) {
-      _nomeController.text =
-          (produto['nmproduto'] ?? '').toString();
-      _descricaoController.text =
-          (produto['dsproduto'] ?? '').toString();
-      _precoController.text =
-          (produto['vrprecoprod'] ?? '').toString();
-      _categoriaIdSelecionada =
-          int.tryParse((produto['categoria_id'] ?? '').toString());
-      _statusSelecionado =
-          (produto['sitproduto'] ?? 'ATIVO').toString();
-      _tipoDescontoSelecionado =
-          (produto['tipodesconto'] ?? 'NENHUM').toString();
-      _vrDescontoController.text =
-          (produto['vrdesconto'] ?? '0').toString();
-      _dtIniDescontoController.text =
-          _formatarDataTela(produto['dtinidesconto']);
-      _dtFimDescontoController.text =
-          _formatarDataTela(produto['dtfimdesconto']);
+      _nomeController.text = (produto['nmproduto'] ?? '').toString();
+      _descricaoController.text = (produto['dsproduto'] ?? '').toString();
+      _precoController.text = (produto['vrprecoprod'] ?? '').toString();
+      _categoriaIdSelecionada = int.tryParse(
+        (produto['categoria_id'] ?? '').toString(),
+      );
+      _statusSelecionado = (produto['sitproduto'] ?? 'ATIVO').toString();
+      _tipoDescontoSelecionado = (produto['tipodesconto'] ?? 'NENHUM')
+          .toString();
+      _vrDescontoController.text = (produto['vrdesconto'] ?? '0').toString();
+      _dtIniDescontoController.text = _formatarDataTela(
+        produto['dtinidesconto'],
+      );
+      _dtFimDescontoController.text = _formatarDataTela(
+        produto['dtfimdesconto'],
+      );
     } else {
       _vrDescontoController.text = '0';
     }
@@ -118,9 +113,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
   String _mensagemErro(Object erro) {
     final texto = erro.toString().replaceFirst('Exception: ', '').trim();
 
-    return texto.isEmpty
-        ? 'Ocorreu um erro inesperado.'
-        : texto;
+    return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
   }
 
   double _numero(String valor) {
@@ -137,10 +130,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
   }
 
   String _moeda(double valor) {
-    return NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-    ).format(valor);
+    return NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(valor);
   }
 
   double get _precoOriginal {
@@ -148,9 +138,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
   }
 
   double get _valorDesconto {
-    return _descontoAtivo
-        ? _numero(_vrDescontoController.text)
-        : 0;
+    return _descontoAtivo ? _numero(_vrDescontoController.text) : 0;
   }
 
   double get _precoFinal {
@@ -191,21 +179,15 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     if (valor.isEmpty) return null;
 
     try {
-      final data = DateFormat(
-        'dd/MM/yyyy HH:mm',
-      ).parseStrict(valor);
+      final data = DateFormat('dd/MM/yyyy HH:mm').parseStrict(valor);
 
-      return DateFormat(
-        'yyyy-MM-dd HH:mm:ss',
-      ).format(data);
+      return DateFormat('yyyy-MM-dd HH:mm:ss').format(data);
     } catch (_) {
       return null;
     }
   }
 
-  Future<void> _selecionarDataHora(
-    TextEditingController controller,
-  ) async {
+  Future<void> _selecionarDataHora(TextEditingController controller) async {
     final agora = DateTime.now();
 
     final data = await showDatePicker(
@@ -232,9 +214,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
       hora.minute,
     );
 
-    controller.text = DateFormat(
-      'dd/MM/yyyy HH:mm',
-    ).format(dataHora);
+    controller.text = DateFormat('dd/MM/yyyy HH:mm').format(dataHora);
   }
 
   Future<void> _carregarCategorias() async {
@@ -243,9 +223,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     });
 
     try {
-      final lista = await _categoriaRepository.listar(
-        widget.lojaId,
-      );
+      final lista = await _categoriaRepository.listar(widget.lojaId);
 
       if (!mounted) return;
 
@@ -253,8 +231,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
 
       if (lista.isNotEmpty) {
         final existe = lista.any(
-          (categoria) =>
-              categoria.categoriaId == categoriaSelecionada,
+          (categoria) => categoria.categoriaId == categoriaSelecionada,
         );
 
         if (!existe) {
@@ -276,10 +253,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
         _carregandoCategorias = false;
       });
 
-      AppSnackBar.erro(
-        context,
-        'Não foi possível carregar as categorias.',
-      );
+      AppSnackBar.erro(context, 'Não foi possível carregar as categorias.');
     }
   }
 
@@ -307,16 +281,14 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     } catch (e) {
       if (!mounted) return;
 
-      AppSnackBar.erro(
-        context,
-        'Não foi possível selecionar a imagem.',
-      );
+      AppSnackBar.erro(context, 'Não foi possível selecionar a imagem.');
     }
   }
 
   String _montarUrlImagemAtual() {
-    final imagemAtual =
-        (widget.produto?['urlfotoproduto'] ?? '').toString().trim();
+    final imagemAtual = (widget.produto?['urlfotoproduto'] ?? '')
+        .toString()
+        .trim();
 
     if (imagemAtual.isEmpty) return '';
 
@@ -339,48 +311,30 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(
-        icone,
-        color: ClubbarColors.textoSecundario,
-      ),
+      prefixIcon: Icon(icone, color: ClubbarColors.textoSecundario),
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: ClubbarColors.branco,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: ClubbarColors.borda,
-        ),
+        borderSide: const BorderSide(color: ClubbarColors.borda),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: ClubbarColors.borda,
-        ),
+        borderSide: const BorderSide(color: ClubbarColors.borda),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: ClubbarColors.ambar,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: ClubbarColors.erro,
-        ),
+        borderSide: const BorderSide(color: ClubbarColors.erro),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: ClubbarColors.erro,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: ClubbarColors.erro, width: 2),
       ),
     );
   }
@@ -391,10 +345,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_categoriaIdSelecionada == null) {
-      AppSnackBar.aviso(
-        context,
-        'Selecione uma categoria.',
-      );
+      AppSnackBar.aviso(context, 'Selecione uma categoria.');
       return;
     }
 
@@ -411,56 +362,34 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
 
       final vrDesconto = _valorDesconto;
 
-      if (_tipoDescontoSelecionado == 'PERCENTUAL' &&
-          vrDesconto > 100) {
-        throw Exception(
-          'O desconto percentual não pode ser maior que 100%.',
-        );
+      if (_tipoDescontoSelecionado == 'PERCENTUAL' && vrDesconto > 100) {
+        throw Exception('O desconto percentual não pode ser maior que 100%.');
       }
 
-      if (_tipoDescontoSelecionado == 'VALOR' &&
-          vrDesconto > preco) {
-        throw Exception(
-          'O desconto não pode ser maior que o preço.',
-        );
+      if (_tipoDescontoSelecionado == 'VALOR' && vrDesconto > preco) {
+        throw Exception('O desconto não pode ser maior que o preço.');
       }
 
-      final dtIniDesconto = _formatarDataApi(
-        _dtIniDescontoController.text,
-      );
-      final dtFimDesconto = _formatarDataApi(
-        _dtFimDescontoController.text,
-      );
+      final dtIniDesconto = _formatarDataApi(_dtIniDescontoController.text);
+      final dtFimDesconto = _formatarDataApi(_dtFimDescontoController.text);
 
       if (_dtIniDescontoController.text.trim().isNotEmpty &&
           dtIniDesconto == null) {
-        throw Exception(
-          'Data inicial inválida. Use dd/MM/yyyy HH:mm.',
-        );
+        throw Exception('Data inicial inválida. Use dd/MM/yyyy HH:mm.');
       }
 
       if (_dtFimDescontoController.text.trim().isNotEmpty &&
           dtFimDesconto == null) {
-        throw Exception(
-          'Data final inválida. Use dd/MM/yyyy HH:mm.',
-        );
+        throw Exception('Data final inválida. Use dd/MM/yyyy HH:mm.');
       }
 
-      if (_descontoAtivo &&
-          dtIniDesconto != null &&
-          dtFimDesconto != null) {
-        final inicio = DateFormat(
-          'yyyy-MM-dd HH:mm:ss',
-        ).parse(dtIniDesconto);
+      if (_descontoAtivo && dtIniDesconto != null && dtFimDesconto != null) {
+        final inicio = DateFormat('yyyy-MM-dd HH:mm:ss').parse(dtIniDesconto);
 
-        final fim = DateFormat(
-          'yyyy-MM-dd HH:mm:ss',
-        ).parse(dtFimDesconto);
+        final fim = DateFormat('yyyy-MM-dd HH:mm:ss').parse(dtFimDesconto);
 
         if (!fim.isAfter(inicio)) {
-          throw Exception(
-            'A data final deve ser posterior à data inicial.',
-          );
+          throw Exception('A data final deve ser posterior à data inicial.');
         }
       }
 
@@ -508,10 +437,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     } catch (e) {
       if (!mounted) return;
 
-      AppSnackBar.erro(
-        context,
-        _mensagemErro(e),
-      );
+      AppSnackBar.erro(context, _mensagemErro(e));
     } finally {
       if (mounted) {
         setState(() {
@@ -572,10 +498,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
         children: [
           const Text(
             'Imagem do produto',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 14),
           ClipRRect(
@@ -597,15 +520,11 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
                 _imagemSelecionada != null || editando
                     ? 'Alterar imagem'
                     : 'Selecionar imagem',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: ClubbarColors.textoPrincipal,
-                side: const BorderSide(
-                  color: ClubbarColors.borda,
-                ),
+                side: const BorderSide(color: ClubbarColors.borda),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -625,10 +544,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
         children: [
           const Text(
             'Dados do produto',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -667,9 +583,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           const SizedBox(height: 14),
           TextFormField(
             controller: _precoController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: _decoracaoCampo(
               label: 'Preço',
               icone: Icons.attach_money_rounded,
@@ -688,9 +602,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           const SizedBox(height: 14),
           _carregandoCategorias
               ? const Center(
-                  child: CircularProgressIndicator(
-                    color: ClubbarColors.ambar,
-                  ),
+                  child: CircularProgressIndicator(color: ClubbarColors.ambar),
                 )
               : DropdownButtonFormField<int>(
                   initialValue: _categoriaIdSelecionada,
@@ -731,14 +643,8 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
               icone: Icons.toggle_on_outlined,
             ),
             items: const [
-              DropdownMenuItem(
-                value: 'ATIVO',
-                child: Text('Ativo'),
-              ),
-              DropdownMenuItem(
-                value: 'INATIVO',
-                child: Text('Inativo'),
-              ),
+              DropdownMenuItem(value: 'ATIVO', child: Text('Ativo')),
+              DropdownMenuItem(value: 'INATIVO', child: Text('Inativo')),
             ],
             onChanged: _salvando
                 ? null
@@ -763,10 +669,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
         children: [
           const Text(
             'Promoção',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 6),
           const Text(
@@ -784,18 +687,9 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
               icone: Icons.sell_outlined,
             ),
             items: const [
-              DropdownMenuItem(
-                value: 'NENHUM',
-                child: Text('Sem desconto'),
-              ),
-              DropdownMenuItem(
-                value: 'PERCENTUAL',
-                child: Text('Percentual'),
-              ),
-              DropdownMenuItem(
-                value: 'VALOR',
-                child: Text('Valor em reais'),
-              ),
+              DropdownMenuItem(value: 'NENHUM', child: Text('Sem desconto')),
+              DropdownMenuItem(value: 'PERCENTUAL', child: Text('Percentual')),
+              DropdownMenuItem(value: 'VALOR', child: Text('Valor em reais')),
             ],
             onChanged: _salvando
                 ? null
@@ -817,9 +711,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           TextFormField(
             controller: _vrDescontoController,
             enabled: _descontoAtivo,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: _decoracaoCampo(
               label: _tipoDescontoSelecionado == 'PERCENTUAL'
                   ? 'Desconto (%)'
@@ -849,14 +741,10 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             decoration: _decoracaoCampo(
               label: 'Início da promoção',
               icone: Icons.calendar_today_outlined,
-              suffixIcon: const Icon(
-                Icons.schedule_rounded,
-              ),
+              suffixIcon: const Icon(Icons.schedule_rounded),
             ),
             onTap: _descontoAtivo
-                ? () => _selecionarDataHora(
-                      _dtIniDescontoController,
-                    )
+                ? () => _selecionarDataHora(_dtIniDescontoController)
                 : null,
           ),
           const SizedBox(height: 14),
@@ -867,14 +755,10 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             decoration: _decoracaoCampo(
               label: 'Fim da promoção',
               icone: Icons.event_available_outlined,
-              suffixIcon: const Icon(
-                Icons.schedule_rounded,
-              ),
+              suffixIcon: const Icon(Icons.schedule_rounded),
             ),
             onTap: _descontoAtivo
-                ? () => _selecionarDataHora(
-                      _dtFimDescontoController,
-                    )
+                ? () => _selecionarDataHora(_dtFimDescontoController)
                 : null,
           ),
         ],
@@ -883,10 +767,9 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
   }
 
   Widget _cardResumo() {
-    final descontoTexto =
-        _tipoDescontoSelecionado == 'PERCENTUAL'
-            ? '${_valorDesconto.toStringAsFixed(2)}%'
-            : _moeda(_valorDesconto);
+    final descontoTexto = _tipoDescontoSelecionado == 'PERCENTUAL'
+        ? '${_valorDesconto.toStringAsFixed(2)}%'
+        : _moeda(_valorDesconto);
 
     return ClubbarCard(
       elevation: 1,
@@ -904,31 +787,20 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
               SizedBox(width: 9),
               Text(
                 'Resumo do preço',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          _linhaResumo(
-            titulo: 'Preço original',
-            valor: _moeda(_precoOriginal),
-          ),
+          _linhaResumo(titulo: 'Preço original', valor: _moeda(_precoOriginal)),
           const SizedBox(height: 10),
           _linhaResumo(
             titulo: 'Desconto',
-            valor: _descontoAtivo
-                ? descontoTexto
-                : 'Sem desconto',
+            valor: _descontoAtivo ? descontoTexto : 'Sem desconto',
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 13),
-            child: Divider(
-              height: 1,
-              color: ClubbarColors.ambar,
-            ),
+            child: Divider(height: 1, color: ClubbarColors.ambar),
           ),
           _linhaResumo(
             titulo: 'Preço final',
@@ -952,9 +824,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             titulo,
             style: TextStyle(
               fontSize: destaque ? 15 : 14,
-              fontWeight: destaque
-                  ? FontWeight.w900
-                  : FontWeight.w600,
+              fontWeight: destaque ? FontWeight.w900 : FontWeight.w600,
               color: ClubbarColors.textoSecundario,
             ),
           ),
@@ -993,12 +863,9 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           _salvando
               ? 'Salvando...'
               : editando
-                  ? 'Salvar alterações'
-                  : 'Cadastrar produto',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
+              ? 'Salvar alterações'
+              : 'Cadastrar produto',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: ClubbarColors.ambar,
@@ -1018,16 +885,12 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(
-        mostrarVoltar: true,
-      ),
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: SafeArea(
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: editando
-                  ? 'Editar Produto'
-                  : 'Novo Produto',
+              titulo: editando ? 'Editar Produto' : 'Novo Produto',
               subtitulo: editando
                   ? 'Atualize os dados do produto'
                   : 'Cadastre um item no cardápio',
@@ -1039,12 +902,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
                 child: ListView(
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    20,
-                    20,
-                    30,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
                   children: [
                     _cardImagem(),
                     const SizedBox(height: 16),

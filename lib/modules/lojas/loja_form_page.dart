@@ -402,7 +402,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _tituloSecao('Identificação', Icons.storefront_outlined),
+                          _tituloSecao(
+                            'Identificação',
+                            Icons.storefront_outlined,
+                          ),
                           GestureDetector(
                             onTap: _salvando ? null : _selecionarImagem,
                             child: Container(
@@ -426,37 +429,39 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                               _imagemSelecionada!.path,
                                               fit: BoxFit.cover,
                                               width: double.infinity,
-                                              errorBuilder: (_, __, ___) =>
+                                              errorBuilder: (_, _, _) =>
                                                   const Center(
-                                                child: Icon(Icons.store, size: 44),
-                                              ),
+                                                    child: Icon(
+                                                      Icons.store,
+                                                      size: 44,
+                                                    ),
+                                                  ),
                                             ),
                                     )
                                   : editando && imagemAtualUrl.isNotEmpty
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(16),
-                                          child: Image.network(
-                                            imagemAtualUrl,
-                                            key: ValueKey(imagemAtualUrl),
-                                            fit: BoxFit.cover,
-                                            width: double.infinity,
-                                            errorBuilder: (_, __, ___) =>
-                                                const Center(
-                                              child: Icon(Icons.store, size: 44),
-                                            ),
-                                          ),
-                                        )
-                                      : const Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.image_outlined, size: 42),
-                                              SizedBox(height: 8),
-                                              Text('Toque para selecionar a logo'),
-                                            ],
-                                          ),
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Image.network(
+                                        imagemAtualUrl,
+                                        key: ValueKey(imagemAtualUrl),
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        errorBuilder: (_, _, _) => const Center(
+                                          child: Icon(Icons.store, size: 44),
                                         ),
+                                      ),
+                                    )
+                                  : const Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.image_outlined, size: 42),
+                                          SizedBox(height: 8),
+                                          Text('Toque para selecionar a logo'),
+                                        ],
+                                      ),
+                                    ),
                             ),
                           ),
                           TextFormField(
@@ -473,7 +478,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
                             ).copyWith(counterText: ''),
                             validator: (value) {
                               final texto = value?.trim() ?? '';
-                              if (texto.isEmpty) return 'Informe o nome da loja.';
+                              if (texto.isEmpty)
+                                return 'Informe o nome da loja.';
                               if (texto.length < 3) {
                                 return 'Informe pelo menos 3 caracteres.';
                               }
@@ -496,11 +502,16 @@ class _LojaFormPageState extends State<LojaFormPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _tituloSecao('Localização', Icons.location_on_outlined),
+                          _tituloSecao(
+                            'Localização',
+                            Icons.location_on_outlined,
+                          ),
                           _carregandoCidades
                               ? const Padding(
                                   padding: EdgeInsets.all(20),
-                                  child: Center(child: CircularProgressIndicator()),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
                                 )
                               : DropdownButtonFormField<int>(
                                   initialValue: _cidadeIdSelecionada,
@@ -611,7 +622,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
                             validator: (value) {
                               final numeros = _somenteNumeros(value ?? '');
                               if (numeros.isEmpty) return null;
-                              if (numeros.length != 10 && numeros.length != 11) {
+                              if (numeros.length != 10 &&
+                                  numeros.length != 11) {
                                 return 'Informe um telefone válido com DDD.';
                               }
                               if (numeros.length == 11 && numeros[2] != '9') {
@@ -676,7 +688,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _tituloSecao('Taxas do Clubbar', Icons.percent_outlined),
+                          _tituloSecao(
+                            'Taxas do Clubbar',
+                            Icons.percent_outlined,
+                          ),
                           LayoutBuilder(
                             builder: (context, constraints) {
                               final taxaProdutosField = TextFormField(
@@ -797,11 +812,13 @@ class TelefoneInputFormatter extends TextInputFormatter {
     } else if (numeros.length <= 6) {
       texto = '(${numeros.substring(0, 2)}) ${numeros.substring(2)}';
     } else if (numeros.length <= 10) {
-      texto = '(${numeros.substring(0, 2)}) '
+      texto =
+          '(${numeros.substring(0, 2)}) '
           '${numeros.substring(2, 6)}-'
           '${numeros.substring(6)}';
     } else {
-      texto = '(${numeros.substring(0, 2)}) '
+      texto =
+          '(${numeros.substring(0, 2)}) '
           '${numeros.substring(2, 7)}-'
           '${numeros.substring(7)}';
     }

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -68,8 +67,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
       final inicio = DateTime.tryParse(evento.dtinicioevento ?? '');
       if (inicio != null) {
         _dataInicioSelecionada = inicio;
-        _dataInicioController.text =
-            DateFormat('dd/MM/yyyy HH:mm').format(inicio);
+        _dataInicioController.text = DateFormat(
+          'dd/MM/yyyy HH:mm',
+        ).format(inicio);
       }
 
       final fim = DateTime.tryParse(evento.dtfimevento ?? '');
@@ -133,13 +133,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
     if (hora == null) return null;
 
-    return DateTime(
-      data.year,
-      data.month,
-      data.day,
-      hora.hour,
-      hora.minute,
-    );
+    return DateTime(data.year, data.month, data.day, hora.hour, hora.minute);
   }
 
   Future<void> _selecionarInicio() async {
@@ -148,8 +142,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
     setState(() {
       _dataInicioSelecionada = data;
-      _dataInicioController.text =
-          DateFormat('dd/MM/yyyy HH:mm').format(data);
+      _dataInicioController.text = DateFormat('dd/MM/yyyy HH:mm').format(data);
 
       if (_dataFimSelecionada == null || _dataFimSelecionada!.isBefore(data)) {
         _dataFimSelecionada = data;
@@ -514,10 +507,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.confirmation_number_rounded,
-            color: ClubbarColors.info,
-          ),
+          Icon(Icons.confirmation_number_rounded, color: ClubbarColors.info),
           SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -556,12 +546,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
           _salvando
               ? 'Salvando...'
               : editando
-                  ? 'Salvar alterações'
-                  : 'Cadastrar evento',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
+              ? 'Salvar alterações'
+              : 'Cadastrar evento',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: ClubbarColors.ambar,
