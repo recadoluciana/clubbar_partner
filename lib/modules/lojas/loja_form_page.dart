@@ -478,8 +478,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
                             ).copyWith(counterText: ''),
                             validator: (value) {
                               final texto = value?.trim() ?? '';
-                              if (texto.isEmpty)
+                              if (texto.isEmpty) {
                                 return 'Informe o nome da loja.';
+                              }
                               if (texto.length < 3) {
                                 return 'Informe pelo menos 3 caracteres.';
                               }
