@@ -4,6 +4,7 @@ class Usuario {
   final int? lojaId;
   final String nmusuario;
   final String emailuser;
+  final String dscargo;
   final String? situsuario;
 
   Usuario({
@@ -12,6 +13,7 @@ class Usuario {
     this.lojaId,
     required this.nmusuario,
     required this.emailuser,
+    required this.dscargo,
     this.situsuario,
   });
 
@@ -22,6 +24,7 @@ class Usuario {
       lojaId: json['loja_id'],
       nmusuario: (json['nmusuario'] ?? '').toString(),
       emailuser: (json['emailuser'] ?? '').toString(),
+      dscargo: json['dscargo']?.toString() ?? 'BARMAN',
       situsuario: json['situsuario']?.toString(),
     );
   }

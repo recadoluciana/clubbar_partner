@@ -22,22 +22,41 @@ class UsuarioFormPage extends StatefulWidget {
 
 class _UsuarioFormPageState extends State<UsuarioFormPage> {
   final _formKey = GlobalKey<FormState>();
+
   final UsuarioRepository _usuarioRepository = UsuarioRepository();
   final LojaRepository _lojaRepository = LojaRepository();
 
   final _nomeController = TextEditingController();
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
+  final _confirmarSenhaController = TextEditingController();
 
   bool _salvando = false;
   bool _carregandoLojas = true;
+
   bool _ocultarSenha = true;
+  bool _ocultarConfirmacaoSenha = true;
 
   List<Loja> _lojas = [];
+
   int? _lojaIdSelecionada;
+
   String _statusSelecionado = 'ATIVO';
+  String _cargoSelecionado = 'BARMAN';
 
   bool get editando => widget.usuario != null;
+
+  bool get usuarioPrincipal => editando && widget.usuario!.usuarioId == 1;
+
+  static const List<String> _cargos = [
+    'SUPERADMIN',
+    'ADMIN',
+    'GERENTE',
+    'CAIXA',
+    'BARMAN',
+    'GARCOM',
+    'PORTEIRO',
+  ];
 
   @override
   void initState() {
@@ -48,8 +67,16 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
     if (usuario != null) {
       _nomeController.text = usuario.nmusuario;
       _emailController.text = usuario.emailuser;
+
       _lojaIdSelecionada = usuario.lojaId;
-      _statusSelecionado = usuario.situsuario ?? 'ATIVO';
+
+      _statusSelecionado = (usuario.situsuario ?? 'ATIVO').toUpperCase();
+
+      _cargoSelecionado = usuario.dscargo.trim().toUpperCase();
+
+      if (!_cargos.contains(_cargoSelecionado)) {
+        _cargoSelecionado = 'BARMAN';
+      }
     }
 
     _carregarLojas();
@@ -60,16 +87,53 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
     _nomeController.dispose();
     _emailController.dispose();
     _senhaController.dispose();
+    _confirmarSenhaController.dispose();
+
     super.dispose();
   }
 
   String _mensagemErro(Object erro) {
-    final texto = erro.toString().replaceFirst('Exception: ', '').trim();
+    final texto = erro
+        .toString()
+        .replaceFirst('Exception: ', '')
+        .replaceFirst('Exception:', '')
+        .trim();
+
     return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
   }
 
+  String _nomeCargo(String cargo) {
+    switch (cargo) {
+      case 'SUPERADMIN':
+        return 'Superadministrador';
+
+      case 'ADMIN':
+        return 'Administrador';
+
+      case 'GERENTE':
+        return 'Gerente';
+
+      case 'CAIXA':
+        return 'Caixa';
+
+      case 'BARMAN':
+        return 'Barman';
+
+      case 'GARCOM':
+        return 'Garçom';
+
+      case 'PORTEIRO':
+        return 'Porteiro';
+
+      default:
+        return cargo;
+    }
+  }
+
   Future<void> _carregarLojas() async {
-    setState(() => _carregandoLojas = true);
+    setState(() {
+      _carregandoLojas = true;
+    });
 
     try {
       final lista = await _lojaRepository.listar(widget.organizacaoId);
@@ -90,7 +154,11 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _carregandoLojas = false);
+
+      setState(() {
+        _carregandoLojas = false;
+      });
+
       AppSnackBar.erro(context, 'Não foi possível carregar as lojas.');
     }
   }
@@ -116,6 +184,10 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: ClubbarColors.borda),
       ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: ClubbarColors.borda),
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
@@ -123,33 +195,124 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
     );
   }
 
+  String? _validarNome(String? value) {
+    final texto = value?.trim() ?? '';
+
+    if (texto.isEmpty) {
+      return 'Informe o nome do usuário';
+    }
+
+    if (texto.length < 3) {
+      return 'Informe um nome válido';
+    }
+
+    if (texto.length > 200) {
+      return 'O nome deve possuir no máximo 200 caracteres';
+    }
+
+    return null;
+  }
+
+  String? _validarEmail(String? value) {
+    final texto = value?.trim().toLowerCase() ?? '';
+
+    if (texto.isEmpty) {
+      return 'Informe o e-mail';
+    }
+
+    if (texto.length > 200) {
+      return 'O e-mail deve possuir no máximo 200 caracteres';
+    }
+
+    final regex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+    if (!regex.hasMatch(texto)) {
+      return 'Informe um e-mail válido';
+    }
+
+    return null;
+  }
+
+  String? _validarSenha(String? value) {
+    final senha = value?.trim() ?? '';
+
+    if (!editando && senha.isEmpty) {
+      return 'Informe a senha';
+    }
+
+    if (senha.isNotEmpty && senha.length < 6) {
+      return 'Use pelo menos 6 caracteres';
+    }
+
+    return null;
+  }
+
+  String? _validarConfirmacaoSenha(String? value) {
+    final senha = _senhaController.text.trim();
+    final confirmacao = value?.trim() ?? '';
+
+    if (!editando && confirmacao.isEmpty) {
+      return 'Confirme a senha';
+    }
+
+    if (senha.isNotEmpty && confirmacao.isEmpty) {
+      return 'Confirme a nova senha';
+    }
+
+    if (senha.isEmpty && editando) {
+      return null;
+    }
+
+    if (senha != confirmacao) {
+      return 'As senhas não conferem';
+    }
+
+    return null;
+  }
+
   Future<void> _salvar() async {
     FocusScope.of(context).unfocus();
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-    setState(() => _salvando = true);
+    setState(() {
+      _salvando = true;
+    });
 
     try {
+      final nome = _nomeController.text.trim();
+
+      final email = _emailController.text.trim().toLowerCase();
+
       final senha = _senhaController.text.trim();
+
+      // O usuário 1 mantém obrigatoriamente
+      // o cargo que já possui.
+      final cargo = usuarioPrincipal
+          ? widget.usuario!.dscargo
+          : _cargoSelecionado;
 
       if (editando) {
         await _usuarioRepository.atualizar(
           organizacaoId: widget.organizacaoId,
           usuarioId: widget.usuario!.usuarioId,
-          nome: _nomeController.text.trim(),
-          email: _emailController.text.trim(),
+          nome: nome,
+          email: email,
           senha: senha.isEmpty ? null : senha,
           lojaId: _lojaIdSelecionada,
+          dscargo: cargo,
           situsuario: _statusSelecionado,
         );
       } else {
         await _usuarioRepository.criar(
           organizacaoId: widget.organizacaoId,
-          nome: _nomeController.text.trim(),
-          email: _emailController.text.trim(),
+          nome: nome,
+          email: email,
           senha: senha,
           lojaId: _lojaIdSelecionada,
+          dscargo: cargo,
           situsuario: _statusSelecionado,
         );
       }
@@ -166,10 +329,122 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
+
       AppSnackBar.erro(context, _mensagemErro(e));
     } finally {
-      if (mounted) setState(() => _salvando = false);
+      if (mounted) {
+        setState(() {
+          _salvando = false;
+        });
+      }
     }
+  }
+
+  Widget _cabecalhoUsuario() {
+    return ClubbarCard(
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: const BoxDecoration(
+              color: ClubbarColors.ambarClaro,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              usuarioPrincipal
+                  ? Icons.admin_panel_settings_rounded
+                  : Icons.person_rounded,
+              size: 31,
+            ),
+          ),
+
+          const SizedBox(width: 14),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  editando ? 'Dados do usuário' : 'Novo usuário',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+
+                if (usuarioPrincipal) ...[
+                  const SizedBox(height: 5),
+
+                  const Text(
+                    'Usuário principal do Clubbar',
+                    style: TextStyle(
+                      color: ClubbarColors.textoSecundario,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          if (usuarioPrincipal)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: ClubbarColors.ambarClaro,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_rounded, size: 15),
+                  SizedBox(width: 5),
+                  Text(
+                    'Principal',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _campoCargo() {
+    return DropdownButtonFormField<String>(
+      initialValue: _cargoSelecionado,
+      isExpanded: true,
+      decoration: _decoracaoCampo(
+        label: 'Cargo',
+        icone: Icons.badge_outlined,
+        suffixIcon: usuarioPrincipal
+            ? const Icon(
+                Icons.lock_outline_rounded,
+                color: ClubbarColors.textoSecundario,
+              )
+            : null,
+      ),
+      items: _cargos
+          .map(
+            (cargo) => DropdownMenuItem<String>(
+              value: cargo,
+              child: Text(_nomeCargo(cargo)),
+            ),
+          )
+          .toList(),
+      onChanged: usuarioPrincipal || _salvando
+          ? null
+          : (value) {
+              if (value == null) return;
+
+              setState(() {
+                _cargoSelecionado = value;
+              });
+            },
+    );
   }
 
   Widget _botaoSalvar() {
@@ -216,7 +491,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
+
       appBar: const ClubbarAppBar(mostrarVoltar: true),
+
       body: SafeArea(
         child: Column(
           children: [
@@ -224,9 +501,10 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
               titulo: editando ? 'Editar Usuário' : 'Novo Usuário',
               subtitulo: editando
                   ? 'Atualize os dados de acesso'
-                  : 'Cadastre um acesso ao sistema',
+                  : 'Cadastre um novo acesso ao sistema',
               icone: Icons.people_alt_rounded,
             ),
+
             Expanded(
               child: Form(
                 key: _formKey,
@@ -235,32 +513,10 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   children: [
-                    ClubbarCard(
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 58,
-                            height: 58,
-                            decoration: const BoxDecoration(
-                              color: ClubbarColors.ambarClaro,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.person_rounded, size: 31),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              editando ? 'Dados do usuário' : 'Novo usuário',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    _cabecalhoUsuario(),
+
                     const SizedBox(height: 16),
+
                     ClubbarCard(
                       child: Column(
                         children: [
@@ -271,34 +527,45 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                               label: 'Nome do usuário',
                               icone: Icons.person_outline_rounded,
                             ),
-                            validator: (value) {
-                              final texto = value?.trim() ?? '';
-                              if (texto.isEmpty) {
-                                return 'Informe o nome do usuário';
-                              }
-                              return null;
-                            },
+                            validator: _validarNome,
                           ),
+
                           const SizedBox(height: 14),
+
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            autocorrect: false,
+                            enableSuggestions: false,
                             decoration: _decoracaoCampo(
                               label: 'E-mail',
                               icone: Icons.email_outlined,
+                              hint: 'E-mail utilizado para acessar o sistema',
                             ),
-                            validator: (value) {
-                              final texto = value?.trim() ?? '';
-                              if (texto.isEmpty) return 'Informe o e-mail';
-                              if (!RegExp(
-                                r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                              ).hasMatch(texto)) {
-                                return 'Informe um e-mail válido';
-                              }
-                              return null;
-                            },
+                            validator: _validarEmail,
                           ),
+
                           const SizedBox(height: 14),
+
+                          _campoCargo(),
+
+                          if (usuarioPrincipal) ...[
+                            const SizedBox(height: 8),
+
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'O cargo do usuário principal não pode ser alterado.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: ClubbarColors.textoSecundario,
+                                ),
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 14),
+
                           TextFormField(
                             controller: _senhaController,
                             obscureText: _ocultarSenha,
@@ -308,6 +575,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                                   : 'Senha',
                               icone: Icons.lock_outline_rounded,
                               suffixIcon: IconButton(
+                                tooltip: _ocultarSenha
+                                    ? 'Mostrar senha'
+                                    : 'Ocultar senha',
                                 onPressed: () {
                                   setState(() {
                                     _ocultarSenha = !_ocultarSenha;
@@ -320,21 +590,47 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                                 ),
                               ),
                             ),
-                            validator: (value) {
-                              final senha = value?.trim() ?? '';
-                              if (!editando && senha.isEmpty) {
-                                return 'Informe a senha';
-                              }
-                              if (senha.isNotEmpty && senha.length < 6) {
-                                return 'Use pelo menos 6 caracteres';
-                              }
-                              return null;
-                            },
+                            validator: _validarSenha,
                           ),
+
                           const SizedBox(height: 14),
+
+                          TextFormField(
+                            controller: _confirmarSenhaController,
+                            obscureText: _ocultarConfirmacaoSenha,
+                            decoration: _decoracaoCampo(
+                              label: editando
+                                  ? 'Confirmar nova senha'
+                                  : 'Confirmar senha',
+                              icone: Icons.lock_reset_rounded,
+                              suffixIcon: IconButton(
+                                tooltip: _ocultarConfirmacaoSenha
+                                    ? 'Mostrar confirmação'
+                                    : 'Ocultar confirmação',
+                                onPressed: () {
+                                  setState(() {
+                                    _ocultarConfirmacaoSenha =
+                                        !_ocultarConfirmacaoSenha;
+                                  });
+                                },
+                                icon: Icon(
+                                  _ocultarConfirmacaoSenha
+                                      ? Icons.visibility_off_rounded
+                                      : Icons.visibility_rounded,
+                                ),
+                              ),
+                            ),
+                            validator: _validarConfirmacaoSenha,
+                          ),
+
+                          const SizedBox(height: 14),
+
                           _carregandoLojas
-                              ? const CircularProgressIndicator(
-                                  color: ClubbarColors.ambar,
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: CircularProgressIndicator(
+                                    color: ClubbarColors.ambar,
+                                  ),
                                 )
                               : DropdownButtonFormField<int?>(
                                   initialValue: _lojaIdSelecionada,
@@ -363,7 +659,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                                           });
                                         },
                                 ),
+
                           const SizedBox(height: 14),
+
                           DropdownButtonFormField<String>(
                             initialValue: _statusSelecionado,
                             decoration: _decoracaoCampo(
@@ -383,7 +681,10 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                             onChanged: _salvando
                                 ? null
                                 : (value) {
-                                    if (value == null) return;
+                                    if (value == null) {
+                                      return;
+                                    }
+
                                     setState(() {
                                       _statusSelecionado = value;
                                     });
@@ -392,24 +693,35 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 16),
+
                     ClubbarCard(
                       elevation: 0,
                       backgroundColor: ClubbarColors.infoClaro,
                       borderColor: ClubbarColors.info,
-                      child: const Row(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.info_outline_rounded,
                             color: ClubbarColors.info,
                           ),
-                          SizedBox(width: 12),
+
+                          const SizedBox(width: 12),
+
                           Expanded(
                             child: Text(
-                              'Vincule o usuário a uma loja para limitar '
-                              'as operações ao estabelecimento correto.',
-                              style: TextStyle(
+                              usuarioPrincipal
+                                  ? 'Este é o usuário principal do sistema. '
+                                        'O cargo e a exclusão deste usuário '
+                                        'são protegidos. Nome, e-mail e senha '
+                                        'podem ser atualizados normalmente.'
+                                  : 'O e-mail é utilizado como chave de acesso. '
+                                        'Ao vincular uma loja, o usuário poderá '
+                                        'ser direcionado às operações daquele '
+                                        'estabelecimento.',
+                              style: const TextStyle(
                                 color: ClubbarColors.info,
                                 height: 1.4,
                               ),
@@ -418,7 +730,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 20),
+
                     _botaoSalvar(),
                   ],
                 ),

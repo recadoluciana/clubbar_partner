@@ -27,6 +27,7 @@ class UsuarioRepository {
     required String nome,
     required String email,
     required String senha,
+    required String dscargo,
     int? lojaId,
     String situsuario = 'ATIVO',
   }) async {
@@ -35,6 +36,7 @@ class UsuarioRepository {
           'nmusuario': nome,
           'emailuser': email,
           'senha': senha,
+          'dscargo': dscargo,
           'loja_id': lojaId,
           'situsuario': situsuario,
         });
@@ -50,6 +52,7 @@ class UsuarioRepository {
     String? nome,
     String? email,
     String? senha,
+    String? dscargo,
     int? lojaId,
     String? situsuario,
   }) async {
@@ -59,6 +62,7 @@ class UsuarioRepository {
         'nmusuario': nome,
         'emailuser': email,
         'senha': senha,
+        'dscargo': dscargo,
         'loja_id': lojaId,
         'situsuario': situsuario,
       },

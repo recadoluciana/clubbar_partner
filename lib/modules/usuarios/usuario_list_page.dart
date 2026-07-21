@@ -24,11 +24,14 @@ class UsuarioListPage extends StatefulWidget {
 
 class _UsuarioListPageState extends State<UsuarioListPage> {
   final UsuarioRepository _repository = UsuarioRepository();
+
   final LojaRepository _lojaRepository = LojaRepository();
+
   final TextEditingController _buscaController = TextEditingController();
 
   bool _carregando = true;
   bool _excluindo = false;
+
   String? _erro;
 
   List<Usuario> _usuarios = [];
@@ -38,12 +41,14 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   @override
   void initState() {
     super.initState();
+
     _carregarTudo();
   }
 
   @override
   void dispose() {
     _buscaController.dispose();
+
     super.dispose();
   }
 
@@ -56,6 +61,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
       if (inicio != -1 && fim != -1 && fim > inicio) {
         final jsonTexto = texto.substring(inicio, fim + 1);
+
         final decoded = jsonDecode(jsonTexto);
 
         if (decoded is Map && decoded['detail'] != null) {
@@ -80,6 +86,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
     try {
       final usuarios = await _repository.listar(widget.organizacaoId);
+
       final lojas = await _lojaRepository.listar(widget.organizacaoId);
 
       if (!mounted) return;
@@ -87,7 +94,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       setState(() {
         _usuarios = usuarios;
         _lojas = lojas;
+
         _usuariosFiltrados = _aplicarFiltro(usuarios, _buscaController.text);
+
         _carregando = false;
       });
     } catch (e) {
@@ -104,15 +113,47 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
     }
   }
 
+  String _nomeCargo(String cargo) {
+    switch (cargo.trim().toUpperCase()) {
+      case 'SUPERADMIN':
+        return 'Superadministrador';
+
+      case 'ADMIN':
+        return 'Administrador';
+
+      case 'GERENTE':
+        return 'Gerente';
+
+      case 'CAIXA':
+        return 'Caixa';
+
+      case 'BARMAN':
+        return 'Barman';
+
+      case 'GARCOM':
+        return 'Garçom';
+
+      case 'PORTEIRO':
+        return 'Porteiro';
+
+      default:
+        return cargo;
+    }
+  }
+
   List<Usuario> _aplicarFiltro(List<Usuario> usuarios, String texto) {
     final busca = texto.trim().toLowerCase();
 
-    if (busca.isEmpty) return List<Usuario>.from(usuarios);
+    if (busca.isEmpty) {
+      return List<Usuario>.from(usuarios);
+    }
 
     return usuarios.where((usuario) {
       return usuario.usuarioId.toString().contains(busca) ||
           usuario.nmusuario.toLowerCase().contains(busca) ||
           usuario.emailuser.toLowerCase().contains(busca) ||
+          usuario.dscargo.toLowerCase().contains(busca) ||
+          _nomeCargo(usuario.dscargo).toLowerCase().contains(busca) ||
           (usuario.situsuario ?? '').toLowerCase().contains(busca) ||
           _nomeLoja(usuario.lojaId).toLowerCase().contains(busca);
     }).toList();
@@ -126,15 +167,21 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
   void _limparBusca() {
     _buscaController.clear();
+
     _filtrar('');
+
     FocusScope.of(context).unfocus();
   }
 
   String _nomeLoja(int? lojaId) {
-    if (lojaId == null) return 'Sem loja';
+    if (lojaId == null) {
+      return 'Sem loja vinculada';
+    }
 
     for (final loja in _lojas) {
-      if (loja.lojaId == lojaId) return loja.nmloja;
+      if (loja.lojaId == lojaId) {
+        return loja.nmloja;
+      }
     }
 
     return 'Loja não encontrada';
@@ -147,7 +194,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       ),
     );
 
-    if (resultado == true) await _carregarTudo();
+    if (resultado == true) {
+      await _carregarTudo();
+    }
   }
 
   Future<void> _abrirEdicao(Usuario usuario) async {
@@ -160,55 +209,79 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       ),
     );
 
-    if (resultado == true) await _carregarTudo();
+    if (resultado == true) {
+      await _carregarTudo();
+    }
   }
 
   Future<void> _excluirUsuario(Usuario usuario) async {
     if (_excluindo) return;
 
+    if (usuario.usuarioId == 1) {
+      AppSnackBar.erro(
+        context,
+        'O usuário principal do sistema não pode ser excluído.',
+      );
+
+      return;
+    }
+
     final confirmar = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: ClubbarColors.fundo,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: ClubbarColors.erro),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Excluir usuário',
-                style: TextStyle(fontWeight: FontWeight.w900),
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: ClubbarColors.fundo,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: ClubbarColors.erro),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Excluir usuário',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Deseja realmente excluir o usuário '
+            '"${usuario.nmusuario}"?',
+          ),
+          actions: [
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              icon: const Icon(Icons.close_rounded),
+              label: const Text('Cancelar'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              icon: const Icon(Icons.delete_rounded),
+              label: const Text('Excluir'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ClubbarColors.erro,
+                foregroundColor: ClubbarColors.branco,
               ),
             ),
           ],
-        ),
-        content: Text(
-          'Deseja realmente excluir o usuário "${usuario.nmusuario}"?',
-        ),
-        actions: [
-          OutlinedButton.icon(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            icon: const Icon(Icons.close_rounded),
-            label: const Text('Cancelar'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            icon: const Icon(Icons.delete_rounded),
-            label: const Text('Excluir'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ClubbarColors.erro,
-              foregroundColor: ClubbarColors.branco,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
-    if (confirmar != true) return;
+    if (confirmar != true) {
+      return;
+    }
 
-    setState(() => _excluindo = true);
+    setState(() {
+      _excluindo = true;
+    });
 
     try {
       await _repository.excluir(
@@ -219,12 +292,18 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       if (!mounted) return;
 
       AppSnackBar.sucesso(context, 'Usuário excluído com sucesso.');
+
       await _carregarTudo();
     } catch (e) {
       if (!mounted) return;
+
       AppSnackBar.erro(context, _extrairMensagemErro(e));
     } finally {
-      if (mounted) setState(() => _excluindo = false);
+      if (mounted) {
+        setState(() {
+          _excluindo = false;
+        });
+      }
     }
   }
 
@@ -233,7 +312,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       controller: _buscaController,
       onChanged: _filtrar,
       decoration: InputDecoration(
-        hintText: 'Buscar usuário',
+        hintText: 'Buscar por nome, e-mail, cargo ou loja',
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: _buscaController.text.isNotEmpty
             ? IconButton(
@@ -259,9 +338,49 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
     );
   }
 
+  Widget _badgeCargo(Usuario usuario) {
+    final principal = usuario.usuarioId == 1;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: principal ? ClubbarColors.ambarClaro : ClubbarColors.infoClaro,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (principal) ...[
+            const Icon(
+              Icons.lock_rounded,
+              size: 13,
+              color: ClubbarColors.preto,
+            ),
+            const SizedBox(width: 4),
+          ],
+
+          Flexible(
+            child: Text(
+              _nomeCargo(usuario.dscargo),
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: principal ? ClubbarColors.preto : ClubbarColors.info,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _cardUsuario(Usuario usuario) {
     final status = (usuario.situsuario ?? 'ATIVO').toUpperCase();
+
     final ativo = status == 'ATIVO' || status == 'ATIVA';
+
+    final principal = usuario.usuarioId == 1;
 
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
@@ -275,22 +394,28 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
               Container(
                 width: 58,
                 height: 58,
-                decoration: const BoxDecoration(
-                  color: ClubbarColors.ambarClaro,
+                decoration: BoxDecoration(
+                  color: principal
+                      ? ClubbarColors.ambar
+                      : ClubbarColors.ambarClaro,
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  usuario.nmusuario.trim().isEmpty
-                      ? '?'
-                      : usuario.nmusuario.trim()[0].toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                child: principal
+                    ? const Icon(Icons.admin_panel_settings_rounded, size: 29)
+                    : Text(
+                        usuario.nmusuario.trim().isEmpty
+                            ? '?'
+                            : usuario.nmusuario.trim()[0].toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
               ),
+
               const SizedBox(width: 13),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,6 +431,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                             ),
                           ),
                         ),
+
+                        const SizedBox(width: 8),
+
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -330,7 +458,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 7),
+
                     Text(
                       usuario.emailuser,
                       style: const TextStyle(
@@ -338,22 +468,61 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                         color: ClubbarColors.textoSecundario,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      _nomeLoja(usuario.lojaId),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: ClubbarColors.textoSecundario,
-                      ),
+
+                    const SizedBox(height: 7),
+
+                    Wrap(
+                      spacing: 7,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _badgeCargo(usuario),
+
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.storefront_outlined,
+                              size: 15,
+                              color: ClubbarColors.textoSecundario,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _nomeLoja(usuario.lojaId),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: ClubbarColors.textoSecundario,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+
+                    if (principal) ...[
+                      const SizedBox(height: 7),
+
+                      const Text(
+                        'Usuário principal do sistema',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: ClubbarColors.textoSecundario,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
+
           const SizedBox(height: 14),
+
           const Divider(height: 1, color: ClubbarColors.divisor),
+
           const SizedBox(height: 10),
+
           Row(
             children: [
               Expanded(
@@ -363,15 +532,27 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                   label: const Text('Editar'),
                 ),
               ),
+
               const SizedBox(width: 10),
+
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _excluindo ? null : () => _excluirUsuario(usuario),
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  label: const Text('Excluir'),
+                  onPressed: principal || _excluindo
+                      ? null
+                      : () => _excluirUsuario(usuario),
+                  icon: Icon(
+                    principal
+                        ? Icons.lock_rounded
+                        : Icons.delete_outline_rounded,
+                  ),
+                  label: Text(principal ? 'Protegido' : 'Excluir'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: ClubbarColors.erroClaro,
-                    foregroundColor: ClubbarColors.erro,
+                    backgroundColor: principal
+                        ? ClubbarColors.borda
+                        : ClubbarColors.erroClaro,
+                    foregroundColor: principal
+                        ? ClubbarColors.textoSecundario
+                        : ClubbarColors.erro,
                     elevation: 0,
                   ),
                 ),
@@ -398,14 +579,20 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
         child: Column(
           children: [
             const Icon(Icons.cloud_off_rounded, size: 58),
+
             const SizedBox(height: 12),
+
             const Text(
               'Não foi possível carregar os usuários',
               style: TextStyle(fontWeight: FontWeight.w900),
             ),
+
             const SizedBox(height: 8),
+
             Text(_erro!, textAlign: TextAlign.center),
+
             const SizedBox(height: 16),
+
             ElevatedButton.icon(
               onPressed: _carregarTudo,
               icon: const Icon(Icons.refresh_rounded),
@@ -421,12 +608,16 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
         child: Column(
           children: [
             const Icon(Icons.people_alt_rounded, size: 58),
+
             const SizedBox(height: 12),
+
             const Text(
               'Nenhum usuário encontrado',
               style: TextStyle(fontWeight: FontWeight.w900),
             ),
+
             const SizedBox(height: 16),
+
             ElevatedButton.icon(
               onPressed: _abrirNovoUsuario,
               icon: const Icon(Icons.person_add_alt_1_rounded),
@@ -444,7 +635,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
+
       appBar: const ClubbarAppBar(mostrarVoltar: true),
+
       body: SafeArea(
         child: Column(
           children: [
@@ -455,12 +648,15 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                   : '${_usuarios.length} usuário(s) cadastrado(s)',
               icone: Icons.people_alt_rounded,
             ),
+
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
               child: Column(
                 children: [
                   _campoBusca(),
+
                   const SizedBox(height: 12),
+
                   Row(
                     children: [
                       Expanded(
@@ -484,7 +680,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                           ),
                         ),
                       ),
+
                       const SizedBox(width: 12),
+
                       SizedBox(
                         width: 52,
                         height: 52,
@@ -506,7 +704,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 14),
+
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _carregarTudo,
