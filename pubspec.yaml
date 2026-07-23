@@ -30,7 +30,7 @@ dev_dependencies:
 
   flutter_lints: ^6.0.0
 
-  flutter_launcher_icons: ^0.14.3
+  flutter_launcher_icons: ^0.14.4
 
 
 flutter_launcher_icons:
@@ -38,12 +38,12 @@ flutter_launcher_icons:
 
   ios: true
 
-  image_path: "assets/images/coruja.jpg"
+  image_path: "assets/images/icone_admin.png"
 
   adaptive_icon_background: "#000000"
 
   adaptive_icon_foreground:
-    "assets/images/coruja.jpg"
+    "assets/images/icone_admin.png"
 
 
 flutter:
@@ -52,5 +52,6 @@ flutter:
   assets:
     - assets/images/
     - assets/sounds/
+    - assets/icons/
 
   

@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../config/api_config.dart';
 import '../services/api_service.dart';
@@ -16,8 +19,11 @@ class ClubbarPageHeader extends StatefulWidget {
 
   final Widget? trailing;
 
-  /// Pode ser desativado em alguma tela específica, caso necessário.
+  /// Permite esconder organização, usuário, cargo, data e hora.
   final bool mostrarDadosSessao;
+
+  /// Permite esconder somente a data e a hora.
+  final bool mostrarDataHora;
 
   const ClubbarPageHeader({
     super.key,
@@ -27,6 +33,7 @@ class ClubbarPageHeader extends StatefulWidget {
     this.imagemUrl,
     this.trailing,
     this.mostrarDadosSessao = true,
+    this.mostrarDataHora = true,
   });
 
   @override
@@ -41,10 +48,30 @@ class _ClubbarPageHeaderState extends State<ClubbarPageHeader> {
   String _cargo = '';
   String _logoLoja = '';
 
+  DateTime _agora = DateTime.now();
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
+
     _carregarDadosSessao();
+
+    if (widget.mostrarDadosSessao && widget.mostrarDataHora) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+
+        setState(() {
+          _agora = DateTime.now();
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   Future<void> _carregarDadosSessao() async {
@@ -79,8 +106,8 @@ class _ClubbarPageHeaderState extends State<ClubbarPageHeader> {
           logoLoja = (resposta['urllogoloja'] ?? '').toString().trim();
         } catch (e) {
           /*
-           * Um administrador geral pode não possuir loja vinculada.
-           * Nesse caso o header continua funcionando com os dados salvos.
+           * SUPERADMIN e administradores gerais
+           * podem não possuir loja vinculada.
            */
           debugPrint('[PAGE HEADER] Não foi possível carregar a loja: $e');
         }
@@ -100,7 +127,6 @@ class _ClubbarPageHeaderState extends State<ClubbarPageHeader> {
         _cargo = cargo.isEmpty ? 'Usuário' : _formatarCargo(cargo);
 
         _logoLoja = logoLoja;
-
         _carregando = false;
       });
     } catch (e) {
@@ -110,7 +136,9 @@ class _ClubbarPageHeaderState extends State<ClubbarPageHeader> {
 
       setState(() {
         _nomeOrganizacao = 'Organização não identificada';
+
         _nomeUsuario = 'Usuário não identificado';
+
         _cargo = 'Usuário';
         _carregando = false;
       });
@@ -212,7 +240,6 @@ class _ClubbarPageHeaderState extends State<ClubbarPageHeader> {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icone, size: 14, color: ClubbarColors.textoSecundario),
           const SizedBox(width: 5),
@@ -253,6 +280,10 @@ class _ClubbarPageHeaderState extends State<ClubbarPageHeader> {
       );
     }
 
+    final data = DateFormat('dd/MM/yyyy', 'pt_BR').format(_agora);
+
+    final hora = DateFormat('HH:mm:ss', 'pt_BR').format(_agora);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -262,6 +293,17 @@ class _ClubbarPageHeaderState extends State<ClubbarPageHeader> {
           icone: Icons.business_rounded,
           texto: _nomeOrganizacao,
         ),
+
+        _linhaInformacao(
+          icone: Icons.person_rounded,
+          texto: '$_nomeUsuario • $_cargo',
+        ),
+
+        if (widget.mostrarDataHora)
+          _linhaInformacao(
+            icone: Icons.schedule_rounded,
+            texto: '$data • $hora',
+          ),
       ],
     );
   }

@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../../core/repositories/superadmin_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
-import '../../core/widgets/clubbar_footer.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 
 import '../auth/login_page.dart';
+import '../leads/pages/leadparceiro_list_page.dart';
+import '../organizacoes/organizacao_form_page.dart';
 import '../usuarios/usuario_list_page.dart';
 
 class SuperAdminDashboardPage extends StatefulWidget {
@@ -32,6 +33,12 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
   void initState() {
     super.initState();
     _inicializar();
+  }
+
+  void _abrirLeads() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LeadParceiroListPage()));
   }
 
   Future<void> _inicializar() async {
@@ -145,7 +152,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Sair'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
+                backgroundColor: Colors.red,
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -183,6 +190,29 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
         builder: (_) => UsuarioListPage(organizacaoId: _organizacaoId!),
       ),
     );
+  }
+
+  Future<void> _abrirOrganizacao() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const OrganizacaoFormPage()));
+
+    if (!mounted) return;
+    await _carregarDadosSessao();
+    await _carregarDashboard();
+  }
+
+  int _valorInteiro(String chave) {
+    final valor = _dados[chave];
+
+    if (valor is num) return valor.toInt();
+
+    return int.tryParse(valor?.toString() ?? '') ?? 0;
+  }
+
+  int _totalParceiros() {
+    final total = _valorInteiro('organizacoes');
+    return total > 0 ? total - 1 : 0;
   }
 
   double _valorVendasHoje() {
@@ -253,32 +283,34 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-
-                const SizedBox(height: 3),
-
-                const Text(
-                  'Painel administrativo da organização',
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
-                ),
               ],
             ),
           ),
 
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.green.shade200),
-            ),
-            child: Text(
-              'ATIVA',
-              style: TextStyle(
-                color: Colors.green.shade800,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+          const SizedBox(width: 10),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _abrirOrganizacao,
+                icon: const Icon(Icons.edit_rounded, size: 18),
+                label: const Text('Editar'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black87,
+                  side: BorderSide(color: Colors.amber.shade600),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -301,7 +333,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
         borderRadius: BorderRadius.circular(18),
         child: Container(
           height: 145,
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 22),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.grey.shade200),
@@ -375,23 +407,24 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
               titulo: 'Leads novos',
               valor: '${_dados['leads_novos'] ?? 0}',
               icone: Icons.handshake_rounded,
+              onTap: _abrirLeads,
             ),
 
             _cardIndicador(
-              titulo: 'Organizações',
-              valor: '${_dados['organizacoes'] ?? 0}',
+              titulo: 'Parceiros',
+              valor: '${_totalParceiros()}',
               icone: Icons.business_rounded,
             ),
 
             _cardIndicador(
-              titulo: 'Lojas',
+              titulo: 'Estabelecimentos',
               valor: '${_dados['lojas'] ?? 0}',
               icone: Icons.storefront_rounded,
             ),
 
             _cardIndicador(
               titulo: 'Usuários',
-              valor: 'Gerenciar',
+              valor: '${_dados['usuarios'] ?? 0}',
               icone: Icons.manage_accounts_rounded,
               onTap: _abrirUsuarios,
             ),
@@ -435,8 +468,9 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
           children: [
             const ClubbarPageHeader(
               titulo: 'Painel Administrativo',
-              subtitulo: 'Visão geral e administração da organização',
+              subtitulo: 'Visão geral e administração do app',
               icone: Icons.dashboard_rounded,
+              mostrarDataHora: false,
             ),
 
             Expanded(
@@ -457,12 +491,23 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
 
                                 const SizedBox(height: 18),
 
-                                const Text(
-                                  'Visão geral',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                                const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.insights_rounded,
+                                      size: 22,
+                                      color: Colors.black87,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Indicadores',
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
                                 ),
 
                                 const SizedBox(height: 12),
@@ -474,12 +519,6 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                         ),
                       ),
                     ),
-            ),
-
-            ClubbarFooter(
-              // O footer já deve obter usuário,
-              // cargo, data e hora conforme o padrão
-              // que criamos para as outras telas.
             ),
           ],
         ),
