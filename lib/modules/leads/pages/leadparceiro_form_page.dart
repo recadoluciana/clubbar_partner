@@ -20,6 +20,10 @@ class LeadParceiroFormPage extends StatefulWidget {
 }
 
 class _LeadParceiroFormPageState extends State<LeadParceiroFormPage> {
+  bool get _leadConvertido {
+    return widget.lead.status == 'CONVERTIDO';
+  }
+
   final _formKey = GlobalKey<FormState>();
   final _repository = LeadParceiroRepository();
 
@@ -157,6 +161,11 @@ class _LeadParceiroFormPageState extends State<LeadParceiroFormPage> {
 
   Future<void> _salvar() async {
     FocusScope.of(context).unfocus();
+
+    final statusParaSalvar = _leadConvertido
+        ? 'CONVERTIDO'
+        : _statusSelecionado;
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _salvando = true);
@@ -168,7 +177,7 @@ class _LeadParceiroFormPageState extends State<LeadParceiroFormPage> {
         tipo: _tipoSelecionado,
         telefone: _somenteNumeros(_telefoneController.text),
         email: _emailController.text.trim().toLowerCase(),
-        status: _statusSelecionado,
+        status: statusParaSalvar,
       );
 
       if (!mounted) return;
@@ -351,25 +360,41 @@ class _LeadParceiroFormPageState extends State<LeadParceiroFormPage> {
                           ),
                           const SizedBox(height: 14),
                           DropdownButtonFormField<String>(
-                            initialValue: _statusSelecionado,
+                            value: _statusSelecionado,
                             isExpanded: true,
-                            decoration: _decoracao(
-                              label: 'Situação do atendimento',
-                              icone: Icons.track_changes_rounded,
-                            ),
+                            decoration:
+                                _decoracao(
+                                  label: 'Status',
+                                  icone: _leadConvertido
+                                      ? Icons.lock_rounded
+                                      : Icons.track_changes_rounded,
+                                ).copyWith(
+                                  helperText: _leadConvertido
+                                      ? 'O status não pode ser alterado após a conversão.'
+                                      : null,
+                                  suffixIcon: _leadConvertido
+                                      ? const Icon(
+                                          Icons.lock_rounded,
+                                          color: Colors.green,
+                                        )
+                                      : null,
+                                ),
                             items: _status
                                 .map(
-                                  (status) => DropdownMenuItem(
+                                  (status) => DropdownMenuItem<String>(
                                     value: status,
                                     child: Text(_nomeStatus(status)),
                                   ),
                                 )
                                 .toList(),
-                            onChanged: _salvando
+                            onChanged: _leadConvertido
                                 ? null
                                 : (value) {
                                     if (value == null) return;
-                                    setState(() => _statusSelecionado = value);
+
+                                    setState(() {
+                                      _statusSelecionado = value;
+                                    });
                                   },
                           ),
                         ],

@@ -449,7 +449,6 @@ class _LeadParceiroListPageState extends State<LeadParceiroListPage> {
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
       elevation: 1,
-      onTap: () => _abrirEdicao(lead),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
