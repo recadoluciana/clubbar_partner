@@ -31,7 +31,7 @@ class _LeadParceiroFormPageState extends State<LeadParceiroFormPage> {
   late String _statusSelecionado;
   bool _salvando = false;
 
-  static const _tipos = ['BAR', 'CASA_NOTURNA', 'EVENTO'];
+  static const _tipos = ['BAR', 'CASA_NOTURNA', 'PRODUTOR_EVENTOS'];
   static const _status = [
     'NOVO',
     'CONTATADO',
@@ -75,8 +75,8 @@ class _LeadParceiroFormPageState extends State<LeadParceiroFormPage> {
     switch (tipo) {
       case 'CASA_NOTURNA':
         return 'Casa noturna';
-      case 'EVENTO':
-        return 'Evento';
+      case 'PRODUTOS_EVENTOS':
+        return 'Produtor de Eventos';
       default:
         return 'Bar';
     }

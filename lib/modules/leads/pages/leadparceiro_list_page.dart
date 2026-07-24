@@ -10,6 +10,7 @@ import '../models/leadparceiro.dart';
 import '../repositories/leadparceiro_repository.dart';
 
 import 'leadparceiro_form_page.dart';
+import 'leadparceiro_converter_page.dart';
 
 class LeadParceiroListPage extends StatefulWidget {
   const LeadParceiroListPage({super.key});
@@ -40,7 +41,7 @@ class _LeadParceiroListPageState extends State<LeadParceiroListPage> {
     'PERDIDO',
   ];
 
-  static const _tipos = ['TODOS', 'BAR', 'CASA_NOTURNA', 'EVENTO'];
+  static const _tipos = ['TODOS', 'BAR', 'CASA_NOTURNA', 'PRODUTOR_EVENTOS'];
   IconData _iconeStatus(String status) {
     switch (status) {
       case 'CONTATADO':
@@ -134,6 +135,14 @@ class _LeadParceiroListPageState extends State<LeadParceiroListPage> {
     if (resultado == true) await _carregar();
   }
 
+  Future<void> _abrirConversao(LeadParceiro lead) async {
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => LeadParceiroConverterPage(lead: lead)),
+    );
+
+    if (resultado == true) await _carregar();
+  }
+
   int _quantidadeStatus(String status) =>
       _leads.where((lead) => lead.status == status).length;
 
@@ -157,11 +166,14 @@ class _LeadParceiroListPageState extends State<LeadParceiroListPage> {
   String _nomeTipo(String tipo) {
     switch (tipo) {
       case 'CASA_NOTURNA':
-        return 'Casa noturna';
-      case 'EVENTO':
-        return 'Evento';
+        return 'Casa Noturna';
+
+      case 'PRODUTOR_EVENTOS':
+        return 'Produtor de Eventos';
+
       case 'BAR':
         return 'Bar';
+
       default:
         return 'Todos os tipos';
     }
@@ -570,6 +582,24 @@ class _LeadParceiroListPageState extends State<LeadParceiroListPage> {
               label: const Text('Ver e editar atendimento'),
             ),
           ),
+          if (lead.status != 'CONVERTIDO' && lead.status != 'PERDIDO') ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _abrirConversao(lead),
+                icon: const Icon(Icons.handshake_rounded),
+                label: const Text('Converter em parceiro'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ClubbarColors.ambar,
+                  foregroundColor: ClubbarColors.preto,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

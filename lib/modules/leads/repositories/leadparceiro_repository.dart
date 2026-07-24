@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import '../models/leadparceiro.dart';
 import '../../../core/services/api_service.dart';
+import '../models/leadparceiro.dart';
 
 class LeadParceiroRepository {
   Future<List<LeadParceiro>> listar() async {
@@ -58,6 +58,44 @@ class LeadParceiroRepository {
     }
 
     throw Exception(_extrairErro(response.body, 'Erro ao atualizar lead.'));
+  }
+
+  Future<Map<String, dynamic>> converterEmParceiro({
+    required int leadparceiroId,
+    required String razaoSocial,
+    required String cnpj,
+    required String cep,
+    required String endereco,
+    required String numero,
+    required String complemento,
+    required String bairro,
+  }) async {
+    final response = await ApiService.post(
+      '/parceiros/$leadparceiroId/converter-em-parceiro',
+      {
+        'razao_social': razaoSocial.trim(),
+        'cnpj': cnpj.trim(),
+        'cep': cep.trim().isEmpty ? null : cep.trim(),
+        'endereco': endereco.trim(),
+        'numero': numero.trim(),
+        'complemento': complemento.trim().isEmpty
+            ? null
+            : complemento.trim(),
+        'bairro': bairro.trim().isEmpty ? null : bairro.trim(),
+      },
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) {
+        return data;
+      }
+      return {};
+    }
+
+    throw Exception(
+      _extrairErro(response.body, 'Erro ao converter lead em parceiro.'),
+    );
   }
 
   String _extrairErro(String body, String fallback) {
