@@ -58,13 +58,13 @@ class ApiConfig {
   static String get nomeApp {
     switch (appFlavor) {
       case 'dev':
-        return 'Clubbar Admin DEV';
+        return 'Clubbar Parceiro Dev';
 
       case 'prod':
-        return 'Clubbar Admin';
+        return 'Clubbar Parceiro';
 
       default:
-        return 'Clubbar Admin';
+        return 'Clubbar Parceiro';
     }
   }
 
