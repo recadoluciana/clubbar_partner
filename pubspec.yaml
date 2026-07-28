@@ -1,9 +1,9 @@
-name: clubbar_admin
+name: clubbar_partner
 description: "Venda de ingressos e produtos para bares e casas noturnas."
 
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.10.1

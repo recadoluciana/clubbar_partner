@@ -360,7 +360,7 @@ class _LeadParceiroFormPageState extends State<LeadParceiroFormPage> {
                           ),
                           const SizedBox(height: 14),
                           DropdownButtonFormField<String>(
-                            value: _statusSelecionado,
+                            initialValue: _statusSelecionado,
                             isExpanded: true,
                             decoration:
                                 _decoracao(

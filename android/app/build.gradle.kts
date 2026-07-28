@@ -33,7 +33,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "br.com.clubbar.admin"
+        applicationId = "br.com.clubbar.partner"
 
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -54,7 +54,7 @@ android {
             resValue(
                 type = "string",
                 name = "app_name",
-                value = "Clubbar Parceiro Dev",
+                value = "Clubbar Partner Dev",
             )
         }
 
@@ -64,7 +64,7 @@ android {
             resValue(
                 type = "string",
                 name = "app_name",
-                value = "Clubbar Parceiro",
+                value = "Clubbar Partner",
             )
         }
     }
