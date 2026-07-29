@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
-
 import 'modules/auth/login_page.dart';
 import 'modules/dashboard/dashboard_page.dart';
-import 'modules/superadmin/superadmin_dashboard_page.dart';
 import 'modules/leitor_qr/barman_home_page.dart';
 import 'modules/leitor_qr/porteiro_home_page.dart';
 
@@ -32,7 +30,6 @@ class SplashDeciderPage extends StatefulWidget {
 class _SplashDeciderPageState extends State<SplashDeciderPage> {
   bool _carregando = true;
   bool _temToken = false;
-  bool _isSuperAdmin = false;
   String? _cargo;
 
   @override
@@ -43,14 +40,12 @@ class _SplashDeciderPageState extends State<SplashDeciderPage> {
 
   Future<void> _verificarToken() async {
     final token = await StorageService.getToken();
-    final isSuperAdmin = await StorageService.isSuperAdmin();
     final cargo = await StorageService.getCargo();
 
     if (!mounted) return;
 
     setState(() {
       _temToken = token != null && token.isNotEmpty;
-      _isSuperAdmin = isSuperAdmin;
       _cargo = cargo;
       _carregando = false;
     });
@@ -64,10 +59,6 @@ class _SplashDeciderPageState extends State<SplashDeciderPage> {
 
     if (_temToken) {
       final cargoUpper = (_cargo ?? '').trim().toUpperCase();
-
-      if (_isSuperAdmin) {
-        return const SuperAdminDashboardPage();
-      }
 
       if (cargoUpper == 'PORTEIRO') {
         return const PorteiroHomePage();

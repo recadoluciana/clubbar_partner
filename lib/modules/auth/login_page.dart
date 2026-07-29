@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import '../../core/services/auth_service.dart';
 import '../dashboard/dashboard_page.dart';
 import '../../core/services/storage_service.dart';
-import '../superadmin/superadmin_dashboard_page.dart';
 import '../leitor_qr/barman_home_page.dart';
 import '../leitor_qr/porteiro_home_page.dart';
 
@@ -66,8 +65,6 @@ class _LoginPageState extends State<LoginPage> {
         destino = const BarmanHomePage();
       } else if (cargoUpper == 'PORTEIRO') {
         destino = const PorteiroHomePage();
-      } else if (isSuperAdmin) {
-        destino = const SuperAdminDashboardPage();
       } else if (cargoUpper == 'ADMIN' || cargoUpper == 'GERENTE') {
         destino = const DashboardPage();
       }

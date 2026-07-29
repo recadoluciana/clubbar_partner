@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:clubbar_admin/core/services/storage_service.dart';
-import 'package:clubbar_admin/core/theme/clubbar_colors.dart';
-import 'package:clubbar_admin/core/widgets/app_snackbar.dart';
-import 'package:clubbar_admin/core/widgets/dashboard_menu_card.dart';
+import 'package:clubbar_partner/core/services/storage_service.dart';
+import 'package:clubbar_partner/core/theme/clubbar_colors.dart';
+import 'package:clubbar_partner/core/widgets/app_snackbar.dart';
+import 'package:clubbar_partner/core/widgets/dashboard_menu_card.dart';
 
-import 'package:clubbar_admin/modules/auth/login_page.dart';
-import 'package:clubbar_admin/modules/categorias/categoria_list_page.dart';
-import 'package:clubbar_admin/modules/eventos/evento_list_page.dart';
-import 'package:clubbar_admin/modules/lojas/loja_list_page.dart';
-import 'package:clubbar_admin/modules/painel_gerencial/painel_gerencial_page.dart';
-import 'package:clubbar_admin/modules/produtos/produto_list_page.dart';
-import 'package:clubbar_admin/modules/usuarios/usuario_list_page.dart';
-import 'package:clubbar_admin/modules/organizacoes/organizacao_list_page.dart';
+import 'package:clubbar_partner/modules/auth/login_page.dart';
+import 'package:clubbar_partner/modules/categorias/categoria_list_page.dart';
+import 'package:clubbar_partner/modules/eventos/evento_list_page.dart';
+import 'package:clubbar_partner/modules/lojas/loja_list_page.dart';
+import 'package:clubbar_partner/modules/painel_gerencial/painel_gerencial_page.dart';
+import 'package:clubbar_partner/modules/produtos/produto_list_page.dart';
+import 'package:clubbar_partner/modules/usuarios/usuario_list_page.dart';
+import 'package:clubbar_partner/modules/organizacoes/organizacao_list_page.dart';
 
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';

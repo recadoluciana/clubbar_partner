@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:clubbar_admin/core/services/api_service.dart';
+import 'package:clubbar_partner/core/services/api_service.dart';
 
 import '../../models/categoria.dart';
 
@@ -22,14 +22,11 @@ class CategoriaRepository {
   }
 
   Future<void> criar(int lojaId, String nome) async {
-    final response = await ApiService.post(
-      '/lojas/$lojaId/categorias',
-      {
-        'nmcategoria': nome,
-        'sitcategoria': 'ATIVA',
-        'idordcategoria': 1,
-      },
-    );
+    final response = await ApiService.post('/lojas/$lojaId/categorias', {
+      'nmcategoria': nome,
+      'sitcategoria': 'ATIVA',
+      'idordcategoria': 1,
+    });
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Erro ao criar categoria: ${response.body}');
@@ -37,12 +34,9 @@ class CategoriaRepository {
   }
 
   Future<void> atualizar(int categoriaId, String nome) async {
-    final response = await ApiService.put(
-      '/categorias/$categoriaId',
-      {
-        'nmcategoria': nome,
-      },
-    );
+    final response = await ApiService.put('/categorias/$categoriaId', {
+      'nmcategoria': nome,
+    });
 
     if (response.statusCode != 200) {
       throw Exception('Erro ao atualizar categoria: ${response.body}');
