@@ -65,7 +65,9 @@ class _LoginPageState extends State<LoginPage> {
         destino = const BarmanHomePage();
       } else if (cargoUpper == 'PORTEIRO') {
         destino = const PorteiroHomePage();
-      } else if (cargoUpper == 'ADMIN' || cargoUpper == 'GERENTE') {
+      } else if (cargoUpper == 'SUPERADMIN' ||
+          cargoUpper == 'ADMIN' ||
+          cargoUpper == 'GERENTE') {
         destino = const DashboardPage();
       }
 

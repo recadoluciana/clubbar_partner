@@ -145,7 +145,7 @@ class _DashboardPageState extends State<DashboardPage> {
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Sair do Clubbar Admin',
+                  'Sair do Clubbar Parceiro',
                   style: TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
@@ -270,33 +270,65 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: RefreshIndicator(
+        color: ClubbarColors.ambar,
+        onRefresh: _carregarDadosUsuario,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           children: [
-            const Text(
-              'Gerenciamento',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: ClubbarColors.textoPrincipal,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: ClubbarColors.branco,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: ClubbarColors.borda),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: ClubbarColors.ambarClaro,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.apartment_rounded,
+                      color: ClubbarColors.preto,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Organização atual',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: ClubbarColors.textoSecundario,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _nomeOrganizacao,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: ClubbarColors.textoPrincipal,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 2),
-
-            const Text(
-              'Escolha uma opção para continuar.',
-              style: TextStyle(
-                fontSize: 11,
-                color: ClubbarColors.textoSecundario,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Expanded(child: SingleChildScrollView(child: _gradeModulos())),
+            const SizedBox(height: 14),
+            _gradeModulos(),
           ],
         ),
       ),
@@ -315,8 +347,7 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             ClubbarPageHeader(
               titulo: 'Painel Administrativo',
-              subtitulo: 'Gerencia a sua organição',
-              icone: Icons.dashboard_rounded,
+              subtitulo: 'Escolha uma opção para continuar',
             ),
 
             _conteudo(),

@@ -80,17 +80,15 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       decoration: const BoxDecoration(
-        color: ClubbarColors.ambar,
-        border: Border(
-          top: BorderSide(color: ClubbarColors.ambarEscuro, width: 1),
-        ),
+        color: ClubbarColors.preto,
+        border: Border(top: BorderSide(color: ClubbarColors.branco, width: 1)),
       ),
       child: Row(
         children: [
           const Icon(
             Icons.person_rounded,
             size: 17,
-            color: ClubbarColors.preto,
+            color: ClubbarColors.branco,
           ),
 
           const SizedBox(width: 6),
@@ -101,7 +99,7 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: ClubbarColors.preto,
+                color: ClubbarColors.branco,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
               ),
@@ -113,7 +111,7 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
           const Icon(
             Icons.calendar_today_rounded,
             size: 14,
-            color: ClubbarColors.preto,
+            color: ClubbarColors.branco,
           ),
 
           const SizedBox(width: 4),
@@ -121,7 +119,7 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
           Text(
             data,
             style: const TextStyle(
-              color: ClubbarColors.preto,
+              color: ClubbarColors.branco,
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
             ),
@@ -132,7 +130,7 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
           const Icon(
             Icons.schedule_rounded,
             size: 15,
-            color: ClubbarColors.preto,
+            color: ClubbarColors.branco,
           ),
 
           const SizedBox(width: 4),
@@ -140,7 +138,7 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
           Text(
             hora,
             style: const TextStyle(
-              color: ClubbarColors.preto,
+              color: ClubbarColors.branco,
               fontSize: 10.5,
               fontWeight: FontWeight.w900,
             ),
