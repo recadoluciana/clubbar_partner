@@ -1,29 +1,29 @@
-class Cidade {
-  final int cidadeId;
-  final int paisId;
+class Estado {
   final int estadoId;
-  final int? cdibgecid;
-  final String nmcidade;
+  final int paisId;
+  final int? cdibgeest;
+  final String sgestado;
+  final String nmestado;
   final DateTime? dtcriacao;
   final DateTime? dtultatu;
 
-  const Cidade({
-    required this.cidadeId,
-    required this.paisId,
+  const Estado({
     required this.estadoId,
-    this.cdibgecid,
-    required this.nmcidade,
+    required this.paisId,
+    this.cdibgeest,
+    required this.sgestado,
+    required this.nmestado,
     this.dtcriacao,
     this.dtultatu,
   });
 
-  factory Cidade.fromJson(Map<String, dynamic> json) {
-    return Cidade(
-      cidadeId: _toInt(json['cidade_id']),
-      paisId: _toInt(json['pais_id']),
+  factory Estado.fromJson(Map<String, dynamic> json) {
+    return Estado(
       estadoId: _toInt(json['estado_id']),
-      cdibgecid: _toNullableInt(json['cdibgecid']),
-      nmcidade: json['nmcidade']?.toString().trim() ?? '',
+      paisId: _toInt(json['pais_id']),
+      cdibgeest: _toNullableInt(json['cdibgeest']),
+      sgestado: json['sgestado']?.toString().trim() ?? '',
+      nmestado: json['nmestado']?.toString().trim() ?? '',
       dtcriacao: _toNullableDateTime(json['dtcriacao']),
       dtultatu: _toNullableDateTime(json['dtultatu']),
     );
@@ -31,31 +31,39 @@ class Cidade {
 
   Map<String, dynamic> toJson() {
     return {
-      'cidade_id': cidadeId,
-      'pais_id': paisId,
       'estado_id': estadoId,
-      'cdibgecid': cdibgecid,
-      'nmcidade': nmcidade,
+      'pais_id': paisId,
+      'cdibgeest': cdibgeest,
+      'sgestado': sgestado,
+      'nmestado': nmestado,
       'dtcriacao': dtcriacao?.toIso8601String(),
       'dtultatu': dtultatu?.toIso8601String(),
     };
   }
 
-  Cidade copyWith({
-    int? cidadeId,
-    int? paisId,
+  String get descricao {
+    if (sgestado.trim().isEmpty) {
+      return nmestado;
+    }
+
+    return '$nmestado - $sgestado';
+  }
+
+  Estado copyWith({
     int? estadoId,
-    int? cdibgecid,
-    String? nmcidade,
+    int? paisId,
+    int? cdibgeest,
+    String? sgestado,
+    String? nmestado,
     DateTime? dtcriacao,
     DateTime? dtultatu,
   }) {
-    return Cidade(
-      cidadeId: cidadeId ?? this.cidadeId,
-      paisId: paisId ?? this.paisId,
+    return Estado(
       estadoId: estadoId ?? this.estadoId,
-      cdibgecid: cdibgecid ?? this.cdibgecid,
-      nmcidade: nmcidade ?? this.nmcidade,
+      paisId: paisId ?? this.paisId,
+      cdibgeest: cdibgeest ?? this.cdibgeest,
+      sgestado: sgestado ?? this.sgestado,
+      nmestado: nmestado ?? this.nmestado,
       dtcriacao: dtcriacao ?? this.dtcriacao,
       dtultatu: dtultatu ?? this.dtultatu,
     );
@@ -90,14 +98,14 @@ class Cidade {
   }
 
   @override
-  String toString() => nmcidade;
+  String toString() => descricao;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is Cidade && other.cidadeId == cidadeId;
+        other is Estado && other.estadoId == estadoId;
   }
 
   @override
-  int get hashCode => cidadeId.hashCode;
+  int get hashCode => estadoId.hashCode;
 }

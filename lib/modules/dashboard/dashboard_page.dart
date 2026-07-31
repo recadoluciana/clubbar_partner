@@ -11,7 +11,7 @@ import 'package:clubbar_partner/modules/lojas/loja_list_page.dart';
 import 'package:clubbar_partner/modules/painel_gerencial/painel_gerencial_page.dart';
 import 'package:clubbar_partner/modules/produtos/produto_list_page.dart';
 import 'package:clubbar_partner/modules/usuarios/usuario_list_page.dart';
-import 'package:clubbar_partner/modules/organizacoes/organizacao_list_page.dart';
+import 'package:clubbar_partner/modules/organizacao/organizacao_list_page.dart';
 
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';

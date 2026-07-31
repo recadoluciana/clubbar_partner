@@ -155,27 +155,19 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     }
   }
 
-  Future<void> _editarOrganizacao(
-    OrganizacaoSecao secao,
-  ) async {
+  Future<void> _editarOrganizacao(OrganizacaoSecao secao) async {
     final organizacao = _organizacao;
 
     if (organizacao == null) {
-      AppSnackBar.aviso(
-        context,
-        'Organização não encontrada.',
-      );
+      AppSnackBar.aviso(context, 'Organização não encontrada.');
 
       return;
     }
 
-    final resultado =
-        await Navigator.of(context).push<bool>(
+    final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => OrganizacaoFormPage(
-          organizacao: organizacao,
-          secao: secao,
-        ),
+        builder: (_) =>
+            OrganizacaoFormPage(organizacao: organizacao, secao: secao),
       ),
     );
 
@@ -186,10 +178,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
 
       if (!mounted) return;
 
-      AppSnackBar.sucesso(
-        context,
-        'Organização atualizada com sucesso.',
-      );
+      AppSnackBar.sucesso(context, 'Organização atualizada com sucesso.');
     }
   }
 
@@ -360,83 +349,80 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
   }
 
   Widget _cardIdentificacao(Organizacao organizacao) {
-    return Material(
-      color: ClubbarColors.branco,
-      elevation: 2,
-      shadowColor: ClubbarColors.sombra,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: ClubbarColors.borda),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: const BoxDecoration(
-                    color: ClubbarColors.ambarClaro,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.business_rounded,
-                    size: 29,
-                    color: ClubbarColors.preto,
-                  ),
+    return _cardSecao(
+      icone: Icons.business_rounded,
+      titulo: 'Identificação',
+      onEditar: () => _editarOrganizacao(OrganizacaoSecao.empresa),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: ClubbarColors.fundo,
+                  borderRadius: BorderRadius.circular(11),
                 ),
-                const SizedBox(width: 13),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        organizacao.nmorganizacao,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: ClubbarColors.textoPrincipal,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _valorOuTraco(organizacao.rzsocialorganizacao),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: ClubbarColors.textoSecundario,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: const Icon(
+                  Icons.account_balance_outlined,
+                  size: 18,
+                  color: ClubbarColors.textoSecundario,
                 ),
-                const SizedBox(width: 8),
-                _statusOrganizacao(organizacao),
-              ],
-            ),
-            const SizedBox(height: 15),
-            _divisor(),
-            const SizedBox(height: 3),
-            _linhaInformacao(
-              icone: Icons.badge_outlined,
-              titulo: 'CNPJ',
-              valor: _formatarCnpj(organizacao.cnpjorganizacao),
-            ),
-            _divisor(),
-            _linhaInformacao(
-              icone: Icons.account_balance_outlined,
-              titulo: 'Razão social',
-              valor: _valorOuTraco(organizacao.rzsocialorganizacao),
-            ),
-          ],
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Razão social',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: ClubbarColors.textoSecundario,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: SelectableText(
+                            _valorOuTraco(organizacao.rzsocialorganizacao),
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              color: ClubbarColors.textoPrincipal,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        _statusOrganizacao(organizacao),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+        _divisor(),
+        _linhaInformacao(
+          icone: Icons.storefront_outlined,
+          titulo: 'Nome fantasia',
+          valor: _valorOuTraco(organizacao.nmorganizacao),
+        ),
+        _divisor(),
+        _linhaInformacao(
+          icone: Icons.badge_outlined,
+          titulo: 'CNPJ',
+          valor: _formatarCnpj(organizacao.cnpjorganizacao),
+        ),
+      ],
     );
   }
 
@@ -444,9 +430,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     return _cardSecao(
       icone: Icons.contact_phone_rounded,
       titulo: 'Contato',
-      onEditar: () => _editarOrganizacao(
-        OrganizacaoSecao.contato,
-      ),
+      onEditar: () => _editarOrganizacao(OrganizacaoSecao.contato),
       children: [
         _linhaInformacao(
           icone: Icons.email_outlined,
@@ -467,9 +451,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     return _cardSecao(
       icone: Icons.location_on_rounded,
       titulo: 'Endereço',
-      onEditar: () => _editarOrganizacao(
-        OrganizacaoSecao.endereco,
-      ),
+      onEditar: () => _editarOrganizacao(OrganizacaoSecao.endereco),
       children: [
         _linhaInformacao(
           icone: Icons.markunread_mailbox_outlined,

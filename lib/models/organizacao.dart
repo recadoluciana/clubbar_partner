@@ -16,6 +16,7 @@ class Organizacao {
   final DateTime? dtcriacao;
   final DateTime? dtultatu;
   final String? nmcidade;
+  final int? estadoId;
   final String? sgestado;
 
   const Organizacao({
@@ -36,6 +37,7 @@ class Organizacao {
     this.dtcriacao,
     this.dtultatu,
     this.nmcidade,
+    this.estadoId,
     this.sgestado,
   });
 
@@ -58,6 +60,7 @@ class Organizacao {
       dtcriacao: _toNullableDateTime(json['dtcriacao']),
       dtultatu: _toNullableDateTime(json['dtultatu']),
       nmcidade: json['nmcidade']?.toString(),
+      estadoId: _toNullableInt(json['estado_id']),
       sgestado: json['sgestado']?.toString(),
     );
   }
@@ -81,6 +84,7 @@ class Organizacao {
       'dtcriacao': dtcriacao?.toIso8601String(),
       'dtultatu': dtultatu?.toIso8601String(),
       'nmcidade': nmcidade,
+      'estado_id': estadoId,
       'sgestado': sgestado,
     };
   }
@@ -103,6 +107,7 @@ class Organizacao {
     DateTime? dtcriacao,
     DateTime? dtultatu,
     String? nmcidade,
+    int? estadoId,
     String? sgestado,
   }) {
     return Organizacao(
@@ -123,6 +128,7 @@ class Organizacao {
       dtcriacao: dtcriacao ?? this.dtcriacao,
       dtultatu: dtultatu ?? this.dtultatu,
       nmcidade: nmcidade ?? this.nmcidade,
+      estadoId: estadoId ?? this.estadoId,
       sgestado: sgestado ?? this.sgestado,
     );
   }
@@ -197,6 +203,7 @@ class Organizacao {
         other.dtcriacao == dtcriacao &&
         other.dtultatu == dtultatu &&
         other.nmcidade == nmcidade &&
+        other.estadoId == estadoId &&
         other.sgestado == sgestado;
   }
 
@@ -220,6 +227,7 @@ class Organizacao {
       dtcriacao,
       dtultatu,
       nmcidade,
+      estadoId,
       sgestado,
     );
   }

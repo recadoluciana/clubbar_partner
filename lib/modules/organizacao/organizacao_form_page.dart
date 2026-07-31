@@ -4,14 +4,15 @@ import 'package:flutter/services.dart';
 import '../../core/repositories/organizacao_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/formatters.dart';
+import '../../core/utils/masks.dart';
+import '../../core/utils/validators.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
+import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/organizacao.dart';
-import '../../core/utils/formatters.dart';
-import '../../core/utils/validators.dart';
-import '../../core/utils/masks.dart';
 
 enum OrganizacaoSecao { empresa, contato, endereco }
 
@@ -31,6 +32,7 @@ class OrganizacaoFormPage extends StatefulWidget {
 
 class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
   final _formKey = GlobalKey<FormState>();
+
   final OrganizacaoRepository _repository = OrganizacaoRepository();
 
   final _nomeController = TextEditingController();
@@ -45,7 +47,9 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
   final _numeroController = TextEditingController();
   final _complementoController = TextEditingController();
   final _bairroController = TextEditingController();
-  final _cidadeIdController = TextEditingController();
+
+  int? _estadoId;
+  int? _cidadeId;
 
   bool _salvando = false;
   String _status = 'ATIVA';
@@ -63,34 +67,44 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
     _nomeController.dispose();
     _razaoSocialController.dispose();
     _cnpjController.dispose();
+
     _emailController.dispose();
     _telefoneController.dispose();
+
     _cepController.dispose();
     _enderecoController.dispose();
     _numeroController.dispose();
     _complementoController.dispose();
     _bairroController.dispose();
-    _cidadeIdController.dispose();
 
     super.dispose();
   }
 
   void _preencherCampos() {
     _nomeController.text = _organizacao.nmorganizacao;
+
     _razaoSocialController.text = _organizacao.rzsocialorganizacao ?? '';
+
     _cnpjController.text = Formatters.cnpj(_organizacao.cnpjorganizacao ?? '');
 
     _emailController.text = _organizacao.emailorganizacao ?? '';
+
     _telefoneController.text = Formatters.telefone(
       _organizacao.telorganizacao ?? '',
     );
 
     _cepController.text = Formatters.cep(_organizacao.ceporganizacao ?? '');
+
     _enderecoController.text = _organizacao.endorganizacao ?? '';
+
     _numeroController.text = _organizacao.nrendorganizacao ?? '';
+
     _complementoController.text = _organizacao.complorganizacao ?? '';
+
     _bairroController.text = _organizacao.nmbairro ?? '';
-    _cidadeIdController.text = _organizacao.cidadeId?.toString() ?? '';
+
+    _estadoId = _organizacao.estadoId;
+    _cidadeId = _organizacao.cidadeId;
 
     _status = _organizacao.sitorganizacao.trim().isEmpty
         ? 'ATIVA'
@@ -101,8 +115,10 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
     switch (widget.secao) {
       case OrganizacaoSecao.empresa:
         return 'Dados da empresa';
+
       case OrganizacaoSecao.contato:
         return 'Contato';
+
       case OrganizacaoSecao.endereco:
         return 'Endereço';
     }
@@ -112,8 +128,10 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
     switch (widget.secao) {
       case OrganizacaoSecao.empresa:
         return Icons.business_rounded;
+
       case OrganizacaoSecao.contato:
         return Icons.contact_phone_rounded;
+
       case OrganizacaoSecao.endereco:
         return Icons.location_on_rounded;
     }
@@ -128,7 +146,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
               ? null
               : _razaoSocialController.text.trim(),
           'cnpjorganizacao': Validators.somenteNumeros(_cnpjController.text),
-          'sitorganizacao': _status,
         };
 
       case OrganizacaoSecao.contato:
@@ -146,7 +163,9 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
               ? null
               : _complementoController.text.trim(),
           'nmbairro': _bairroController.text.trim(),
-          'cidade_id': int.tryParse(_cidadeIdController.text.trim()),
+          // Localidade
+          'estado_id': _estadoId,
+          'cidade_id': _cidadeId,
         };
     }
   }
@@ -154,8 +173,22 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
   Future<void> _salvar() async {
     FocusScope.of(context).unfocus();
 
-    if (!_formKey.currentState!.validate()) {
+    final formularioValido = _formKey.currentState?.validate() ?? false;
+
+    if (!formularioValido) {
       return;
+    }
+
+    if (widget.secao == OrganizacaoSecao.endereco) {
+      if (_estadoId == null || _estadoId! <= 0) {
+        AppSnackBar.erro(context, 'Selecione um estado válido.');
+        return;
+      }
+
+      if (_cidadeId == null || _cidadeId! <= 0) {
+        AppSnackBar.erro(context, 'Selecione uma cidade válida.');
+        return;
+      }
     }
 
     final usuarioId = await StorageService.getUsuarioId();
@@ -298,23 +331,20 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
         const SizedBox(height: 14),
         DropdownButtonFormField<String>(
           initialValue: _status,
-          decoration: _decoracao(
-            label: 'Situação',
-            icone: Icons.toggle_on_outlined,
-          ),
+          decoration:
+              _decoracao(
+                label: 'Situação da organização',
+                icone: Icons.toggle_on_outlined,
+              ).copyWith(
+                helperText:
+                    'A situação é controlada exclusivamente pela equipe Clubbar.',
+                helperMaxLines: 2,
+              ),
           items: const [
             DropdownMenuItem(value: 'ATIVA', child: Text('Ativa')),
             DropdownMenuItem(value: 'INATIVA', child: Text('Inativa')),
           ],
-          onChanged: _salvando
-              ? null
-              : (valor) {
-                  if (valor == null) return;
-
-                  setState(() {
-                    _status = valor;
-                  });
-                },
+          onChanged: null,
         ),
       ],
     );
@@ -463,25 +493,15 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
           },
         ),
         const SizedBox(height: 14),
-        TextFormField(
-          controller: _cidadeIdController,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: _decoracao(
-            label: 'Código da cidade',
-            hint: _organizacao.nmcidade == null
-                ? 'Informe o código'
-                : '${_organizacao.nmcidade}/${_organizacao.sgestado ?? ''}',
-            icone: Icons.location_city_outlined,
-          ),
-          validator: (valor) {
-            final cidadeId = int.tryParse(valor?.trim() ?? '');
 
-            if (cidadeId == null || cidadeId <= 0) {
-              return 'Informe uma cidade válida.';
-            }
-
-            return null;
+        ClubbarLocalidadeField(
+          estadoInicialId: _organizacao.estadoId,
+          cidadeInicialId: _organizacao.cidadeId,
+          obrigatorio: true,
+          habilitado: !_salvando,
+          onChanged: (estado, cidade) {
+            _estadoId = estado?.estadoId;
+            _cidadeId = cidade?.cidadeId;
           },
         ),
       ],
@@ -492,8 +512,10 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
     switch (widget.secao) {
       case OrganizacaoSecao.empresa:
         return _campoEmpresa();
+
       case OrganizacaoSecao.contato:
         return _campoContato();
+
       case OrganizacaoSecao.endereco:
         return _campoEndereco();
     }
