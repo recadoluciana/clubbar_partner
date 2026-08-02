@@ -12,11 +12,7 @@ class CategoriaFormPage extends StatefulWidget {
   final Categoria? categoria;
   final int lojaId;
 
-  const CategoriaFormPage({
-    super.key,
-    this.categoria,
-    required this.lojaId,
-  });
+  const CategoriaFormPage({super.key, this.categoria, required this.lojaId});
 
   @override
   State<CategoriaFormPage> createState() => _CategoriaFormPageState();
@@ -69,16 +65,10 @@ class _CategoriaFormPageState extends State<CategoriaFormPage> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(
-        icone,
-        color: ClubbarColors.textoSecundario,
-      ),
+      prefixIcon: Icon(icone, color: ClubbarColors.textoSecundario),
       filled: true,
       fillColor: ClubbarColors.branco,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: ClubbarColors.borda),
@@ -89,10 +79,7 @@ class _CategoriaFormPageState extends State<CategoriaFormPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: ClubbarColors.ambar,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -100,10 +87,7 @@ class _CategoriaFormPageState extends State<CategoriaFormPage> {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: ClubbarColors.erro,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: ClubbarColors.erro, width: 2),
       ),
     );
   }
@@ -130,12 +114,7 @@ class _CategoriaFormPageState extends State<CategoriaFormPage> {
           ordem,
         );
       } else {
-        await _repository.criar(
-          widget.lojaId,
-          nome,
-          _sitcategoria,
-          ordem,
-        );
+        await _repository.criar(widget.lojaId, nome, _sitcategoria, ordem);
       }
 
       if (!mounted) return;
@@ -151,10 +130,7 @@ class _CategoriaFormPageState extends State<CategoriaFormPage> {
     } catch (e) {
       if (!mounted) return;
 
-      AppSnackBar.erro(
-        context,
-        _mensagemErro(e),
-      );
+      AppSnackBar.erro(context, _mensagemErro(e));
     } finally {
       if (mounted) {
         setState(() {
@@ -188,9 +164,7 @@ class _CategoriaFormPageState extends State<CategoriaFormPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  editando
-                      ? 'Dados da categoria'
-                      : 'Nova categoria',
+                  editando ? 'Dados da categoria' : 'Nova categoria',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
@@ -280,14 +254,8 @@ class _CategoriaFormPageState extends State<CategoriaFormPage> {
               icone: Icons.toggle_on_outlined,
             ),
             items: const [
-              DropdownMenuItem(
-                value: 'ATIVA',
-                child: Text('Ativa'),
-              ),
-              DropdownMenuItem(
-                value: 'INATIVA',
-                child: Text('Inativa'),
-              ),
+              DropdownMenuItem(value: 'ATIVA', child: Text('Ativa')),
+              DropdownMenuItem(value: 'INATIVA', child: Text('Inativa')),
             ],
             onChanged: _salvando
                 ? null
@@ -319,8 +287,8 @@ class _CategoriaFormPageState extends State<CategoriaFormPage> {
                 _salvando
                     ? 'Salvando...'
                     : editando
-                        ? 'Salvar alterações'
-                        : 'Cadastrar categoria',
+                    ? 'Salvar alterações'
+                    : 'Cadastrar categoria',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -347,31 +315,21 @@ class _CategoriaFormPageState extends State<CategoriaFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(
-        mostrarVoltar: true,
-      ),
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: SafeArea(
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: editando
-                  ? 'Editar Categoria'
-                  : 'Nova Categoria',
+              titulo: editando ? 'Editar Categoria' : 'Nova Categoria',
               subtitulo: editando
                   ? 'Atualize os dados da categoria'
                   : 'Organize os produtos do cardápio',
-              icone: Icons.category_rounded,
             ),
             Expanded(
               child: ListView(
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.fromLTRB(
-                  20,
-                  20,
-                  20,
-                  30,
-                ),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
                 children: [
                   _cabecalhoFormulario(),
                   const SizedBox(height: 18),

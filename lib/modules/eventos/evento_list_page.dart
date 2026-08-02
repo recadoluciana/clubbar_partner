@@ -19,10 +19,7 @@ import 'evento_lote_list_page.dart';
 class EventoListPage extends StatefulWidget {
   final int organizacaoId;
 
-  const EventoListPage({
-    super.key,
-    required this.organizacaoId,
-  });
+  const EventoListPage({super.key, required this.organizacaoId});
 
   @override
   State<EventoListPage> createState() => _EventoListPageState();
@@ -226,10 +223,8 @@ class _EventoListPageState extends State<EventoListPage> {
 
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EventoFormPage(
-          organizacaoId: widget.organizacaoId,
-          lojaId: lojaId,
-        ),
+        builder: (_) =>
+            EventoFormPage(organizacaoId: widget.organizacaoId, lojaId: lojaId),
       ),
     );
 
@@ -410,10 +405,7 @@ class _EventoListPageState extends State<EventoListPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: ClubbarColors.ambar,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
       ),
     );
   }
@@ -447,10 +439,7 @@ class _EventoListPageState extends State<EventoListPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.ambar,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
         ),
       ),
     );
@@ -548,10 +537,7 @@ class _EventoListPageState extends State<EventoListPage> {
     );
   }
 
-  Widget _linhaInformacao({
-    required IconData icone,
-    required String texto,
-  }) {
+  Widget _linhaInformacao({required IconData icone, required String texto}) {
     return Padding(
       padding: const EdgeInsets.only(top: 7),
       child: Row(
@@ -628,10 +614,7 @@ class _EventoListPageState extends State<EventoListPage> {
                     texto: local,
                   ),
                 if (endereco.isNotEmpty)
-                  _linhaInformacao(
-                    icone: Icons.map_outlined,
-                    texto: endereco,
-                  ),
+                  _linhaInformacao(icone: Icons.map_outlined, texto: endereco),
                 const SizedBox(height: 15),
                 const Divider(height: 1, color: ClubbarColors.divisor),
                 const SizedBox(height: 11),
@@ -660,7 +643,9 @@ class _EventoListPageState extends State<EventoListPage> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: _excluindo ? null : () => _abrirEdicao(evento),
+                        onPressed: _excluindo
+                            ? null
+                            : () => _abrirEdicao(evento),
                         icon: const Icon(Icons.edit_rounded, size: 18),
                         label: const Text(
                           'Editar',
@@ -678,8 +663,13 @@ class _EventoListPageState extends State<EventoListPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: _excluindo ? null : () => _excluirEvento(evento),
-                        icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                        onPressed: _excluindo
+                            ? null
+                            : () => _excluirEvento(evento),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                        ),
                         label: const Text(
                           'Excluir',
                           style: TextStyle(fontWeight: FontWeight.bold),
@@ -725,8 +715,8 @@ class _EventoListPageState extends State<EventoListPage> {
                 !temLoja
                     ? Icons.storefront_rounded
                     : temBusca
-                        ? Icons.search_off_rounded
-                        : Icons.event_rounded,
+                    ? Icons.search_off_rounded
+                    : Icons.event_rounded,
                 size: 39,
                 color: ClubbarColors.preto,
               ),
@@ -736,21 +726,18 @@ class _EventoListPageState extends State<EventoListPage> {
               !temLoja
                   ? 'Nenhuma loja disponível'
                   : temBusca
-                      ? 'Nenhum evento encontrado'
-                      : 'Nenhum evento cadastrado',
+                  ? 'Nenhum evento encontrado'
+                  : 'Nenhum evento cadastrado',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 7),
             Text(
               !temLoja
                   ? 'Cadastre uma loja antes de criar eventos.'
                   : temBusca
-                      ? 'Tente pesquisar por outro título, local ou situação.'
-                      : 'Cadastre o primeiro evento desta loja.',
+                  ? 'Tente pesquisar por outro título, local ou situação.'
+                  : 'Cadastre o primeiro evento desta loja.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -854,10 +841,9 @@ class _EventoListPageState extends State<EventoListPage> {
               subtitulo: _carregando
                   ? 'Carregando eventos...'
                   : nomeLoja.isEmpty
-                      ? 'Selecione uma loja'
-                      : '$nomeLoja • ${_eventos.length} '
-                          '${_eventos.length == 1 ? 'evento' : 'eventos'}',
-              icone: Icons.event_rounded,
+                  ? 'Selecione uma loja'
+                  : '$nomeLoja • ${_eventos.length} '
+                        '${_eventos.length == 1 ? 'evento' : 'eventos'}',
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),

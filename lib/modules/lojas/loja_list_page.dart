@@ -734,20 +734,26 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  Widget _botaoAdicionarLoja() {
-    return ElevatedButton.icon(
-      onPressed: _abrirNovaLoja,
-      icon: const Icon(Icons.add_business_rounded, size: 19),
-      label: const Text(
-        'Adicionar',
-        style: TextStyle(fontWeight: FontWeight.w800),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: ClubbarColors.ambar,
-        foregroundColor: ClubbarColors.preto,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+  Widget _botaoCircularHeader({
+    required String tooltip,
+    required IconData icone,
+    required VoidCallback? onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: SizedBox.square(
+        dimension: 40,
+        child: IconButton(
+          onPressed: onPressed,
+          icon: Icon(icone, size: 22),
+          color: ClubbarColors.preto,
+          disabledColor: ClubbarColors.textoSecundario,
+          style: IconButton.styleFrom(
+            backgroundColor: ClubbarColors.ambar,
+            disabledBackgroundColor: ClubbarColors.borda,
+            shape: const CircleBorder(),
+          ),
+        ),
       ),
     );
   }
@@ -756,26 +762,18 @@ class _LojaListPageState extends State<LojaListPage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ElevatedButton.icon(
+        _botaoCircularHeader(
+          tooltip: 'Atualizar',
+          icone: Icons.refresh_rounded,
           onPressed: _carregando ? null : _carregarLojas,
-          icon: const Icon(Icons.refresh_rounded, size: 19),
-          label: const Text(
-            'Atualizar',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: ClubbarColors.ambar,
-            foregroundColor: ClubbarColors.preto,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
         ),
         if (_podeIncluirExcluir) ...[
           const SizedBox(width: 8),
-          _botaoAdicionarLoja(),
+          _botaoCircularHeader(
+            tooltip: 'Adicionar loja',
+            icone: Icons.add_rounded,
+            onPressed: _abrirNovaLoja,
+          ),
         ],
       ],
     );
@@ -947,7 +945,6 @@ class _LojaListPageState extends State<LojaListPage> {
             ClubbarPageHeader(
               titulo: 'Lojas',
               subtitulo: _subtituloHeader(),
-              icone: Icons.storefront_rounded,
               trailing: _acoesHeader(),
             ),
 

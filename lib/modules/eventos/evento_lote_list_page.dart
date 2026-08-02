@@ -31,7 +31,10 @@ class EventoLoteListPage extends StatefulWidget {
 class _EventoLoteListPageState extends State<EventoLoteListPage> {
   final EventoLoteRepository _repo = EventoLoteRepository();
   final TextEditingController _buscaController = TextEditingController();
-  final NumberFormat _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+  final NumberFormat _moeda = NumberFormat.currency(
+    locale: 'pt_BR',
+    symbol: 'R\$',
+  );
 
   bool _carregando = true;
   bool _excluindo = false;
@@ -56,9 +59,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
   }
 
-  int get _totalIngressos => _lotes.fold(0, (total, lote) => total + lote.qttotallote);
-  int get _totalVendidos => _lotes.fold(0, (total, lote) => total + lote.qtvendidalote);
-  int get _totalDisponiveis => (_totalIngressos - _totalVendidos).clamp(0, _totalIngressos);
+  int get _totalIngressos =>
+      _lotes.fold(0, (total, lote) => total + lote.qttotallote);
+  int get _totalVendidos =>
+      _lotes.fold(0, (total, lote) => total + lote.qtvendidalote);
+  int get _totalDisponiveis =>
+      (_totalIngressos - _totalVendidos).clamp(0, _totalIngressos);
 
   double get _menorPreco {
     if (_lotes.isEmpty) return 0;
@@ -164,9 +170,18 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: ClubbarColors.erro, size: 30),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: ClubbarColors.erro,
+              size: 30,
+            ),
             SizedBox(width: 10),
-            Expanded(child: Text('Excluir lote', style: TextStyle(fontWeight: FontWeight.w900))),
+            Expanded(
+              child: Text(
+                'Excluir lote',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
           ],
         ),
         content: Text(
@@ -178,12 +193,18 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           OutlinedButton.icon(
             onPressed: () => Navigator.pop(dialogContext, false),
             icon: const Icon(Icons.close_rounded),
-            label: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text(
+              'Cancelar',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.delete_rounded),
-            label: const Text('Excluir', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text(
+              'Excluir',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: ClubbarColors.erro,
               foregroundColor: ClubbarColors.branco,
@@ -217,7 +238,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         hintText: 'Buscar lote',
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: _buscaController.text.isNotEmpty
-            ? IconButton(onPressed: _limparBusca, icon: const Icon(Icons.close_rounded))
+            ? IconButton(
+                onPressed: _limparBusca,
+                icon: const Icon(Icons.close_rounded),
+              )
             : null,
         filled: true,
         fillColor: ClubbarColors.branco,
@@ -239,7 +263,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             child: ElevatedButton.icon(
               onPressed: _novoLote,
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Novo lote', style: TextStyle(fontWeight: FontWeight.w800)),
+              label: const Text(
+                'Novo lote',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ClubbarColors.ambar,
                 foregroundColor: ClubbarColors.preto,
@@ -276,8 +303,20 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(titulo, style: const TextStyle(fontSize: 11, color: ClubbarColors.textoSecundario)),
-                Text(valor, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: ClubbarColors.textoSecundario,
+                  ),
+                ),
+                Text(
+                  valor,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ),
           ),
@@ -294,28 +333,59 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.eventoTitulo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          Text(
+            widget.eventoTitulo,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _itemResumo('Lotes', '${_lotes.length}', Icons.confirmation_number_rounded)),
+              Expanded(
+                child: _itemResumo(
+                  'Lotes',
+                  '${_lotes.length}',
+                  Icons.confirmation_number_rounded,
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _itemResumo('Ingressos', '$_totalIngressos', Icons.groups_rounded)),
+              Expanded(
+                child: _itemResumo(
+                  'Ingressos',
+                  '$_totalIngressos',
+                  Icons.groups_rounded,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: _itemResumo('Vendidos', '$_totalVendidos', Icons.check_circle_rounded)),
+              Expanded(
+                child: _itemResumo(
+                  'Vendidos',
+                  '$_totalVendidos',
+                  Icons.check_circle_rounded,
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _itemResumo('Disponíveis', '$_totalDisponiveis', Icons.inventory_2_rounded)),
+              Expanded(
+                child: _itemResumo(
+                  'Disponíveis',
+                  '$_totalDisponiveis',
+                  Icons.inventory_2_rounded,
+                ),
+              ),
             ],
           ),
           if (_lotes.isNotEmpty) ...[
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
-              child: _itemResumo('A partir de', _moeda.format(_menorPreco), Icons.sell_rounded),
+              child: _itemResumo(
+                'A partir de',
+                _moeda.format(_menorPreco),
+                Icons.sell_rounded,
+              ),
             ),
           ],
         ],
@@ -343,7 +413,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   }
 
   Widget _cardLote(EventoLote lote) {
-    final disponiveis = (lote.qttotallote - lote.qtvendidalote).clamp(0, lote.qttotallote);
+    final disponiveis = (lote.qttotallote - lote.qtvendidalote).clamp(
+      0,
+      lote.qttotallote,
+    );
 
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
@@ -357,7 +430,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               Container(
                 width: 58,
                 height: 58,
-                decoration: const BoxDecoration(color: ClubbarColors.ambarClaro, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: ClubbarColors.ambarClaro,
+                  shape: BoxShape.circle,
+                ),
                 child: const Icon(Icons.confirmation_number_rounded, size: 30),
               ),
               const SizedBox(width: 13),
@@ -365,11 +441,21 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(lote.nmlote, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                    Text(
+                      lote.nmlote,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 5),
                     Text(
                       _moeda.format(lote.vrprecolote),
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: ClubbarColors.sucesso),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: ClubbarColors.sucesso,
+                      ),
                     ),
                   ],
                 ),
@@ -380,12 +466,19 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.groups_outlined, size: 18, color: ClubbarColors.textoSecundario),
+              const Icon(
+                Icons.groups_outlined,
+                size: 18,
+                color: ClubbarColors.textoSecundario,
+              ),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
                   '${lote.qttotallote} ingressos • ${lote.qtvendidalote} vendidos • $disponiveis disponíveis',
-                  style: const TextStyle(fontSize: 13, color: ClubbarColors.textoSecundario),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: ClubbarColors.textoSecundario,
+                  ),
                 ),
               ),
             ],
@@ -394,12 +487,19 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.calendar_month_outlined, size: 18, color: ClubbarColors.textoSecundario),
+              const Icon(
+                Icons.calendar_month_outlined,
+                size: 18,
+                color: ClubbarColors.textoSecundario,
+              ),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
                   'Vendas: ${_formatarData(lote.dtiniciovenda)} até ${_formatarData(lote.dtfimvenda)}',
-                  style: const TextStyle(fontSize: 13, color: ClubbarColors.textoSecundario),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: ClubbarColors.textoSecundario,
+                  ),
                 ),
               ),
             ],
@@ -413,7 +513,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 child: OutlinedButton.icon(
                   onPressed: _excluindo ? null : () => _editarLote(lote),
                   icon: const Icon(Icons.edit_rounded, size: 18),
-                  label: const Text('Editar', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    'Editar',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -421,7 +524,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 child: ElevatedButton.icon(
                   onPressed: _excluindo ? null : () => _excluirLote(lote),
                   icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                  label: const Text('Excluir', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    'Excluir',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ClubbarColors.erroClaro,
                     foregroundColor: ClubbarColors.erro,
@@ -439,7 +545,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     if (_carregando) {
       return const Padding(
         padding: EdgeInsets.only(top: 60),
-        child: Center(child: CircularProgressIndicator(color: ClubbarColors.ambar)),
+        child: Center(
+          child: CircularProgressIndicator(color: ClubbarColors.ambar),
+        ),
       );
     }
 
@@ -500,7 +608,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             ClubbarPageHeader(
               titulo: 'Lotes do Evento',
               subtitulo: widget.eventoTitulo,
-              icone: Icons.confirmation_number_rounded,
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),

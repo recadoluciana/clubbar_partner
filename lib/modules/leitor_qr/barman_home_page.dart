@@ -472,12 +472,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
       body: SafeArea(
         child: Column(
           children: [
-            ClubbarPageHeader(
-              titulo: 'Clubbar Barman',
-              subtitulo: subtitulo,
-              icone: Icons.local_bar_rounded,
-              imagemUrl: logoLoja,
-            ),
+            ClubbarPageHeader(titulo: 'Clubbar Barman', subtitulo: subtitulo),
 
             _conteudo(),
           ],

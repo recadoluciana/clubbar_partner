@@ -17,10 +17,7 @@ import 'produto_form_page.dart';
 class ProdutoListPage extends StatefulWidget {
   final int organizacaoId;
 
-  const ProdutoListPage({
-    super.key,
-    required this.organizacaoId,
-  });
+  const ProdutoListPage({super.key, required this.organizacaoId});
 
   @override
   State<ProdutoListPage> createState() => _ProdutoListPageState();
@@ -77,16 +74,11 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
         .replaceFirst('Exception:', '')
         .trim();
 
-    return mensagem.isEmpty
-        ? 'Ocorreu um erro inesperado.'
-        : mensagem;
+    return mensagem.isEmpty ? 'Ocorreu um erro inesperado.' : mensagem;
   }
 
   double _numero(dynamic valor) {
-    return double.tryParse(
-          (valor ?? '0').toString().replaceAll(',', '.'),
-        ) ??
-        0;
+    return double.tryParse((valor ?? '0').toString().replaceAll(',', '.')) ?? 0;
   }
 
   String _moeda(dynamic valor) {
@@ -111,14 +103,11 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
   }
 
   String _montarUrlImagem(dynamic produto) {
-    final caminho = (produto['urlfotoproduto'] ?? '')
-        .toString()
-        .trim();
+    final caminho = (produto['urlfotoproduto'] ?? '').toString().trim();
 
     if (caminho.isEmpty) return '';
 
-    if (caminho.startsWith('http://') ||
-        caminho.startsWith('https://')) {
+    if (caminho.startsWith('http://') || caminho.startsWith('https://')) {
       return caminho;
     }
 
@@ -129,9 +118,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
 
   double _precoFinal(dynamic produto) {
     final preco = _numero(produto['vrprecoprod']);
-    final tipo = (produto['tipodesconto'] ?? 'NENHUM')
-        .toString()
-        .toUpperCase();
+    final tipo = (produto['tipodesconto'] ?? 'NENHUM').toString().toUpperCase();
     final desconto = _numero(produto['vrdesconto']);
 
     if (tipo == 'PERCENTUAL') {
@@ -148,9 +135,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
   }
 
   bool _temDesconto(dynamic produto) {
-    final tipo = (produto['tipodesconto'] ?? 'NENHUM')
-        .toString()
-        .toUpperCase();
+    final tipo = (produto['tipodesconto'] ?? 'NENHUM').toString().toUpperCase();
     final desconto = _numero(produto['vrdesconto']);
 
     return tipo != 'NENHUM' && desconto > 0;
@@ -164,18 +149,14 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     });
 
     try {
-      final lojas = await _lojaRepository.listar(
-        widget.organizacaoId,
-      );
+      final lojas = await _lojaRepository.listar(widget.organizacaoId);
 
       if (!mounted) return;
 
       int? lojaSelecionada = _lojaIdSelecionada;
 
       if (lojas.isNotEmpty) {
-        final existe = lojas.any(
-          (loja) => loja.lojaId == lojaSelecionada,
-        );
+        final existe = lojas.any((loja) => loja.lojaId == lojaSelecionada);
 
         if (!existe) {
           lojaSelecionada = lojas.first.lojaId;
@@ -238,10 +219,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
 
       setState(() {
         _produtos = lista;
-        _produtosFiltrados = _aplicarFiltro(
-          lista,
-          _buscaController.text,
-        );
+        _produtosFiltrados = _aplicarFiltro(lista, _buscaController.text);
         _carregando = false;
       });
     } catch (e) {
@@ -258,10 +236,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     }
   }
 
-  List<dynamic> _aplicarFiltro(
-    List<dynamic> produtos,
-    String texto,
-  ) {
+  List<dynamic> _aplicarFiltro(List<dynamic> produtos, String texto) {
     final busca = texto.trim().toLowerCase();
 
     if (busca.isEmpty) {
@@ -269,15 +244,9 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     }
 
     return produtos.where((produto) {
-      final nome = (produto['nmproduto'] ?? '')
-          .toString()
-          .toLowerCase();
-      final categoria = (produto['nmcategoria'] ?? '')
-          .toString()
-          .toLowerCase();
-      final status = (produto['sitproduto'] ?? '')
-          .toString()
-          .toLowerCase();
+      final nome = (produto['nmproduto'] ?? '').toString().toLowerCase();
+      final categoria = (produto['nmcategoria'] ?? '').toString().toLowerCase();
+      final status = (produto['sitproduto'] ?? '').toString().toLowerCase();
       final tipoDesconto = (produto['tipodesconto'] ?? '')
           .toString()
           .toLowerCase();
@@ -293,10 +262,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
 
   void _filtrar(String texto) {
     setState(() {
-      _produtosFiltrados = _aplicarFiltro(
-        _produtos,
-        texto,
-      );
+      _produtosFiltrados = _aplicarFiltro(_produtos, texto);
     });
   }
 
@@ -310,10 +276,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     final lojaId = _lojaIdSelecionada;
 
     if (lojaId == null) {
-      AppSnackBar.aviso(
-        context,
-        'Selecione uma loja.',
-      );
+      AppSnackBar.aviso(context, 'Selecione uma loja.');
       return;
     }
 
@@ -337,9 +300,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     if (lojaId == null) return;
 
     try {
-      final produtoMap = Map<String, dynamic>.from(
-        produto as Map,
-      );
+      final produtoMap = Map<String, dynamic>.from(produto as Map);
 
       final resultado = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
@@ -387,9 +348,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
               Expanded(
                 child: Text(
                   'Excluir produto',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
             ],
@@ -407,15 +366,11 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
               icon: const Icon(Icons.close_rounded),
               label: const Text(
                 'Cancelar',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: ClubbarColors.textoPrincipal,
-                side: const BorderSide(
-                  color: ClubbarColors.borda,
-                ),
+                side: const BorderSide(color: ClubbarColors.borda),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -428,9 +383,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
               icon: const Icon(Icons.delete_rounded),
               label: const Text(
                 'Excluir',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ClubbarColors.erro,
@@ -456,15 +409,10 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
 
     if (!confirmou) return;
 
-    final produtoId = int.tryParse(
-      (produto['produto_id'] ?? '').toString(),
-    );
+    final produtoId = int.tryParse((produto['produto_id'] ?? '').toString());
 
     if (produtoId == null) {
-      AppSnackBar.erro(
-        context,
-        'Produto não identificado.',
-      );
+      AppSnackBar.erro(context, 'Produto não identificado.');
       return;
     }
 
@@ -477,19 +425,13 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
 
       if (!mounted) return;
 
-      AppSnackBar.sucesso(
-        context,
-        'Produto excluído com sucesso.',
-      );
+      AppSnackBar.sucesso(context, 'Produto excluído com sucesso.');
 
       await _carregarProdutos();
     } catch (e) {
       if (!mounted) return;
 
-      AppSnackBar.erro(
-        context,
-        _extrairMensagemErro(e),
-      );
+      AppSnackBar.erro(context, _extrairMensagemErro(e));
     } finally {
       if (mounted) {
         setState(() {
@@ -504,9 +446,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
       return const SizedBox(
         height: 56,
         child: Center(
-          child: CircularProgressIndicator(
-            color: ClubbarColors.ambar,
-          ),
+          child: CircularProgressIndicator(color: ClubbarColors.ambar),
         ),
       );
     }
@@ -524,31 +464,21 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
         fillColor: ClubbarColors.branco,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.borda,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.borda),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.borda,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.borda),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.ambar,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
         ),
       ),
       items: _lojas.map((loja) {
         return DropdownMenuItem<int>(
           value: loja.lojaId,
-          child: Text(
-            loja.nmloja,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: Text(loja.nmloja, overflow: TextOverflow.ellipsis),
         );
       }).toList(),
       onChanged: (value) async {
@@ -587,22 +517,15 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.borda,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.borda),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.borda,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.borda),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.ambar,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
         ),
       ),
     );
@@ -615,15 +538,11 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
           child: SizedBox(
             height: 50,
             child: ElevatedButton.icon(
-              onPressed: _lojaIdSelecionada == null
-                  ? null
-                  : _abrirCadastro,
+              onPressed: _lojaIdSelecionada == null ? null : _abrirCadastro,
               icon: const Icon(Icons.add_rounded),
               label: const Text(
                 'Novo produto',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w800),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ClubbarColors.ambar,
@@ -641,15 +560,11 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
           width: 50,
           height: 50,
           child: OutlinedButton(
-            onPressed: _carregando
-                ? null
-                : _carregarProdutos,
+            onPressed: _carregando ? null : _carregarProdutos,
             style: OutlinedButton.styleFrom(
               padding: EdgeInsets.zero,
               foregroundColor: ClubbarColors.textoPrincipal,
-              side: const BorderSide(
-                color: ClubbarColors.borda,
-              ),
+              side: const BorderSide(color: ClubbarColors.borda),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
@@ -700,22 +615,15 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     final ativo = status == 'ATIVO' || status == 'ATIVA';
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: ativo
-            ? ClubbarColors.sucessoClaro
-            : ClubbarColors.erroClaro,
+        color: ativo ? ClubbarColors.sucessoClaro : ClubbarColors.erroClaro,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         ativo ? 'Ativo' : 'Inativo',
         style: TextStyle(
-          color: ativo
-              ? ClubbarColors.sucesso
-              : ClubbarColors.erro,
+          color: ativo ? ClubbarColors.sucesso : ClubbarColors.erro,
           fontSize: 11,
           fontWeight: FontWeight.w800,
         ),
@@ -729,10 +637,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
         .trim();
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: ClubbarColors.infoClaro,
         borderRadius: BorderRadius.circular(20),
@@ -851,33 +756,21 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
             ],
           ),
           const SizedBox(height: 14),
-          const Divider(
-            height: 1,
-            color: ClubbarColors.divisor,
-          ),
+          const Divider(height: 1, color: ClubbarColors.divisor),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _excluindo
-                      ? null
-                      : () => _abrirEdicao(produto),
-                  icon: const Icon(
-                    Icons.edit_rounded,
-                    size: 18,
-                  ),
+                  onPressed: _excluindo ? null : () => _abrirEdicao(produto),
+                  icon: const Icon(Icons.edit_rounded, size: 18),
                   label: const Text(
                     'Editar',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: ClubbarColors.textoPrincipal,
-                    side: const BorderSide(
-                      color: ClubbarColors.borda,
-                    ),
+                    side: const BorderSide(color: ClubbarColors.borda),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(13),
                     ),
@@ -887,18 +780,11 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _excluindo
-                      ? null
-                      : () => _excluirProduto(produto),
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    size: 18,
-                  ),
+                  onPressed: _excluindo ? null : () => _excluirProduto(produto),
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
                   label: const Text(
                     'Excluir',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ClubbarColors.erroClaro,
@@ -938,8 +824,8 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                 !temLoja
                     ? Icons.storefront_rounded
                     : temBusca
-                        ? Icons.search_off_rounded
-                        : Icons.inventory_2_rounded,
+                    ? Icons.search_off_rounded
+                    : Icons.inventory_2_rounded,
                 size: 39,
                 color: ClubbarColors.preto,
               ),
@@ -949,21 +835,18 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
               !temLoja
                   ? 'Nenhuma loja disponível'
                   : temBusca
-                      ? 'Nenhum produto encontrado'
-                      : 'Nenhum produto cadastrado',
+                  ? 'Nenhum produto encontrado'
+                  : 'Nenhum produto cadastrado',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 7),
             Text(
               !temLoja
                   ? 'Cadastre uma loja antes de criar produtos.'
                   : temBusca
-                      ? 'Tente pesquisar por outro nome, categoria ou situação.'
-                      : 'Cadastre o primeiro produto desta loja.',
+                  ? 'Tente pesquisar por outro nome, categoria ou situação.'
+                  : 'Cadastre o primeiro produto desta loja.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -978,9 +861,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                 icon: const Icon(Icons.add_rounded),
                 label: const Text(
                   'Cadastrar produto',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ClubbarColors.ambar,
@@ -1011,10 +892,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
             const Text(
               'Não foi possível carregar os produtos',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1031,9 +909,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
               icon: const Icon(Icons.refresh_rounded),
               label: const Text(
                 'Tentar novamente',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ClubbarColors.ambar,
@@ -1051,9 +927,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.only(top: 60),
-          child: CircularProgressIndicator(
-            color: ClubbarColors.ambar,
-          ),
+          child: CircularProgressIndicator(color: ClubbarColors.ambar),
         ),
       );
     }
@@ -1066,11 +940,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
       return _estadoVazio();
     }
 
-    return Column(
-      children: _produtosFiltrados
-          .map(_cardProduto)
-          .toList(),
-    );
+    return Column(children: _produtosFiltrados.map(_cardProduto).toList());
   }
 
   @override
@@ -1079,9 +949,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(
-        mostrarVoltar: true,
-      ),
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: SafeArea(
         child: Column(
           children: [
@@ -1090,18 +958,12 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
               subtitulo: _carregando
                   ? 'Carregando produtos...'
                   : nomeLoja.isEmpty
-                      ? 'Selecione uma loja'
-                      : '$nomeLoja • ${_produtos.length} '
-                          '${_produtos.length == 1 ? 'produto' : 'produtos'}',
-              icone: Icons.inventory_2_rounded,
+                  ? 'Selecione uma loja'
+                  : '$nomeLoja • ${_produtos.length} '
+                        '${_produtos.length == 1 ? 'produto' : 'produtos'}',
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                18,
-                20,
-                0,
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
               child: Column(
                 children: [
                   _campoLoja(),
@@ -1121,15 +983,8 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    0,
-                    20,
-                    28,
-                  ),
-                  children: [
-                    _conteudoLista(),
-                  ],
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  children: [_conteudoLista()],
                 ),
               ),
             ),

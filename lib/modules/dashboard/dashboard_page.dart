@@ -128,6 +128,10 @@ class _DashboardPageState extends State<DashboardPage> {
     if (!context.mounted) return;
 
     await Navigator.push(context, MaterialPageRoute(builder: (_) => destino!));
+
+    if (chaveModulo == 'organizacao' && mounted) {
+      await _carregarDadosUsuario();
+    }
   }
 
   Future<void> _sair() async {
@@ -190,12 +194,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _gradeModulos() {
     final modulos = <_DashboardItem>[
-      const _DashboardItem(
-        chave: 'organizacao',
-        titulo: 'Organização',
-        subtitulo: 'Dados da empresa',
-        icone: Icons.business_rounded,
-      ),
       const _DashboardItem(
         chave: 'lojas',
         titulo: 'Lojas',
@@ -322,6 +320,16 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => _abrirModulo(context, 'organizacao'),
+                    tooltip: 'Editar organização',
+                    icon: const Icon(Icons.edit_rounded),
+                    style: IconButton.styleFrom(
+                      foregroundColor: ClubbarColors.preto,
+                      backgroundColor: ClubbarColors.ambarClaro,
                     ),
                   ),
                 ],

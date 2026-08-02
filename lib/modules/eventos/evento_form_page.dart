@@ -577,7 +577,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
               subtitulo: editando
                   ? 'Atualize os dados do evento'
                   : 'Cadastre o evento e depois configure os lotes',
-              icone: Icons.event_rounded,
             ),
             Expanded(
               child: Form(

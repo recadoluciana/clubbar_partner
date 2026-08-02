@@ -894,7 +894,6 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
               subtitulo: editando
                   ? 'Atualize os dados do produto'
                   : 'Cadastre um item no cardápio',
-              icone: Icons.inventory_2_rounded,
             ),
             Expanded(
               child: Form(

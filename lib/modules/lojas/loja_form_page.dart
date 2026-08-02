@@ -407,7 +407,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
               subtitulo: _carregandoNomeOrganizacao
                   ? 'Carregando organização...'
                   : _nomeOrganizacao,
-              icone: Icons.storefront_rounded,
             ),
             Expanded(
               child: Center(

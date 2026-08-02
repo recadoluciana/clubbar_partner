@@ -16,10 +16,7 @@ import 'categoria_form_page.dart';
 class CategoriaListPage extends StatefulWidget {
   final int organizacaoId;
 
-  const CategoriaListPage({
-    super.key,
-    required this.organizacaoId,
-  });
+  const CategoriaListPage({super.key, required this.organizacaoId});
 
   @override
   State<CategoriaListPage> createState() => _CategoriaListPageState();
@@ -76,9 +73,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
         .replaceFirst('Exception:', '')
         .trim();
 
-    return mensagem.isEmpty
-        ? 'Ocorreu um erro inesperado.'
-        : mensagem;
+    return mensagem.isEmpty ? 'Ocorreu um erro inesperado.' : mensagem;
   }
 
   Future<void> _carregarLojas() async {
@@ -89,18 +84,14 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
     });
 
     try {
-      final lojas = await _lojaRepository.listar(
-        widget.organizacaoId,
-      );
+      final lojas = await _lojaRepository.listar(widget.organizacaoId);
 
       if (!mounted) return;
 
       int? lojaSelecionada = _lojaIdSelecionada;
 
       if (lojas.isNotEmpty) {
-        final existe = lojas.any(
-          (loja) => loja.lojaId == lojaSelecionada,
-        );
+        final existe = lojas.any((loja) => loja.lojaId == lojaSelecionada);
 
         if (!existe) {
           lojaSelecionada = lojas.first.lojaId;
@@ -135,10 +126,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
         _erro = mensagem;
       });
 
-      AppSnackBar.erro(
-        context,
-        mensagem,
-      );
+      AppSnackBar.erro(context, mensagem);
     }
   }
 
@@ -166,10 +154,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
 
       setState(() {
         _categorias = lista;
-        _categoriasFiltradas = _aplicarFiltro(
-          lista,
-          _buscaController.text,
-        );
+        _categoriasFiltradas = _aplicarFiltro(lista, _buscaController.text);
         _carregando = false;
       });
     } catch (e) {
@@ -182,17 +167,11 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
         _erro = mensagem;
       });
 
-      AppSnackBar.erro(
-        context,
-        mensagem,
-      );
+      AppSnackBar.erro(context, mensagem);
     }
   }
 
-  List<Categoria> _aplicarFiltro(
-    List<Categoria> categorias,
-    String texto,
-  ) {
+  List<Categoria> _aplicarFiltro(List<Categoria> categorias, String texto) {
     final busca = texto.trim().toLowerCase();
 
     if (busca.isEmpty) {
@@ -214,10 +193,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
 
   void _filtrar(String texto) {
     setState(() {
-      _categoriasFiltradas = _aplicarFiltro(
-        _categorias,
-        texto,
-      );
+      _categoriasFiltradas = _aplicarFiltro(_categorias, texto);
     });
   }
 
@@ -245,19 +221,12 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
     final lojaId = _lojaIdSelecionada;
 
     if (lojaId == null) {
-      AppSnackBar.aviso(
-        context,
-        'Selecione uma loja.',
-      );
+      AppSnackBar.aviso(context, 'Selecione uma loja.');
       return;
     }
 
     final resultado = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => CategoriaFormPage(
-          lojaId: lojaId,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => CategoriaFormPage(lojaId: lojaId)),
     );
 
     if (resultado == true) {
@@ -272,10 +241,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
 
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => CategoriaFormPage(
-          lojaId: lojaId,
-          categoria: categoria,
-        ),
+        builder: (_) => CategoriaFormPage(lojaId: lojaId, categoria: categoria),
       ),
     );
 
@@ -305,9 +271,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
               Expanded(
                 child: Text(
                   'Excluir categoria',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
             ],
@@ -326,15 +290,11 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
               icon: const Icon(Icons.close_rounded),
               label: const Text(
                 'Cancelar',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: ClubbarColors.textoPrincipal,
-                side: const BorderSide(
-                  color: ClubbarColors.borda,
-                ),
+                side: const BorderSide(color: ClubbarColors.borda),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -347,9 +307,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
               icon: const Icon(Icons.delete_rounded),
               label: const Text(
                 'Excluir',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ClubbarColors.erro,
@@ -382,26 +340,17 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
     });
 
     try {
-      await _repository.excluir(
-        lojaId,
-        categoria.categoriaId,
-      );
+      await _repository.excluir(lojaId, categoria.categoriaId);
 
       if (!mounted) return;
 
-      AppSnackBar.sucesso(
-        context,
-        'Categoria excluída com sucesso.',
-      );
+      AppSnackBar.sucesso(context, 'Categoria excluída com sucesso.');
 
       await _carregarCategorias();
     } catch (e) {
       if (!mounted) return;
 
-      AppSnackBar.erro(
-        context,
-        _extrairMensagemErro(e),
-      );
+      AppSnackBar.erro(context, _extrairMensagemErro(e));
     } finally {
       if (mounted) {
         setState(() {
@@ -416,9 +365,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
       return const SizedBox(
         height: 56,
         child: Center(
-          child: CircularProgressIndicator(
-            color: ClubbarColors.ambar,
-          ),
+          child: CircularProgressIndicator(color: ClubbarColors.ambar),
         ),
       );
     }
@@ -436,31 +383,21 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
         fillColor: ClubbarColors.branco,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.borda,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.borda),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.borda,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.borda),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.ambar,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
         ),
       ),
       items: _lojas.map((loja) {
         return DropdownMenuItem<int>(
           value: loja.lojaId,
-          child: Text(
-            loja.nmloja,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: Text(loja.nmloja, overflow: TextOverflow.ellipsis),
         );
       }).toList(),
       onChanged: (value) async {
@@ -499,22 +436,15 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.borda,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.borda),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.borda,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.borda),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: ClubbarColors.ambar,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
         ),
       ),
     );
@@ -533,9 +463,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
               icon: const Icon(Icons.add_rounded),
               label: const Text(
                 'Nova categoria',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w800),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ClubbarColors.ambar,
@@ -553,15 +481,11 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
           width: 50,
           height: 50,
           child: OutlinedButton(
-            onPressed: _carregando
-                ? null
-                : _carregarCategorias,
+            onPressed: _carregando ? null : _carregarCategorias,
             style: OutlinedButton.styleFrom(
               padding: EdgeInsets.zero,
               foregroundColor: ClubbarColors.textoPrincipal,
-              side: const BorderSide(
-                color: ClubbarColors.borda,
-              ),
+              side: const BorderSide(color: ClubbarColors.borda),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
@@ -574,29 +498,20 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
   }
 
   Widget _chipStatus(Categoria categoria) {
-    final status = (categoria.sitcategoria ?? 'ATIVA')
-        .trim()
-        .toUpperCase();
+    final status = (categoria.sitcategoria ?? 'ATIVA').trim().toUpperCase();
 
     final ativa = status == 'ATIVA' || status == 'ATIVO';
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: ativa
-            ? ClubbarColors.sucessoClaro
-            : ClubbarColors.erroClaro,
+        color: ativa ? ClubbarColors.sucessoClaro : ClubbarColors.erroClaro,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         ativa ? 'Ativa' : 'Inativa',
         style: TextStyle(
-          color: ativa
-              ? ClubbarColors.sucesso
-              : ClubbarColors.erro,
+          color: ativa ? ClubbarColors.sucesso : ClubbarColors.erro,
           fontSize: 11,
           fontWeight: FontWeight.w800,
         ),
@@ -670,33 +585,21 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
             ],
           ),
           const SizedBox(height: 14),
-          const Divider(
-            height: 1,
-            color: ClubbarColors.divisor,
-          ),
+          const Divider(height: 1, color: ClubbarColors.divisor),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _excluindo
-                      ? null
-                      : () => _abrirEdicao(categoria),
-                  icon: const Icon(
-                    Icons.edit_rounded,
-                    size: 18,
-                  ),
+                  onPressed: _excluindo ? null : () => _abrirEdicao(categoria),
+                  icon: const Icon(Icons.edit_rounded, size: 18),
                   label: const Text(
                     'Editar',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: ClubbarColors.textoPrincipal,
-                    side: const BorderSide(
-                      color: ClubbarColors.borda,
-                    ),
+                    side: const BorderSide(color: ClubbarColors.borda),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(13),
                     ),
@@ -709,15 +612,10 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
                   onPressed: _excluindo
                       ? null
                       : () => _excluirCategoria(categoria),
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    size: 18,
-                  ),
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
                   label: const Text(
                     'Excluir',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ClubbarColors.erroClaro,
@@ -757,8 +655,8 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
                 !temLoja
                     ? Icons.storefront_rounded
                     : temBusca
-                        ? Icons.search_off_rounded
-                        : Icons.category_rounded,
+                    ? Icons.search_off_rounded
+                    : Icons.category_rounded,
                 size: 39,
                 color: ClubbarColors.preto,
               ),
@@ -768,21 +666,18 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
               !temLoja
                   ? 'Nenhuma loja disponível'
                   : temBusca
-                      ? 'Nenhuma categoria encontrada'
-                      : 'Nenhuma categoria cadastrada',
+                  ? 'Nenhuma categoria encontrada'
+                  : 'Nenhuma categoria cadastrada',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 7),
             Text(
               !temLoja
                   ? 'Cadastre uma loja antes de criar categorias.'
                   : temBusca
-                      ? 'Tente pesquisar por outro nome, ordem ou situação.'
-                      : 'Cadastre a primeira categoria desta loja.',
+                  ? 'Tente pesquisar por outro nome, ordem ou situação.'
+                  : 'Cadastre a primeira categoria desta loja.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -797,9 +692,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
                 icon: const Icon(Icons.add_rounded),
                 label: const Text(
                   'Cadastrar categoria',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ClubbarColors.ambar,
@@ -830,10 +723,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
             const Text(
               'Não foi possível carregar as categorias',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(
@@ -850,9 +740,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
               icon: const Icon(Icons.refresh_rounded),
               label: const Text(
                 'Tentar novamente',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ClubbarColors.ambar,
@@ -870,9 +758,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.only(top: 60),
-          child: CircularProgressIndicator(
-            color: ClubbarColors.ambar,
-          ),
+          child: CircularProgressIndicator(color: ClubbarColors.ambar),
         ),
       );
     }
@@ -885,11 +771,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
       return _estadoVazio();
     }
 
-    return Column(
-      children: _categoriasFiltradas
-          .map(_cardCategoria)
-          .toList(),
-    );
+    return Column(children: _categoriasFiltradas.map(_cardCategoria).toList());
   }
 
   @override
@@ -898,9 +780,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(
-        mostrarVoltar: true,
-      ),
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: SafeArea(
         child: Column(
           children: [
@@ -909,18 +789,12 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
               subtitulo: _carregando
                   ? 'Carregando categorias...'
                   : nomeLoja.isEmpty
-                      ? 'Selecione uma loja'
-                      : '$nomeLoja • ${_categorias.length} '
-                          '${_categorias.length == 1 ? 'categoria' : 'categorias'}',
-              icone: Icons.category_rounded,
+                  ? 'Selecione uma loja'
+                  : '$nomeLoja • ${_categorias.length} '
+                        '${_categorias.length == 1 ? 'categoria' : 'categorias'}',
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                18,
-                20,
-                0,
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
               child: Column(
                 children: [
                   _campoLoja(),
@@ -940,15 +814,8 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    0,
-                    20,
-                    28,
-                  ),
-                  children: [
-                    _conteudoLista(),
-                  ],
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  children: [_conteudoLista()],
                 ),
               ),
             ),

@@ -124,19 +124,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
     }
   }
 
-  IconData get _iconePagina {
-    switch (widget.secao) {
-      case OrganizacaoSecao.empresa:
-        return Icons.business_rounded;
-
-      case OrganizacaoSecao.contato:
-        return Icons.contact_phone_rounded;
-
-      case OrganizacaoSecao.endereco:
-        return Icons.location_on_rounded;
-    }
-  }
-
   Map<String, dynamic> _montarPayload() {
     switch (widget.secao) {
       case OrganizacaoSecao.empresa:
@@ -590,7 +577,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
             ClubbarPageHeader(
               titulo: _tituloPagina,
               subtitulo: 'Atualize os dados da organização',
-              icone: _iconePagina,
             ),
             _conteudo(),
           ],

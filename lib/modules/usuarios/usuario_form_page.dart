@@ -502,7 +502,6 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
               subtitulo: editando
                   ? 'Atualize os dados de acesso'
                   : 'Cadastre um novo acesso ao sistema',
-              icone: Icons.people_alt_rounded,
             ),
 
             Expanded(

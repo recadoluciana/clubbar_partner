@@ -633,8 +633,12 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Organização',
-              subtitulo: 'Dados da empresa',
+              titulo: _carregando
+                  ? 'Carregando...'
+                  : (_organizacao?.nmorganizacao.trim().isNotEmpty == true
+                        ? _organizacao!.nmorganizacao.trim()
+                        : 'Organização não identificada'),
+              subtitulo: 'Gerencie os dados da sua organização',
             ),
             _conteudo(),
           ],

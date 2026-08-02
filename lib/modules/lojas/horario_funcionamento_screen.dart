@@ -455,7 +455,6 @@ class _HorarioFuncionamentoScreenState
             ClubbarPageHeader(
               titulo: 'Horário de funcionamento',
               subtitulo: widget.nomeLoja,
-              icone: Icons.schedule_rounded,
             ),
             Expanded(
               child: _carregando

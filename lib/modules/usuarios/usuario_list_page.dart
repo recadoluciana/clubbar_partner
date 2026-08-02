@@ -646,7 +646,6 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
               subtitulo: _carregando
                   ? 'Carregando usuários...'
                   : '${_usuarios.length} usuário(s) cadastrado(s)',
-              icone: Icons.people_alt_rounded,
             ),
 
             Padding(

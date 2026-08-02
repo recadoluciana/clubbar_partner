@@ -5,22 +5,13 @@ import '../theme/clubbar_colors.dart';
 class ClubbarPageHeader extends StatelessWidget {
   final String titulo;
   final String subtitulo;
-  final IconData? icone;
-  final String? imagemUrl;
   final Widget? trailing;
-
-  /// Mantido para não quebrar telas que ainda informam esse parâmetro.
-  /// A data e a hora não são mais exibidas no PageHeader.
-  final bool mostrarDataHora;
 
   const ClubbarPageHeader({
     super.key,
     required this.titulo,
     required this.subtitulo,
-    this.icone,
-    this.imagemUrl,
     this.trailing,
-    this.mostrarDataHora = false,
   });
 
   @override

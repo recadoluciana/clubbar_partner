@@ -45,16 +45,20 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
 
   bool get editando => widget.lote != null;
   int get _quantidadeTotal => int.tryParse(_qtTotalController.text.trim()) ?? 0;
-  int get _quantidadeVendida => int.tryParse(_qtVendidaController.text.trim()) ?? 0;
-  int get _quantidadeDisponivel => (_quantidadeTotal - _quantidadeVendida).clamp(0, _quantidadeTotal);
-  double get _preco => double.tryParse(
+  int get _quantidadeVendida =>
+      int.tryParse(_qtVendidaController.text.trim()) ?? 0;
+  int get _quantidadeDisponivel =>
+      (_quantidadeTotal - _quantidadeVendida).clamp(0, _quantidadeTotal);
+  double get _preco =>
+      double.tryParse(
         _precoController.text
             .replaceAll('R\$', '')
             .replaceAll(' ', '')
             .replaceAll('.', '')
             .replaceAll(',', '.')
             .trim(),
-      ) ?? 0;
+      ) ??
+      0;
 
   @override
   void initState() {
@@ -93,7 +97,11 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     if (mounted) setState(() {});
   }
 
-  void _preencherData(String? valor, TextEditingController controller, {required bool inicio}) {
+  void _preencherData(
+    String? valor,
+    TextEditingController controller, {
+    required bool inicio,
+  }) {
     if (valor == null || valor.trim().isEmpty) return;
     final data = DateTime.tryParse(valor);
     if (data == null) {
@@ -130,7 +138,9 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
 
     final hora = await showTimePicker(
       context: context,
-      initialTime: atual != null ? TimeOfDay.fromDateTime(atual) : TimeOfDay.now(),
+      initialTime: atual != null
+          ? TimeOfDay.fromDateTime(atual)
+          : TimeOfDay.now(),
     );
     if (hora == null) return null;
 
@@ -147,7 +157,9 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   }
 
   Future<void> _selecionarFim() async {
-    final data = await _selecionarDataHora(_dataFimSelecionada ?? _dataInicioSelecionada);
+    final data = await _selecionarDataHora(
+      _dataFimSelecionada ?? _dataInicioSelecionada,
+    );
     if (data == null || !mounted) return;
     setState(() {
       _dataFimSelecionada = data;
@@ -181,14 +193,20 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_quantidadeVendida > _quantidadeTotal) {
-      AppSnackBar.aviso(context, 'A quantidade vendida não pode ser maior que a quantidade total.');
+      AppSnackBar.aviso(
+        context,
+        'A quantidade vendida não pode ser maior que a quantidade total.',
+      );
       return;
     }
 
     if (_dataInicioSelecionada != null &&
         _dataFimSelecionada != null &&
         !_dataFimSelecionada!.isAfter(_dataInicioSelecionada!)) {
-      AppSnackBar.aviso(context, 'A data final de venda deve ser posterior à data inicial.');
+      AppSnackBar.aviso(
+        context,
+        'A data final de venda deve ser posterior à data inicial.',
+      );
       return;
     }
 
@@ -245,7 +263,10 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           Container(
             width: 58,
             height: 58,
-            decoration: const BoxDecoration(color: ClubbarColors.ambarClaro, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: ClubbarColors.ambarClaro,
+              shape: BoxShape.circle,
+            ),
             child: const Icon(Icons.confirmation_number_rounded, size: 30),
           ),
           const SizedBox(width: 14),
@@ -255,14 +276,20 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
               children: [
                 Text(
                   editando ? 'Dados do lote' : 'Novo lote',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   editando
                       ? 'Atualize preço, quantidade e período de vendas.'
                       : 'Defina o preço e a quantidade de ingressos.',
-                  style: const TextStyle(fontSize: 13, color: ClubbarColors.textoSecundario),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: ClubbarColors.textoSecundario,
+                  ),
                 ),
               ],
             ),
@@ -283,7 +310,8 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
               icone: Icons.label_outline_rounded,
               hint: 'Ex.: Primeiro lote',
             ),
-            validator: (value) => (value ?? '').trim().isEmpty ? 'Informe o nome do lote' : null,
+            validator: (value) =>
+                (value ?? '').trim().isEmpty ? 'Informe o nome do lote' : null,
           ),
           const SizedBox(height: 14),
           TextFormField(
@@ -362,7 +390,9 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
               DropdownMenuItem(value: 'ATIVO', child: Text('Ativo')),
               DropdownMenuItem(value: 'INATIVO', child: Text('Inativo')),
             ],
-            onChanged: _salvando ? null : (value) => setState(() => _status = value ?? 'ATIVO'),
+            onChanged: _salvando
+                ? null
+                : (value) => setState(() => _status = value ?? 'ATIVO'),
           ),
         ],
       ),
@@ -386,7 +416,9 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           style: TextStyle(
             fontSize: destaque ? 21 : 15,
             fontWeight: FontWeight.w900,
-            color: destaque ? ClubbarColors.sucesso : ClubbarColors.textoPrincipal,
+            color: destaque
+                ? ClubbarColors.sucesso
+                : ClubbarColors.textoPrincipal,
           ),
         ),
       ],
@@ -425,7 +457,6 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
               subtitulo: editando
                   ? 'Atualize as condições de venda'
                   : 'Defina preço, quantidade e período',
-              icone: Icons.confirmation_number_rounded,
             ),
             Expanded(
               child: Form(
@@ -447,16 +478,21 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                             ? const SizedBox(
                                 width: 21,
                                 height: 21,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.save_rounded),
                         label: Text(
                           _salvando
                               ? 'Salvando...'
                               : editando
-                                  ? 'Salvar alterações'
-                                  : 'Cadastrar lote',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                              ? 'Salvar alterações'
+                              : 'Cadastrar lote',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: ClubbarColors.ambar,
