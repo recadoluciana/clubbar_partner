@@ -28,13 +28,20 @@ class ApiService {
     return http.post(url, headers: await _headers(), body: jsonEncode(body));
   }
 
-  static Future<http.Response> put(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) async {
+  static Future<http.Response> put(String endpoint, Object body) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
 
     return http.put(url, headers: await _headers(), body: jsonEncode(body));
+  }
+
+  static Future<http.Response> patch(String endpoint, {Object? body}) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
+
+    return http.patch(
+      url,
+      headers: await _headers(),
+      body: body == null ? null : jsonEncode(body),
+    );
   }
 
   static Future<http.Response> delete(String endpoint) async {

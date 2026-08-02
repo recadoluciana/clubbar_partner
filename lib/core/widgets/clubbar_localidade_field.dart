@@ -65,7 +65,11 @@ class _ClubbarLocalidadeFieldState extends State<ClubbarLocalidadeField> {
     final alterouCidade = oldWidget.cidadeInicialId != widget.cidadeInicialId;
 
     if (alterouEstado || alterouCidade) {
-      _carregarSelecaoInicial();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _carregarSelecaoInicial();
+        }
+      });
     }
   }
 
@@ -508,7 +512,7 @@ class _ClubbarLocalidadeFieldState extends State<ClubbarLocalidadeField> {
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     itemCount: lista.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final estado = lista[index];
 
@@ -643,7 +647,7 @@ class _ClubbarLocalidadeFieldState extends State<ClubbarLocalidadeField> {
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     itemCount: lista.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final cidade = lista[index];
 

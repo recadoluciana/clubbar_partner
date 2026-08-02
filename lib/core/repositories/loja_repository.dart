@@ -44,8 +44,9 @@ class LojaRepository {
     }
   }
 
-  Future<void> criar({
+  Future<int> criar({
     required int organizacaoId,
+    required int estadoId,
     required int cidadeId,
     required String nome,
     String? bairro,
@@ -66,6 +67,7 @@ class LojaRepository {
     }
 
     request.fields['organizacao_id'] = organizacaoId.toString();
+    request.fields['estado_id'] = estadoId.toString();
     request.fields['cidade_id'] = cidadeId.toString();
     request.fields['nmloja'] = nome;
     request.fields['dsbairroloja'] = bairro ?? '';
@@ -89,11 +91,29 @@ class LojaRepository {
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Erro ao criar loja: $responseBody');
     }
+
+    try {
+      final data = jsonDecode(responseBody);
+      if (data is Map) {
+        final lojaId = data['loja_id'];
+        if (lojaId is int && lojaId > 0) return lojaId;
+
+        final lojaIdConvertido = int.tryParse(lojaId?.toString() ?? '');
+        if (lojaIdConvertido != null && lojaIdConvertido > 0) {
+          return lojaIdConvertido;
+        }
+      }
+    } catch (_) {
+      // A mensagem abaixo explicita o contrato esperado do endpoint.
+    }
+
+    throw Exception('A API criou a loja, mas não retornou um loja_id válido.');
   }
 
   Future<void> atualizar({
     required int lojaId,
     required int organizacaoId,
+    required int estadoId,
     required int cidadeId,
     required String nome,
     String? bairro,
@@ -114,6 +134,7 @@ class LojaRepository {
     }
 
     request.fields['organizacao_id'] = organizacaoId.toString();
+    request.fields['estado_id'] = estadoId.toString();
     request.fields['cidade_id'] = cidadeId.toString();
     request.fields['nmloja'] = nome;
     request.fields['dsbairroloja'] = bairro ?? '';
@@ -144,6 +165,22 @@ class LojaRepository {
 
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Erro ao excluir loja: ${response.body}');
+    }
+  }
+
+  Future<void> inativar(int lojaId) async {
+    final response = await ApiService.patch('/lojas/$lojaId/inativar');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Erro ao inativar loja: ${response.body}');
+    }
+  }
+
+  Future<void> reativar(int lojaId) async {
+    final response = await ApiService.patch('/lojas/$lojaId/reativar');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Erro ao reativar loja: ${response.body}');
     }
   }
 }

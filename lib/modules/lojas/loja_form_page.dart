@@ -4,11 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
-import '../../core/repositories/cidade_repository.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/services/storage_service.dart';
-import '../../models/cidade.dart';
+import '../../core/theme/clubbar_colors.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_localidade_field.dart';
+import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
+import 'horario_funcionamento_screen.dart';
 
 class LojaFormPage extends StatefulWidget {
   final Loja? loja;
@@ -22,7 +26,6 @@ class LojaFormPage extends StatefulWidget {
 class _LojaFormPageState extends State<LojaFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _repository = LojaRepository();
-  final _cidadeRepository = CidadeRepository();
   final _picker = ImagePicker();
 
   final TextEditingController _nomeController = TextEditingController();
@@ -34,10 +37,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
   final TextEditingController _instagramController = TextEditingController();
 
   bool _salvando = false;
-  bool _carregandoCidades = true;
-
-  List<Cidade> _cidades = [];
-  int? _cidadeIdSelecionada;
+  bool _carregandoNomeOrganizacao = true;
+  String _nomeOrganizacao = 'Organização não identificada';
+  int? _estadoId;
+  int? _cidadeId;
 
   XFile? _imagemSelecionada;
   Uint8List? _imagemBytes;
@@ -101,7 +104,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
     if (nome.length > 120) {
       return 'O nome da loja pode ter no máximo 120 caracteres.';
     }
-    if (_cidadeIdSelecionada == null || _cidadeIdSelecionada == 0) {
+    if (_estadoId == null || _estadoId == 0) {
+      return 'Selecione o estado da loja.';
+    }
+    if (_cidadeId == null || _cidadeId == 0) {
       return 'Selecione a cidade da loja.';
     }
     if (bairro.length > 120) {
@@ -146,14 +152,11 @@ class _LojaFormPageState extends State<LojaFormPage> {
   }
 
   void _mostrarMensagem(String mensagem, {bool erro = false}) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensagem),
-        backgroundColor: erro ? Colors.red.shade700 : Colors.green.shade700,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    if (erro) {
+      AppSnackBar.erro(context, mensagem);
+    } else {
+      AppSnackBar.sucesso(context, mensagem);
+    }
   }
 
   @override
@@ -167,14 +170,34 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _horarioController.text = widget.loja!.dshorarioloja ?? '';
       _diasValidadeController.text =
           widget.loja!.nrdiavalidade?.toString() ?? '90';
-      _cidadeIdSelecionada = widget.loja!.cidadeId;
+      _estadoId = widget.loja!.estadoId;
+      _cidadeId = widget.loja!.cidadeId;
       _enderecoController.text = widget.loja!.endloja ?? '';
       _instagramController.text = widget.loja!.dsinstaloja ?? '';
     } else {
       _diasValidadeController.text = '90';
     }
 
-    _carregarCidades();
+    _carregarNomeOrganizacao();
+  }
+
+  Future<void> _carregarNomeOrganizacao() async {
+    try {
+      final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
+      if (!mounted) return;
+
+      setState(() {
+        _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+        _carregandoNomeOrganizacao = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _nomeOrganizacao = 'Organização não identificada';
+        _carregandoNomeOrganizacao = false;
+      });
+    }
   }
 
   @override
@@ -187,43 +210,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
     _enderecoController.dispose();
     _instagramController.dispose();
     super.dispose();
-  }
-
-  Future<void> _carregarCidades() async {
-    setState(() => _carregandoCidades = true);
-
-    try {
-      final lista = await _cidadeRepository.listar();
-      if (!mounted) return;
-
-      int? cidadeSelecionada = _cidadeIdSelecionada;
-
-      if (lista.isNotEmpty) {
-        final existeNaLista = lista.any(
-          (cidade) => cidade.cidadeId == cidadeSelecionada,
-        );
-
-        if (!existeNaLista) cidadeSelecionada = lista.first.cidadeId;
-      } else {
-        cidadeSelecionada = null;
-      }
-
-      setState(() {
-        _cidades = lista;
-        _cidadeIdSelecionada = cidadeSelecionada;
-        _carregandoCidades = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _carregandoCidades = false;
-        _cidades = [];
-        _cidadeIdSelecionada = null;
-      });
-
-      _mostrarMensagem('Erro ao carregar cidades: $e', erro: true);
-    }
   }
 
   Future<void> _selecionarImagem() async {
@@ -276,7 +262,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
         await _repository.atualizar(
           lojaId: widget.loja!.lojaId,
           organizacaoId: organizacaoId,
-          cidadeId: _cidadeIdSelecionada!,
+          estadoId: _estadoId!,
+          cidadeId: _cidadeId!,
           nome: _nomeController.text.trim(),
           bairro: _bairroController.text.trim(),
           telefone: telefoneSemMascara,
@@ -286,11 +273,17 @@ class _LojaFormPageState extends State<LojaFormPage> {
           instagram: _instagramController.text.trim(),
           imagem: _imagemSelecionada,
         );
+
+        if (!mounted) return;
+        _mostrarMensagem('Loja atualizada com sucesso.');
+        Navigator.of(context).pop(true);
       } else {
-        await _repository.criar(
+        final nomeLoja = _nomeController.text.trim();
+        final lojaId = await _repository.criar(
           organizacaoId: organizacaoId,
-          cidadeId: _cidadeIdSelecionada!,
-          nome: _nomeController.text.trim(),
+          estadoId: _estadoId!,
+          cidadeId: _cidadeId!,
+          nome: nomeLoja,
           bairro: _bairroController.text.trim(),
           telefone: telefoneSemMascara,
           horario: _horarioController.text.trim(),
@@ -299,21 +292,50 @@ class _LojaFormPageState extends State<LojaFormPage> {
           instagram: _instagramController.text.trim(),
           imagem: _imagemSelecionada,
         );
+
+        if (!mounted) return;
+
+        setState(() => _salvando = false);
+
+        final horariosSalvos = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) =>
+                HorarioFuncionamentoScreen(lojaId: lojaId, nomeLoja: nomeLoja),
+          ),
+        );
+
+        if (!mounted) return;
+
+        if (horariosSalvos != true) {
+          AppSnackBar.aviso(
+            context,
+            'A loja foi cadastrada. O horário de funcionamento poderá ser '
+            'configurado depois.',
+          );
+        }
+
+        Navigator.of(context).pop(true);
       }
-
-      if (!mounted) return;
-
-      _mostrarMensagem(
-        editando ? 'Loja atualizada com sucesso.' : 'Loja criada com sucesso.',
-      );
-
-      Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       _mostrarMensagem('Erro ao salvar: $e', erro: true);
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
+  }
+
+  Future<void> _abrirHorarios() async {
+    final loja = widget.loja;
+    if (loja == null) return;
+
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => HorarioFuncionamentoScreen(
+          lojaId: loja.lojaId,
+          nomeLoja: loja.nmloja,
+        ),
+      ),
+    );
   }
 
   String _montarUrlImagemAtual() {
@@ -375,58 +397,86 @@ class _LojaFormPageState extends State<LojaFormPage> {
     final taxaIngresso = _formatarPercentual(widget.loja?.vrtaxaing);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
-      appBar: AppBar(
-        title: Text(editando ? 'Editar loja' : 'Nova loja'),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: Padding(
+        child: Column(
+          children: [
+            ClubbarPageHeader(
+              titulo: editando ? 'Editar Loja' : 'Nova Loja',
+              subtitulo: _carregandoNomeOrganizacao
+                  ? 'Carregando organização...'
+                  : _nomeOrganizacao,
+              icone: Icons.storefront_rounded,
+            ),
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Form(
+                    key: _formKey,
+                    child: ListView(
                       padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _tituloSecao(
-                            'Identificação',
-                            Icons.storefront_outlined,
+                      children: [
+                        Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: Colors.grey.shade200),
                           ),
-                          GestureDetector(
-                            onTap: _salvando ? null : _selecionarImagem,
-                            child: Container(
-                              height: 150,
-                              margin: const EdgeInsets.only(bottom: 18),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                border: Border.all(color: Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: _imagemSelecionada != null
-                                  ? ClipRRect(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _tituloSecao(
+                                  'Identificação',
+                                  Icons.storefront_outlined,
+                                ),
+                                GestureDetector(
+                                  onTap: _salvando ? null : _selecionarImagem,
+                                  child: Container(
+                                    height: 150,
+                                    margin: const EdgeInsets.only(bottom: 18),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                      ),
                                       borderRadius: BorderRadius.circular(16),
-                                      child: kIsWeb
-                                          ? Image.memory(
-                                              _imagemBytes!,
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                            )
-                                          : Image.network(
-                                              _imagemSelecionada!.path,
+                                    ),
+                                    child: _imagemSelecionada != null
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            child: kIsWeb
+                                                ? Image.memory(
+                                                    _imagemBytes!,
+                                                    fit: BoxFit.cover,
+                                                    width: double.infinity,
+                                                  )
+                                                : Image.network(
+                                                    _imagemSelecionada!.path,
+                                                    fit: BoxFit.cover,
+                                                    width: double.infinity,
+                                                    errorBuilder: (_, _, _) =>
+                                                        const Center(
+                                                          child: Icon(
+                                                            Icons.store,
+                                                            size: 44,
+                                                          ),
+                                                        ),
+                                                  ),
+                                          )
+                                        : editando && imagemAtualUrl.isNotEmpty
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            child: Image.network(
+                                              imagemAtualUrl,
+                                              key: ValueKey(imagemAtualUrl),
                                               fit: BoxFit.cover,
                                               width: double.infinity,
                                               errorBuilder: (_, _, _) =>
@@ -437,355 +487,374 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                                     ),
                                                   ),
                                             ),
-                                    )
-                                  : editando && imagemAtualUrl.isNotEmpty
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Image.network(
-                                        imagemAtualUrl,
-                                        key: ValueKey(imagemAtualUrl),
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        errorBuilder: (_, _, _) => const Center(
-                                          child: Icon(Icons.store, size: 44),
-                                        ),
-                                      ),
-                                    )
-                                  : const Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.image_outlined, size: 42),
-                                          SizedBox(height: 8),
-                                          Text('Toque para selecionar a logo'),
-                                        ],
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          TextFormField(
-                            controller: _nomeController,
-                            textCapitalization: TextCapitalization.words,
-                            maxLength: 120,
-                            inputFormatters: [
-                              LengthLimitingTextInputFormatter(120),
-                            ],
-                            decoration: _decoracaoCampo(
-                              label: 'Nome da loja',
-                              icone: Icons.store_outlined,
-                              hint: 'Digite o nome da loja',
-                            ).copyWith(counterText: ''),
-                            validator: (value) {
-                              final texto = value?.trim() ?? '';
-                              if (texto.isEmpty) {
-                                return 'Informe o nome da loja.';
-                              }
-                              if (texto.length < 3) {
-                                return 'Informe pelo menos 3 caracteres.';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _tituloSecao(
-                            'Localização',
-                            Icons.location_on_outlined,
-                          ),
-                          _carregandoCidades
-                              ? const Padding(
-                                  padding: EdgeInsets.all(20),
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
+                                          )
+                                        : const Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.image_outlined,
+                                                  size: 42,
+                                                ),
+                                                SizedBox(height: 8),
+                                                Text(
+                                                  'Toque para selecionar a logo',
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                   ),
-                                )
-                              : DropdownButtonFormField<int>(
-                                  initialValue: _cidadeIdSelecionada,
-                                  isExpanded: true,
-                                  decoration: _decoracaoCampo(
-                                    label: 'Cidade',
-                                    icone: Icons.location_city_outlined,
-                                  ),
-                                  items: _cidades.map((cidade) {
-                                    return DropdownMenuItem<int>(
-                                      value: cidade.cidadeId,
-                                      child: Text(
-                                        cidade.nmcidade,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: _salvando
-                                      ? null
-                                      : (value) {
-                                          setState(() {
-                                            _cidadeIdSelecionada = value;
-                                          });
-                                        },
-                                  validator: (value) => value == null
-                                      ? 'Selecione uma cidade.'
-                                      : null,
                                 ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: _bairroController,
-                            textCapitalization: TextCapitalization.words,
-                            maxLength: 120,
-                            inputFormatters: [
-                              LengthLimitingTextInputFormatter(120),
-                            ],
-                            decoration: _decoracaoCampo(
-                              label: 'Bairro',
-                              icone: Icons.map_outlined,
-                            ).copyWith(counterText: ''),
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: _enderecoController,
-                            textCapitalization: TextCapitalization.sentences,
-                            maxLength: 255,
-                            inputFormatters: [
-                              LengthLimitingTextInputFormatter(255),
-                            ],
-                            decoration: _decoracaoCampo(
-                              label: 'Endereço da loja',
-                              icone: Icons.home_work_outlined,
-                            ).copyWith(counterText: ''),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _tituloSecao(
-                            'Contato e funcionamento',
-                            Icons.contact_phone_outlined,
-                          ),
-                          TextFormField(
-                            controller: _instagramController,
-                            maxLength: 255,
-                            keyboardType: TextInputType.url,
-                            inputFormatters: [
-                              LengthLimitingTextInputFormatter(255),
-                            ],
-                            decoration: _decoracaoCampo(
-                              label: 'Instagram da loja',
-                              icone: Icons.alternate_email,
-                              hint: '@nomedaloja',
-                            ).copyWith(counterText: ''),
-                            validator: (value) {
-                              final texto = value?.trim() ?? '';
-                              if (!_instagramValido(texto)) {
-                                return 'Informe um Instagram válido.';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: _telefoneController,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              TelefoneInputFormatter(),
-                              LengthLimitingTextInputFormatter(15),
-                            ],
-                            decoration: _decoracaoCampo(
-                              label: 'Telefone ou celular',
-                              icone: Icons.phone_outlined,
-                              hint: '(35) 99999-9999',
-                            ),
-                            validator: (value) {
-                              final numeros = _somenteNumeros(value ?? '');
-                              if (numeros.isEmpty) return null;
-                              if (numeros.length != 10 &&
-                                  numeros.length != 11) {
-                                return 'Informe um telefone válido com DDD.';
-                              }
-                              if (numeros.length == 11 && numeros[2] != '9') {
-                                return 'O celular deve começar com 9 após o DDD.';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: _horarioController,
-                            textCapitalization: TextCapitalization.sentences,
-                            maxLength: 255,
-                            inputFormatters: [
-                              LengthLimitingTextInputFormatter(255),
-                            ],
-                            decoration: _decoracaoCampo(
-                              label: 'Horário de funcionamento',
-                              icone: Icons.schedule_outlined,
-                              hint: 'Ex.: Segunda a sábado, das 18h às 2h',
-                            ).copyWith(counterText: ''),
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: _diasValidadeController,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(4),
-                            ],
-                            decoration: _decoracaoCampo(
-                              label: 'Dias de validade',
-                              icone: Icons.event_available_outlined,
-                              hint: '90',
-                              helperText: 'Prazo padrão de validade dos itens.',
-                            ),
-                            validator: (value) {
-                              final texto = value?.trim() ?? '';
-                              final numero = int.tryParse(texto);
-                              if (texto.isEmpty) {
-                                return 'Informe os dias de validade.';
-                              }
-                              if (numero == null || numero <= 0) {
-                                return 'Informe um número maior que zero.';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _tituloSecao(
-                            'Taxas do Clubbar',
-                            Icons.percent_outlined,
-                          ),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              final taxaProdutosField = TextFormField(
-                                initialValue: taxaProduto,
-                                readOnly: true,
-                                canRequestFocus: false,
-                                decoration: _decoracaoCampo(
-                                  label: 'Taxa sobre produtos',
-                                  icone: Icons.shopping_bag_outlined,
-                                  helperText:
-                                      'Somente o superadministrador pode alterar.',
-                                  suffixIcon: const Icon(Icons.lock_outline),
-                                ).copyWith(fillColor: Colors.grey.shade100),
-                              );
-
-                              final taxaIngressosField = TextFormField(
-                                initialValue: taxaIngresso,
-                                readOnly: true,
-                                canRequestFocus: false,
-                                decoration: _decoracaoCampo(
-                                  label: 'Taxa sobre ingressos',
-                                  icone: Icons.confirmation_number_outlined,
-                                  helperText:
-                                      'Somente o superadministrador pode alterar.',
-                                  suffixIcon: const Icon(Icons.lock_outline),
-                                ).copyWith(fillColor: Colors.grey.shade100),
-                              );
-
-                              if (constraints.maxWidth < 560) {
-                                return Column(
-                                  children: [
-                                    taxaProdutosField,
-                                    const SizedBox(height: 12),
-                                    taxaIngressosField,
+                                TextFormField(
+                                  controller: _nomeController,
+                                  textCapitalization: TextCapitalization.words,
+                                  maxLength: 120,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(120),
                                   ],
-                                );
-                              }
-
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: taxaProdutosField),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: taxaIngressosField),
-                                ],
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'As duas taxas possuem valor padrão de 5,00%.',
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 13,
+                                  decoration: _decoracaoCampo(
+                                    label: 'Nome da loja',
+                                    icone: Icons.store_outlined,
+                                    hint: 'Digite o nome da loja',
+                                  ).copyWith(counterText: ''),
+                                  validator: (value) {
+                                    final texto = value?.trim() ?? '';
+                                    if (texto.isEmpty) {
+                                      return 'Informe o nome da loja.';
+                                    }
+                                    if (texto.length < 3) {
+                                      return 'Informe pelo menos 3 caracteres.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (editando) ...[
+                          Card(
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            child: ListTile(
+                              enabled: !_salvando,
+                              onTap: _salvando ? null : _abrirHorarios,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 10,
+                              ),
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.amber.shade100,
+                                foregroundColor: Colors.amber.shade900,
+                                child: const Icon(Icons.schedule_rounded),
+                              ),
+                              title: const Text(
+                                'Horário de funcionamento',
+                                style: TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                              subtitle: const Text(
+                                'Defina os dias e horários de atendimento',
+                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                         ],
-                      ),
+                        Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _tituloSecao(
+                                  'Localização',
+                                  Icons.location_on_outlined,
+                                ),
+                                TextFormField(
+                                  controller: _bairroController,
+                                  textCapitalization: TextCapitalization.words,
+                                  maxLength: 120,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(120),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Bairro',
+                                    icone: Icons.map_outlined,
+                                  ).copyWith(counterText: ''),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _enderecoController,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  maxLength: 255,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(255),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Endereço da loja',
+                                    icone: Icons.home_work_outlined,
+                                  ).copyWith(counterText: ''),
+                                ),
+                                const SizedBox(height: 14),
+                                ClubbarLocalidadeField(
+                                  estadoInicialId: _estadoId,
+                                  cidadeInicialId: _cidadeId,
+                                  obrigatorio: true,
+                                  habilitado: !_salvando,
+                                  onChanged: (estado, cidade) {
+                                    _estadoId = estado?.estadoId;
+                                    _cidadeId = cidade?.cidadeId;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _tituloSecao(
+                                  'Contato e funcionamento',
+                                  Icons.contact_phone_outlined,
+                                ),
+                                TextFormField(
+                                  controller: _instagramController,
+                                  maxLength: 255,
+                                  keyboardType: TextInputType.url,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(255),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Instagram da loja',
+                                    icone: Icons.alternate_email,
+                                    hint: '@nomedaloja',
+                                  ).copyWith(counterText: ''),
+                                  validator: (value) {
+                                    final texto = value?.trim() ?? '';
+                                    if (!_instagramValido(texto)) {
+                                      return 'Informe um Instagram válido.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _telefoneController,
+                                  keyboardType: TextInputType.phone,
+                                  inputFormatters: [
+                                    TelefoneInputFormatter(),
+                                    LengthLimitingTextInputFormatter(15),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Telefone ou celular',
+                                    icone: Icons.phone_outlined,
+                                    hint: '(35) 99999-9999',
+                                  ),
+                                  validator: (value) {
+                                    final numeros = _somenteNumeros(
+                                      value ?? '',
+                                    );
+                                    if (numeros.isEmpty) return null;
+                                    if (numeros.length != 10 &&
+                                        numeros.length != 11) {
+                                      return 'Informe um telefone válido com DDD.';
+                                    }
+                                    if (numeros.length == 11 &&
+                                        numeros[2] != '9') {
+                                      return 'O celular deve começar com 9 após o DDD.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _horarioController,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  maxLength: 255,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(255),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Horário de funcionamento',
+                                    icone: Icons.schedule_outlined,
+                                    hint:
+                                        'Ex.: Segunda a sábado, das 18h às 2h',
+                                  ).copyWith(counterText: ''),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _diasValidadeController,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(4),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Dias de validade',
+                                    icone: Icons.event_available_outlined,
+                                    hint: '90',
+                                    helperText:
+                                        'Prazo padrão de validade dos itens.',
+                                  ),
+                                  validator: (value) {
+                                    final texto = value?.trim() ?? '';
+                                    final numero = int.tryParse(texto);
+                                    if (texto.isEmpty) {
+                                      return 'Informe os dias de validade.';
+                                    }
+                                    if (numero == null || numero <= 0) {
+                                      return 'Informe um número maior que zero.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _tituloSecao(
+                                  'Taxas do Clubbar',
+                                  Icons.percent_outlined,
+                                ),
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final taxaProdutosField = TextFormField(
+                                      initialValue: taxaProduto,
+                                      readOnly: true,
+                                      canRequestFocus: false,
+                                      decoration: _decoracaoCampo(
+                                        label: 'Taxa sobre produtos',
+                                        icone: Icons.shopping_bag_outlined,
+                                        helperText:
+                                            'Somente o superadministrador pode alterar.',
+                                        suffixIcon: const Icon(
+                                          Icons.lock_outline,
+                                        ),
+                                      ).copyWith(fillColor: Colors.grey.shade100),
+                                    );
+
+                                    final taxaIngressosField = TextFormField(
+                                      initialValue: taxaIngresso,
+                                      readOnly: true,
+                                      canRequestFocus: false,
+                                      decoration: _decoracaoCampo(
+                                        label: 'Taxa sobre ingressos',
+                                        icone:
+                                            Icons.confirmation_number_outlined,
+                                        helperText:
+                                            'Somente o superadministrador pode alterar.',
+                                        suffixIcon: const Icon(
+                                          Icons.lock_outline,
+                                        ),
+                                      ).copyWith(fillColor: Colors.grey.shade100),
+                                    );
+
+                                    if (constraints.maxWidth < 560) {
+                                      return Column(
+                                        children: [
+                                          taxaProdutosField,
+                                          const SizedBox(height: 12),
+                                          taxaIngressosField,
+                                        ],
+                                      );
+                                    }
+
+                                    return Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(child: taxaProdutosField),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: taxaIngressosField),
+                                      ],
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'As duas taxas possuem valor padrão de 5,00%.',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton.icon(
+                            onPressed: _salvando ? null : _salvar,
+                            icon: _salvando
+                                ? const SizedBox(
+                                    width: 21,
+                                    height: 21,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.save_outlined),
+                            label: Text(
+                              _salvando ? 'Salvando...' : 'Salvar loja',
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber,
+                              foregroundColor: Colors.black,
+                              disabledBackgroundColor: Colors.amber.shade200,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: _salvando ? null : _salvar,
-                      icon: _salvando
-                          ? const SizedBox(
-                              width: 21,
-                              height: 21,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_outlined),
-                      label: Text(_salvando ? 'Salvando...' : 'Salvar loja'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.black,
-                        disabledBackgroundColor: Colors.amber.shade200,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

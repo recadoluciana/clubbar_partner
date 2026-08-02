@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
-/// Tela de edição do horário semanal da loja.
-///
-/// O callback [onSalvar] recebe uma lista pronta para ser enviada à API.
+import '../../core/repositories/loja_horario_repository.dart';
+import '../../core/theme/clubbar_colors.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_card.dart';
+import '../../core/widgets/clubbar_page_header.dart';
+import '../../models/loja_horario.dart';
+
 class HorarioFuncionamentoScreen extends StatefulWidget {
   final int lojaId;
-  final List<Map<String, dynamic>> horariosIniciais;
-  final Future<void> Function(List<Map<String, dynamic>> horarios) onSalvar;
+  final String nomeLoja;
 
   const HorarioFuncionamentoScreen({
     super.key,
     required this.lojaId,
-    required this.onSalvar,
-    this.horariosIniciais = const [],
+    required this.nomeLoja,
   });
 
   @override
@@ -22,340 +25,418 @@ class HorarioFuncionamentoScreen extends StatefulWidget {
 
 class _HorarioFuncionamentoScreenState
     extends State<HorarioFuncionamentoScreen> {
-  late final List<_HorarioDia> _horarios;
-  bool _salvando = false;
+  final LojaHorarioRepository _repository = LojaHorarioRepository();
 
-  static const _verde = Color(0xFF35B866);
-  static const _fundo = Color(0xFF080E18);
-  static const _painel = Color(0xFF111927);
-  static const _linha = Color(0xFF182231);
+  List<LojaHorario> _horarios = const [];
+  bool _carregando = true;
+  bool _salvando = false;
+  String? _erro;
 
   @override
   void initState() {
     super.initState();
-    _horarios = List.generate(7, (index) {
-      final dia = index + 1;
-      Map<String, dynamic>? inicial;
-      for (final item in widget.horariosIniciais) {
-        if (item['dia_semana'] == dia) {
-          inicial = item;
-          break;
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    if (_carregando && _horarios.isNotEmpty) return;
+
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
+
+    try {
+      final recebidos = await _repository.buscarPorLoja(widget.lojaId);
+      if (!mounted) return;
+
+      setState(() {
+        _horarios = _completarSemana(recebidos);
+        _carregando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _carregando = false;
+        _erro = _limparErro(e);
+      });
+    }
+  }
+
+  List<LojaHorario> _completarSemana(List<LojaHorario> recebidos) {
+    return List.generate(7, (index) {
+      final diaSemana = index + 1;
+
+      for (final horario in recebidos) {
+        if (horario.diaSemana == diaSemana) {
+          return horario.copyWith(lojaId: widget.lojaId);
         }
       }
 
-      return _HorarioDia(
-        diaSemana: dia,
-        nome: const [
-          'Segunda-feira',
-          'Terça-feira',
-          'Quarta-feira',
-          'Quinta-feira',
-          'Sexta-feira',
-          'Sábado',
-          'Domingo',
-        ][index],
-        fechado: inicial?['fechado'] == true || inicial == null,
-        abertura: _horaDoTexto(inicial?['hora_abertura']?.toString()),
-        fechamento: _horaDoTexto(inicial?['hora_fechamento']?.toString()),
+      return LojaHorario(
+        lojaId: widget.lojaId,
+        diaSemana: diaSemana,
+        fechado: true,
       );
     });
   }
 
-  static TimeOfDay? _horaDoTexto(String? valor) {
-    if (valor == null || valor.isEmpty) return null;
-    final partes = valor.split(':');
-    if (partes.length < 2) return null;
-    final hora = int.tryParse(partes[0]);
-    final minuto = int.tryParse(partes[1]);
-    if (hora == null || minuto == null) return null;
-    return TimeOfDay(hour: hora, minute: minuto);
+  void _atualizarDia(int index, LojaHorario horario) {
+    setState(() {
+      final atualizados = List<LojaHorario>.from(_horarios);
+      atualizados[index] = horario;
+      _horarios = atualizados;
+    });
   }
 
-  String _horaFormatada(TimeOfDay? hora) {
-    if (hora == null) return '--:--';
-    return '${hora.hour.toString().padLeft(2, '0')}:'
-        '${hora.minute.toString().padLeft(2, '0')}';
+  void _alterarAberto(int index, bool aberto) {
+    final atual = _horarios[index];
+
+    _atualizarDia(
+      index,
+      atual.copyWith(fechado: !aberto, limparHorarios: !aberto),
+    );
   }
 
-  int _minutos(TimeOfDay hora) => hora.hour * 60 + hora.minute;
+  Future<void> _selecionarHora(int index, {required bool abertura}) async {
+    final atual = _horarios[index];
+    if (atual.fechado || _salvando) return;
 
-  Future<void> _selecionarHora(_HorarioDia dia, bool abertura) async {
-    if (dia.fechado) return;
-    final atual = abertura ? dia.abertura : dia.fechamento;
+    final horaAtual = abertura ? atual.horaAbertura : atual.horaFechamento;
     final selecionada = await showTimePicker(
       context: context,
-      initialTime: atual ??
+      initialTime:
+          horaAtual ??
           (abertura
               ? const TimeOfDay(hour: 18, minute: 0)
               : const TimeOfDay(hour: 2, minute: 0)),
       helpText: abertura ? 'HORÁRIO DE ABERTURA' : 'HORÁRIO DE FECHAMENTO',
       cancelText: 'CANCELAR',
       confirmText: 'CONFIRMAR',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: _verde,
-            surface: _painel,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: ClubbarColors.ambar,
+              brightness: Brightness.light,
+            ),
           ),
-        ),
-        child: child!,
-      ),
+          child: child!,
+        );
+      },
     );
 
-    if (selecionada != null) {
-      setState(() {
-        if (abertura) {
-          dia.abertura = selecionada;
-        } else {
-          dia.fechamento = selecionada;
-        }
-      });
+    if (selecionada == null || !mounted) return;
+
+    _atualizarDia(
+      index,
+      abertura
+          ? atual.copyWith(horaAbertura: selecionada)
+          : atual.copyWith(horaFechamento: selecionada),
+    );
+  }
+
+  String? _validar() {
+    if (_horarios.length != 7) {
+      return 'Não foi possível montar os sete dias da semana.';
     }
+
+    for (final horario in _horarios.where((item) => !item.fechado)) {
+      if (horario.horaAbertura == null) {
+        return 'Informe a abertura de ${horario.nomeDiaSemana}.';
+      }
+
+      if (horario.horaFechamento == null) {
+        return 'Informe o fechamento de ${horario.nomeDiaSemana}.';
+      }
+
+      if (_minutos(horario.horaAbertura!) ==
+          _minutos(horario.horaFechamento!)) {
+        return 'Em ${horario.nomeDiaSemana}, abertura e fechamento '
+            'não podem ser iguais.';
+      }
+    }
+
+    return null;
   }
 
   Future<void> _salvar() async {
-    for (final dia in _horarios.where((item) => !item.fechado)) {
-      if (dia.abertura == null || dia.fechamento == null) {
-        _mostrarMensagem(
-          'Informe a abertura e o fechamento de ${dia.nome}.',
-          erro: true,
-        );
-        return;
-      }
-      if (_minutos(dia.abertura!) == _minutos(dia.fechamento!)) {
-        _mostrarMensagem(
-          'Em ${dia.nome}, abertura e fechamento não podem ser iguais.',
-          erro: true,
-        );
-        return;
-      }
+    if (_salvando) return;
+
+    final erro = _validar();
+    if (erro != null) {
+      AppSnackBar.aviso(context, erro);
+      return;
     }
 
-    final dados = _horarios.map((dia) {
-      final cruzaMeiaNoite = !dia.fechado &&
-          _minutos(dia.fechamento!) < _minutos(dia.abertura!);
-      return <String, dynamic>{
-        'loja_id': widget.lojaId,
-        'dia_semana': dia.diaSemana,
-        'fechado': dia.fechado,
-        'hora_abertura': dia.fechado ? null : _horaFormatada(dia.abertura),
-        'hora_fechamento': dia.fechado ? null : _horaFormatada(dia.fechamento),
-        'fechamento_dia_seguinte': cruzaMeiaNoite,
-      };
-    }).toList();
-
     setState(() => _salvando = true);
+
     try {
-      await widget.onSalvar(dados);
-      if (mounted) {
-        _mostrarMensagem('Horários salvos com sucesso.');
-      }
+      await _repository.salvarTodos(widget.lojaId, _horarios);
+      if (!mounted) return;
+
+      AppSnackBar.sucesso(context, 'Horários salvos com sucesso.');
+      Navigator.of(context).pop(true);
     } catch (e) {
-      if (mounted) {
-        _mostrarMensagem('Não foi possível salvar os horários: $e', erro: true);
-      }
+      if (!mounted) return;
+      AppSnackBar.erro(context, _limparErro(e));
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
   }
 
-  void _mostrarMensagem(String texto, {bool erro = false}) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(texto),
-          backgroundColor: erro ? Colors.red.shade700 : Colors.green.shade700,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+  int _minutos(TimeOfDay horario) => horario.hour * 60 + horario.minute;
+
+  String _formatarHora(TimeOfDay? horario) {
+    if (horario == null) return '--:--';
+    return '${horario.hour.toString().padLeft(2, '0')}:'
+        '${horario.minute.toString().padLeft(2, '0')}';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _fundo,
-      appBar: AppBar(
-        backgroundColor: _fundo,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Horário de funcionamento'),
+  String _limparErro(Object erro) {
+    return erro.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+  }
+
+  Widget _estadoCarregando() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(40),
+        child: CircularProgressIndicator(color: ClubbarColors.ambar),
       ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 980),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: _painel,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: .06)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black38,
-                      blurRadius: 30,
-                      offset: Offset(0, 12),
-                    ),
-                  ],
+    );
+  }
+
+  Widget _estadoErro() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: ClubbarCard(
+            elevation: 0,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  size: 46,
+                  color: ClubbarColors.erro,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                const SizedBox(height: 12),
+                const Text(
+                  'Não foi possível carregar os horários',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: ClubbarColors.textoPrincipal,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _erro ?? 'Tente novamente.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: ClubbarColors.textoSecundario),
+                ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: _carregar,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Tentar novamente'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: ClubbarColors.ambar,
+                    foregroundColor: ClubbarColors.preto,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _campoHora(int index, {required bool abertura}) {
+    final horario = _horarios[index];
+    final valor = abertura ? horario.horaAbertura : horario.horaFechamento;
+
+    return InkWell(
+      onTap: horario.fechado || _salvando
+          ? null
+          : () => _selecionarHora(index, abertura: abertura),
+      borderRadius: BorderRadius.circular(14),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: abertura ? 'Abertura' : 'Fechamento',
+          prefixIcon: const Icon(Icons.schedule_rounded),
+          enabled: !horario.fechado && !_salvando,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        child: Text(
+          _formatarHora(valor),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: horario.fechado
+                ? ClubbarColors.textoDesabilitado
+                : ClubbarColors.textoPrincipal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cardDia(int index) {
+    final horario = _horarios[index];
+
+    return ClubbarCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  horario.nomeDiaSemana,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: ClubbarColors.textoPrincipal,
+                  ),
+                ),
+              ),
+              Text(
+                horario.fechado ? 'Fechado' : 'Aberto',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: horario.fechado
+                      ? ClubbarColors.textoSecundario
+                      : ClubbarColors.sucesso,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: !horario.fechado,
+                onChanged: _salvando
+                    ? null
+                    : (aberto) => _alterarAberto(index, aberto),
+                activeTrackColor: ClubbarColors.sucesso,
+              ),
+            ],
+          ),
+          if (!horario.fechado) ...[
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final abertura = _campoHora(index, abertura: true);
+                final fechamento = _campoHora(index, abertura: false);
+
+                if (constraints.maxWidth < 520) {
+                  return Column(
                     children: [
-                      _cabecalho(),
-                      const SizedBox(height: 18),
-                      Divider(color: Colors.white.withValues(alpha: .08)),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'Defina os horários do seu estabelecimento',
+                      abertura,
+                      const SizedBox(height: 12),
+                      fechamento,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: abertura),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'até',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
                           fontWeight: FontWeight.w700,
+                          color: ClubbarColors.textoSecundario,
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        'Nos dias em que a loja não funciona, marque como “Fechado”.',
-                        style: TextStyle(color: Colors.white60),
-                      ),
-                      const SizedBox(height: 16),
-                      ..._horarios.map(_linhaDia),
-                      const SizedBox(height: 10),
-                      _rodape(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _cabecalho() => const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _IconeVerde(icone: Icons.access_time_rounded, tamanho: 46),
-          SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Horário de Funcionamento',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Informe os dias da semana e os respectivos horários da sua loja.',
-                  style: TextStyle(color: Colors.white60),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-
-  Widget _linhaDia(_HorarioDia dia) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 7),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: _linha,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compacto = constraints.maxWidth < 680;
-          final horarios = Row(
-            children: [
-              Expanded(child: _campoHora(dia, true)),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(12, 20, 12, 0),
-                child: Text('até', style: TextStyle(color: Colors.white70)),
-              ),
-              Expanded(child: _campoHora(dia, false)),
-            ],
-          );
-
-          if (compacto) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: _nomeDia(dia)),
-                    _fechado(dia),
+                    ),
+                    Expanded(child: fechamento),
                   ],
-                ),
-                if (!dia.fechado) ...[
-                  const SizedBox(height: 9),
-                  horarios,
-                ],
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              Expanded(flex: 3, child: _nomeDia(dia)),
-              Expanded(flex: 5, child: horarios),
-              const SizedBox(width: 20),
-              SizedBox(width: 115, child: _fechado(dia)),
-            ],
-          );
-        },
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              value: horario.fechaDiaSeguinte,
+              onChanged: _salvando
+                  ? null
+                  : (value) => _atualizarDia(
+                      index,
+                      horario.copyWith(fechaDiaSeguinte: value),
+                    ),
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text(
+                'Fecha no dia seguinte',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: horario.fechaDiaSeguinte
+                  ? Text(
+                      'Exemplo: ${_formatarHora(horario.horaAbertura)} até '
+                      '${_formatarHora(horario.horaFechamento)} do dia seguinte',
+                    )
+                  : null,
+              activeTrackColor: ClubbarColors.ambar,
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _nomeDia(_HorarioDia dia) => Text(
-        dia.nome,
-        style: TextStyle(
-          color: dia.fechado ? Colors.white54 : Colors.white,
-          fontWeight: FontWeight.w700,
-        ),
-      );
-
-  Widget _campoHora(_HorarioDia dia, bool abertura) {
-    final hora = abertura ? dia.abertura : dia.fechamento;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _conteudo() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
       children: [
-        Text(
-          abertura ? 'Abertura' : 'Fechamento',
-          style: const TextStyle(color: Colors.white54, fontSize: 11),
-        ),
-        const SizedBox(height: 3),
-        InkWell(
-          onTap: () => _selecionarHora(dia, abertura),
-          borderRadius: BorderRadius.circular(7),
-          child: Container(
-            height: 39,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0C1420),
-              borderRadius: BorderRadius.circular(7),
-              border: Border.all(color: Colors.white.withValues(alpha: .09)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.schedule, size: 17, color: Colors.white60),
-                const SizedBox(width: 8),
-                Text(
-                  _horaFormatada(hora),
-                  style: const TextStyle(color: Colors.white),
+        const ClubbarCard(
+          elevation: 0,
+          backgroundColor: ClubbarColors.infoClaro,
+          borderColor: ClubbarColors.infoClaro,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline_rounded, color: ClubbarColors.info),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Ative os dias de atendimento e informe abertura e '
+                  'fechamento. Para horários como 18:00 até 02:00, marque '
+                  '“Fecha no dia seguinte”.',
+                  style: TextStyle(color: ClubbarColors.textoPrincipal),
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        ...List.generate(_horarios.length, _cardDia),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 52,
+          child: FilledButton.icon(
+            onPressed: _salvando ? null : _salvar,
+            icon: _salvando
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: Text(_salvando ? 'Salvando...' : 'Salvar horários'),
+            style: FilledButton.styleFrom(
+              backgroundColor: ClubbarColors.ambar,
+              foregroundColor: ClubbarColors.preto,
+              disabledBackgroundColor: ClubbarColors.ambarClaro,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
         ),
@@ -363,98 +444,29 @@ class _HorarioFuncionamentoScreenState
     );
   }
 
-  Widget _fechado(_HorarioDia dia) => CheckboxListTile(
-        value: dia.fechado,
-        onChanged: (valor) => setState(() => dia.fechado = valor ?? false),
-        controlAffinity: ListTileControlAffinity.leading,
-        contentPadding: EdgeInsets.zero,
-        dense: true,
-        activeColor: _verde,
-        side: const BorderSide(color: Colors.white54),
-        title: const Text(
-          'Fechado',
-          style: TextStyle(color: Colors.white, fontSize: 13),
-        ),
-      );
-
-  Widget _rodape() => LayoutBuilder(
-        builder: (context, constraints) {
-          final dica = const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.info_outline, color: _verde, size: 18),
-              SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'Você pode alterar esses horários quando quiser.',
-                  style: TextStyle(color: Colors.white60, fontSize: 12),
-                ),
-              ),
-            ],
-          );
-          final botao = FilledButton.icon(
-            onPressed: _salvando ? null : _salvar,
-            icon: _salvando
-                ? const SizedBox(
-                    width: 17,
-                    height: 17,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined),
-            label: Text(_salvando ? 'Salvando...' : 'Salvar horários'),
-            style: FilledButton.styleFrom(
-              backgroundColor: _verde,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 17),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
-
-          if (constraints.maxWidth < 560) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [dica, const SizedBox(height: 14), botao],
-            );
-          }
-          return Row(
-            children: [Expanded(child: dica), const SizedBox(width: 16), botao],
-          );
-        },
-      );
-}
-
-class _IconeVerde extends StatelessWidget {
-  final IconData icone;
-  final double tamanho;
-
-  const _IconeVerde({required this.icone, required this.tamanho});
-
   @override
-  Widget build(BuildContext context) => Container(
-        width: tamanho,
-        height: tamanho,
-        decoration: BoxDecoration(
-          color: const Color(0xFF35B866).withValues(alpha: .13),
-          borderRadius: BorderRadius.circular(9),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      body: SafeArea(
+        child: Column(
+          children: [
+            ClubbarPageHeader(
+              titulo: 'Horário de funcionamento',
+              subtitulo: widget.nomeLoja,
+              icone: Icons.schedule_rounded,
+            ),
+            Expanded(
+              child: _carregando
+                  ? _estadoCarregando()
+                  : _erro != null
+                  ? _estadoErro()
+                  : _conteudo(),
+            ),
+          ],
         ),
-        child: Icon(icone, color: const Color(0xFF35B866)),
-      );
-}
-
-class _HorarioDia {
-  final int diaSemana;
-  final String nome;
-  bool fechado;
-  TimeOfDay? abertura;
-  TimeOfDay? fechamento;
-
-  _HorarioDia({
-    required this.diaSemana,
-    required this.nome,
-    required this.fechado,
-    this.abertura,
-    this.fechamento,
-  });
+      ),
+    );
+  }
 }

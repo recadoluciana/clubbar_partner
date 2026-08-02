@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/loja_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
+import 'horario_funcionamento_screen.dart';
 import 'loja_form_page.dart';
 
 class LojaListPage extends StatefulWidget {
@@ -29,6 +32,13 @@ class _LojaListPageState extends State<LojaListPage> {
   bool _excluindo = false;
 
   String? _erro;
+  String _nomeOrganizacao = 'Organização não identificada';
+  bool _carregandoOrganizacao = true;
+  String _cargo = '';
+  bool _isSuperAdmin = false;
+  int? _lojaUsuarioId;
+  bool _carregandoPermissoes = true;
+  int? _alterandoStatusLojaId;
 
   List<Loja> _lojas = [];
   List<Loja> _lojasFiltradas = [];
@@ -37,6 +47,58 @@ class _LojaListPageState extends State<LojaListPage> {
   void initState() {
     super.initState();
     _carregarLojas();
+    _carregarNomeOrganizacao();
+    _carregarPermissoes();
+  }
+
+  Future<void> _carregarPermissoes() async {
+    final resultados = await Future.wait<dynamic>([
+      StorageService.getCargo(),
+      StorageService.isSuperAdmin(),
+      StorageService.getLojaId(),
+    ]);
+
+    if (!mounted) return;
+
+    setState(() {
+      _cargo = (resultados[0] as String? ?? '').trim().toUpperCase();
+      _isSuperAdmin = resultados[1] as bool;
+      _lojaUsuarioId = resultados[2] as int?;
+      _carregandoPermissoes = false;
+    });
+  }
+
+  bool get _podeIncluirExcluir {
+    return !_carregandoPermissoes &&
+        (_isSuperAdmin || _cargo == 'SUPERADMIN' || _cargo == 'ADMIN');
+  }
+
+  bool _podeAlterarLoja(Loja loja) {
+    if (_carregandoPermissoes) return false;
+    if (_podeIncluirExcluir) return true;
+
+    return _cargo == 'GERENTE' &&
+        _lojaUsuarioId != null &&
+        _lojaUsuarioId == loja.lojaId;
+  }
+
+  Future<void> _carregarNomeOrganizacao() async {
+    try {
+      final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
+      if (!mounted) return;
+
+      setState(() {
+        _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+        _carregandoOrganizacao = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _nomeOrganizacao = 'Organização não identificada';
+        _carregandoOrganizacao = false;
+      });
+    }
   }
 
   @override
@@ -117,6 +179,9 @@ class _LojaListPageState extends State<LojaListPage> {
       final telefone = (loja.nrtelloja ?? '').toLowerCase();
       final horario = (loja.dshorarioloja ?? '').toLowerCase();
       final status = (loja.sitloja ?? '').toLowerCase();
+      final estado = (loja.nmestado ?? '').toLowerCase();
+      final siglaEstado = (loja.sgestado ?? '').toLowerCase();
+      final cidade = (loja.nmcidade ?? '').toLowerCase();
 
       return loja.lojaId.toString().contains(busca) ||
           nome.contains(busca) ||
@@ -125,7 +190,10 @@ class _LojaListPageState extends State<LojaListPage> {
           instagram.contains(busca) ||
           telefone.contains(busca) ||
           horario.contains(busca) ||
-          status.contains(busca);
+          status.contains(busca) ||
+          estado.contains(busca) ||
+          siglaEstado.contains(busca) ||
+          cidade.contains(busca);
     }).toList();
   }
 
@@ -158,6 +226,14 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Future<void> _abrirNovaLoja() async {
+    if (!_podeIncluirExcluir) {
+      AppSnackBar.aviso(
+        context,
+        'Somente administradores podem cadastrar lojas.',
+      );
+      return;
+    }
+
     final resultado = await Navigator.of(
       context,
     ).push<bool>(MaterialPageRoute(builder: (_) => const LojaFormPage()));
@@ -168,6 +244,14 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Future<void> _abrirEdicao(Loja loja) async {
+    if (!_podeAlterarLoja(loja)) {
+      AppSnackBar.aviso(
+        context,
+        'Você não possui permissão para alterar esta loja.',
+      );
+      return;
+    }
+
     final resultado = await Navigator.of(
       context,
     ).push<bool>(MaterialPageRoute(builder: (_) => LojaFormPage(loja: loja)));
@@ -175,6 +259,25 @@ class _LojaListPageState extends State<LojaListPage> {
     if (resultado == true) {
       await _carregarLojas();
     }
+  }
+
+  Future<void> _abrirHorarios(Loja loja) async {
+    if (!_podeAlterarLoja(loja)) {
+      AppSnackBar.aviso(
+        context,
+        'Você não possui permissão para alterar os horários desta loja.',
+      );
+      return;
+    }
+
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => HorarioFuncionamentoScreen(
+          lojaId: loja.lojaId,
+          nomeLoja: loja.nmloja,
+        ),
+      ),
+    );
   }
 
   Future<bool> _confirmarExclusao(Loja loja) async {
@@ -256,6 +359,14 @@ class _LojaListPageState extends State<LojaListPage> {
   Future<void> _excluirLoja(Loja loja) async {
     if (_excluindo) return;
 
+    if (!_podeIncluirExcluir) {
+      AppSnackBar.aviso(
+        context,
+        'Somente administradores podem excluir lojas.',
+      );
+      return;
+    }
+
     final confirmou = await _confirmarExclusao(loja);
 
     if (!confirmou) return;
@@ -316,9 +427,7 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Widget _chipStatus(Loja loja) {
-    final status = (loja.sitloja ?? 'ATIVA').trim().toUpperCase();
-
-    final ativa = status == 'ATIVA' || status == 'ATIVO';
+    final ativa = _lojaAtiva(loja);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -335,6 +444,70 @@ class _LojaListPageState extends State<LojaListPage> {
         ),
       ),
     );
+  }
+
+  bool _lojaAtiva(Loja loja) {
+    final status = (loja.sitloja ?? 'ATIVA').trim().toUpperCase();
+    return status == 'ATIVA' || status == 'ATIVO';
+  }
+
+  Future<void> _alterarStatus(Loja loja) async {
+    if (_alterandoStatusLojaId != null) return;
+
+    if (!_podeAlterarLoja(loja)) {
+      AppSnackBar.aviso(
+        context,
+        'Você não possui permissão para alterar esta loja.',
+      );
+      return;
+    }
+
+    final ativa = _lojaAtiva(loja);
+    final acao = ativa ? 'inativar' : 'reativar';
+
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(ativa ? 'Inativar loja' : 'Reativar loja'),
+          content: Text('Deseja realmente $acao a loja “${loja.nmloja}”?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(ativa ? 'Inativar' : 'Reativar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmou != true || !mounted) return;
+
+    setState(() => _alterandoStatusLojaId = loja.lojaId);
+
+    try {
+      if (ativa) {
+        await _repository.inativar(loja.lojaId);
+      } else {
+        await _repository.reativar(loja.lojaId);
+      }
+
+      if (!mounted) return;
+      AppSnackBar.sucesso(
+        context,
+        ativa ? 'Loja inativada com sucesso.' : 'Loja reativada com sucesso.',
+      );
+      await _carregarLojas();
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackBar.erro(context, _extrairMensagemErro(e));
+    } finally {
+      if (mounted) setState(() => _alterandoStatusLojaId = null);
+    }
   }
 
   Widget _linhaInformacao({required IconData icone, required String texto}) {
@@ -367,20 +540,29 @@ class _LojaListPageState extends State<LojaListPage> {
   Widget _cardLoja(Loja loja) {
     final endereco = (loja.endloja ?? '').trim();
     final bairro = (loja.dsbairroloja ?? '').trim();
-    final telefone = (loja.nrtelloja ?? '').trim();
-    final horario = (loja.dshorarioloja ?? '').trim();
-    final instagram = (loja.dsinstaloja ?? '').trim();
+    final telefone = Formatters.telefone((loja.nrtelloja ?? '').trim());
+    final cidade = (loja.nmcidade ?? '').trim();
+    final siglaEstado = (loja.sgestado ?? '').trim();
+    final podeAlterar = _podeAlterarLoja(loja);
+    final podeExcluir = _podeIncluirExcluir;
+    final alterandoStatus = _alterandoStatusLojaId == loja.lojaId;
+
+    final localidade = [
+      cidade,
+      siglaEstado,
+    ].where((valor) => valor.isNotEmpty).join(' - ');
 
     final enderecoCompleto = [
       endereco,
       bairro,
+      localidade,
     ].where((valor) => valor.isNotEmpty).join(' • ');
 
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
       elevation: 1,
       padding: const EdgeInsets.all(15),
-      onTap: () => _abrirEdicao(loja),
+      onTap: _podeAlterarLoja(loja) ? () => _abrirEdicao(loja) : null,
       child: Column(
         children: [
           Row(
@@ -428,72 +610,85 @@ class _LojaListPageState extends State<LojaListPage> {
                         icone: Icons.phone_outlined,
                         texto: telefone,
                       ),
-
-                    if (horario.isNotEmpty)
-                      _linhaInformacao(
-                        icone: Icons.schedule_outlined,
-                        texto: horario,
-                      ),
-
-                    if (instagram.isNotEmpty)
-                      _linhaInformacao(
-                        icone: Icons.alternate_email_rounded,
-                        texto: instagram,
-                      ),
                   ],
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 14),
-
-          const Divider(height: 1, color: ClubbarColors.divisor),
-
-          const SizedBox(height: 10),
-
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _excluindo ? null : () => _abrirEdicao(loja),
-                  icon: const Icon(Icons.edit_rounded, size: 18),
-                  label: const Text(
-                    'Editar',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ClubbarColors.textoPrincipal,
-                    side: const BorderSide(color: ClubbarColors.borda),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(13),
+          if (podeAlterar || podeExcluir) ...[
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: ClubbarColors.divisor),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (podeAlterar)
+                  OutlinedButton.icon(
+                    onPressed: _excluindo || alterandoStatus
+                        ? null
+                        : () => _abrirHorarios(loja),
+                    icon: const Icon(Icons.schedule_rounded, size: 18),
+                    label: const Text('Horários'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ClubbarColors.ambarEscuro,
+                      side: const BorderSide(color: ClubbarColors.ambar),
                     ),
                   ),
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _excluindo ? null : () => _excluirLoja(loja),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                  label: const Text(
-                    'Excluir',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ClubbarColors.erroClaro,
-                    foregroundColor: ClubbarColors.erro,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(13),
+                if (podeAlterar)
+                  OutlinedButton.icon(
+                    onPressed: _excluindo || alterandoStatus
+                        ? null
+                        : () => _abrirEdicao(loja),
+                    icon: const Icon(Icons.edit_rounded, size: 18),
+                    label: const Text('Editar'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ClubbarColors.textoPrincipal,
+                      side: const BorderSide(color: ClubbarColors.borda),
                     ),
                   ),
-                ),
-              ),
-            ],
-          ),
+                if (podeAlterar)
+                  OutlinedButton.icon(
+                    onPressed: _excluindo || alterandoStatus
+                        ? null
+                        : () => _alterarStatus(loja),
+                    icon: alterandoStatus
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            _lojaAtiva(loja)
+                                ? Icons.pause_circle_outline_rounded
+                                : Icons.play_circle_outline_rounded,
+                            size: 18,
+                          ),
+                    label: Text(_lojaAtiva(loja) ? 'Inativar' : 'Reativar'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _lojaAtiva(loja)
+                          ? ClubbarColors.aviso
+                          : ClubbarColors.sucesso,
+                    ),
+                  ),
+                if (podeExcluir)
+                  OutlinedButton.icon(
+                    onPressed: _excluindo || alterandoStatus
+                        ? null
+                        : () => _excluirLoja(loja),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    label: const Text('Excluir'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ClubbarColors.erro,
+                      backgroundColor: ClubbarColors.erroClaro,
+                      side: const BorderSide(color: ClubbarColors.erroClaro),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -539,51 +734,64 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  Widget _acoesTopo() {
+  Widget _botaoAdicionarLoja() {
+    return ElevatedButton.icon(
+      onPressed: _abrirNovaLoja,
+      icon: const Icon(Icons.add_business_rounded, size: 19),
+      label: const Text(
+        'Adicionar',
+        style: TextStyle(fontWeight: FontWeight.w800),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: ClubbarColors.ambar,
+        foregroundColor: ClubbarColors.preto,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Widget _acoesHeader() {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: SizedBox(
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: _abrirNovaLoja,
-              icon: const Icon(Icons.add_business_rounded),
-              label: const Text(
-                'Nova loja',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ClubbarColors.ambar,
-                foregroundColor: ClubbarColors.preto,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
+        ElevatedButton.icon(
+          onPressed: _carregando ? null : _carregarLojas,
+          icon: const Icon(Icons.refresh_rounded, size: 19),
+          label: const Text(
+            'Atualizar',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: ClubbarColors.ambar,
+            foregroundColor: ClubbarColors.preto,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
         ),
-
-        const SizedBox(width: 10),
-
-        SizedBox(
-          width: 50,
-          height: 50,
-          child: OutlinedButton(
-            onPressed: _carregando ? null : _carregarLojas,
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.zero,
-              foregroundColor: ClubbarColors.textoPrincipal,
-              side: const BorderSide(color: ClubbarColors.borda),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-            ),
-            child: const Icon(Icons.refresh_rounded),
-          ),
-        ),
+        if (_podeIncluirExcluir) ...[
+          const SizedBox(width: 8),
+          _botaoAdicionarLoja(),
+        ],
       ],
     );
+  }
+
+  String _subtituloHeader() {
+    final organizacao = _carregandoOrganizacao
+        ? 'Carregando organização...'
+        : _nomeOrganizacao;
+
+    if (_carregando) {
+      return '$organizacao • Carregando estabelecimentos...';
+    }
+
+    return '$organizacao • ${_lojas.length} '
+        '${_lojas.length == 1 ? 'loja cadastrada' : 'lojas cadastradas'}';
   }
 
   Widget _estadoVazio() {
@@ -631,7 +839,7 @@ class _LojaListPageState extends State<LojaListPage> {
               ),
             ),
 
-            if (!temBusca) ...[
+            if (!temBusca && _podeIncluirExcluir) ...[
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 onPressed: _abrirNovaLoja,
@@ -738,24 +946,14 @@ class _LojaListPageState extends State<LojaListPage> {
           children: [
             ClubbarPageHeader(
               titulo: 'Lojas',
-              subtitulo: _carregando
-                  ? 'Carregando estabelecimentos...'
-                  : '${_lojas.length} '
-                        '${_lojas.length == 1 ? 'loja cadastrada' : 'lojas cadastradas'}',
+              subtitulo: _subtituloHeader(),
               icone: Icons.storefront_rounded,
+              trailing: _acoesHeader(),
             ),
 
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-              child: Column(
-                children: [
-                  _campoBusca(),
-
-                  const SizedBox(height: 12),
-
-                  _acoesTopo(),
-                ],
-              ),
+              child: _campoBusca(),
             ),
 
             const SizedBox(height: 14),
