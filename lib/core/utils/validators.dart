@@ -106,4 +106,18 @@ class Validators {
   static bool cepValido(String cep) {
     return somenteNumeros(cep).length == 8;
   }
+
+  static bool instagramValido(String valor) {
+    final texto = valor.trim();
+    if (texto.isEmpty) return true;
+
+    final usuario = texto
+        .replaceFirst(RegExp(r'^https?://(www\.)?instagram\.com/'), '')
+        .replaceFirst('@', '')
+        .split('/')
+        .first
+        .trim();
+
+    return RegExp(r'^[A-Za-z0-9._]{1,30}$').hasMatch(usuario);
+  }
 }

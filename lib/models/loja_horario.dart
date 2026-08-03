@@ -8,7 +8,6 @@ class LojaHorario {
   final TimeOfDay? horaAbertura;
   final TimeOfDay? horaFechamento;
   final bool fechaDiaSeguinte;
-  final bool fechamentoMeiaNoite;
 
   const LojaHorario({
     this.lojaHorarioId,
@@ -18,7 +17,6 @@ class LojaHorario {
     this.horaAbertura,
     this.horaFechamento,
     this.fechaDiaSeguinte = false,
-    this.fechamentoMeiaNoite = false,
   });
 
   factory LojaHorario.fromJson(Map<String, dynamic> json) {
@@ -41,9 +39,6 @@ class LojaHorario {
       fechado: _toBool(json['fechado']),
       horaAbertura: _toTimeOfDay(json['horaabertura'] ?? json['hora_abertura']),
       horaFechamento: _toTimeOfDay(valorFechamento),
-      fechamentoMeiaNoite:
-          _isMeiaNoite24(valorFechamento) ||
-          (_isMeiaNoite00(valorFechamento) && fechaDiaSeguinte),
       fechaDiaSeguinte: fechaDiaSeguinte,
     );
   }
@@ -56,9 +51,7 @@ class LojaHorario {
       'fechado': fechado,
       'horaabertura': fechado ? null : _formatarHora(horaAbertura),
       'horafechamento': fechado ? null : _formatarHora(horaFechamento),
-      'fechadiaseguinte': fechado
-          ? false
-          : fechamentoMeiaNoite || fechaDiaSeguinte,
+      'fechadiaseguinte': fechado ? false : fechaDiaSeguinte,
     };
   }
 
@@ -84,7 +77,6 @@ class LojaHorario {
     TimeOfDay? horaAbertura,
     TimeOfDay? horaFechamento,
     bool? fechaDiaSeguinte,
-    bool? fechamentoMeiaNoite,
     bool limparHorarios = false,
   }) {
     return LojaHorario(
@@ -99,9 +91,6 @@ class LojaHorario {
       fechaDiaSeguinte: limparHorarios
           ? false
           : fechaDiaSeguinte ?? this.fechaDiaSeguinte,
-      fechamentoMeiaNoite: limparHorarios
-          ? false
-          : fechamentoMeiaNoite ?? this.fechamentoMeiaNoite,
     );
   }
 
@@ -145,26 +134,13 @@ class LojaHorario {
     if (hora == null ||
         minuto == null ||
         hora < 0 ||
-        hora > 24 ||
+        hora > 23 ||
         minuto < 0 ||
-        minuto > 59 ||
-        (hora == 24 && minuto != 0)) {
+        minuto > 59) {
       return null;
     }
 
-    return TimeOfDay(hour: hora == 24 ? 0 : hora, minute: minuto);
-  }
-
-  static bool _isMeiaNoite24(dynamic value) {
-    final partes = value?.toString().trim().split(':') ?? const <String>[];
-    if (partes.length < 2) return false;
-    return int.tryParse(partes[0]) == 24 && int.tryParse(partes[1]) == 0;
-  }
-
-  static bool _isMeiaNoite00(dynamic value) {
-    final partes = value?.toString().trim().split(':') ?? const <String>[];
-    if (partes.length < 2) return false;
-    return int.tryParse(partes[0]) == 0 && int.tryParse(partes[1]) == 0;
+    return TimeOfDay(hour: hora, minute: minuto);
   }
 
   static String? _formatarHora(TimeOfDay? value) {

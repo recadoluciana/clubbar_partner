@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 
-import '../../core/config/api_config.dart';
 import '../../core/repositories/localidade_repository.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
-import '../../core/utils/masks.dart' show CepInputFormatter;
+import '../../core/utils/formatters.dart';
+import '../../core/utils/masks.dart'
+    show CepInputFormatter, TelefoneInputFormatter;
+import '../../core/utils/validators.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
@@ -28,7 +29,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _repository = LojaRepository();
   final _localidadeRepository = LocalidadeRepository();
-  final _picker = ImagePicker();
 
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _estiloLojaController = TextEditingController();
@@ -50,64 +50,18 @@ class _LojaFormPageState extends State<LojaFormPage> {
   int? _cidadeId;
   String _idValidadeProd = 'S';
 
-  XFile? _imagemSelecionada;
-  Uint8List? _imagemBytes;
-  XFile? _imagemFachadaSelecionada;
-  Uint8List? _imagemFachadaBytes;
-
   bool get editando => widget.loja != null;
   bool get _controlaValidadeProduto => _idValidadeProd == 'S';
-
-  String _somenteNumeros(String valor) {
-    return valor.replaceAll(RegExp(r'[^0-9]'), '');
-  }
-
-  String _formatarTelefone(String? valor) {
-    final numeros = _somenteNumeros(valor ?? '');
-
-    if (numeros.length == 11) {
-      return '(${numeros.substring(0, 2)}) '
-          '${numeros.substring(2, 7)}-'
-          '${numeros.substring(7)}';
-    }
-
-    if (numeros.length == 10) {
-      return '(${numeros.substring(0, 2)}) '
-          '${numeros.substring(2, 6)}-'
-          '${numeros.substring(6)}';
-    }
-
-    return valor ?? '';
-  }
-
-  String _formatarPercentual(num? valor) {
-    final taxa = valor ?? 5;
-    return '${taxa.toStringAsFixed(2).replaceAll('.', ',')}%';
-  }
-
-  bool _instagramValido(String valor) {
-    final texto = valor.trim();
-    if (texto.isEmpty) return true;
-
-    final usuario = texto
-        .replaceFirst(RegExp(r'^https?://(www\.)?instagram\.com/'), '')
-        .replaceFirst('@', '')
-        .split('/')
-        .first
-        .trim();
-
-    return RegExp(r'^[A-Za-z0-9._]{1,30}$').hasMatch(usuario);
-  }
 
   String? _validarCamposLoja() {
     final nome = _nomeController.text.trim();
     final estiloLoja = _estiloLojaController.text.trim();
     final bairro = _bairroController.text.trim();
     final endereco = _enderecoController.text.trim();
-    final cep = _somenteNumeros(_cepController.text);
+    final cep = Validators.somenteNumeros(_cepController.text);
     final numeroEndereco = _numeroEnderecoController.text.trim();
     final instagram = _instagramController.text.trim();
-    final telefone = _somenteNumeros(_telefoneController.text);
+    final telefone = Validators.somenteNumeros(_telefoneController.text);
     final diasValidade = int.tryParse(_diasValidadeController.text.trim());
 
     if (nome.isEmpty) return 'Informe o nome da loja.';
@@ -138,13 +92,16 @@ class _LojaFormPageState extends State<LojaFormPage> {
     if (cep.length != 8) {
       return 'Informe um CEP válido com 8 dígitos.';
     }
+    if (_ultimoCepConsultado != cep) {
+      return 'Consulte o CEP antes de salvar a loja.';
+    }
     if (numeroEndereco.isEmpty) {
       return 'Informe o número do endereço ou S/N.';
     }
     if (instagram.length > 255) {
       return 'O Instagram pode ter no máximo 255 caracteres.';
     }
-    if (!_instagramValido(instagram)) {
+    if (!Validators.instagramValido(instagram)) {
       return 'Informe um usuário ou endereço válido do Instagram.';
     }
 
@@ -191,7 +148,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _nomeController.text = widget.loja!.nmloja;
       _estiloLojaController.text = widget.loja!.dsestiloloja ?? '';
       _bairroController.text = widget.loja!.dsbairroloja ?? '';
-      _telefoneController.text = _formatarTelefone(widget.loja!.nrtelloja);
+      _telefoneController.text = Formatters.telefone(
+        widget.loja!.nrtelloja ?? '',
+      );
       _diasValidadeController.text =
           widget.loja!.nrdiavalidade?.toString() ?? '90';
       _estadoId = widget.loja!.estadoId;
@@ -199,6 +158,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _enderecoController.text = widget.loja!.endloja ?? '';
       _cepController.text = widget.loja!.nrceploja;
       _numeroEnderecoController.text = widget.loja!.nrendeloja;
+      _ultimoCepConsultado = Validators.somenteNumeros(widget.loja!.nrceploja);
       _instagramController.text = widget.loja!.dsinstaloja ?? '';
       _idValidadeProd = widget.loja!.idvalidadeprod;
     } else {
@@ -242,8 +202,12 @@ class _LojaFormPageState extends State<LojaFormPage> {
   }
 
   Future<void> _buscarCep() async {
-    final cep = _somenteNumeros(_cepController.text);
-    if (cep.length != 8 || _consultandoCep || _ultimoCepConsultado == cep) {
+    final cep = Validators.somenteNumeros(_cepController.text);
+    if (_consultandoCep) {
+      return;
+    }
+    if (cep.length != 8) {
+      AppSnackBar.aviso(context, 'Informe um CEP válido com 8 dígitos.');
       return;
     }
 
@@ -304,48 +268,15 @@ class _LojaFormPageState extends State<LojaFormPage> {
     }
   }
 
-  Future<void> _selecionarImagem() async {
-    try {
-      final arquivo = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-
-      if (arquivo == null) return;
-
-      final bytes = await arquivo.readAsBytes();
-      if (!mounted) return;
-
-      setState(() {
-        _imagemSelecionada = arquivo;
-        _imagemBytes = bytes;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      _mostrarMensagem('Erro ao selecionar imagem: $e', erro: true);
-    }
-  }
-
-  Future<void> _selecionarImagemFachada() async {
-    try {
-      final arquivo = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-
-      if (arquivo == null) return;
-
-      final bytes = await arquivo.readAsBytes();
-      if (!mounted) return;
-
-      setState(() {
-        _imagemFachadaSelecionada = arquivo;
-        _imagemFachadaBytes = bytes;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      _mostrarMensagem('Erro ao selecionar a foto da fachada: $e', erro: true);
-    }
+  void _limparEnderecoCarregado() {
+    setState(() {
+      _ultimoCepConsultado = null;
+      _enderecoController.clear();
+      _numeroEnderecoController.clear();
+      _bairroController.clear();
+      _estadoId = null;
+      _cidadeId = null;
+    });
   }
 
   Future<void> _salvar() async {
@@ -368,7 +299,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
         throw Exception('Organização não encontrada no login');
       }
 
-      final telefoneSemMascara = _somenteNumeros(_telefoneController.text);
+      final telefoneSemMascara = Validators.somenteNumeros(
+        _telefoneController.text,
+      );
       final diasValidade = _controlaValidadeProduto
           ? int.parse(_diasValidadeController.text.trim())
           : widget.loja?.nrdiavalidade ?? 90;
@@ -385,13 +318,11 @@ class _LojaFormPageState extends State<LojaFormPage> {
           telefone: telefoneSemMascara,
           diasValidade: diasValidade,
           endereco: _enderecoController.text.trim(),
-          cep: _somenteNumeros(_cepController.text),
+          cep: Validators.somenteNumeros(_cepController.text),
           numeroEndereco: _numeroEnderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
           aberto24x7: widget.loja!.aberto24x7,
           idvalidadeprod: _idValidadeProd,
-          imagem: _imagemSelecionada,
-          imagemFachada: _imagemFachadaSelecionada,
         );
 
         if (!mounted) return;
@@ -409,12 +340,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
           telefone: telefoneSemMascara,
           diasValidade: diasValidade,
           endereco: _enderecoController.text.trim(),
-          cep: _somenteNumeros(_cepController.text),
+          cep: Validators.somenteNumeros(_cepController.text),
           numeroEndereco: _numeroEnderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
           idvalidadeprod: _idValidadeProd,
-          imagem: _imagemSelecionada,
-          imagemFachada: _imagemFachadaSelecionada,
         );
 
         if (!mounted) return;
@@ -431,7 +360,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           dsbairroloja: _bairroController.text.trim(),
           nrtelloja: telefoneSemMascara,
           nrdiavalidade: diasValidade,
-          nrceploja: _somenteNumeros(_cepController.text),
+          nrceploja: Validators.somenteNumeros(_cepController.text),
           nrendeloja: _numeroEnderecoController.text.trim(),
           idvalidadeprod: _idValidadeProd,
           endloja: _enderecoController.text.trim(),
@@ -468,32 +397,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
-  }
-
-  Future<void> _abrirHorarios() async {
-    final loja = widget.loja;
-    if (loja == null) return;
-
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => HorarioFuncionamentoScreen(
-          lojaId: loja.lojaId,
-          nomeLoja: loja.nmloja,
-          aberto24x7Inicial: loja.aberto24x7,
-          onSalvarAberto24x7: (valor) =>
-              _repository.atualizarAberto24x7(loja, valor),
-        ),
-      ),
-    );
-  }
-
-  String _montarUrlImagemAtual(String? caminhoImagem) {
-    final imagemAtual = (caminhoImagem ?? '').trim();
-    if (imagemAtual.isEmpty) return '';
-    if (imagemAtual.startsWith('http')) return imagemAtual;
-
-    final path = imagemAtual.startsWith('/') ? imagemAtual : '/$imagemAtual';
-    return '${ApiConfig.baseUrl}$path';
   }
 
   InputDecoration _decoracaoCampo({
@@ -541,11 +444,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final imagemAtualUrl = _montarUrlImagemAtual(widget.loja?.urllogoloja);
-    final fachadaAtualUrl = _montarUrlImagemAtual(widget.loja?.urlfachadaloja);
-    final taxaProduto = _formatarPercentual(widget.loja?.vrtaxaprod);
-    final taxaIngresso = _formatarPercentual(widget.loja?.vrtaxaing);
-
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
@@ -553,7 +451,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: editando ? 'Editar Loja' : 'Nova Loja',
+              titulo: editando
+                  ? 'Editar Loja - ${widget.loja!.nmloja}'
+                  : 'Nova Loja',
               subtitulo: _carregandoNomeOrganizacao
                   ? 'Carregando organização...'
                   : _nomeOrganizacao,
@@ -581,130 +481,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                 _tituloSecao(
                                   'Identificação',
                                   Icons.storefront_outlined,
-                                ),
-                                GestureDetector(
-                                  onTap: _salvando ? null : _selecionarImagem,
-                                  child: Container(
-                                    height: 150,
-                                    margin: const EdgeInsets.only(bottom: 18),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      border: Border.all(
-                                        color: Colors.grey.shade300,
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: _imagemSelecionada != null
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              16,
-                                            ),
-                                            child: Image.memory(
-                                              _imagemBytes!,
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                            ),
-                                          )
-                                        : editando && imagemAtualUrl.isNotEmpty
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              16,
-                                            ),
-                                            child: Image.network(
-                                              imagemAtualUrl,
-                                              key: ValueKey(imagemAtualUrl),
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              errorBuilder: (_, _, _) =>
-                                                  const Center(
-                                                    child: Icon(
-                                                      Icons.store,
-                                                      size: 44,
-                                                    ),
-                                                  ),
-                                            ),
-                                          )
-                                        : const Center(
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Icon(
-                                                  Icons.image_outlined,
-                                                  size: 42,
-                                                ),
-                                                SizedBox(height: 8),
-                                                Text(
-                                                  'Toque para selecionar a logo',
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: _salvando
-                                      ? null
-                                      : _selecionarImagemFachada,
-                                  child: Container(
-                                    height: 180,
-                                    margin: const EdgeInsets.only(bottom: 18),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      border: Border.all(
-                                        color: Colors.grey.shade300,
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: _imagemFachadaSelecionada != null
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              16,
-                                            ),
-                                            child: Image.memory(
-                                              _imagemFachadaBytes!,
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                            ),
-                                          )
-                                        : editando && fachadaAtualUrl.isNotEmpty
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              16,
-                                            ),
-                                            child: Image.network(
-                                              fachadaAtualUrl,
-                                              key: ValueKey(fachadaAtualUrl),
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              errorBuilder: (_, _, _) =>
-                                                  const Center(
-                                                    child: Icon(
-                                                      Icons.storefront_outlined,
-                                                      size: 44,
-                                                    ),
-                                                  ),
-                                            ),
-                                          )
-                                        : const Center(
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Icon(
-                                                  Icons
-                                                      .add_photo_alternate_outlined,
-                                                  size: 42,
-                                                ),
-                                                SizedBox(height: 8),
-                                                Text(
-                                                  'Toque para selecionar a foto da fachada',
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                  ),
                                 ),
                                 TextFormField(
                                   controller: _nomeController,
@@ -750,37 +526,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        if (editando) ...[
-                          Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(color: Colors.grey.shade200),
-                            ),
-                            child: ListTile(
-                              enabled: !_salvando,
-                              onTap: _salvando ? null : _abrirHorarios,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 10,
-                              ),
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.amber.shade100,
-                                foregroundColor: Colors.amber.shade900,
-                                child: const Icon(Icons.schedule_rounded),
-                              ),
-                              title: const Text(
-                                'Horário de funcionamento',
-                                style: TextStyle(fontWeight: FontWeight.w800),
-                              ),
-                              subtitle: const Text(
-                                'Defina os dias e horários de atendimento',
-                              ),
-                              trailing: const Icon(Icons.chevron_right_rounded),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
                         Card(
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -803,11 +548,12 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   textInputAction: TextInputAction.search,
                                   inputFormatters: [CepInputFormatter()],
                                   onChanged: (value) {
-                                    final cep = _somenteNumeros(value);
+                                    final cep = Validators.somenteNumeros(
+                                      value,
+                                    );
                                     if (_ultimoCepConsultado != cep) {
-                                      _ultimoCepConsultado = null;
+                                      _limparEnderecoCarregado();
                                     }
-                                    if (cep.length == 8) _buscarCep();
                                   },
                                   onFieldSubmitted: (_) => _buscarCep(),
                                   decoration: _decoracaoCampo(
@@ -816,23 +562,11 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     hint: '00000-000',
                                     helperText:
                                         'Preenche endereço, bairro, Estado e Cidade.',
-                                    suffixIcon: _consultandoCep
-                                        ? const Padding(
-                                            padding: EdgeInsets.all(13),
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : IconButton(
-                                            tooltip: 'Consultar CEP',
-                                            onPressed: _buscarCep,
-                                            icon: const Icon(
-                                              Icons.search_rounded,
-                                            ),
-                                          ),
                                   ),
                                   validator: (value) {
-                                    final cep = _somenteNumeros(value ?? '');
+                                    final cep = Validators.somenteNumeros(
+                                      value ?? '',
+                                    );
                                     if (cep.isEmpty) {
                                       return 'Informe o CEP da loja.';
                                     }
@@ -842,9 +576,45 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     return null;
                                   },
                                 ),
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  height: 46,
+                                  child: FilledButton.icon(
+                                    onPressed: _salvando || _consultandoCep
+                                        ? null
+                                        : _buscarCep,
+                                    icon: _consultandoCep
+                                        ? const SizedBox.square(
+                                            dimension: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.download_rounded),
+                                    label: Text(
+                                      _consultandoCep
+                                          ? 'Carregando endereço...'
+                                          : 'Carregar endereço pelo CEP',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: ClubbarColors.ambar,
+                                      foregroundColor: ClubbarColors.preto,
+                                      disabledBackgroundColor:
+                                          ClubbarColors.ambarClaro,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _enderecoController,
+                                  readOnly: true,
+                                  canRequestFocus: false,
                                   textCapitalization:
                                       TextCapitalization.sentences,
                                   maxLength: 255,
@@ -854,6 +624,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   decoration: _decoracaoCampo(
                                     label: 'Endereço da loja',
                                     icone: Icons.home_work_outlined,
+                                    helperText:
+                                        'Preenchido automaticamente pelo CEP.',
                                   ).copyWith(counterText: ''),
                                 ),
                                 const SizedBox(height: 14),
@@ -880,6 +652,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _bairroController,
+                                  readOnly: true,
+                                  canRequestFocus: false,
                                   textCapitalization: TextCapitalization.words,
                                   maxLength: 120,
                                   inputFormatters: [
@@ -888,6 +662,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   decoration: _decoracaoCampo(
                                     label: 'Bairro',
                                     icone: Icons.map_outlined,
+                                    helperText:
+                                        'Preenchido automaticamente pelo CEP.',
                                   ).copyWith(counterText: ''),
                                 ),
                                 const SizedBox(height: 14),
@@ -895,7 +671,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   estadoInicialId: _estadoId,
                                   cidadeInicialId: _cidadeId,
                                   obrigatorio: true,
-                                  habilitado: !_salvando,
+                                  habilitado: false,
                                   onChanged: (estado, cidade) {
                                     _estadoId = estado?.estadoId;
                                     _cidadeId = cidade?.cidadeId;
@@ -922,6 +698,35 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   Icons.contact_phone_outlined,
                                 ),
                                 TextFormField(
+                                  controller: _telefoneController,
+                                  keyboardType: TextInputType.phone,
+                                  inputFormatters: [
+                                    TelefoneInputFormatter(),
+                                    LengthLimitingTextInputFormatter(15),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Telefone ou celular',
+                                    icone: Icons.phone_outlined,
+                                    hint: '(35) 99999-9999',
+                                  ),
+                                  validator: (value) {
+                                    final numeros = Validators.somenteNumeros(
+                                      value ?? '',
+                                    );
+                                    if (numeros.isEmpty) return null;
+                                    if (numeros.length != 10 &&
+                                        numeros.length != 11) {
+                                      return 'Informe um telefone válido com DDD.';
+                                    }
+                                    if (numeros.length == 11 &&
+                                        numeros[2] != '9') {
+                                      return 'O celular deve começar com 9 após o DDD.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
                                   controller: _instagramController,
                                   maxLength: 255,
                                   keyboardType: TextInputType.url,
@@ -935,37 +740,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   ).copyWith(counterText: ''),
                                   validator: (value) {
                                     final texto = value?.trim() ?? '';
-                                    if (!_instagramValido(texto)) {
+                                    if (!Validators.instagramValido(texto)) {
                                       return 'Informe um Instagram válido.';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 14),
-                                TextFormField(
-                                  controller: _telefoneController,
-                                  keyboardType: TextInputType.phone,
-                                  inputFormatters: [
-                                    TelefoneInputFormatter(),
-                                    LengthLimitingTextInputFormatter(15),
-                                  ],
-                                  decoration: _decoracaoCampo(
-                                    label: 'Telefone ou celular',
-                                    icone: Icons.phone_outlined,
-                                    hint: '(35) 99999-9999',
-                                  ),
-                                  validator: (value) {
-                                    final numeros = _somenteNumeros(
-                                      value ?? '',
-                                    );
-                                    if (numeros.isEmpty) return null;
-                                    if (numeros.length != 10 &&
-                                        numeros.length != 11) {
-                                      return 'Informe um telefone válido com DDD.';
-                                    }
-                                    if (numeros.length == 11 &&
-                                        numeros[2] != '9') {
-                                      return 'O celular deve começar com 9 após o DDD.';
                                     }
                                     return null;
                                   },
@@ -1044,88 +820,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Card(
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: Colors.grey.shade200),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _tituloSecao(
-                                  'Taxas do Clubbar',
-                                  Icons.percent_outlined,
-                                ),
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final taxaProdutosField = TextFormField(
-                                      initialValue: taxaProduto,
-                                      readOnly: true,
-                                      canRequestFocus: false,
-                                      decoration: _decoracaoCampo(
-                                        label: 'Taxa sobre produtos',
-                                        icone: Icons.shopping_bag_outlined,
-                                        helperText:
-                                            'Somente o superadministrador pode alterar.',
-                                        suffixIcon: const Icon(
-                                          Icons.lock_outline,
-                                        ),
-                                      ).copyWith(fillColor: Colors.grey.shade100),
-                                    );
-
-                                    final taxaIngressosField = TextFormField(
-                                      initialValue: taxaIngresso,
-                                      readOnly: true,
-                                      canRequestFocus: false,
-                                      decoration: _decoracaoCampo(
-                                        label: 'Taxa sobre ingressos',
-                                        icone:
-                                            Icons.confirmation_number_outlined,
-                                        helperText:
-                                            'Somente o superadministrador pode alterar.',
-                                        suffixIcon: const Icon(
-                                          Icons.lock_outline,
-                                        ),
-                                      ).copyWith(fillColor: Colors.grey.shade100),
-                                    );
-
-                                    if (constraints.maxWidth < 560) {
-                                      return Column(
-                                        children: [
-                                          taxaProdutosField,
-                                          const SizedBox(height: 12),
-                                          taxaIngressosField,
-                                        ],
-                                      );
-                                    }
-
-                                    return Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(child: taxaProdutosField),
-                                        const SizedBox(width: 12),
-                                        Expanded(child: taxaIngressosField),
-                                      ],
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'As duas taxas possuem valor padrão de 5,00%.',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                         const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
@@ -1168,45 +862,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class TelefoneInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    var numeros = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
-
-    if (numeros.length > 11) {
-      numeros = numeros.substring(0, 11);
-    }
-
-    String texto;
-
-    if (numeros.isEmpty) {
-      texto = '';
-    } else if (numeros.length <= 2) {
-      texto = '($numeros';
-    } else if (numeros.length <= 6) {
-      texto = '(${numeros.substring(0, 2)}) ${numeros.substring(2)}';
-    } else if (numeros.length <= 10) {
-      texto =
-          '(${numeros.substring(0, 2)}) '
-          '${numeros.substring(2, 6)}-'
-          '${numeros.substring(6)}';
-    } else {
-      texto =
-          '(${numeros.substring(0, 2)}) '
-          '${numeros.substring(2, 7)}-'
-          '${numeros.substring(7)}';
-    }
-
-    return TextEditingValue(
-      text: texto,
-      selection: TextSelection.collapsed(offset: texto.length),
     );
   }
 }

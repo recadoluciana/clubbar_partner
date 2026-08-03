@@ -14,6 +14,7 @@ import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 import 'horario_funcionamento_screen.dart';
 import 'loja_form_page.dart';
+import 'loja_imagens_page.dart';
 
 class LojaListPage extends StatefulWidget {
   final int organizacaoId;
@@ -287,6 +288,24 @@ class _LojaListPageState extends State<LojaListPage> {
     }
   }
 
+  Future<void> _abrirImagens(Loja loja) async {
+    if (!_podeAlterarLoja(loja)) {
+      AppSnackBar.aviso(
+        context,
+        'A função Imagens não é permitida para este usuário/cargo.',
+      );
+      return;
+    }
+
+    final alterado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => LojaImagensPage(loja: loja)),
+    );
+
+    if (alterado == true && mounted) {
+      await _carregarLojas();
+    }
+  }
+
   Future<bool> _confirmarExclusao(Loja loja) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -426,7 +445,7 @@ class _LojaListPageState extends State<LojaListPage> {
       url,
       width: 70,
       height: 70,
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       errorBuilder: (_, _, _) {
         return placeholder();
       },
@@ -446,7 +465,7 @@ class _LojaListPageState extends State<LojaListPage> {
           children: [
             Image.network(
               url,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               errorBuilder: (_, _, _) => Container(
                 color: ClubbarColors.ambarClaro,
                 alignment: Alignment.center,
@@ -728,6 +747,18 @@ class _LojaListPageState extends State<LojaListPage> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
+                  SizedBox(
+                    width: larguraBotao,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _abrirImagens(loja),
+                      icon: const Icon(Icons.photo_library_outlined, size: 18),
+                      label: const Text('Imagens'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ClubbarColors.ambarEscuro,
+                        side: const BorderSide(color: ClubbarColors.ambar),
+                      ),
+                    ),
+                  ),
                   SizedBox(
                     width: larguraBotao,
                     child: OutlinedButton.icon(

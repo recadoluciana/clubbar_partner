@@ -214,6 +214,38 @@ class LojaRepository {
     );
   }
 
+  Future<void> atualizarImagens({
+    required Loja loja,
+    XFile? logo,
+    XFile? fachada,
+  }) async {
+    final estadoId = loja.estadoId;
+    final cidadeId = loja.cidadeId;
+    if (estadoId == null || cidadeId == null) {
+      throw Exception('Estado e cidade da loja não foram identificados.');
+    }
+
+    await atualizar(
+      lojaId: loja.lojaId,
+      organizacaoId: loja.organizacaoId,
+      estadoId: estadoId,
+      cidadeId: cidadeId,
+      nome: loja.nmloja,
+      estiloLoja: loja.dsestiloloja,
+      bairro: loja.dsbairroloja,
+      telefone: loja.nrtelloja,
+      diasValidade: loja.nrdiavalidade,
+      endereco: loja.endloja,
+      cep: loja.nrceploja,
+      numeroEndereco: loja.nrendeloja,
+      instagram: loja.dsinstaloja,
+      aberto24x7: loja.aberto24x7,
+      idvalidadeprod: loja.idvalidadeprod,
+      imagem: logo,
+      imagemFachada: fachada,
+    );
+  }
+
   Future<void> excluir(int lojaId) async {
     final response = await ApiService.delete('/lojas/$lojaId');
 

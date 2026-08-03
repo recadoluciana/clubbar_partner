@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/repositories/loja_horario_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -35,6 +36,8 @@ class _HorarioFuncionamentoScreenState
   bool _carregando = true;
   bool _salvando = false;
   late String _aberto24x7;
+  String _nomeOrganizacao = 'Organização não identificada';
+  bool _carregandoNomeOrganizacao = true;
   String? _erro;
 
   bool get _funciona24x7 => _aberto24x7 == 'S';
@@ -43,7 +46,27 @@ class _HorarioFuncionamentoScreenState
   void initState() {
     super.initState();
     _aberto24x7 = widget.aberto24x7Inicial == 'S' ? 'S' : 'N';
+    _carregarNomeOrganizacao();
     _carregar();
+  }
+
+  Future<void> _carregarNomeOrganizacao() async {
+    try {
+      final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
+      if (!mounted) return;
+
+      setState(() {
+        _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+        _carregandoNomeOrganizacao = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _nomeOrganizacao = 'Organização não identificada';
+        _carregandoNomeOrganizacao = false;
+      });
+    }
   }
 
   Future<void> _carregar() async {
@@ -114,11 +137,8 @@ class _HorarioFuncionamentoScreenState
     }
 
     final fechamentoEmMinutos = _minutos(fechamento);
-    final fechaDiaSeguinte =
-        horario.fechamentoMeiaNoite || fechamentoEmMinutos < _minutos(abertura);
     return horario.copyWith(
-      fechaDiaSeguinte: fechaDiaSeguinte,
-      fechamentoMeiaNoite: fechaDiaSeguinte && fechamentoEmMinutos == 0,
+      fechaDiaSeguinte: fechamentoEmMinutos < _minutos(abertura),
     );
   }
 
@@ -138,6 +158,7 @@ class _HorarioFuncionamentoScreenState
     final horaAtual = abertura ? atual.horaAbertura : atual.horaFechamento;
     final selecionada = await showTimePicker(
       context: context,
+      initialEntryMode: TimePickerEntryMode.inputOnly,
       initialTime:
           horaAtual ??
           (abertura
@@ -147,14 +168,17 @@ class _HorarioFuncionamentoScreenState
       cancelText: 'CANCELAR',
       confirmText: 'CONFIRMAR',
       builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: ClubbarColors.ambar,
-              brightness: Brightness.light,
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: ClubbarColors.ambar,
+                brightness: Brightness.light,
+              ),
             ),
+            child: child!,
           ),
-          child: child!,
         );
       },
     );
@@ -163,25 +187,8 @@ class _HorarioFuncionamentoScreenState
 
     final atualizado = abertura
         ? atual.copyWith(horaAbertura: selecionada)
-        : atual.copyWith(
-            horaFechamento: selecionada,
-            fechamentoMeiaNoite: false,
-          );
+        : atual.copyWith(horaFechamento: selecionada);
     _atualizarDia(index, _ajustarFechaDiaSeguinte(atualizado));
-  }
-
-  void _definirFechamento24Horas(int index) {
-    final atual = _horarios[index];
-    if (atual.fechado || _salvando) return;
-
-    _atualizarDia(
-      index,
-      atual.copyWith(
-        horaFechamento: const TimeOfDay(hour: 0, minute: 0),
-        fechamentoMeiaNoite: true,
-        fechaDiaSeguinte: true,
-      ),
-    );
   }
 
   String? _validar() {
@@ -200,10 +207,8 @@ class _HorarioFuncionamentoScreenState
         return 'Informe o fechamento de ${horario.nomeDiaSemana}.';
       }
 
-      final minutosFechamento = horario.fechamentoMeiaNoite
-          ? 24 * 60
-          : _minutos(horario.horaFechamento!);
-      if (_minutos(horario.horaAbertura!) == minutosFechamento) {
+      if (_minutos(horario.horaAbertura!) ==
+          _minutos(horario.horaFechamento!)) {
         return 'Em ${horario.nomeDiaSemana}, abertura e fechamento '
             'não podem ser iguais.';
       }
@@ -254,9 +259,8 @@ class _HorarioFuncionamentoScreenState
 
   int _minutos(TimeOfDay horario) => horario.hour * 60 + horario.minute;
 
-  String _formatarHora(TimeOfDay? horario, {bool fechamentoMeiaNoite = false}) {
+  String _formatarHora(TimeOfDay? horario) {
     if (horario == null) return '--:--';
-    if (fechamentoMeiaNoite) return '24:00';
     return '${horario.hour.toString().padLeft(2, '0')}:'
         '${horario.minute.toString().padLeft(2, '0')}';
   }
@@ -341,10 +345,7 @@ class _HorarioFuncionamentoScreenState
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: Text(
-          _formatarHora(
-            valor,
-            fechamentoMeiaNoite: !abertura && horario.fechamentoMeiaNoite,
-          ),
+          _formatarHora(valor),
           style: TextStyle(
             fontWeight: FontWeight.w800,
             color: horario.fechado
@@ -358,11 +359,6 @@ class _HorarioFuncionamentoScreenState
 
   Widget _cardDia(int index) {
     final horario = _horarios[index];
-    final fechamentoAposMeiaNoite =
-        !horario.fechamentoMeiaNoite &&
-        horario.horaAbertura != null &&
-        horario.horaFechamento != null &&
-        _minutos(horario.horaFechamento!) < _minutos(horario.horaAbertura!);
 
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 12),
@@ -404,90 +400,46 @@ class _HorarioFuncionamentoScreenState
           ),
           if (!horario.fechado) ...[
             const SizedBox(height: 12),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final abertura = _campoHora(index, abertura: true);
-                final fechamento = _campoHora(index, abertura: false);
-
-                if (constraints.maxWidth < 520) {
-                  return Column(
-                    children: [
-                      abertura,
-                      const SizedBox(height: 12),
-                      fechamento,
-                    ],
-                  );
-                }
-
-                return Row(
+            Row(
+              children: [
+                Expanded(child: _campoHora(index, abertura: true)),
+                const SizedBox(width: 10),
+                Expanded(child: _campoHora(index, abertura: false)),
+              ],
+            ),
+            if (horario.fechaDiaSeguinte) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: ClubbarColors.ambarClaro,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: abertura),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
+                    const Icon(
+                      Icons.nights_stay_outlined,
+                      size: 18,
+                      color: ClubbarColors.ambarEscuro,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
                       child: Text(
-                        'até',
-                        style: TextStyle(
+                        'Fechamento no dia seguinte, definido automaticamente. '
+                        '${_formatarHora(horario.horaAbertura)} até '
+                        '${_formatarHora(horario.horaFechamento)}.',
+                        style: const TextStyle(
+                          color: ClubbarColors.textoPrincipal,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: ClubbarColors.textoSecundario,
                         ),
                       ),
                     ),
-                    Expanded(child: fechamento),
                   ],
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
-                onPressed: _salvando
-                    ? null
-                    : () => _definirFechamento24Horas(index),
-                icon: const Icon(Icons.nights_stay_outlined, size: 18),
-                label: const Text('Fechar às 24:00'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: horario.fechamentoMeiaNoite
-                      ? ClubbarColors.ambarEscuro
-                      : ClubbarColors.textoPrincipal,
-                  side: BorderSide(
-                    color: horario.fechamentoMeiaNoite
-                        ? ClubbarColors.ambar
-                        : ClubbarColors.borda,
-                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            SwitchListTile(
-              value: horario.fechaDiaSeguinte,
-              onChanged: _salvando
-                  ? null
-                  : (value) => _atualizarDia(
-                      index,
-                      horario.copyWith(
-                        fechaDiaSeguinte: value,
-                        fechamentoMeiaNoite:
-                            value &&
-                            horario.horaFechamento != null &&
-                            _minutos(horario.horaFechamento!) == 0,
-                      ),
-                    ),
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: const Text(
-                'Fecha no dia seguinte',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: horario.fechaDiaSeguinte
-                  ? Text(
-                      '${fechamentoAposMeiaNoite ? 'Marcado automaticamente. ' : ''}'
-                      'Exemplo: ${_formatarHora(horario.horaAbertura)} até '
-                      '${_formatarHora(horario.horaFechamento)} do dia seguinte',
-                    )
-                  : null,
-              activeTrackColor: ClubbarColors.ambar,
-            ),
+            ],
           ],
         ],
       ),
@@ -509,9 +461,10 @@ class _HorarioFuncionamentoScreenState
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Ative os dias de atendimento e informe abertura e '
-                  'fechamento. Para horários como 18:00 até 02:00, marque '
-                  '“Fecha no dia seguinte”.',
+                  'Ative os dias de funcionamento e informe abertura e '
+                  'fechamento no formato de 24 horas. Quando o fechamento '
+                  'for menor que a abertura, o dia seguinte será definido '
+                  'automaticamente.',
                   style: TextStyle(color: ClubbarColors.textoPrincipal),
                 ),
               ),
@@ -590,8 +543,10 @@ class _HorarioFuncionamentoScreenState
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Horário de funcionamento',
-              subtitulo: widget.nomeLoja,
+              titulo: 'Horários - ${widget.nomeLoja}',
+              subtitulo: _carregandoNomeOrganizacao
+                  ? 'Carregando organização...'
+                  : _nomeOrganizacao,
             ),
             Expanded(
               child: _carregando
