@@ -22,6 +22,7 @@ class Loja {
   final double vrtaxaing;
   final String? dsestiloloja;
   final String aberto24x7;
+  final String idvalidadeprod;
 
   Loja({
     required this.lojaId,
@@ -45,6 +46,7 @@ class Loja {
     this.vrtaxaing = 5.0,
     this.dsestiloloja,
     this.aberto24x7 = 'N',
+    this.idvalidadeprod = 'S',
   });
 
   factory Loja.fromJson(Map<String, dynamic> json) {
@@ -70,6 +72,10 @@ class Loja {
       vrtaxaing: (json['vrtaxaing'] ?? 5).toDouble(),
       dsestiloloja: json['dsestiloloja']?.toString(),
       aberto24x7: _normalizarSimNao(json['aberto24x7']),
+      idvalidadeprod: _normalizarSimNao(
+        json['idvalidadeprod'],
+        valorPadrao: 'S',
+      ),
     );
   }
 
@@ -96,6 +102,7 @@ class Loja {
       'vrtaxaing': vrtaxaing,
       'dsestiloloja': dsestiloloja,
       'aberto24x7': aberto24x7,
+      'idvalidadeprod': idvalidadeprod,
     };
   }
 
@@ -121,6 +128,7 @@ class Loja {
     double? vrtaxaing,
     String? dsestiloloja,
     String? aberto24x7,
+    String? idvalidadeprod,
   }) {
     return Loja(
       lojaId: lojaId ?? this.lojaId,
@@ -144,6 +152,7 @@ class Loja {
       vrtaxaing: vrtaxaing ?? this.vrtaxaing,
       dsestiloloja: dsestiloloja ?? this.dsestiloloja,
       aberto24x7: aberto24x7 ?? this.aberto24x7,
+      idvalidadeprod: idvalidadeprod ?? this.idvalidadeprod,
     );
   }
 
@@ -158,8 +167,10 @@ class Loja {
     return int.tryParse(value.toString());
   }
 
-  static String _normalizarSimNao(dynamic value) {
-    return value?.toString().trim().toUpperCase() == 'S' ? 'S' : 'N';
+  static String _normalizarSimNao(dynamic value, {String valorPadrao = 'N'}) {
+    final texto = value?.toString().trim().toUpperCase() ?? '';
+    if (texto != 'S' && texto != 'N') return valorPadrao;
+    return texto;
   }
 
   @override
@@ -186,7 +197,8 @@ class Loja {
             other.vrtaxaprod == vrtaxaprod &&
             other.vrtaxaing == vrtaxaing &&
             other.dsestiloloja == dsestiloloja &&
-            other.aberto24x7 == aberto24x7;
+            other.aberto24x7 == aberto24x7 &&
+            other.idvalidadeprod == idvalidadeprod;
   }
 
   @override
@@ -212,5 +224,6 @@ class Loja {
     vrtaxaing,
     dsestiloloja,
     aberto24x7,
+    idvalidadeprod,
   ]);
 }

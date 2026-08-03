@@ -56,6 +56,7 @@ class LojaRepository {
     String? endereco,
     String? instagram,
     String aberto24x7 = 'N',
+    String idvalidadeprod = 'S',
     XFile? imagem,
     XFile? imagemFachada,
   }) async {
@@ -79,6 +80,7 @@ class LojaRepository {
     request.fields['endloja'] = endereco ?? '';
     request.fields['dsinstaloja'] = instagram ?? '';
     request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
+    request.fields['idvalidadeprod'] = idvalidadeprod == 'N' ? 'N' : 'S';
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -131,6 +133,7 @@ class LojaRepository {
     String? endereco,
     String? instagram,
     String aberto24x7 = 'N',
+    String idvalidadeprod = 'S',
     XFile? imagem,
     XFile? imagemFachada,
   }) async {
@@ -154,6 +157,7 @@ class LojaRepository {
     request.fields['endloja'] = endereco ?? '';
     request.fields['dsinstaloja'] = instagram ?? '';
     request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
+    request.fields['idvalidadeprod'] = idvalidadeprod == 'N' ? 'N' : 'S';
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -196,6 +200,7 @@ class LojaRepository {
       endereco: loja.endloja,
       instagram: loja.dsinstaloja,
       aberto24x7: aberto24x7,
+      idvalidadeprod: loja.idvalidadeprod,
     );
   }
 

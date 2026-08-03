@@ -41,6 +41,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   String _nomeOrganizacao = 'Organização não identificada';
   int? _estadoId;
   int? _cidadeId;
+  String _idValidadeProd = 'S';
 
   XFile? _imagemSelecionada;
   Uint8List? _imagemBytes;
@@ -48,6 +49,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   Uint8List? _imagemFachadaBytes;
 
   bool get editando => widget.loja != null;
+  bool get _controlaValidadeProduto => _idValidadeProd == 'S';
 
   String _somenteNumeros(String valor) {
     return valor.replaceAll(RegExp(r'[^0-9]'), '');
@@ -143,11 +145,13 @@ class _LojaFormPageState extends State<LojaFormPage> {
       }
     }
 
-    if (diasValidade == null) {
-      return 'Informe a quantidade de dias de validade.';
-    }
-    if (diasValidade <= 0) {
-      return 'Os dias de validade devem ser maiores que zero.';
+    if (_controlaValidadeProduto) {
+      if (diasValidade == null) {
+        return 'Informe a quantidade de dias de validade.';
+      }
+      if (diasValidade <= 0) {
+        return 'Os dias de validade devem ser maiores que zero.';
+      }
     }
 
     return null;
@@ -176,6 +180,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _cidadeId = widget.loja!.cidadeId;
       _enderecoController.text = widget.loja!.endloja ?? '';
       _instagramController.text = widget.loja!.dsinstaloja ?? '';
+      _idValidadeProd = widget.loja!.idvalidadeprod;
     } else {
       _diasValidadeController.text = '90';
     }
@@ -281,7 +286,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
       }
 
       final telefoneSemMascara = _somenteNumeros(_telefoneController.text);
-      final diasValidade = int.parse(_diasValidadeController.text.trim());
+      final diasValidade = _controlaValidadeProduto
+          ? int.parse(_diasValidadeController.text.trim())
+          : widget.loja?.nrdiavalidade ?? 90;
 
       if (editando) {
         await _repository.atualizar(
@@ -297,6 +304,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           endereco: _enderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
           aberto24x7: widget.loja!.aberto24x7,
+          idvalidadeprod: _idValidadeProd,
           imagem: _imagemSelecionada,
           imagemFachada: _imagemFachadaSelecionada,
         );
@@ -317,6 +325,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           diasValidade: diasValidade,
           endereco: _enderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
+          idvalidadeprod: _idValidadeProd,
           imagem: _imagemSelecionada,
           imagemFachada: _imagemFachadaSelecionada,
         );
@@ -335,6 +344,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           dsbairroloja: _bairroController.text.trim(),
           nrtelloja: telefoneSemMascara,
           nrdiavalidade: diasValidade,
+          idvalidadeprod: _idValidadeProd,
           endloja: _enderecoController.text.trim(),
           dsinstaloja: _instagramController.text.trim(),
         );
@@ -832,8 +842,49 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   },
                                 ),
                                 const SizedBox(height: 14),
+                                SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  value: _controlaValidadeProduto,
+                                  onChanged: _salvando
+                                      ? null
+                                      : (value) {
+                                          setState(() {
+                                            _idValidadeProd = value ? 'S' : 'N';
+                                            if (value &&
+                                                _diasValidadeController.text
+                                                    .trim()
+                                                    .isEmpty) {
+                                              _diasValidadeController.text =
+                                                  '90';
+                                            }
+                                          });
+                                        },
+                                  activeTrackColor: ClubbarColors.ambar,
+                                  title: const Text(
+                                    'Controlar validade dos tickets de produtos',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    _controlaValidadeProduto
+                                        ? 'Os produtos na carteira expiram após o prazo informado.'
+                                        : 'Os tickets de produtos não terão data de expiração. Ingressos não são afetados.',
+                                  ),
+                                  secondary: Icon(
+                                    _controlaValidadeProduto
+                                        ? Icons.event_available_outlined
+                                        : Icons.event_busy_outlined,
+                                    color: _controlaValidadeProduto
+                                        ? ClubbarColors.ambarEscuro
+                                        : ClubbarColors.textoSecundario,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
                                 TextFormField(
                                   controller: _diasValidadeController,
+                                  enabled:
+                                      _controlaValidadeProduto && !_salvando,
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.digitsOnly,
@@ -843,10 +894,12 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     label: 'Dias de validade',
                                     icone: Icons.event_available_outlined,
                                     hint: '90',
-                                    helperText:
-                                        'Prazo padrão de validade dos itens.',
+                                    helperText: _controlaValidadeProduto
+                                        ? 'Prazo de validade dos tickets de produtos.'
+                                        : 'Sem controle de validade para produtos.',
                                   ),
                                   validator: (value) {
+                                    if (!_controlaValidadeProduto) return null;
                                     final texto = value?.trim() ?? '';
                                     final numero = int.tryParse(texto);
                                     if (texto.isEmpty) {

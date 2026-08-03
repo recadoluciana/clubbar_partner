@@ -689,6 +689,15 @@ class _LojaListPageState extends State<LojaListPage> {
                         icone: Icons.phone_outlined,
                         texto: telefone,
                       ),
+
+                    _linhaInformacao(
+                      icone: loja.idvalidadeprod == 'S'
+                          ? Icons.event_available_outlined
+                          : Icons.event_busy_outlined,
+                      texto: loja.idvalidadeprod == 'S'
+                          ? 'Validade dos produtos: ${loja.nrdiavalidade ?? 90} dias'
+                          : 'Produtos sem prazo de validade',
+                    ),
                   ],
                 ),
               ),
