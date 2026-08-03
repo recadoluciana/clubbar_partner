@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -228,8 +227,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
       if (arquivo == null) return;
 
-      Uint8List? bytes;
-      if (kIsWeb) bytes = await arquivo.readAsBytes();
+      final bytes = await arquivo.readAsBytes();
       if (!mounted) return;
 
       setState(() {
@@ -251,8 +249,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
       if (arquivo == null) return;
 
-      Uint8List? bytes;
-      if (kIsWeb) bytes = await arquivo.readAsBytes();
+      final bytes = await arquivo.readAsBytes();
       if (!mounted) return;
 
       setState(() {
@@ -510,24 +507,11 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                             borderRadius: BorderRadius.circular(
                                               16,
                                             ),
-                                            child: kIsWeb
-                                                ? Image.memory(
-                                                    _imagemBytes!,
-                                                    fit: BoxFit.cover,
-                                                    width: double.infinity,
-                                                  )
-                                                : Image.network(
-                                                    _imagemSelecionada!.path,
-                                                    fit: BoxFit.cover,
-                                                    width: double.infinity,
-                                                    errorBuilder: (_, _, _) =>
-                                                        const Center(
-                                                          child: Icon(
-                                                            Icons.store,
-                                                            size: 44,
-                                                          ),
-                                                        ),
-                                                  ),
+                                            child: Image.memory(
+                                              _imagemBytes!,
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                            ),
                                           )
                                         : editando && imagemAtualUrl.isNotEmpty
                                         ? ClipRRect(
@@ -585,26 +569,11 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                             borderRadius: BorderRadius.circular(
                                               16,
                                             ),
-                                            child: kIsWeb
-                                                ? Image.memory(
-                                                    _imagemFachadaBytes!,
-                                                    fit: BoxFit.cover,
-                                                    width: double.infinity,
-                                                  )
-                                                : Image.network(
-                                                    _imagemFachadaSelecionada!
-                                                        .path,
-                                                    fit: BoxFit.cover,
-                                                    width: double.infinity,
-                                                    errorBuilder: (_, _, _) =>
-                                                        const Center(
-                                                          child: Icon(
-                                                            Icons
-                                                                .storefront_outlined,
-                                                            size: 44,
-                                                          ),
-                                                        ),
-                                                  ),
+                                            child: Image.memory(
+                                              _imagemFachadaBytes!,
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                            ),
                                           )
                                         : editando && fachadaAtualUrl.isNotEmpty
                                         ? ClipRRect(
