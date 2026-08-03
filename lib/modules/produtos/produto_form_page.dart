@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -7,6 +8,7 @@ import '../../core/config/api_config.dart';
 import '../../core/repositories/categoria_repository.dart';
 import '../../core/repositories/produto_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
@@ -69,14 +71,14 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     if (produto != null) {
       _nomeController.text = (produto['nmproduto'] ?? '').toString();
       _descricaoController.text = (produto['dsproduto'] ?? '').toString();
-      _precoController.text = (produto['vrprecoprod'] ?? '').toString();
+      _precoController.text = _formatarNumeroTela(produto['vrprecoprod']);
       _categoriaIdSelecionada = int.tryParse(
         (produto['categoria_id'] ?? '').toString(),
       );
       _statusSelecionado = (produto['sitproduto'] ?? 'ATIVO').toString();
       _tipoDescontoSelecionado = (produto['tipodesconto'] ?? 'NENHUM')
           .toString();
-      _vrDescontoController.text = (produto['vrdesconto'] ?? '0').toString();
+      _vrDescontoController.text = _formatarNumeroTela(produto['vrdesconto']);
       _dtIniDescontoController.text = _formatarDataTela(
         produto['dtinidesconto'],
       );
@@ -84,7 +86,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
         produto['dtfimdesconto'],
       );
     } else {
-      _vrDescontoController.text = '0';
+      _vrDescontoController.text = '0,00';
     }
 
     _carregarCategorias();
@@ -133,6 +135,13 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     return NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(valor);
   }
 
+  String _formatarNumeroTela(dynamic valor) {
+    final numero = double.tryParse(
+      (valor ?? '0').toString().replaceAll(',', '.'),
+    );
+    return NumberFormat('0.00', 'pt_BR').format(numero ?? 0);
+  }
+
   double get _precoOriginal {
     return _numero(_precoController.text);
   }
@@ -167,7 +176,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
 
     try {
       final data = DateTime.parse(texto);
-      return DateFormat('dd/MM/yyyy HH:mm').format(data);
+      return DateFormat('dd/MM/yyyy').format(data);
     } catch (_) {
       return texto;
     }
@@ -179,42 +188,37 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     if (valor.isEmpty) return null;
 
     try {
-      final data = DateFormat('dd/MM/yyyy HH:mm').parseStrict(valor);
+      final data = DateFormat('dd/MM/yyyy').parseStrict(valor);
 
-      return DateFormat('yyyy-MM-dd HH:mm:ss').format(data);
+      return DateFormat('yyyy-MM-dd').format(data);
     } catch (_) {
       return null;
     }
   }
 
-  Future<void> _selecionarDataHora(TextEditingController controller) async {
+  Future<void> _selecionarData(TextEditingController controller) async {
     final agora = DateTime.now();
+
+    DateTime dataInicial = agora;
+    final textoAtual = controller.text.trim();
+    if (textoAtual.isNotEmpty) {
+      try {
+        dataInicial = DateFormat('dd/MM/yyyy').parseStrict(textoAtual);
+      } catch (_) {}
+    }
 
     final data = await showDatePicker(
       context: context,
-      initialDate: agora,
+      initialDate: dataInicial,
       firstDate: DateTime(2024),
       lastDate: DateTime(2100),
+      helpText: 'SELECIONE A DATA',
+      cancelText: 'CANCELAR',
+      confirmText: 'CONFIRMAR',
     );
 
     if (data == null || !mounted) return;
-
-    final hora = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(agora),
-    );
-
-    if (hora == null) return;
-
-    final dataHora = DateTime(
-      data.year,
-      data.month,
-      data.day,
-      hora.hour,
-      hora.minute,
-    );
-
-    controller.text = DateFormat('dd/MM/yyyy HH:mm').format(dataHora);
+    controller.text = DateFormat('dd/MM/yyyy').format(data);
   }
 
   Future<void> _carregarCategorias() async {
@@ -375,21 +379,21 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
 
       if (_dtIniDescontoController.text.trim().isNotEmpty &&
           dtIniDesconto == null) {
-        throw Exception('Data inicial inválida. Use dd/MM/yyyy HH:mm.');
+        throw Exception('Data inicial inválida. Use dd/MM/yyyy.');
       }
 
       if (_dtFimDescontoController.text.trim().isNotEmpty &&
           dtFimDesconto == null) {
-        throw Exception('Data final inválida. Use dd/MM/yyyy HH:mm.');
+        throw Exception('Data final inválida. Use dd/MM/yyyy.');
       }
 
       if (_descontoAtivo && dtIniDesconto != null && dtFimDesconto != null) {
-        final inicio = DateFormat('yyyy-MM-dd HH:mm:ss').parse(dtIniDesconto);
+        final inicio = DateFormat('yyyy-MM-dd').parse(dtIniDesconto);
 
-        final fim = DateFormat('yyyy-MM-dd HH:mm:ss').parse(dtFimDesconto);
+        final fim = DateFormat('yyyy-MM-dd').parse(dtFimDesconto);
 
-        if (!fim.isAfter(inicio)) {
-          throw Exception('A data final deve ser posterior à data inicial.');
+        if (fim.isBefore(inicio)) {
+          throw Exception('A data final não pode ser anterior à data inicial.');
         }
       }
 
@@ -584,6 +588,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           TextFormField(
             controller: _precoController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: const [DecimalInputFormatter()],
             decoration: _decoracaoCampo(
               label: 'Preço',
               icone: Icons.attach_money_rounded,
@@ -700,7 +705,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
                       _tipoDescontoSelecionado = value;
 
                       if (value == 'NENHUM') {
-                        _vrDescontoController.text = '0';
+                        _vrDescontoController.text = '0,00';
                         _dtIniDescontoController.clear();
                         _dtFimDescontoController.clear();
                       }
@@ -712,6 +717,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             controller: _vrDescontoController,
             enabled: _descontoAtivo,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: const [DecimalInputFormatter()],
             decoration: _decoracaoCampo(
               label: _tipoDescontoSelecionado == 'PERCENTUAL'
                   ? 'Desconto (%)'
@@ -741,10 +747,10 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             decoration: _decoracaoCampo(
               label: 'Início da promoção',
               icone: Icons.calendar_today_outlined,
-              suffixIcon: const Icon(Icons.schedule_rounded),
+              suffixIcon: const Icon(Icons.date_range_rounded),
             ),
             onTap: _descontoAtivo
-                ? () => _selecionarDataHora(_dtIniDescontoController)
+                ? () => _selecionarData(_dtIniDescontoController)
                 : null,
           ),
           const SizedBox(height: 14),
@@ -755,10 +761,10 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             decoration: _decoracaoCampo(
               label: 'Fim da promoção',
               icone: Icons.event_available_outlined,
-              suffixIcon: const Icon(Icons.schedule_rounded),
+              suffixIcon: const Icon(Icons.date_range_rounded),
             ),
             onTap: _descontoAtivo
-                ? () => _selecionarDataHora(_dtFimDescontoController)
+                ? () => _selecionarData(_dtFimDescontoController)
                 : null,
           ),
         ],
@@ -768,7 +774,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
 
   Widget _cardResumo() {
     final descontoTexto = _tipoDescontoSelecionado == 'PERCENTUAL'
-        ? '${_valorDesconto.toStringAsFixed(2)}%'
+        ? '${NumberFormat('0.00', 'pt_BR').format(_valorDesconto)}%'
         : _moeda(_valorDesconto);
 
     return ClubbarCard(

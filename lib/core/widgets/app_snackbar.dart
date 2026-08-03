@@ -51,18 +51,29 @@ class AppSnackBar {
   }) {
     if (!context.mounted) return;
 
+    final larguraTela = MediaQuery.sizeOf(context).width;
+    final celular = larguraTela < 600;
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          behavior: SnackBarBehavior.floating,
+          behavior: celular
+              ? SnackBarBehavior.fixed
+              : SnackBarBehavior.floating,
+          width: celular ? null : 520,
           backgroundColor: cor,
-          elevation: 4,
-          margin: const EdgeInsets.all(16),
+          elevation: 8,
           duration: const Duration(seconds: 4),
+          dismissDirection: DismissDirection.down,
+          showCloseIcon: true,
+          closeIconColor: corTexto,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: celular
+                ? const BorderRadius.vertical(top: Radius.circular(18))
+                : BorderRadius.circular(16),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
           content: Row(
             children: [
               Icon(icone, color: corTexto, size: 24),
@@ -72,8 +83,9 @@ class AppSnackBar {
                   mensagem,
                   style: TextStyle(
                     color: corTexto,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),

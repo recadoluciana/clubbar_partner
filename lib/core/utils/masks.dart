@@ -2,6 +2,35 @@
 
 import 'package:flutter/services.dart';
 
+class DecimalInputFormatter extends TextInputFormatter {
+  final int casasDecimais;
+
+  const DecimalInputFormatter({this.casasDecimais = 2});
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var texto = newValue.text
+        .replaceAll('.', ',')
+        .replaceAll(RegExp(r'[^0-9,]'), '');
+
+    final primeiraVirgula = texto.indexOf(',');
+    if (primeiraVirgula >= 0) {
+      final inteiro = texto.substring(0, primeiraVirgula);
+      final decimal = texto.substring(primeiraVirgula + 1).replaceAll(',', '');
+      texto =
+          '$inteiro,${decimal.substring(0, decimal.length.clamp(0, casasDecimais))}';
+    }
+
+    return TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
+    );
+  }
+}
+
 class TelefoneInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(

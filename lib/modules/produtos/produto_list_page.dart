@@ -407,7 +407,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
 
     final confirmou = await _confirmarExclusao(produto);
 
-    if (!confirmou) return;
+    if (!confirmou || !mounted) return;
 
     final produtoId = int.tryParse((produto['produto_id'] ?? '').toString());
 
@@ -531,46 +531,44 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     );
   }
 
-  Widget _acoesTopo() {
-    return Row(
-      children: [
-        Expanded(
-          child: SizedBox(
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: _lojaIdSelecionada == null ? null : _abrirCadastro,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text(
-                'Novo produto',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ClubbarColors.ambar,
-                foregroundColor: ClubbarColors.preto,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
+  Widget _botaoCircularHeader({
+    required String tooltip,
+    required IconData icone,
+    required VoidCallback? onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: SizedBox.square(
+        dimension: 40,
+        child: IconButton(
+          onPressed: onPressed,
+          icon: Icon(icone, size: 22),
+          color: ClubbarColors.preto,
+          disabledColor: ClubbarColors.textoSecundario,
+          style: IconButton.styleFrom(
+            backgroundColor: ClubbarColors.ambar,
+            disabledBackgroundColor: ClubbarColors.borda,
+            shape: const CircleBorder(),
           ),
         ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 50,
-          height: 50,
-          child: OutlinedButton(
-            onPressed: _carregando ? null : _carregarProdutos,
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.zero,
-              foregroundColor: ClubbarColors.textoPrincipal,
-              side: const BorderSide(color: ClubbarColors.borda),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-            ),
-            child: const Icon(Icons.refresh_rounded),
-          ),
+      ),
+    );
+  }
+
+  Widget _acoesHeader() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _botaoCircularHeader(
+          tooltip: 'Atualizar',
+          icone: Icons.refresh_rounded,
+          onPressed: _carregando ? null : _carregarProdutos,
+        ),
+        const SizedBox(width: 8),
+        _botaoCircularHeader(
+          tooltip: 'Adicionar produto',
+          icone: Icons.add_rounded,
+          onPressed: _lojaIdSelecionada == null ? null : _abrirCadastro,
         ),
       ],
     );
@@ -961,6 +959,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                   ? 'Selecione uma loja'
                   : '$nomeLoja • ${_produtos.length} '
                         '${_produtos.length == 1 ? 'produto' : 'produtos'}',
+              trailing: _acoesHeader(),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
@@ -969,8 +968,6 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                   _campoLoja(),
                   const SizedBox(height: 12),
                   _campoBusca(),
-                  const SizedBox(height: 12),
-                  _acoesTopo(),
                 ],
               ),
             ),

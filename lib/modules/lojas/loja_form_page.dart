@@ -132,14 +132,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
     return null;
   }
 
-  void _mostrarMensagem(String mensagem, {bool erro = false}) {
-    if (erro) {
-      AppSnackBar.erro(context, mensagem);
-    } else {
-      AppSnackBar.sucesso(context, mensagem);
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -281,13 +273,11 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
   Future<void> _salvar() async {
     if (_salvando) return;
-
-    final formularioValido = _formKey.currentState?.validate() ?? false;
-    if (!formularioValido) return;
+    FocusScope.of(context).unfocus();
 
     final erro = _validarCamposLoja();
     if (erro != null) {
-      _mostrarMensagem(erro, erro: true);
+      AppSnackBar.erro(context, erro);
       return;
     }
 
@@ -326,7 +316,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
         );
 
         if (!mounted) return;
-        _mostrarMensagem('Loja atualizada com sucesso.');
+        AppSnackBar.sucesso(context, 'Loja atualizada com sucesso.');
         Navigator.of(context).pop(true);
       } else {
         final nomeLoja = _nomeController.text.trim();
@@ -393,7 +383,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      _mostrarMensagem('Erro ao salvar: $e', erro: true);
+      AppSnackBar.erro(context, 'Erro ao salvar: $e');
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
