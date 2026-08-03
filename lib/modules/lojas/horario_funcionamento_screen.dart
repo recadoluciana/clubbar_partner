@@ -113,10 +113,13 @@ class _HorarioFuncionamentoScreenState
       return horario;
     }
 
+    final fechamentoEmMinutos = _minutos(fechamento);
     final fechaDiaSeguinte =
-        !horario.fechamentoMeiaNoite &&
-        _minutos(fechamento) < _minutos(abertura);
-    return horario.copyWith(fechaDiaSeguinte: fechaDiaSeguinte);
+        horario.fechamentoMeiaNoite || fechamentoEmMinutos < _minutos(abertura);
+    return horario.copyWith(
+      fechaDiaSeguinte: fechaDiaSeguinte,
+      fechamentoMeiaNoite: fechaDiaSeguinte && fechamentoEmMinutos == 0,
+    );
   }
 
   void _alterarAberto(int index, bool aberto) {
@@ -176,7 +179,7 @@ class _HorarioFuncionamentoScreenState
       atual.copyWith(
         horaFechamento: const TimeOfDay(hour: 0, minute: 0),
         fechamentoMeiaNoite: true,
-        fechaDiaSeguinte: false,
+        fechaDiaSeguinte: true,
       ),
     );
   }
@@ -464,9 +467,10 @@ class _HorarioFuncionamentoScreenState
                       index,
                       horario.copyWith(
                         fechaDiaSeguinte: value,
-                        fechamentoMeiaNoite: value
-                            ? false
-                            : horario.fechamentoMeiaNoite,
+                        fechamentoMeiaNoite:
+                            value &&
+                            horario.horaFechamento != null &&
+                            _minutos(horario.horaFechamento!) == 0,
                       ),
                     ),
               contentPadding: EdgeInsets.zero,

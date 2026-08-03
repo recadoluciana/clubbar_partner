@@ -54,6 +54,8 @@ class LojaRepository {
     String? telefone,
     int? diasValidade,
     String? endereco,
+    required String cep,
+    required String numeroEndereco,
     String? instagram,
     String aberto24x7 = 'N',
     String idvalidadeprod = 'S',
@@ -78,6 +80,8 @@ class LojaRepository {
     request.fields['nrtelloja'] = telefone ?? '';
 
     request.fields['endloja'] = endereco ?? '';
+    request.fields['nrceploja'] = cep;
+    request.fields['nrendeloja'] = numeroEndereco;
     request.fields['dsinstaloja'] = instagram ?? '';
     request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
     request.fields['idvalidadeprod'] = idvalidadeprod == 'N' ? 'N' : 'S';
@@ -131,6 +135,8 @@ class LojaRepository {
     String? telefone,
     int? diasValidade,
     String? endereco,
+    required String cep,
+    required String numeroEndereco,
     String? instagram,
     String aberto24x7 = 'N',
     String idvalidadeprod = 'S',
@@ -155,6 +161,8 @@ class LojaRepository {
     request.fields['nrtelloja'] = telefone ?? '';
 
     request.fields['endloja'] = endereco ?? '';
+    request.fields['nrceploja'] = cep;
+    request.fields['nrendeloja'] = numeroEndereco;
     request.fields['dsinstaloja'] = instagram ?? '';
     request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
     request.fields['idvalidadeprod'] = idvalidadeprod == 'N' ? 'N' : 'S';
@@ -198,6 +206,8 @@ class LojaRepository {
       telefone: loja.nrtelloja,
       diasValidade: loja.nrdiavalidade,
       endereco: loja.endloja,
+      cep: loja.nrceploja,
+      numeroEndereco: loja.nrendeloja,
       instagram: loja.dsinstaloja,
       aberto24x7: aberto24x7,
       idvalidadeprod: loja.idvalidadeprod,

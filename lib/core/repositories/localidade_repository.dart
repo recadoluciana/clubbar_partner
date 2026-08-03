@@ -1,10 +1,33 @@
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
+
 import '../../models/cidade.dart';
 import '../../models/estado.dart';
 import '../services/api_service.dart';
 
 class LocalidadeRepository {
+  Future<EnderecoCep> buscarEnderecoPorCep(String cep) async {
+    final numeros = cep.replaceAll(RegExp(r'[^0-9]'), '');
+    if (numeros.length != 8) {
+      throw Exception('Informe um CEP válido com 8 dígitos.');
+    }
+
+    final response = await http.get(
+      Uri.parse('https://viacep.com.br/ws/$numeros/json/'),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Não foi possível consultar o CEP.');
+    }
+
+    final data = jsonDecode(response.body);
+    if (data is! Map || data['erro'] == true) {
+      throw Exception('CEP não encontrado.');
+    }
+
+    return EnderecoCep.fromJson(Map<String, dynamic>.from(data));
+  }
+
   Future<List<Estado>> listarEstados() async {
     final response = await ApiService.get('/localidades/estados');
 
@@ -95,5 +118,35 @@ class LocalidadeRepository {
     }
 
     return texto;
+  }
+}
+
+class EnderecoCep {
+  final String cep;
+  final String logradouro;
+  final String bairro;
+  final String cidade;
+  final String uf;
+  final int? codigoIbgeCidade;
+
+  const EnderecoCep({
+    required this.cep,
+    required this.logradouro,
+    required this.bairro,
+    required this.cidade,
+    required this.uf,
+    this.codigoIbgeCidade,
+  });
+
+  factory EnderecoCep.fromJson(Map<String, dynamic> json) {
+    final ibge = json['ibge']?.toString().trim() ?? '';
+    return EnderecoCep(
+      cep: json['cep']?.toString().trim() ?? '',
+      logradouro: json['logradouro']?.toString().trim() ?? '',
+      bairro: json['bairro']?.toString().trim() ?? '',
+      cidade: json['localidade']?.toString().trim() ?? '',
+      uf: json['uf']?.toString().trim().toUpperCase() ?? '',
+      codigoIbgeCidade: int.tryParse(ibge),
+    );
   }
 }

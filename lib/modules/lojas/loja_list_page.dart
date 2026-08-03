@@ -612,6 +612,8 @@ class _LojaListPageState extends State<LojaListPage> {
 
   Widget _cardLoja(Loja loja) {
     final endereco = (loja.endloja ?? '').trim();
+    final numeroEndereco = loja.nrendeloja.trim();
+    final cep = Formatters.cep(loja.nrceploja.trim());
     final bairro = (loja.dsbairroloja ?? '').trim();
     final telefone = Formatters.telefone((loja.nrtelloja ?? '').trim());
     final cidade = (loja.nmcidade ?? '').trim();
@@ -623,10 +625,16 @@ class _LojaListPageState extends State<LojaListPage> {
       siglaEstado,
     ].where((valor) => valor.isNotEmpty).join(' - ');
 
-    final enderecoCompleto = [
+    final logradouroComNumero = [
       endereco,
+      numeroEndereco,
+    ].where((valor) => valor.isNotEmpty).join(', ');
+
+    final enderecoCompleto = [
+      logradouroComNumero,
       bairro,
       localidade,
+      if (cep.isNotEmpty) 'CEP $cep',
     ].where((valor) => valor.isNotEmpty).join(' • ');
 
     return ClubbarCard(

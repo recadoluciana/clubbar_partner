@@ -16,6 +16,8 @@ class Loja {
   final String? urlfachadaloja;
 
   final String? endloja;
+  final String nrceploja;
+  final String nrendeloja;
   final String? dsinstaloja;
 
   final double vrtaxaprod;
@@ -41,6 +43,8 @@ class Loja {
     this.urllogoloja,
     this.urlfachadaloja,
     this.endloja,
+    this.nrceploja = '',
+    this.nrendeloja = '',
     this.dsinstaloja,
     this.vrtaxaprod = 5.0,
     this.vrtaxaing = 5.0,
@@ -67,6 +71,8 @@ class Loja {
       urllogoloja: json['urllogoloja']?.toString(),
       urlfachadaloja: json['urlfachadaloja']?.toString(),
       endloja: json['endloja']?.toString(),
+      nrceploja: json['nrceploja']?.toString() ?? '',
+      nrendeloja: json['nrendeloja']?.toString() ?? '',
       dsinstaloja: json['dsinstaloja']?.toString(),
       vrtaxaprod: (json['vrtaxaprod'] ?? 5).toDouble(),
       vrtaxaing: (json['vrtaxaing'] ?? 5).toDouble(),
@@ -97,6 +103,8 @@ class Loja {
       'urllogoloja': urllogoloja,
       'urlfachadaloja': urlfachadaloja,
       'endloja': endloja,
+      'nrceploja': nrceploja,
+      'nrendeloja': nrendeloja,
       'dsinstaloja': dsinstaloja,
       'vrtaxaprod': vrtaxaprod,
       'vrtaxaing': vrtaxaing,
@@ -123,6 +131,8 @@ class Loja {
     String? urllogoloja,
     String? urlfachadaloja,
     String? endloja,
+    String? nrceploja,
+    String? nrendeloja,
     String? dsinstaloja,
     double? vrtaxaprod,
     double? vrtaxaing,
@@ -147,6 +157,8 @@ class Loja {
       urllogoloja: urllogoloja ?? this.urllogoloja,
       urlfachadaloja: urlfachadaloja ?? this.urlfachadaloja,
       endloja: endloja ?? this.endloja,
+      nrceploja: nrceploja ?? this.nrceploja,
+      nrendeloja: nrendeloja ?? this.nrendeloja,
       dsinstaloja: dsinstaloja ?? this.dsinstaloja,
       vrtaxaprod: vrtaxaprod ?? this.vrtaxaprod,
       vrtaxaing: vrtaxaing ?? this.vrtaxaing,
@@ -193,6 +205,8 @@ class Loja {
             other.urllogoloja == urllogoloja &&
             other.urlfachadaloja == urlfachadaloja &&
             other.endloja == endloja &&
+            other.nrceploja == nrceploja &&
+            other.nrendeloja == nrendeloja &&
             other.dsinstaloja == dsinstaloja &&
             other.vrtaxaprod == vrtaxaprod &&
             other.vrtaxaing == vrtaxaing &&
@@ -219,6 +233,8 @@ class Loja {
     urllogoloja,
     urlfachadaloja,
     endloja,
+    nrceploja,
+    nrendeloja,
     dsinstaloja,
     vrtaxaprod,
     vrtaxaing,

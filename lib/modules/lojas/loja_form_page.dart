@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/repositories/localidade_repository.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/masks.dart' show CepInputFormatter;
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
@@ -25,6 +27,7 @@ class LojaFormPage extends StatefulWidget {
 class _LojaFormPageState extends State<LojaFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _repository = LojaRepository();
+  final _localidadeRepository = LocalidadeRepository();
   final _picker = ImagePicker();
 
   final TextEditingController _nomeController = TextEditingController();
@@ -33,10 +36,15 @@ class _LojaFormPageState extends State<LojaFormPage> {
   final TextEditingController _telefoneController = TextEditingController();
   final TextEditingController _diasValidadeController = TextEditingController();
   final TextEditingController _enderecoController = TextEditingController();
+  final TextEditingController _cepController = TextEditingController();
+  final TextEditingController _numeroEnderecoController =
+      TextEditingController();
   final TextEditingController _instagramController = TextEditingController();
 
   bool _salvando = false;
   bool _carregandoNomeOrganizacao = true;
+  bool _consultandoCep = false;
+  String? _ultimoCepConsultado;
   String _nomeOrganizacao = 'Organização não identificada';
   int? _estadoId;
   int? _cidadeId;
@@ -96,6 +104,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
     final estiloLoja = _estiloLojaController.text.trim();
     final bairro = _bairroController.text.trim();
     final endereco = _enderecoController.text.trim();
+    final cep = _somenteNumeros(_cepController.text);
+    final numeroEndereco = _numeroEnderecoController.text.trim();
     final instagram = _instagramController.text.trim();
     final telefone = _somenteNumeros(_telefoneController.text);
     final diasValidade = int.tryParse(_diasValidadeController.text.trim());
@@ -121,6 +131,15 @@ class _LojaFormPageState extends State<LojaFormPage> {
     }
     if (endereco.length > 255) {
       return 'O endereço pode ter no máximo 255 caracteres.';
+    }
+    if (cep.isEmpty) {
+      return 'Informe o CEP da loja.';
+    }
+    if (cep.length != 8) {
+      return 'Informe um CEP válido com 8 dígitos.';
+    }
+    if (numeroEndereco.isEmpty) {
+      return 'Informe o número do endereço ou S/N.';
     }
     if (instagram.length > 255) {
       return 'O Instagram pode ter no máximo 255 caracteres.';
@@ -178,6 +197,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _estadoId = widget.loja!.estadoId;
       _cidadeId = widget.loja!.cidadeId;
       _enderecoController.text = widget.loja!.endloja ?? '';
+      _cepController.text = widget.loja!.nrceploja;
+      _numeroEnderecoController.text = widget.loja!.nrendeloja;
       _instagramController.text = widget.loja!.dsinstaloja ?? '';
       _idValidadeProd = widget.loja!.idvalidadeprod;
     } else {
@@ -214,8 +235,73 @@ class _LojaFormPageState extends State<LojaFormPage> {
     _telefoneController.dispose();
     _diasValidadeController.dispose();
     _enderecoController.dispose();
+    _cepController.dispose();
+    _numeroEnderecoController.dispose();
     _instagramController.dispose();
     super.dispose();
+  }
+
+  Future<void> _buscarCep() async {
+    final cep = _somenteNumeros(_cepController.text);
+    if (cep.length != 8 || _consultandoCep || _ultimoCepConsultado == cep) {
+      return;
+    }
+
+    setState(() => _consultandoCep = true);
+
+    try {
+      final endereco = await _localidadeRepository.buscarEnderecoPorCep(cep);
+      final estados = await _localidadeRepository.listarEstados();
+      final estado = estados
+          .where(
+            (item) =>
+                item.sgestado.trim().toUpperCase() == endereco.uf.toUpperCase(),
+          )
+          .firstOrNull;
+      if (estado == null) {
+        throw Exception('O Estado retornado pelo CEP não foi encontrado.');
+      }
+
+      final cidades = await _localidadeRepository.listarCidadesPorEstado(
+        estado.estadoId,
+      );
+      final cidade = cidades
+          .where(
+            (item) =>
+                (endereco.codigoIbgeCidade != null &&
+                    item.cdibgecid == endereco.codigoIbgeCidade) ||
+                item.nmcidade.trim().toLowerCase() ==
+                    endereco.cidade.trim().toLowerCase(),
+          )
+          .firstOrNull;
+      if (cidade == null) {
+        throw Exception('A cidade retornada pelo CEP não foi encontrada.');
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _ultimoCepConsultado = cep;
+        _cepController.text = endereco.cep;
+        if (endereco.logradouro.isNotEmpty) {
+          _enderecoController.text = endereco.logradouro;
+        }
+        if (endereco.bairro.isNotEmpty) {
+          _bairroController.text = endereco.bairro;
+        }
+        _estadoId = estado.estadoId;
+        _cidadeId = cidade.cidadeId;
+      });
+      AppSnackBar.sucesso(context, 'Endereço carregado pelo CEP.');
+    } catch (e) {
+      if (!mounted) return;
+      _ultimoCepConsultado = null;
+      AppSnackBar.erro(
+        context,
+        e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''),
+      );
+    } finally {
+      if (mounted) setState(() => _consultandoCep = false);
+    }
   }
 
   Future<void> _selecionarImagem() async {
@@ -299,6 +385,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
           telefone: telefoneSemMascara,
           diasValidade: diasValidade,
           endereco: _enderecoController.text.trim(),
+          cep: _somenteNumeros(_cepController.text),
+          numeroEndereco: _numeroEnderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
           aberto24x7: widget.loja!.aberto24x7,
           idvalidadeprod: _idValidadeProd,
@@ -321,6 +409,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
           telefone: telefoneSemMascara,
           diasValidade: diasValidade,
           endereco: _enderecoController.text.trim(),
+          cep: _somenteNumeros(_cepController.text),
+          numeroEndereco: _numeroEnderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
           idvalidadeprod: _idValidadeProd,
           imagem: _imagemSelecionada,
@@ -341,6 +431,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
           dsbairroloja: _bairroController.text.trim(),
           nrtelloja: telefoneSemMascara,
           nrdiavalidade: diasValidade,
+          nrceploja: _somenteNumeros(_cepController.text),
+          nrendeloja: _numeroEnderecoController.text.trim(),
           idvalidadeprod: _idValidadeProd,
           endloja: _enderecoController.text.trim(),
           dsinstaloja: _instagramController.text.trim(),
@@ -705,6 +797,53 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   Icons.location_on_outlined,
                                 ),
                                 TextFormField(
+                                  controller: _cepController,
+                                  enabled: !_salvando && !_consultandoCep,
+                                  keyboardType: TextInputType.number,
+                                  textInputAction: TextInputAction.search,
+                                  inputFormatters: [CepInputFormatter()],
+                                  onChanged: (value) {
+                                    final cep = _somenteNumeros(value);
+                                    if (_ultimoCepConsultado != cep) {
+                                      _ultimoCepConsultado = null;
+                                    }
+                                    if (cep.length == 8) _buscarCep();
+                                  },
+                                  onFieldSubmitted: (_) => _buscarCep(),
+                                  decoration: _decoracaoCampo(
+                                    label: 'CEP',
+                                    icone: Icons.location_searching_rounded,
+                                    hint: '00000-000',
+                                    helperText:
+                                        'Preenche endereço, bairro, Estado e Cidade.',
+                                    suffixIcon: _consultandoCep
+                                        ? const Padding(
+                                            padding: EdgeInsets.all(13),
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : IconButton(
+                                            tooltip: 'Consultar CEP',
+                                            onPressed: _buscarCep,
+                                            icon: const Icon(
+                                              Icons.search_rounded,
+                                            ),
+                                          ),
+                                  ),
+                                  validator: (value) {
+                                    final cep = _somenteNumeros(value ?? '');
+                                    if (cep.isEmpty) {
+                                      return 'Informe o CEP da loja.';
+                                    }
+                                    if (cep.length != 8) {
+                                      return 'Informe um CEP válido.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
                                   controller: _enderecoController,
                                   textCapitalization:
                                       TextCapitalization.sentences,
@@ -716,6 +855,27 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     label: 'Endereço da loja',
                                     icone: Icons.home_work_outlined,
                                   ).copyWith(counterText: ''),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _numeroEnderecoController,
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  maxLength: 20,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(20),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Número',
+                                    icone: Icons.pin_outlined,
+                                    hint: 'Ex.: 120 ou S/N',
+                                  ).copyWith(counterText: ''),
+                                  validator: (value) {
+                                    if ((value ?? '').trim().isEmpty) {
+                                      return 'Informe o número ou S/N.';
+                                    }
+                                    return null;
+                                  },
                                 ),
                                 const SizedBox(height: 14),
                                 TextFormField(

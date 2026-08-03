@@ -22,6 +22,16 @@ class LojaHorario {
   });
 
   factory LojaHorario.fromJson(Map<String, dynamic> json) {
+    final valorFechamento =
+        json['horafechamento'] ??
+        json['horafuncionamento'] ??
+        json['hora_fechamento'];
+    final fechaDiaSeguinte = _toBool(
+      json['fechadiaseguinte'] ??
+          json['fechamento_dia_seguinte'] ??
+          json['fecha_dia_seguinte'],
+    );
+
     return LojaHorario(
       lojaHorarioId: _toNullableInt(
         json['lojahorario_id'] ?? json['loja_horario_id'],
@@ -30,21 +40,11 @@ class LojaHorario {
       diaSemana: _toInt(json['diasemana'] ?? json['dia_semana']),
       fechado: _toBool(json['fechado']),
       horaAbertura: _toTimeOfDay(json['horaabertura'] ?? json['hora_abertura']),
-      horaFechamento: _toTimeOfDay(
-        json['horafechamento'] ??
-            json['horafuncionamento'] ??
-            json['hora_fechamento'],
-      ),
-      fechamentoMeiaNoite: _isMeiaNoite24(
-        json['horafechamento'] ??
-            json['horafuncionamento'] ??
-            json['hora_fechamento'],
-      ),
-      fechaDiaSeguinte: _toBool(
-        json['fechadiaseguinte'] ??
-            json['fechamento_dia_seguinte'] ??
-            json['fecha_dia_seguinte'],
-      ),
+      horaFechamento: _toTimeOfDay(valorFechamento),
+      fechamentoMeiaNoite:
+          _isMeiaNoite24(valorFechamento) ||
+          (_isMeiaNoite00(valorFechamento) && fechaDiaSeguinte),
+      fechaDiaSeguinte: fechaDiaSeguinte,
     );
   }
 
@@ -55,12 +55,10 @@ class LojaHorario {
       'diasemana': diaSemana,
       'fechado': fechado,
       'horaabertura': fechado ? null : _formatarHora(horaAbertura),
-      'horafechamento': fechado
-          ? null
-          : fechamentoMeiaNoite
-          ? '24:00'
-          : _formatarHora(horaFechamento),
-      'fechadiaseguinte': fechado ? false : fechaDiaSeguinte,
+      'horafechamento': fechado ? null : _formatarHora(horaFechamento),
+      'fechadiaseguinte': fechado
+          ? false
+          : fechamentoMeiaNoite || fechaDiaSeguinte,
     };
   }
 
@@ -161,6 +159,12 @@ class LojaHorario {
     final partes = value?.toString().trim().split(':') ?? const <String>[];
     if (partes.length < 2) return false;
     return int.tryParse(partes[0]) == 24 && int.tryParse(partes[1]) == 0;
+  }
+
+  static bool _isMeiaNoite00(dynamic value) {
+    final partes = value?.toString().trim().split(':') ?? const <String>[];
+    if (partes.length < 2) return false;
+    return int.tryParse(partes[0]) == 0 && int.tryParse(partes[1]) == 0;
   }
 
   static String? _formatarHora(TimeOfDay? value) {
