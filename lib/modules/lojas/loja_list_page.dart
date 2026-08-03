@@ -209,8 +209,8 @@ class _LojaListPageState extends State<LojaListPage> {
     FocusScope.of(context).unfocus();
   }
 
-  String _montarUrlLogo(Loja loja) {
-    final caminho = (loja.urllogoloja ?? '').trim();
+  String _montarUrlImagem(String? caminhoImagem) {
+    final caminho = (caminhoImagem ?? '').trim();
 
     if (caminho.isEmpty) {
       return '';
@@ -247,7 +247,7 @@ class _LojaListPageState extends State<LojaListPage> {
     if (!_podeAlterarLoja(loja)) {
       AppSnackBar.aviso(
         context,
-        'Você não possui permissão para alterar esta loja.',
+        'A função Editar não é permitida para este usuário/cargo.',
       );
       return;
     }
@@ -265,19 +265,26 @@ class _LojaListPageState extends State<LojaListPage> {
     if (!_podeAlterarLoja(loja)) {
       AppSnackBar.aviso(
         context,
-        'Você não possui permissão para alterar os horários desta loja.',
+        'A função Horários não é permitida para este usuário/cargo.',
       );
       return;
     }
 
-    await Navigator.of(context).push<bool>(
+    final alterado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => HorarioFuncionamentoScreen(
           lojaId: loja.lojaId,
           nomeLoja: loja.nmloja,
+          aberto24x7Inicial: loja.aberto24x7,
+          onSalvarAberto24x7: (valor) =>
+              _repository.atualizarAberto24x7(loja, valor),
         ),
       ),
     );
+
+    if (alterado == true && mounted) {
+      await _carregarLojas();
+    }
   }
 
   Future<bool> _confirmarExclusao(Loja loja) async {
@@ -362,7 +369,7 @@ class _LojaListPageState extends State<LojaListPage> {
     if (!_podeIncluirExcluir) {
       AppSnackBar.aviso(
         context,
-        'Somente administradores podem excluir lojas.',
+        'A função Excluir não é permitida para este usuário/cargo.',
       );
       return;
     }
@@ -397,7 +404,7 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Widget _logoLoja(Loja loja) {
-    final url = _montarUrlLogo(loja);
+    final url = _montarUrlImagem(loja.urllogoloja);
 
     Widget placeholder() {
       return Container(
@@ -426,6 +433,54 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
+  Widget _fachadaLoja(Loja loja) {
+    final url = _montarUrlImagem(loja.urlfachadaloja);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        height: 92,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: ClubbarColors.ambarClaro,
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.storefront_outlined,
+                  color: ClubbarColors.textoSecundario,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 8,
+              bottom: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: ClubbarColors.preto.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Fachada',
+                  style: TextStyle(
+                    color: ClubbarColors.branco,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _chipStatus(Loja loja) {
     final ativa = _lojaAtiva(loja);
 
@@ -446,6 +501,24 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
+  Widget _badgeAberto24Horas() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: ClubbarColors.erro,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Text(
+        'ABERTO 24 HORAS',
+        style: TextStyle(
+          color: ClubbarColors.branco,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
   bool _lojaAtiva(Loja loja) {
     final status = (loja.sitloja ?? 'ATIVA').trim().toUpperCase();
     return status == 'ATIVA' || status == 'ATIVO';
@@ -457,7 +530,7 @@ class _LojaListPageState extends State<LojaListPage> {
     if (!_podeAlterarLoja(loja)) {
       AppSnackBar.aviso(
         context,
-        'Você não possui permissão para alterar esta loja.',
+        'A função Inativar/Reativar não é permitida para este usuário/cargo.',
       );
       return;
     }
@@ -543,8 +616,6 @@ class _LojaListPageState extends State<LojaListPage> {
     final telefone = Formatters.telefone((loja.nrtelloja ?? '').trim());
     final cidade = (loja.nmcidade ?? '').trim();
     final siglaEstado = (loja.sgestado ?? '').trim();
-    final podeAlterar = _podeAlterarLoja(loja);
-    final podeExcluir = _podeIncluirExcluir;
     final alterandoStatus = _alterandoStatusLojaId == loja.lojaId;
 
     final localidade = [
@@ -599,6 +670,14 @@ class _LojaListPageState extends State<LojaListPage> {
                       ],
                     ),
 
+                    if (loja.aberto24x7 == 'S') ...[
+                      const SizedBox(height: 7),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _badgeAberto24Horas(),
+                      ),
+                    ],
+
                     if (enderecoCompleto.isNotEmpty)
                       _linhaInformacao(
                         icone: Icons.location_on_outlined,
@@ -616,79 +695,87 @@ class _LojaListPageState extends State<LojaListPage> {
             ],
           ),
 
-          if (podeAlterar || podeExcluir) ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: ClubbarColors.divisor),
-            const SizedBox(height: 8),
-            Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (podeAlterar)
-                  OutlinedButton.icon(
-                    onPressed: _excluindo || alterandoStatus
-                        ? null
-                        : () => _abrirHorarios(loja),
-                    icon: const Icon(Icons.schedule_rounded, size: 18),
-                    label: const Text('Horários'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: ClubbarColors.ambarEscuro,
-                      side: const BorderSide(color: ClubbarColors.ambar),
-                    ),
-                  ),
-                if (podeAlterar)
-                  OutlinedButton.icon(
-                    onPressed: _excluindo || alterandoStatus
-                        ? null
-                        : () => _abrirEdicao(loja),
-                    icon: const Icon(Icons.edit_rounded, size: 18),
-                    label: const Text('Editar'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: ClubbarColors.textoPrincipal,
-                      side: const BorderSide(color: ClubbarColors.borda),
-                    ),
-                  ),
-                if (podeAlterar)
-                  OutlinedButton.icon(
-                    onPressed: _excluindo || alterandoStatus
-                        ? null
-                        : () => _alterarStatus(loja),
-                    icon: alterandoStatus
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(
-                            _lojaAtiva(loja)
-                                ? Icons.pause_circle_outline_rounded
-                                : Icons.play_circle_outline_rounded,
-                            size: 18,
-                          ),
-                    label: Text(_lojaAtiva(loja) ? 'Inativar' : 'Reativar'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _lojaAtiva(loja)
-                          ? ClubbarColors.aviso
-                          : ClubbarColors.sucesso,
-                    ),
-                  ),
-                if (podeExcluir)
-                  OutlinedButton.icon(
-                    onPressed: _excluindo || alterandoStatus
-                        ? null
-                        : () => _excluirLoja(loja),
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                    label: const Text('Excluir'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: ClubbarColors.erro,
-                      backgroundColor: ClubbarColors.erroClaro,
-                      side: const BorderSide(color: ClubbarColors.erroClaro),
-                    ),
-                  ),
-              ],
-            ),
+          if ((loja.urlfachadaloja ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _fachadaLoja(loja),
           ],
+
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: ClubbarColors.divisor),
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final larguraBotao = (constraints.maxWidth - 8) / 2;
+
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  SizedBox(
+                    width: larguraBotao,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _abrirHorarios(loja),
+                      icon: const Icon(Icons.schedule_rounded, size: 18),
+                      label: const Text('Horários'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ClubbarColors.ambarEscuro,
+                        side: const BorderSide(color: ClubbarColors.ambar),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: larguraBotao,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _abrirEdicao(loja),
+                      icon: const Icon(Icons.edit_rounded, size: 18),
+                      label: const Text('Editar'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ClubbarColors.textoPrincipal,
+                        side: const BorderSide(color: ClubbarColors.borda),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: larguraBotao,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _alterarStatus(loja),
+                      icon: alterandoStatus
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              _lojaAtiva(loja)
+                                  ? Icons.pause_circle_outline_rounded
+                                  : Icons.play_circle_outline_rounded,
+                              size: 18,
+                            ),
+                      label: Text(_lojaAtiva(loja) ? 'Inativar' : 'Reativar'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _lojaAtiva(loja)
+                            ? ClubbarColors.aviso
+                            : ClubbarColors.sucesso,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: larguraBotao,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _excluirLoja(loja),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      label: const Text('Excluir'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ClubbarColors.erro,
+                        backgroundColor: ClubbarColors.erroClaro,
+                        side: const BorderSide(color: ClubbarColors.erroClaro),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
@@ -843,7 +930,7 @@ class _LojaListPageState extends State<LojaListPage> {
                 onPressed: _abrirNovaLoja,
                 icon: const Icon(Icons.add_rounded),
                 label: const Text(
-                  'Cadastrar loja',
+                  'Adicionar loja',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(

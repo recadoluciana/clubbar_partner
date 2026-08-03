@@ -49,13 +49,15 @@ class LojaRepository {
     required int estadoId,
     required int cidadeId,
     required String nome,
+    String? estiloLoja,
     String? bairro,
     String? telefone,
-    String? horario,
     int? diasValidade,
     String? endereco,
     String? instagram,
+    String aberto24x7 = 'N',
     XFile? imagem,
+    XFile? imagemFachada,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas');
 
@@ -70,12 +72,13 @@ class LojaRepository {
     request.fields['estado_id'] = estadoId.toString();
     request.fields['cidade_id'] = cidadeId.toString();
     request.fields['nmloja'] = nome;
+    request.fields['dsestiloloja'] = estiloLoja ?? '';
     request.fields['dsbairroloja'] = bairro ?? '';
     request.fields['nrtelloja'] = telefone ?? '';
-    request.fields['dshorarioloja'] = horario ?? '';
 
     request.fields['endloja'] = endereco ?? '';
     request.fields['dsinstaloja'] = instagram ?? '';
+    request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -83,6 +86,11 @@ class LojaRepository {
 
     if (imagem != null) {
       request.files.add(await _montarArquivoImagem('urllogoloja', imagem));
+    }
+    if (imagemFachada != null) {
+      request.files.add(
+        await _montarArquivoImagem('urlfachadaloja', imagemFachada),
+      );
     }
 
     final response = await request.send();
@@ -116,13 +124,15 @@ class LojaRepository {
     required int estadoId,
     required int cidadeId,
     required String nome,
+    String? estiloLoja,
     String? bairro,
     String? telefone,
-    String? horario,
     int? diasValidade,
     String? endereco,
     String? instagram,
+    String aberto24x7 = 'N',
     XFile? imagem,
+    XFile? imagemFachada,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas/$lojaId');
 
@@ -137,12 +147,13 @@ class LojaRepository {
     request.fields['estado_id'] = estadoId.toString();
     request.fields['cidade_id'] = cidadeId.toString();
     request.fields['nmloja'] = nome;
+    request.fields['dsestiloloja'] = estiloLoja ?? '';
     request.fields['dsbairroloja'] = bairro ?? '';
     request.fields['nrtelloja'] = telefone ?? '';
-    request.fields['dshorarioloja'] = horario ?? '';
 
     request.fields['endloja'] = endereco ?? '';
     request.fields['dsinstaloja'] = instagram ?? '';
+    request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -151,6 +162,11 @@ class LojaRepository {
     if (imagem != null) {
       request.files.add(await _montarArquivoImagem('urllogoloja', imagem));
     }
+    if (imagemFachada != null) {
+      request.files.add(
+        await _montarArquivoImagem('urlfachadaloja', imagemFachada),
+      );
+    }
 
     final response = await request.send();
     final responseBody = await response.stream.bytesToString();
@@ -158,6 +174,29 @@ class LojaRepository {
     if (response.statusCode != 200) {
       throw Exception('Erro ao atualizar loja: $responseBody');
     }
+  }
+
+  Future<void> atualizarAberto24x7(Loja loja, String aberto24x7) async {
+    final estadoId = loja.estadoId;
+    final cidadeId = loja.cidadeId;
+    if (estadoId == null || cidadeId == null) {
+      throw Exception('Estado e cidade da loja não foram identificados.');
+    }
+
+    await atualizar(
+      lojaId: loja.lojaId,
+      organizacaoId: loja.organizacaoId,
+      estadoId: estadoId,
+      cidadeId: cidadeId,
+      nome: loja.nmloja,
+      estiloLoja: loja.dsestiloloja,
+      bairro: loja.dsbairroloja,
+      telefone: loja.nrtelloja,
+      diasValidade: loja.nrdiavalidade,
+      endereco: loja.endloja,
+      instagram: loja.dsinstaloja,
+      aberto24x7: aberto24x7,
+    );
   }
 
   Future<void> excluir(int lojaId) async {

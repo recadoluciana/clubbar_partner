@@ -13,6 +13,7 @@ class Loja {
   final int? nrdiavalidade;
   final String? sitloja;
   final String? urllogoloja;
+  final String? urlfachadaloja;
 
   final String? endloja;
   final String? dsinstaloja;
@@ -20,6 +21,7 @@ class Loja {
   final double vrtaxaprod;
   final double vrtaxaing;
   final String? dsestiloloja;
+  final String aberto24x7;
 
   Loja({
     required this.lojaId,
@@ -36,11 +38,13 @@ class Loja {
     this.nrdiavalidade,
     this.sitloja,
     this.urllogoloja,
+    this.urlfachadaloja,
     this.endloja,
     this.dsinstaloja,
-    this.vrtaxaprod = 3.0,
-    this.vrtaxaing = 10.0,
+    this.vrtaxaprod = 5.0,
+    this.vrtaxaing = 5.0,
     this.dsestiloloja,
+    this.aberto24x7 = 'N',
   });
 
   factory Loja.fromJson(Map<String, dynamic> json) {
@@ -59,11 +63,13 @@ class Loja {
       nrdiavalidade: json['nrdiavalidade'],
       sitloja: json['sitloja']?.toString(),
       urllogoloja: json['urllogoloja']?.toString(),
+      urlfachadaloja: json['urlfachadaloja']?.toString(),
       endloja: json['endloja']?.toString(),
       dsinstaloja: json['dsinstaloja']?.toString(),
-      vrtaxaprod: (json['vrtaxaprod'] ?? 3).toDouble(),
-      vrtaxaing: (json['vrtaxaing'] ?? 10).toDouble(),
+      vrtaxaprod: (json['vrtaxaprod'] ?? 5).toDouble(),
+      vrtaxaing: (json['vrtaxaing'] ?? 5).toDouble(),
       dsestiloloja: json['dsestiloloja']?.toString(),
+      aberto24x7: _normalizarSimNao(json['aberto24x7']),
     );
   }
 
@@ -83,11 +89,13 @@ class Loja {
       'nrdiavalidade': nrdiavalidade,
       'sitloja': sitloja,
       'urllogoloja': urllogoloja,
+      'urlfachadaloja': urlfachadaloja,
       'endloja': endloja,
       'dsinstaloja': dsinstaloja,
       'vrtaxaprod': vrtaxaprod,
       'vrtaxaing': vrtaxaing,
       'dsestiloloja': dsestiloloja,
+      'aberto24x7': aberto24x7,
     };
   }
 
@@ -106,11 +114,13 @@ class Loja {
     int? nrdiavalidade,
     String? sitloja,
     String? urllogoloja,
+    String? urlfachadaloja,
     String? endloja,
     String? dsinstaloja,
     double? vrtaxaprod,
     double? vrtaxaing,
     String? dsestiloloja,
+    String? aberto24x7,
   }) {
     return Loja(
       lojaId: lojaId ?? this.lojaId,
@@ -127,11 +137,13 @@ class Loja {
       nrdiavalidade: nrdiavalidade ?? this.nrdiavalidade,
       sitloja: sitloja ?? this.sitloja,
       urllogoloja: urllogoloja ?? this.urllogoloja,
+      urlfachadaloja: urlfachadaloja ?? this.urlfachadaloja,
       endloja: endloja ?? this.endloja,
       dsinstaloja: dsinstaloja ?? this.dsinstaloja,
       vrtaxaprod: vrtaxaprod ?? this.vrtaxaprod,
       vrtaxaing: vrtaxaing ?? this.vrtaxaing,
       dsestiloloja: dsestiloloja ?? this.dsestiloloja,
+      aberto24x7: aberto24x7 ?? this.aberto24x7,
     );
   }
 
@@ -144,6 +156,10 @@ class Loja {
     if (value == null) return null;
     if (value is int) return value;
     return int.tryParse(value.toString());
+  }
+
+  static String _normalizarSimNao(dynamic value) {
+    return value?.toString().trim().toUpperCase() == 'S' ? 'S' : 'N';
   }
 
   @override
@@ -164,11 +180,13 @@ class Loja {
             other.nrdiavalidade == nrdiavalidade &&
             other.sitloja == sitloja &&
             other.urllogoloja == urllogoloja &&
+            other.urlfachadaloja == urlfachadaloja &&
             other.endloja == endloja &&
             other.dsinstaloja == dsinstaloja &&
             other.vrtaxaprod == vrtaxaprod &&
             other.vrtaxaing == vrtaxaing &&
-            other.dsestiloloja == dsestiloloja;
+            other.dsestiloloja == dsestiloloja &&
+            other.aberto24x7 == aberto24x7;
   }
 
   @override
@@ -187,10 +205,12 @@ class Loja {
     nrdiavalidade,
     sitloja,
     urllogoloja,
+    urlfachadaloja,
     endloja,
     dsinstaloja,
     vrtaxaprod,
     vrtaxaing,
     dsestiloloja,
+    aberto24x7,
   ]);
 }

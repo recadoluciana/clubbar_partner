@@ -29,9 +29,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
   final _picker = ImagePicker();
 
   final TextEditingController _nomeController = TextEditingController();
+  final TextEditingController _estiloLojaController = TextEditingController();
   final TextEditingController _bairroController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
-  final TextEditingController _horarioController = TextEditingController();
   final TextEditingController _diasValidadeController = TextEditingController();
   final TextEditingController _enderecoController = TextEditingController();
   final TextEditingController _instagramController = TextEditingController();
@@ -44,6 +44,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
   XFile? _imagemSelecionada;
   Uint8List? _imagemBytes;
+  XFile? _imagemFachadaSelecionada;
+  Uint8List? _imagemFachadaBytes;
 
   bool get editando => widget.loja != null;
 
@@ -90,11 +92,11 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
   String? _validarCamposLoja() {
     final nome = _nomeController.text.trim();
+    final estiloLoja = _estiloLojaController.text.trim();
     final bairro = _bairroController.text.trim();
     final endereco = _enderecoController.text.trim();
     final instagram = _instagramController.text.trim();
     final telefone = _somenteNumeros(_telefoneController.text);
-    final horario = _horarioController.text.trim();
     final diasValidade = int.tryParse(_diasValidadeController.text.trim());
 
     if (nome.isEmpty) return 'Informe o nome da loja.';
@@ -103,6 +105,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
     }
     if (nome.length > 120) {
       return 'O nome da loja pode ter no máximo 120 caracteres.';
+    }
+    if (estiloLoja.length > 255) {
+      return 'O estilo musical pode ter no máximo 255 caracteres.';
     }
     if (_estadoId == null || _estadoId == 0) {
       return 'Selecione o estado da loja.';
@@ -138,9 +143,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
       }
     }
 
-    if (horario.length > 255) {
-      return 'O horário pode ter no máximo 255 caracteres.';
-    }
     if (diasValidade == null) {
       return 'Informe a quantidade de dias de validade.';
     }
@@ -165,9 +167,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
     if (widget.loja != null) {
       _nomeController.text = widget.loja!.nmloja;
+      _estiloLojaController.text = widget.loja!.dsestiloloja ?? '';
       _bairroController.text = widget.loja!.dsbairroloja ?? '';
       _telefoneController.text = _formatarTelefone(widget.loja!.nrtelloja);
-      _horarioController.text = widget.loja!.dshorarioloja ?? '';
       _diasValidadeController.text =
           widget.loja!.nrdiavalidade?.toString() ?? '90';
       _estadoId = widget.loja!.estadoId;
@@ -203,9 +205,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
   @override
   void dispose() {
     _nomeController.dispose();
+    _estiloLojaController.dispose();
     _bairroController.dispose();
     _telefoneController.dispose();
-    _horarioController.dispose();
     _diasValidadeController.dispose();
     _enderecoController.dispose();
     _instagramController.dispose();
@@ -232,6 +234,29 @@ class _LojaFormPageState extends State<LojaFormPage> {
     } catch (e) {
       if (!mounted) return;
       _mostrarMensagem('Erro ao selecionar imagem: $e', erro: true);
+    }
+  }
+
+  Future<void> _selecionarImagemFachada() async {
+    try {
+      final arquivo = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+
+      if (arquivo == null) return;
+
+      Uint8List? bytes;
+      if (kIsWeb) bytes = await arquivo.readAsBytes();
+      if (!mounted) return;
+
+      setState(() {
+        _imagemFachadaSelecionada = arquivo;
+        _imagemFachadaBytes = bytes;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      _mostrarMensagem('Erro ao selecionar a foto da fachada: $e', erro: true);
     }
   }
 
@@ -265,13 +290,15 @@ class _LojaFormPageState extends State<LojaFormPage> {
           estadoId: _estadoId!,
           cidadeId: _cidadeId!,
           nome: _nomeController.text.trim(),
+          estiloLoja: _estiloLojaController.text.trim(),
           bairro: _bairroController.text.trim(),
           telefone: telefoneSemMascara,
-          horario: _horarioController.text.trim(),
           diasValidade: diasValidade,
           endereco: _enderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
+          aberto24x7: widget.loja!.aberto24x7,
           imagem: _imagemSelecionada,
+          imagemFachada: _imagemFachadaSelecionada,
         );
 
         if (!mounted) return;
@@ -284,23 +311,43 @@ class _LojaFormPageState extends State<LojaFormPage> {
           estadoId: _estadoId!,
           cidadeId: _cidadeId!,
           nome: nomeLoja,
+          estiloLoja: _estiloLojaController.text.trim(),
           bairro: _bairroController.text.trim(),
           telefone: telefoneSemMascara,
-          horario: _horarioController.text.trim(),
           diasValidade: diasValidade,
           endereco: _enderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
           imagem: _imagemSelecionada,
+          imagemFachada: _imagemFachadaSelecionada,
         );
 
         if (!mounted) return;
 
         setState(() => _salvando = false);
 
+        final lojaCriada = Loja(
+          lojaId: lojaId,
+          organizacaoId: organizacaoId,
+          estadoId: _estadoId,
+          cidadeId: _cidadeId,
+          nmloja: nomeLoja,
+          dsestiloloja: _estiloLojaController.text.trim(),
+          dsbairroloja: _bairroController.text.trim(),
+          nrtelloja: telefoneSemMascara,
+          nrdiavalidade: diasValidade,
+          endloja: _enderecoController.text.trim(),
+          dsinstaloja: _instagramController.text.trim(),
+        );
+
         final horariosSalvos = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
-            builder: (_) =>
-                HorarioFuncionamentoScreen(lojaId: lojaId, nomeLoja: nomeLoja),
+            builder: (_) => HorarioFuncionamentoScreen(
+              lojaId: lojaId,
+              nomeLoja: nomeLoja,
+              aberto24x7Inicial: lojaCriada.aberto24x7,
+              onSalvarAberto24x7: (valor) =>
+                  _repository.atualizarAberto24x7(lojaCriada, valor),
+            ),
           ),
         );
 
@@ -333,13 +380,16 @@ class _LojaFormPageState extends State<LojaFormPage> {
         builder: (_) => HorarioFuncionamentoScreen(
           lojaId: loja.lojaId,
           nomeLoja: loja.nmloja,
+          aberto24x7Inicial: loja.aberto24x7,
+          onSalvarAberto24x7: (valor) =>
+              _repository.atualizarAberto24x7(loja, valor),
         ),
       ),
     );
   }
 
-  String _montarUrlImagemAtual() {
-    final imagemAtual = (widget.loja?.urllogoloja ?? '').trim();
+  String _montarUrlImagemAtual(String? caminhoImagem) {
+    final imagemAtual = (caminhoImagem ?? '').trim();
     if (imagemAtual.isEmpty) return '';
     if (imagemAtual.startsWith('http')) return imagemAtual;
 
@@ -392,7 +442,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final imagemAtualUrl = _montarUrlImagemAtual();
+    final imagemAtualUrl = _montarUrlImagemAtual(widget.loja?.urllogoloja);
+    final fachadaAtualUrl = _montarUrlImagemAtual(widget.loja?.urlfachadaloja);
     final taxaProduto = _formatarPercentual(widget.loja?.vrtaxaprod);
     final taxaIngresso = _formatarPercentual(widget.loja?.vrtaxaing);
 
@@ -505,6 +556,85 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                           ),
                                   ),
                                 ),
+                                GestureDetector(
+                                  onTap: _salvando
+                                      ? null
+                                      : _selecionarImagemFachada,
+                                  child: Container(
+                                    height: 180,
+                                    margin: const EdgeInsets.only(bottom: 18),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: _imagemFachadaSelecionada != null
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            child: kIsWeb
+                                                ? Image.memory(
+                                                    _imagemFachadaBytes!,
+                                                    fit: BoxFit.cover,
+                                                    width: double.infinity,
+                                                  )
+                                                : Image.network(
+                                                    _imagemFachadaSelecionada!
+                                                        .path,
+                                                    fit: BoxFit.cover,
+                                                    width: double.infinity,
+                                                    errorBuilder: (_, _, _) =>
+                                                        const Center(
+                                                          child: Icon(
+                                                            Icons
+                                                                .storefront_outlined,
+                                                            size: 44,
+                                                          ),
+                                                        ),
+                                                  ),
+                                          )
+                                        : editando && fachadaAtualUrl.isNotEmpty
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            child: Image.network(
+                                              fachadaAtualUrl,
+                                              key: ValueKey(fachadaAtualUrl),
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                              errorBuilder: (_, _, _) =>
+                                                  const Center(
+                                                    child: Icon(
+                                                      Icons.storefront_outlined,
+                                                      size: 44,
+                                                    ),
+                                                  ),
+                                            ),
+                                          )
+                                        : const Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons
+                                                      .add_photo_alternate_outlined,
+                                                  size: 42,
+                                                ),
+                                                SizedBox(height: 8),
+                                                Text(
+                                                  'Toque para selecionar a foto da fachada',
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                  ),
+                                ),
                                 TextFormField(
                                   controller: _nomeController,
                                   textCapitalization: TextCapitalization.words,
@@ -527,6 +657,22 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     }
                                     return null;
                                   },
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _estiloLojaController,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  maxLength: 255,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(255),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Estilo musical da loja',
+                                    icone: Icons.music_note_outlined,
+                                    hint:
+                                        'Ex.: Sertanejo, rock, música ao vivo',
+                                  ).copyWith(counterText: ''),
                                 ),
                               ],
                             ),
@@ -580,19 +726,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   Icons.location_on_outlined,
                                 ),
                                 TextFormField(
-                                  controller: _bairroController,
-                                  textCapitalization: TextCapitalization.words,
-                                  maxLength: 120,
-                                  inputFormatters: [
-                                    LengthLimitingTextInputFormatter(120),
-                                  ],
-                                  decoration: _decoracaoCampo(
-                                    label: 'Bairro',
-                                    icone: Icons.map_outlined,
-                                  ).copyWith(counterText: ''),
-                                ),
-                                const SizedBox(height: 14),
-                                TextFormField(
                                   controller: _enderecoController,
                                   textCapitalization:
                                       TextCapitalization.sentences,
@@ -603,6 +736,19 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   decoration: _decoracaoCampo(
                                     label: 'Endereço da loja',
                                     icone: Icons.home_work_outlined,
+                                  ).copyWith(counterText: ''),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _bairroController,
+                                  textCapitalization: TextCapitalization.words,
+                                  maxLength: 120,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(120),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Bairro',
+                                    icone: Icons.map_outlined,
                                   ).copyWith(counterText: ''),
                                 ),
                                 const SizedBox(height: 14),
@@ -684,22 +830,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     }
                                     return null;
                                   },
-                                ),
-                                const SizedBox(height: 14),
-                                TextFormField(
-                                  controller: _horarioController,
-                                  textCapitalization:
-                                      TextCapitalization.sentences,
-                                  maxLength: 255,
-                                  inputFormatters: [
-                                    LengthLimitingTextInputFormatter(255),
-                                  ],
-                                  decoration: _decoracaoCampo(
-                                    label: 'Horário de funcionamento',
-                                    icone: Icons.schedule_outlined,
-                                    hint:
-                                        'Ex.: Segunda a sábado, das 18h às 2h',
-                                  ).copyWith(counterText: ''),
                                 ),
                                 const SizedBox(height: 14),
                                 TextFormField(

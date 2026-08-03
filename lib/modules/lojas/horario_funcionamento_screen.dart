@@ -11,11 +11,15 @@ import '../../models/loja_horario.dart';
 class HorarioFuncionamentoScreen extends StatefulWidget {
   final int lojaId;
   final String nomeLoja;
+  final String aberto24x7Inicial;
+  final Future<void> Function(String aberto24x7) onSalvarAberto24x7;
 
   const HorarioFuncionamentoScreen({
     super.key,
     required this.lojaId,
     required this.nomeLoja,
+    required this.aberto24x7Inicial,
+    required this.onSalvarAberto24x7,
   });
 
   @override
@@ -30,11 +34,15 @@ class _HorarioFuncionamentoScreenState
   List<LojaHorario> _horarios = const [];
   bool _carregando = true;
   bool _salvando = false;
+  late String _aberto24x7;
   String? _erro;
+
+  bool get _funciona24x7 => _aberto24x7 == 'S';
 
   @override
   void initState() {
     super.initState();
+    _aberto24x7 = widget.aberto24x7Inicial == 'S' ? 'S' : 'N';
     _carregar();
   }
 
@@ -47,6 +55,14 @@ class _HorarioFuncionamentoScreenState
     });
 
     try {
+      if (_funciona24x7) {
+        setState(() {
+          _horarios = _completarSemana(const []);
+          _carregando = false;
+        });
+        return;
+      }
+
       final recebidos = await _repository.buscarPorLoja(widget.lojaId);
       if (!mounted) return;
 
@@ -90,6 +106,19 @@ class _HorarioFuncionamentoScreenState
     });
   }
 
+  LojaHorario _ajustarFechaDiaSeguinte(LojaHorario horario) {
+    final abertura = horario.horaAbertura;
+    final fechamento = horario.horaFechamento;
+    if (horario.fechado || abertura == null || fechamento == null) {
+      return horario;
+    }
+
+    final fechaDiaSeguinte =
+        !horario.fechamentoMeiaNoite &&
+        _minutos(fechamento) < _minutos(abertura);
+    return horario.copyWith(fechaDiaSeguinte: fechaDiaSeguinte);
+  }
+
   void _alterarAberto(int index, bool aberto) {
     final atual = _horarios[index];
 
@@ -129,15 +158,32 @@ class _HorarioFuncionamentoScreenState
 
     if (selecionada == null || !mounted) return;
 
+    final atualizado = abertura
+        ? atual.copyWith(horaAbertura: selecionada)
+        : atual.copyWith(
+            horaFechamento: selecionada,
+            fechamentoMeiaNoite: false,
+          );
+    _atualizarDia(index, _ajustarFechaDiaSeguinte(atualizado));
+  }
+
+  void _definirFechamento24Horas(int index) {
+    final atual = _horarios[index];
+    if (atual.fechado || _salvando) return;
+
     _atualizarDia(
       index,
-      abertura
-          ? atual.copyWith(horaAbertura: selecionada)
-          : atual.copyWith(horaFechamento: selecionada),
+      atual.copyWith(
+        horaFechamento: const TimeOfDay(hour: 0, minute: 0),
+        fechamentoMeiaNoite: true,
+        fechaDiaSeguinte: false,
+      ),
     );
   }
 
   String? _validar() {
+    if (_funciona24x7) return null;
+
     if (_horarios.length != 7) {
       return 'Não foi possível montar os sete dias da semana.';
     }
@@ -151,8 +197,10 @@ class _HorarioFuncionamentoScreenState
         return 'Informe o fechamento de ${horario.nomeDiaSemana}.';
       }
 
-      if (_minutos(horario.horaAbertura!) ==
-          _minutos(horario.horaFechamento!)) {
+      final minutosFechamento = horario.fechamentoMeiaNoite
+          ? 24 * 60
+          : _minutos(horario.horaFechamento!);
+      if (_minutos(horario.horaAbertura!) == minutosFechamento) {
         return 'Em ${horario.nomeDiaSemana}, abertura e fechamento '
             'não podem ser iguais.';
       }
@@ -164,6 +212,13 @@ class _HorarioFuncionamentoScreenState
   Future<void> _salvar() async {
     if (_salvando) return;
 
+    final horariosNormalizados = _horarios
+        .map(_ajustarFechaDiaSeguinte)
+        .toList();
+    if (!_funciona24x7) {
+      setState(() => _horarios = horariosNormalizados);
+    }
+
     final erro = _validar();
     if (erro != null) {
       AppSnackBar.aviso(context, erro);
@@ -173,10 +228,18 @@ class _HorarioFuncionamentoScreenState
     setState(() => _salvando = true);
 
     try {
-      await _repository.salvarTodos(widget.lojaId, _horarios);
+      await widget.onSalvarAberto24x7(_aberto24x7);
+      if (!_funciona24x7) {
+        await _repository.salvarTodos(widget.lojaId, horariosNormalizados);
+      }
       if (!mounted) return;
 
-      AppSnackBar.sucesso(context, 'Horários salvos com sucesso.');
+      AppSnackBar.sucesso(
+        context,
+        _funciona24x7
+            ? 'Loja configurada como aberta 24 horas.'
+            : 'Horários salvos com sucesso.',
+      );
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -188,8 +251,9 @@ class _HorarioFuncionamentoScreenState
 
   int _minutos(TimeOfDay horario) => horario.hour * 60 + horario.minute;
 
-  String _formatarHora(TimeOfDay? horario) {
+  String _formatarHora(TimeOfDay? horario, {bool fechamentoMeiaNoite = false}) {
     if (horario == null) return '--:--';
+    if (fechamentoMeiaNoite) return '24:00';
     return '${horario.hour.toString().padLeft(2, '0')}:'
         '${horario.minute.toString().padLeft(2, '0')}';
   }
@@ -274,7 +338,10 @@ class _HorarioFuncionamentoScreenState
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: Text(
-          _formatarHora(valor),
+          _formatarHora(
+            valor,
+            fechamentoMeiaNoite: !abertura && horario.fechamentoMeiaNoite,
+          ),
           style: TextStyle(
             fontWeight: FontWeight.w800,
             color: horario.fechado
@@ -288,6 +355,11 @@ class _HorarioFuncionamentoScreenState
 
   Widget _cardDia(int index) {
     final horario = _horarios[index];
+    final fechamentoAposMeiaNoite =
+        !horario.fechamentoMeiaNoite &&
+        horario.horaAbertura != null &&
+        horario.horaFechamento != null &&
+        _minutos(horario.horaFechamento!) < _minutos(horario.horaAbertura!);
 
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 12),
@@ -363,13 +435,39 @@ class _HorarioFuncionamentoScreenState
               },
             ),
             const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: _salvando
+                    ? null
+                    : () => _definirFechamento24Horas(index),
+                icon: const Icon(Icons.nights_stay_outlined, size: 18),
+                label: const Text('Fechar às 24:00'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: horario.fechamentoMeiaNoite
+                      ? ClubbarColors.ambarEscuro
+                      : ClubbarColors.textoPrincipal,
+                  side: BorderSide(
+                    color: horario.fechamentoMeiaNoite
+                        ? ClubbarColors.ambar
+                        : ClubbarColors.borda,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
             SwitchListTile(
               value: horario.fechaDiaSeguinte,
               onChanged: _salvando
                   ? null
                   : (value) => _atualizarDia(
                       index,
-                      horario.copyWith(fechaDiaSeguinte: value),
+                      horario.copyWith(
+                        fechaDiaSeguinte: value,
+                        fechamentoMeiaNoite: value
+                            ? false
+                            : horario.fechamentoMeiaNoite,
+                      ),
                     ),
               contentPadding: EdgeInsets.zero,
               dense: true,
@@ -379,6 +477,7 @@ class _HorarioFuncionamentoScreenState
               ),
               subtitle: horario.fechaDiaSeguinte
                   ? Text(
+                      '${fechamentoAposMeiaNoite ? 'Marcado automaticamente. ' : ''}'
                       'Exemplo: ${_formatarHora(horario.horaAbertura)} até '
                       '${_formatarHora(horario.horaFechamento)} do dia seguinte',
                     )
@@ -416,7 +515,35 @@ class _HorarioFuncionamentoScreenState
           ),
         ),
         const SizedBox(height: 14),
-        ...List.generate(_horarios.length, _cardDia),
+        ClubbarCard(
+          elevation: 0,
+          borderColor: _funciona24x7 ? ClubbarColors.erro : ClubbarColors.borda,
+          child: SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _funciona24x7,
+            onChanged: _salvando
+                ? null
+                : (value) {
+                    setState(() => _aberto24x7 = value ? 'S' : 'N');
+                  },
+            activeTrackColor: ClubbarColors.erro,
+            title: const Text(
+              'Aberto 24 horas',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+            subtitle: Text(
+              _funciona24x7
+                  ? 'A loja funciona todos os dias, durante 24 horas.'
+                  : 'Ative para não precisar informar horários por dia.',
+            ),
+            secondary: const Icon(
+              Icons.all_inclusive_rounded,
+              color: ClubbarColors.erro,
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (!_funciona24x7) ...List.generate(_horarios.length, _cardDia),
         const SizedBox(height: 8),
         SizedBox(
           height: 52,
@@ -429,7 +556,13 @@ class _HorarioFuncionamentoScreenState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
-            label: Text(_salvando ? 'Salvando...' : 'Salvar horários'),
+            label: Text(
+              _salvando
+                  ? 'Salvando...'
+                  : _funciona24x7
+                  ? 'Salvar funcionamento 24 horas'
+                  : 'Salvar horários',
+            ),
             style: FilledButton.styleFrom(
               backgroundColor: ClubbarColors.ambar,
               foregroundColor: ClubbarColors.preto,
