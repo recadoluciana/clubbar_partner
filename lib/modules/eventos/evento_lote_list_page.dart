@@ -254,34 +254,44 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     );
   }
 
-  Widget _acoesTopo() {
-    return Row(
-      children: [
-        Expanded(
-          child: SizedBox(
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: _novoLote,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text(
-                'Novo lote',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ClubbarColors.ambar,
-                foregroundColor: ClubbarColors.preto,
-              ),
-            ),
+  Widget _botaoCircularHeader({
+    required String tooltip,
+    required IconData icone,
+    required VoidCallback? onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: SizedBox.square(
+        dimension: 40,
+        child: IconButton(
+          onPressed: onPressed,
+          icon: Icon(icone, size: 22),
+          color: ClubbarColors.preto,
+          disabledColor: ClubbarColors.textoSecundario,
+          style: IconButton.styleFrom(
+            backgroundColor: ClubbarColors.ambar,
+            disabledBackgroundColor: ClubbarColors.borda,
+            shape: const CircleBorder(),
           ),
         ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 50,
-          height: 50,
-          child: OutlinedButton(
-            onPressed: _carregando ? null : _carregar,
-            child: const Icon(Icons.refresh_rounded),
-          ),
+      ),
+    );
+  }
+
+  Widget _acoesHeader() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _botaoCircularHeader(
+          tooltip: 'Atualizar',
+          icone: Icons.refresh_rounded,
+          onPressed: _carregando ? null : _carregar,
+        ),
+        const SizedBox(width: 8),
+        _botaoCircularHeader(
+          tooltip: 'Adicionar lote',
+          icone: Icons.add_rounded,
+          onPressed: _novoLote,
         ),
       ],
     );
@@ -606,8 +616,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Lotes do Evento',
-              subtitulo: widget.eventoTitulo,
+              titulo: 'Lotes - ${widget.eventoTitulo}',
+              subtitulo: _carregando
+                  ? 'Carregando lotes...'
+                  : '${_lotes.length} ${_lotes.length == 1 ? 'lote cadastrado' : 'lotes cadastrados'}',
+              trailing: _acoesHeader(),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
@@ -616,8 +629,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   _cardResumo(),
                   const SizedBox(height: 12),
                   _campoBusca(),
-                  const SizedBox(height: 12),
-                  _acoesTopo(),
                 ],
               ),
             ),
