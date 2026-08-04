@@ -20,7 +20,7 @@ class CategoriaRepository {
     throw Exception('Erro ao listar categorias: ${response.body}');
   }
 
-  Future<void> criar(
+  Future<int?> criar(
     int lojaId,
     String nome,
     String sitcategoria,
@@ -35,6 +35,20 @@ class CategoriaRepository {
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Erro ao criar categoria: ${response.body}');
     }
+
+    try {
+      final data = jsonDecode(response.body);
+      if (data is Map) {
+        final valor = data['categoria_id'];
+        if (valor is int) return valor;
+        if (valor is num) return valor.toInt();
+        return int.tryParse(valor?.toString() ?? '');
+      }
+    } catch (_) {
+      // Algumas versões da API respondem sem corpo após a inclusão.
+    }
+
+    return null;
   }
 
   Future<void> atualizar(

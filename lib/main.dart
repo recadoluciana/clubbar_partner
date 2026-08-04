@@ -10,5 +10,5 @@ Future<void> main() async {
   await initializeDateFormatting('pt_BR', null);
   Intl.defaultLocale = 'pt_BR';
 
-  runApp(const ClubbarAdminApp());
+  runApp(const ClubbarPartnerApp());
 }

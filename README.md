@@ -1,4 +1,4 @@
-# clubbar_admin
+# clubbar_partner
 
 A new Flutter project.
 

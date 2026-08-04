@@ -354,7 +354,7 @@ class _DashboardPageState extends State<DashboardPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Painel Administrativo',
+              titulo: 'Painel do Parceiro',
               subtitulo: 'Escolha uma opção para continuar',
             ),
 

@@ -6,8 +6,8 @@ import 'modules/dashboard/dashboard_page.dart';
 import 'modules/leitor_qr/barman_home_page.dart';
 import 'modules/leitor_qr/porteiro_home_page.dart';
 
-class ClubbarAdminApp extends StatelessWidget {
-  const ClubbarAdminApp({super.key});
+class ClubbarPartnerApp extends StatelessWidget {
+  const ClubbarPartnerApp({super.key});
 
   @override
   Widget build(BuildContext context) {

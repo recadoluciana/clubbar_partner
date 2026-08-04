@@ -38,12 +38,12 @@ flutter_launcher_icons:
 
   ios: true
 
-  image_path: "assets/images/icone_admin.png"
+  image_path: "assets/images/icone_partner.png"
 
   adaptive_icon_background: "#000000"
 
   adaptive_icon_foreground:
-    "assets/images/icone_admin.png"
+    "assets/images/icone_partner.png"
 
 
 flutter:

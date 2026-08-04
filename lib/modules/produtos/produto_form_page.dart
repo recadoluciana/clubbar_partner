@@ -261,6 +261,187 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     }
   }
 
+  Future<void> _incluirCategoriaRapida() async {
+    if (_salvando) return;
+
+    final nomeController = TextEditingController();
+    final ordemController = TextEditingController(text: '1');
+    var salvandoCategoria = false;
+
+    final categoriaCriada = await showDialog<Categoria>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> salvar() async {
+              if (salvandoCategoria) return;
+
+              final nome = nomeController.text.trim();
+              final ordem = int.tryParse(ordemController.text.trim());
+
+              if (nome.length < 2) {
+                AppSnackBar.aviso(
+                  dialogContext,
+                  'Informe o nome da categoria com pelo menos 2 caracteres.',
+                );
+                return;
+              }
+              if (ordem == null || ordem <= 0) {
+                AppSnackBar.aviso(
+                  dialogContext,
+                  'Informe uma ordem de exibição maior que zero.',
+                );
+                return;
+              }
+
+              setDialogState(() => salvandoCategoria = true);
+              try {
+                final categoriaId = await _categoriaRepository.criar(
+                  widget.lojaId,
+                  nome,
+                  'ATIVA',
+                  ordem,
+                );
+                final categorias = await _categoriaRepository.listar(
+                  widget.lojaId,
+                );
+
+                Categoria? criada;
+                if (categoriaId != null) {
+                  for (final categoria in categorias) {
+                    if (categoria.categoriaId == categoriaId) {
+                      criada = categoria;
+                      break;
+                    }
+                  }
+                }
+
+                if (criada == null) {
+                  final correspondentes = categorias.where(
+                    (categoria) =>
+                        categoria.nmcategoria.trim().toLowerCase() ==
+                            nome.toLowerCase() &&
+                        categoria.idordcategoria == ordem,
+                  );
+                  if (correspondentes.isNotEmpty) {
+                    criada = correspondentes.reduce(
+                      (atual, proxima) =>
+                          proxima.categoriaId > atual.categoriaId
+                          ? proxima
+                          : atual,
+                    );
+                  }
+                }
+
+                if (criada == null) {
+                  throw Exception(
+                    'A categoria foi criada, mas não pôde ser localizada.',
+                  );
+                }
+                if (!dialogContext.mounted) return;
+                Navigator.of(dialogContext).pop(criada);
+              } catch (e) {
+                if (!dialogContext.mounted) return;
+                AppSnackBar.erro(dialogContext, _mensagemErro(e));
+                setDialogState(() => salvandoCategoria = false);
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: ClubbarColors.fundo,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(22),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.add_circle_outline_rounded),
+                  SizedBox(width: 10),
+                  Expanded(child: Text('Nova categoria')),
+                ],
+              ),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nomeController,
+                      enabled: !salvandoCategoria,
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                      decoration: _decoracaoCampo(
+                        label: 'Nome da categoria',
+                        icone: Icons.label_outline_rounded,
+                        hint: 'Ex.: Drinks',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: ordemController,
+                      enabled: !salvandoCategoria,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onSubmitted: (_) => salvar(),
+                      decoration: _decoracaoCampo(
+                        label: 'Ordem no cardápio',
+                        icone: Icons.format_list_numbered_rounded,
+                        hint: 'Ex.: 1',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: salvandoCategoria
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton.icon(
+                  onPressed: salvandoCategoria ? null : salvar,
+                  icon: salvandoCategoria
+                      ? const SizedBox.square(
+                          dimension: 17,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_outlined),
+                  label: Text(salvandoCategoria ? 'Salvando...' : 'Incluir'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: ClubbarColors.ambar,
+                    foregroundColor: ClubbarColors.preto,
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    nomeController.dispose();
+    ordemController.dispose();
+    if (categoriaCriada == null || !mounted) return;
+
+    setState(() {
+      _categorias =
+          [
+            ..._categorias.where(
+              (categoria) =>
+                  categoria.categoriaId != categoriaCriada.categoriaId,
+            ),
+            categoriaCriada,
+          ]..sort(
+            (a, b) => (a.idordcategoria ?? 0).compareTo(b.idordcategoria ?? 0),
+          );
+      _categoriaIdSelecionada = categoriaCriada.categoriaId;
+    });
+
+    AppSnackBar.sucesso(context, 'Categoria criada e selecionada no produto.');
+  }
+
   Future<void> _selecionarImagem() async {
     try {
       final arquivo = await _picker.pickImage(
@@ -609,36 +790,63 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
               ? const Center(
                   child: CircularProgressIndicator(color: ClubbarColors.ambar),
                 )
-              : DropdownButtonFormField<int>(
-                  initialValue: _categoriaIdSelecionada,
-                  isExpanded: true,
-                  decoration: _decoracaoCampo(
-                    label: 'Categoria',
-                    icone: Icons.category_outlined,
-                  ),
-                  items: _categorias.map((categoria) {
-                    return DropdownMenuItem<int>(
-                      value: categoria.categoriaId,
-                      child: Text(
-                        categoria.nmcategoria,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: _salvando
-                      ? null
-                      : (value) {
-                          setState(() {
-                            _categoriaIdSelecionada = value;
-                          });
-                        },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Selecione uma categoria';
-                    }
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        key: ValueKey(_categoriaIdSelecionada),
+                        initialValue: _categoriaIdSelecionada,
+                        isExpanded: true,
+                        decoration: _decoracaoCampo(
+                          label: 'Categoria',
+                          icone: Icons.category_outlined,
+                        ),
+                        items: _categorias.map((categoria) {
+                          return DropdownMenuItem<int>(
+                            value: categoria.categoriaId,
+                            child: Text(
+                              categoria.nmcategoria,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: _salvando
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _categoriaIdSelecionada = value;
+                                });
+                              },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Selecione uma categoria';
+                          }
 
-                    return null;
-                  },
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: 'Incluir categoria',
+                      child: SizedBox.square(
+                        dimension: 52,
+                        child: IconButton(
+                          onPressed: _salvando ? null : _incluirCategoriaRapida,
+                          icon: const Icon(Icons.add_rounded),
+                          color: ClubbarColors.preto,
+                          style: IconButton.styleFrom(
+                            backgroundColor: ClubbarColors.ambar,
+                            disabledBackgroundColor: ClubbarColors.borda,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
