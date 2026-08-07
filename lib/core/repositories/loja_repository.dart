@@ -61,6 +61,7 @@ class LojaRepository {
     String idvalidadeprod = 'S',
     XFile? imagem,
     XFile? imagemFachada,
+    int? capacidadeTotal,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas');
 
@@ -85,6 +86,8 @@ class LojaRepository {
     request.fields['dsinstaloja'] = instagram ?? '';
     request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
     request.fields['idvalidadeprod'] = idvalidadeprod == 'N' ? 'N' : 'S';
+    if (capacidadeTotal != null)
+      request.fields['qtcpdloja'] = capacidadeTotal.toString();
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -142,6 +145,7 @@ class LojaRepository {
     String idvalidadeprod = 'S',
     XFile? imagem,
     XFile? imagemFachada,
+    int? capacidadeTotal,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas/$lojaId');
 
@@ -166,6 +170,8 @@ class LojaRepository {
     request.fields['dsinstaloja'] = instagram ?? '';
     request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
     request.fields['idvalidadeprod'] = idvalidadeprod == 'N' ? 'N' : 'S';
+    if (capacidadeTotal != null)
+      request.fields['qtcpdloja'] = capacidadeTotal.toString();
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -211,6 +217,7 @@ class LojaRepository {
       instagram: loja.dsinstaloja,
       aberto24x7: aberto24x7,
       idvalidadeprod: loja.idvalidadeprod,
+      capacidadeTotal: loja.capacidadeTotal,
     );
   }
 
@@ -241,6 +248,7 @@ class LojaRepository {
       instagram: loja.dsinstaloja,
       aberto24x7: loja.aberto24x7,
       idvalidadeprod: loja.idvalidadeprod,
+      capacidadeTotal: loja.capacidadeTotal,
       imagem: logo,
       imagemFachada: fachada,
     );

@@ -40,6 +40,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   final TextEditingController _numeroEnderecoController =
       TextEditingController();
   final TextEditingController _instagramController = TextEditingController();
+  final TextEditingController _capacidadeController = TextEditingController();
 
   bool _salvando = false;
   bool _carregandoNomeOrganizacao = true;
@@ -63,6 +64,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
     final instagram = _instagramController.text.trim();
     final telefone = Validators.somenteNumeros(_telefoneController.text);
     final diasValidade = int.tryParse(_diasValidadeController.text.trim());
+    final capacidade = int.tryParse(_capacidadeController.text.trim());
 
     if (nome.isEmpty) return 'Informe o nome da loja.';
     if (nome.length < 3) {
@@ -119,6 +121,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
         return 'O celular deve começar com 9 após o DDD.';
       }
     }
+    if (capacidade == null || capacidade <= 0) {
+      return 'Informe a capacidade total de pessoas da loja.';
+    }
 
     if (_controlaValidadeProduto) {
       if (diasValidade == null) {
@@ -153,6 +158,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _ultimoCepConsultado = Validators.somenteNumeros(widget.loja!.nrceploja);
       _instagramController.text = widget.loja!.dsinstaloja ?? '';
       _idValidadeProd = widget.loja!.idvalidadeprod;
+      _capacidadeController.text =
+          widget.loja!.capacidadeTotal?.toString() ?? '';
     } else {
       _diasValidadeController.text = '90';
     }
@@ -190,6 +197,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
     _cepController.dispose();
     _numeroEnderecoController.dispose();
     _instagramController.dispose();
+    _capacidadeController.dispose();
     super.dispose();
   }
 
@@ -313,6 +321,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           instagram: _instagramController.text.trim(),
           aberto24x7: widget.loja!.aberto24x7,
           idvalidadeprod: _idValidadeProd,
+          capacidadeTotal: int.parse(_capacidadeController.text.trim()),
         );
 
         if (!mounted) return;
@@ -334,6 +343,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           numeroEndereco: _numeroEnderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
           idvalidadeprod: _idValidadeProd,
+          capacidadeTotal: int.parse(_capacidadeController.text.trim()),
         );
 
         if (!mounted) return;
@@ -355,6 +365,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           idvalidadeprod: _idValidadeProd,
           endloja: _enderecoController.text.trim(),
           dsinstaloja: _instagramController.text.trim(),
+          capacidadeTotal: int.parse(_capacidadeController.text.trim()),
         );
 
         final horariosSalvos = await Navigator.of(context).push<bool>(
@@ -732,6 +743,31 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     final texto = value?.trim() ?? '';
                                     if (!Validators.instagramValido(texto)) {
                                       return 'Informe um Instagram válido.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _capacidadeController,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(7),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Capacidade total de pessoas',
+                                    icone: Icons.groups_rounded,
+                                    hint: 'Ex.: 500',
+                                    helperText:
+                                        'Limite máximo usado na venda de ingressos.',
+                                  ),
+                                  validator: (value) {
+                                    final numero = int.tryParse(
+                                      value?.trim() ?? '',
+                                    );
+                                    if (numero == null || numero <= 0) {
+                                      return 'Informe uma capacidade maior que zero.';
                                     }
                                     return null;
                                   },

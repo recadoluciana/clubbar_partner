@@ -25,6 +25,7 @@ class Loja {
   final String? dsestiloloja;
   final String aberto24x7;
   final String idvalidadeprod;
+  final int? capacidadeTotal;
 
   Loja({
     required this.lojaId,
@@ -51,6 +52,7 @@ class Loja {
     this.dsestiloloja,
     this.aberto24x7 = 'N',
     this.idvalidadeprod = 'S',
+    this.capacidadeTotal,
   });
 
   factory Loja.fromJson(Map<String, dynamic> json) {
@@ -82,6 +84,7 @@ class Loja {
         json['idvalidadeprod'],
         valorPadrao: 'S',
       ),
+      capacidadeTotal: _toNullableInt(json['qtcpdloja']),
     );
   }
 
@@ -111,6 +114,7 @@ class Loja {
       'dsestiloloja': dsestiloloja,
       'aberto24x7': aberto24x7,
       'idvalidadeprod': idvalidadeprod,
+      'qtcpdloja': capacidadeTotal,
     };
   }
 
@@ -139,6 +143,7 @@ class Loja {
     String? dsestiloloja,
     String? aberto24x7,
     String? idvalidadeprod,
+    int? capacidadeTotal,
   }) {
     return Loja(
       lojaId: lojaId ?? this.lojaId,
@@ -165,6 +170,7 @@ class Loja {
       dsestiloloja: dsestiloloja ?? this.dsestiloloja,
       aberto24x7: aberto24x7 ?? this.aberto24x7,
       idvalidadeprod: idvalidadeprod ?? this.idvalidadeprod,
+      capacidadeTotal: capacidadeTotal ?? this.capacidadeTotal,
     );
   }
 
@@ -212,7 +218,8 @@ class Loja {
             other.vrtaxaing == vrtaxaing &&
             other.dsestiloloja == dsestiloloja &&
             other.aberto24x7 == aberto24x7 &&
-            other.idvalidadeprod == idvalidadeprod;
+            other.idvalidadeprod == idvalidadeprod &&
+            other.capacidadeTotal == capacidadeTotal;
   }
 
   @override
@@ -241,5 +248,6 @@ class Loja {
     dsestiloloja,
     aberto24x7,
     idvalidadeprod,
+    capacidadeTotal,
   ]);
 }

@@ -107,6 +107,25 @@ class AtracaoRepository {
       throw Exception(_erro(r.body));
   }
 
+  Future<void> criarEventoRapido({
+    required int lojaId,
+    required int atracaoId,
+    required DateTime inicio,
+    required DateTime fim,
+    required double preco,
+  }) async {
+    final r = await ApiService.post('/agenda-mensal/evento-rapido', {
+      'loja_id': lojaId,
+      'atracao_id': atracaoId,
+      'dtinicioatracao': inicio.toIso8601String(),
+      'dtfimatracao': fim.toIso8601String(),
+      'preco_lote': preco,
+    });
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception(_erro(r.body));
+    }
+  }
+
   String _erro(String body) {
     try {
       final j = jsonDecode(body);

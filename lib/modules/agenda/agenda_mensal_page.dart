@@ -249,6 +249,161 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     }
   }
 
+  Future<void> _criarEventoNoDia(DateTime dia) async {
+    final lojaId = _lojaId;
+    if (lojaId == null) return;
+    final atracoes = await _repo.listar();
+    if (!mounted) return;
+    if (atracoes.isEmpty) {
+      AppSnackBar.aviso(context, 'Cadastre uma atração primeiro.');
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AtracaoListPage()),
+      );
+      return;
+    }
+    int selecionada = atracoes.first.atracaoId;
+    DateTime inicio = DateTime(dia.year, dia.month, dia.day, 20);
+    DateTime fim = inicio.add(const Duration(hours: 2));
+    final precoController = TextEditingController();
+    bool salvando = false;
+    final criado = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (c, setLocal) => AlertDialog(
+          title: Text(
+            'Criar evento em ${DateFormat('dd/MM/yyyy').format(dia)}',
+          ),
+          content: SizedBox(
+            width: 430,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<int>(
+                    initialValue: selecionada,
+                    decoration: const InputDecoration(
+                      labelText: 'Primeira atração',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: atracoes
+                        .map(
+                          (a) => DropdownMenuItem(
+                            value: a.atracaoId,
+                            child: Text(a.nome),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setLocal(() => selecionada = v!),
+                  ),
+                  const SizedBox(height: 12),
+                  ListTile(
+                    tileColor: ClubbarColors.fundo,
+                    leading: const Icon(Icons.play_arrow),
+                    title: const Text('Início'),
+                    subtitle: Text(
+                      DateFormat('dd/MM/yyyy HH:mm').format(inicio),
+                    ),
+                    onTap: () async {
+                      final valor = await _dataHora(inicio);
+                      if (valor != null) setLocal(() => inicio = valor);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    tileColor: ClubbarColors.fundo,
+                    leading: const Icon(Icons.stop),
+                    title: const Text('Fim'),
+                    subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(fim)),
+                    onTap: () async {
+                      final valor = await _dataHora(fim);
+                      if (valor != null) setLocal(() => fim = valor);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: precoController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Preço do Lote Único',
+                      prefixText: 'R\$ ',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'O evento será criado como ativo e o lote ficará disponível para venda imediatamente.',
+                    style: TextStyle(color: ClubbarColors.textoSecundario),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: salvando ? null : () => Navigator.pop(c, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton.icon(
+              onPressed: salvando
+                  ? null
+                  : () async {
+                      final preco = double.tryParse(
+                        precoController.text.trim().replaceAll(',', '.'),
+                      );
+                      if (!fim.isAfter(inicio)) {
+                        AppSnackBar.aviso(
+                          context,
+                          'O fim deve ser posterior ao início.',
+                        );
+                        return;
+                      }
+                      if (preco == null || preco < 0) {
+                        AppSnackBar.aviso(context, 'Informe um preço válido.');
+                        return;
+                      }
+                      setLocal(() => salvando = true);
+                      try {
+                        await _repo.criarEventoRapido(
+                          lojaId: lojaId,
+                          atracaoId: selecionada,
+                          inicio: inicio,
+                          fim: fim,
+                          preco: preco,
+                        );
+                        if (c.mounted) Navigator.pop(c, true);
+                      } catch (e) {
+                        setLocal(() => salvando = false);
+                        if (mounted) {
+                          AppSnackBar.erro(
+                            context,
+                            e.toString().replaceFirst('Exception: ', ''),
+                          );
+                        }
+                      }
+                    },
+              icon: const Icon(Icons.auto_awesome),
+              label: Text(salvando ? 'Criando...' : 'Criar evento'),
+            ),
+          ],
+        ),
+      ),
+    );
+    precoController.dispose();
+    if (criado == true) {
+      await _carregar();
+      if (mounted) {
+        AppSnackBar.sucesso(
+          context,
+          'Evento, atração e lote criados com sucesso.',
+        );
+      }
+    }
+  }
+
   Future<void> _remover(EventoAtracao p) async {
     try {
       await _repo.removerProgramacao(p.programacaoId);
@@ -476,49 +631,69 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
               if (n < 1 || n > dias) return const SizedBox();
               final data = DateTime(_mes.year, _mes.month, n),
                   eventos = _doDia(data);
-              return Container(
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: ClubbarColors.branco,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: ClubbarColors.borda),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$n',
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+              return InkWell(
+                onTap: eventos.isEmpty ? () => _criarEventoNoDia(data) : null,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: eventos.isEmpty
+                        ? ClubbarColors.branco
+                        : ClubbarColors.fundoCard,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: eventos.isEmpty
+                          ? ClubbarColors.ambarClaro
+                          : ClubbarColors.borda,
                     ),
-                    const SizedBox(height: 3),
-                    ...eventos
-                        .take(largura < 700 ? 2 : 4)
-                        .map(
-                          (e) => Expanded(
-                            child: InkWell(
-                              onTap: () => _abrirEvento(e),
-                              child: Container(
-                                width: double.infinity,
-                                margin: const EdgeInsets.only(bottom: 3),
-                                padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  color: ClubbarColors.ambarClaro,
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: Text(
-                                  '${DateFormat('HH:mm').format(_horarioNoDia(e, data))} ${e.titulo}\n${e.atracoes.length} atração(ões)',
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$n',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 3),
+                      ...eventos
+                          .take(largura < 700 ? 2 : 4)
+                          .map(
+                            (e) => Expanded(
+                              child: InkWell(
+                                onTap: () => _abrirEvento(e),
+                                child: Container(
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.only(bottom: 3),
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: ClubbarColors.ambarClaro,
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: Text(
+                                    '${DateFormat('HH:mm').format(_horarioNoDia(e, data))} ${e.titulo}\n${e.atracoes.length} atração(ões)',
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
+                      if (eventos.isEmpty) const Spacer(),
+                      if (eventos.isEmpty)
+                        const Align(
+                          alignment: Alignment.bottomRight,
+                          child: Icon(
+                            Icons.add_circle_outline,
+                            size: 16,
+                            color: ClubbarColors.ambarEscuro,
+                          ),
                         ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
