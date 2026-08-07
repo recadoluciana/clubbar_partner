@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -90,7 +88,16 @@ class _LeitorQrRetiradaIngressoScreenState
     await tocarBeep();
 
     try {
-      final data = jsonDecode(raw);
+      const prefixo = 'CLUBBAR-INGRESSO:';
+      final conteudo = raw.trim();
+      if (!conteudo.startsWith(prefixo)) {
+        throw Exception('QR Code de ingresso inválido.');
+      }
+      final token = conteudo.substring(prefixo.length).trim();
+      if (token.isEmpty) {
+        throw Exception('Token do ingresso não informado.');
+      }
+      final data = await ApiService.buscarProdutoPorToken(token: token);
 
       final tipo = (data['idtipoproduto'] ?? '').toString().toUpperCase();
 
@@ -114,7 +121,6 @@ class _LeitorQrRetiradaIngressoScreenState
         return;
       }
 
-      final itvendaId = data['itvenda_id'];
       final loja = data['nmloja'];
       final cliente = data['nmcliente'];
       final produto = data['nmproduto'];
@@ -218,11 +224,8 @@ class _LeitorQrRetiradaIngressoScreenState
             ElevatedButton(
               onPressed: () async {
                 try {
-                  final resposta = await ApiService.confirmarRetirada(
-                    itvendaId: itvendaId is int
-                        ? itvendaId
-                        : int.parse(itvendaId.toString()),
-                  );
+                  final resposta =
+                      await ApiService.confirmarRetiradaPorToken(token: token);
 
                   if (!mounted) return;
 
