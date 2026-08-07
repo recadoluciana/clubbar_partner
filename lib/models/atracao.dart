@@ -53,6 +53,7 @@ class AgendaEvento {
   final DateTime? fim;
   final String status;
   final List<EventoAtracao> atracoes;
+  final String? bannerEvento;
   const AgendaEvento({
     required this.eventoId,
     required this.titulo,
@@ -60,6 +61,7 @@ class AgendaEvento {
     this.fim,
     required this.status,
     required this.atracoes,
+    this.bannerEvento,
   });
   factory AgendaEvento.fromJson(Map<String, dynamic> j) => AgendaEvento(
     eventoId: int.tryParse('${j['evento_id'] ?? 0}') ?? 0,
@@ -69,6 +71,7 @@ class AgendaEvento {
         ? null
         : DateTime.tryParse(j['dtfimevento'].toString()),
     status: '${j['statusevento'] ?? ''}',
+    bannerEvento: j['urlbannerevento']?.toString(),
     atracoes: (j['atracoes'] as List? ?? const [])
         .map((e) => EventoAtracao.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList(),
