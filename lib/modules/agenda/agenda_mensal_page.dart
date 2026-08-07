@@ -404,14 +404,47 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     }
   }
 
-  Future<void> _remover(EventoAtracao p) async {
+  Future<void> _remover(AgendaEvento evento, EventoAtracao p) async {
+    final excluiEvento = evento.atracoes.length == 1;
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          excluiEvento ? 'Excluir evento completo?' : 'Remover atração?',
+        ),
+        content: Text(
+          excluiEvento
+              ? 'Esta é a última atração do evento. Ao continuar, todos os lotes serão excluídos primeiro e depois o evento "${evento.titulo}" será excluído por completo. Esta operação não pode ser desfeita.'
+              : 'Deseja remover a atração "${p.atracao.nome}" deste evento?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: excluiEvento
+                ? FilledButton.styleFrom(backgroundColor: ClubbarColors.erro)
+                : null,
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(excluiEvento ? 'Excluir evento' : 'Remover'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
     try {
       await _repo.removerProgramacao(p.programacaoId);
-      if (mounted) {
-        Navigator.pop(context);
-        await _carregar();
-        AppSnackBar.sucesso(context, 'Atração removida da agenda.');
-      }
+      if (!mounted) return;
+      Navigator.pop(context);
+      await _carregar();
+      if (!mounted) return;
+      AppSnackBar.sucesso(
+        context,
+        excluiEvento
+            ? 'Lotes e evento excluídos com sucesso.'
+            : 'Atração removida da agenda.',
+      );
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, e.toString());
     }
@@ -480,7 +513,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                         Icons.delete_outline,
                         color: ClubbarColors.erro,
                       ),
-                      onPressed: () => _remover(p),
+                      onPressed: () => _remover(e, p),
                     ),
                   ),
                 ),

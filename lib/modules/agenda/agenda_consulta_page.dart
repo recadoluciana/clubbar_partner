@@ -19,6 +19,8 @@ class AgendaConsultaPage extends StatefulWidget {
 }
 
 class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
+  static const _clubbarAppUrl = 'https://app.clubbar.com.br';
+  static const _tamanhoImagem = 128.0;
   final _repo = AtracaoRepository(), _lojaRepo = LojaRepository();
   DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
   List<Loja> _lojas = [];
@@ -161,6 +163,13 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
       }
       b.writeln();
     }
+    b
+      ..writeln('Compre seu ingresso digital pelo Clubbar App:')
+      ..writeln(_clubbarAppUrl)
+      ..writeln()
+      ..writeln(
+        'Cadastre-se para comprar. Seu ingresso ficará na carteira digital do aplicativo e deverá ser apresentado pelo QR Code na portaria do local.',
+      );
     return b.toString().trim();
   }
 
@@ -260,55 +269,59 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
         ),
       );
     }).toList();
-    final placeholder = Container(
+    final placeholder = ColoredBox(
       color: ClubbarColors.ambarClaro,
-      child: const Icon(Icons.event, size: 42),
+      child: const Center(child: Icon(Icons.event, size: 42)),
     );
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: 120,
-              child: img == null
-                  ? placeholder
-                  : Image.network(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: _tamanhoImagem,
+            height: _tamanhoImagem,
+            child: img == null
+                ? placeholder
+                : ClipRect(
+                    child: Image.network(
                       img,
+                      width: _tamanhoImagem,
+                      height: _tamanhoImagem,
                       fit: BoxFit.cover,
+                      alignment: Alignment.center,
                       errorBuilder: (_, _, _) => placeholder,
                     ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(13),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${DateFormat('dd/MM').format(o.inicio)} - ${_semana(o.inicio)} às ${DateFormat('HH:mm').format(o.inicio)}',
-                      style: const TextStyle(
-                        color: ClubbarColors.ambarEscuro,
-                        fontWeight: FontWeight.w900,
-                      ),
+                  ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(13),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${DateFormat('dd/MM').format(o.inicio)} - ${_semana(o.inicio)} às ${DateFormat('HH:mm').format(o.inicio)}',
+                    style: const TextStyle(
+                      color: ClubbarColors.ambarEscuro,
+                      fontWeight: FontWeight.w900,
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      o.evento.titulo,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    o.evento.titulo,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
                     ),
-                    ...detalhes,
-                  ],
-                ),
+                  ),
+                  ...detalhes,
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
