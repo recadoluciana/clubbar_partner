@@ -46,7 +46,6 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await AuthService.login(email, senha);
 
-      final isSuperAdmin = await StorageService.isSuperAdmin();
       final cargo = await StorageService.getCargo();
       final cargoUpper = (cargo ?? '').trim().toUpperCase();
 
@@ -65,9 +64,7 @@ class _LoginPageState extends State<LoginPage> {
         destino = const BarmanHomePage();
       } else if (cargoUpper == 'PORTEIRO') {
         destino = const PorteiroHomePage();
-      } else if (cargoUpper == 'SUPERADMIN' ||
-          cargoUpper == 'ADMIN' ||
-          cargoUpper == 'GERENTE') {
+      } else if (cargoUpper == 'ADMIN' || cargoUpper == 'GERENTE') {
         destino = const DashboardPage();
       }
 

@@ -13,6 +13,7 @@ class EventoLoteFormPage extends StatefulWidget {
   final int eventoId;
   final int organizacaoId;
   final int lojaId;
+  final String? eventoInicio;
   final EventoLote? lote;
 
   const EventoLoteFormPage({
@@ -20,6 +21,7 @@ class EventoLoteFormPage extends StatefulWidget {
     required this.eventoId,
     required this.organizacaoId,
     required this.lojaId,
+    this.eventoInicio,
     this.lote,
   });
 
@@ -210,6 +212,31 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       return;
     }
 
+    final inicioEvento = DateTime.tryParse(widget.eventoInicio ?? '');
+    if (inicioEvento != null) {
+      if (_dataInicioSelecionada != null &&
+          !_dataInicioSelecionada!.isBefore(inicioEvento)) {
+        AppSnackBar.aviso(
+          context,
+          'O início das vendas deve acontecer antes do início do evento.',
+        );
+        return;
+      }
+      if (_dataFimSelecionada == null) {
+        AppSnackBar.aviso(
+          context,
+          'Informe o fim das vendas, que deve ocorrer antes do evento.',
+        );
+        return;
+      }
+      if (!_dataFimSelecionada!.isBefore(inicioEvento)) {
+        AppSnackBar.aviso(
+          context,
+          'O fim das vendas deve acontecer antes do início do evento.',
+        );
+        return;
+      }
+    }
     setState(() => _salvando = true);
 
     try {

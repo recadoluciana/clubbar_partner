@@ -1,168 +1,532 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class PainelGerencialPage extends StatelessWidget {
+import '../../core/repositories/painel_gerencial_repository.dart';
+import '../../core/services/storage_service.dart';
+import '../../core/theme/clubbar_colors.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_card.dart';
+import '../../core/widgets/clubbar_page_header.dart';
+import '../../models/painel_gerencial.dart';
+
+class PainelGerencialPage extends StatefulWidget {
   const PainelGerencialPage({super.key});
+
+  @override
+  State<PainelGerencialPage> createState() => _PainelGerencialPageState();
+}
+
+class _PainelGerencialPageState extends State<PainelGerencialPage> {
+  final _repository = PainelGerencialRepository();
+  final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+  final _inteiro = NumberFormat.decimalPattern('pt_BR');
+  final _data = DateFormat('dd/MM/yyyy');
+
+  static const _coresGrafico = <Color>[
+    ClubbarColors.ambar,
+    ClubbarColors.info,
+    ClubbarColors.sucesso,
+    ClubbarColors.aviso,
+    Color(0xFF7E57C2),
+    Color(0xFF00838F),
+  ];
+
+  PainelGerencial? _painel;
+  bool _carregando = true;
+  String? _erro;
+  String _nomeOrganizacao = 'Organização não identificada';
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  String _mensagemErro(Object erro) =>
+      erro.toString().replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
+
+  Future<void> _carregar() async {
+    if (!_carregando) setState(() => _carregando = true);
+    try {
+      final resultados = await Future.wait([
+        _repository.buscar(),
+        StorageService.getNomeOrganizacao(),
+      ]);
+      if (!mounted) return;
+      final nome = (resultados[1] as String? ?? '').trim();
+      setState(() {
+        _painel = resultados[0] as PainelGerencial;
+        _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+        _erro = null;
+        _carregando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      final mensagem = _mensagemErro(e);
+      setState(() {
+        _erro = mensagem;
+        _carregando = false;
+      });
+      AppSnackBar.erro(context, mensagem);
+    }
+  }
+
+  Widget _botaoAtualizar() {
+    return Tooltip(
+      message: 'Atualizar',
+      child: SizedBox.square(
+        dimension: 40,
+        child: IconButton(
+          onPressed: _carregando ? null : _carregar,
+          icon: const Icon(Icons.refresh_rounded, size: 22),
+          color: ClubbarColors.preto,
+          style: IconButton.styleFrom(
+            backgroundColor: ClubbarColors.ambar,
+            disabledBackgroundColor: ClubbarColors.borda,
+            shape: const CircleBorder(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _subtitulo() {
+    final painel = _painel;
+    if (_carregando && painel == null) return 'Carregando indicadores...';
+    if (painel?.periodoInicio == null || painel?.periodoFim == null) {
+      return _nomeOrganizacao;
+    }
+    return '$_nomeOrganizacao • ${_data.format(painel!.periodoInicio!)} a '
+        '${_data.format(painel.periodoFim!)}';
+  }
+
+  Widget _kpi({
+    required String titulo,
+    required String valor,
+    required IconData icone,
+  }) {
+    return ClubbarCard(
+      elevation: 1,
+      padding: const EdgeInsets.all(15),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: ClubbarColors.ambarClaro,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(icone, color: ClubbarColors.ambarEscuro),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: ClubbarColors.textoSecundario,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    valor,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _kpis(PainelGerencial painel) {
+    final totalProdutos = painel.produtosMaisVendidos.fold<double>(
+      0,
+      (total, item) => total + item.valor,
+    );
+    final totalIngressos = painel.ingressosMaisVendidos.fold<double>(
+      0,
+      (total, item) => total + item.valor,
+    );
+    final referenciaMes = painel.periodoFim ?? DateTime.now();
+    final nomeMes = DateFormat('MMMM', 'pt_BR').format(referenciaMes);
+
+    final itens = [
+      (
+        'Total vendido hoje',
+        _moeda.format(painel.totalHoje),
+        Icons.payments_outlined,
+      ),
+      (
+        'Total vendido no mês - $nomeMes',
+        _moeda.format(painel.totalMes),
+        Icons.bar_chart_rounded,
+      ),
+      (
+        'Total vendido em produtos no mês',
+        _moeda.format(totalProdutos),
+        Icons.shopping_bag_outlined,
+      ),
+      (
+        'Total vendido em ingressos no mês',
+        _moeda.format(totalIngressos),
+        Icons.confirmation_number_outlined,
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final colunas = constraints.maxWidth >= 1000
+            ? 4
+            : constraints.maxWidth >= 560
+            ? 2
+            : 1;
+        final largura = (constraints.maxWidth - (12 * (colunas - 1))) / colunas;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: itens
+              .map(
+                (item) => SizedBox(
+                  width: largura,
+                  child: _kpi(titulo: item.$1, valor: item.$2, icone: item.$3),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+
+  Widget _participacao(PainelGerencial painel) {
+    final itens = painel.participacaoLojas;
+    return ClubbarCard(
+      elevation: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Participação por loja',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 14),
+          if (itens.isEmpty || painel.totalMes <= 0)
+            const _EstadoSemDados(mensagem: 'Nenhuma venda paga no período.')
+          else ...[
+            SizedBox(
+              height: 190,
+              child: PieChart(
+                PieChartData(
+                  centerSpaceRadius: 38,
+                  sectionsSpace: 2,
+                  sections: List.generate(itens.length, (index) {
+                    final item = itens[index];
+                    return PieChartSectionData(
+                      color: _coresGrafico[index % _coresGrafico.length],
+                      value: item.valor,
+                      radius: 52,
+                      title: '${item.percentual.toStringAsFixed(1)}%',
+                      titleStyle: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...List.generate(itens.length, (index) {
+              final item = itens[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 11,
+                      height: 11,
+                      decoration: BoxDecoration(
+                        color: _coresGrafico[index % _coresGrafico.length],
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item.nomeLoja,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      _moeda.format(item.valor),
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _graficoProdutos(PainelGerencial painel) {
+    final itens = painel.produtosMaisVendidos.take(5).toList();
+    final maior = itens.fold<int>(
+      0,
+      (valor, item) => item.quantidade > valor ? item.quantidade : valor,
+    );
+    return ClubbarCard(
+      elevation: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Produtos mais vendidos',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 14),
+          if (itens.isEmpty)
+            const _EstadoSemDados(
+              mensagem: 'Nenhum produto vendido no período.',
+            )
+          else
+            SizedBox(
+              height: 250,
+              child: BarChart(
+                BarChartData(
+                  maxY: maior <= 0 ? 1 : maior * 1.2,
+                  borderData: FlBorderData(show: false),
+                  gridData: const FlGridData(show: false),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 38,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index < 0 || index >= itens.length) {
+                            return const SizedBox.shrink();
+                          }
+                          final nome = itens[index].nome;
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 7),
+                            child: Text(
+                              nome.length > 8
+                                  ? '${nome.substring(0, 8)}…'
+                                  : nome,
+                              style: const TextStyle(fontSize: 9),
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  barGroups: List.generate(itens.length, (index) {
+                    return BarChartGroupData(
+                      x: index,
+                      barRods: [
+                        BarChartRodData(
+                          toY: itens[index].quantidade.toDouble(),
+                          width: 18,
+                          color: ClubbarColors.ambar,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(5),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ranking({
+    required String titulo,
+    required List<ItemRankingGerencial> itens,
+    required String vazio,
+  }) {
+    return ClubbarCard(
+      elevation: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            titulo,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 14),
+          if (itens.isEmpty)
+            _EstadoSemDados(mensagem: vazio)
+          else
+            ...itens.take(5).toList().asMap().entries.map((entry) {
+              final item = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 11),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 15,
+                      backgroundColor: ClubbarColors.ambarClaro,
+                      foregroundColor: ClubbarColors.preto,
+                      child: Text(
+                        '${entry.key + 1}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.nome,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            '${_inteiro.format(item.quantidade)} vendidos • ${_moeda.format(item.valor)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: ClubbarColors.textoSecundario,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _conteudo(PainelGerencial painel) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final largo = constraints.maxWidth >= 820;
+        return Column(
+          children: [
+            _kpis(painel),
+            const SizedBox(height: 14),
+            if (largo)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _participacao(painel)),
+                  const SizedBox(width: 14),
+                  Expanded(child: _graficoProdutos(painel)),
+                ],
+              )
+            else ...[
+              _participacao(painel),
+              const SizedBox(height: 14),
+              _graficoProdutos(painel),
+            ],
+            const SizedBox(height: 14),
+            if (largo)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _ranking(
+                      titulo: 'Ranking de produtos',
+                      itens: painel.produtosMaisVendidos,
+                      vazio: 'Nenhum produto vendido.',
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _ranking(
+                      titulo: 'Ranking de ingressos',
+                      itens: painel.ingressosMaisVendidos,
+                      vazio: 'Nenhum ingresso vendido.',
+                    ),
+                  ),
+                ],
+              )
+            else ...[
+              _ranking(
+                titulo: 'Ranking de produtos',
+                itens: painel.produtosMaisVendidos,
+                vazio: 'Nenhum produto vendido.',
+              ),
+              const SizedBox(height: 14),
+              _ranking(
+                titulo: 'Ranking de ingressos',
+                itens: painel.ingressosMaisVendidos,
+                vazio: 'Nenhum ingresso vendido.',
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Painel gerencial',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-              ),
+            ClubbarPageHeader(
+              titulo: 'Painel gerencial',
+              subtitulo: _subtitulo(),
+              trailing: _botaoAtualizar(),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Indicadores gerenciais e acompanhamento de vendas',
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(height: 22),
-
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: const [
-                _KpiCard(
-                  titulo: 'Total Hoje',
-                  valor: 'R\$ 3.250,00',
-                  icone: Icons.attach_money,
-                ),
-                _KpiCard(
-                  titulo: 'Total no Mês',
-                  valor: 'R\$ 48.900,00',
-                  icone: Icons.bar_chart,
-                ),
-                _KpiCard(
-                  titulo: 'Pedidos',
-                  valor: '184',
-                  icone: Icons.shopping_bag_outlined,
-                ),
-                _KpiCard(
-                  titulo: 'Ingressos Vendidos',
-                  valor: '327',
-                  icone: Icons.confirmation_number_outlined,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final mobile = constraints.maxWidth < 900;
-
-                if (mobile) {
-                  return Column(
-                    children: const [
-                      _PainelPizza(),
-                      SizedBox(height: 16),
-                      _PainelBarras(),
-                    ],
-                  );
-                }
-
-                return const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: _PainelPizza()),
-                    SizedBox(width: 16),
-                    Expanded(child: _PainelBarras()),
-                  ],
-                );
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final mobile = constraints.maxWidth < 1100;
-
-                if (mobile) {
-                  return Column(
-                    children: const [
-                      _ListaRanking(
-                        titulo: 'Produtos Mais Vendidos',
-                        itens: [
-                          '1. Heineken Long Neck - 120 un',
-                          '2. Combo Whisky - 84 un',
-                          '3. Água Mineral - 73 un',
-                          '4. Red Bull - 66 un',
-                        ],
+            Expanded(
+              child: _carregando && _painel == null
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: ClubbarColors.ambar,
                       ),
-                      SizedBox(height: 16),
-                      _ListaRanking(
-                        titulo: 'Total de Vendas por Loja',
-                        itens: [
-                          'Canto da Ema - R\$ 18.500,00',
-                          'Bar do Centro - R\$ 12.300,00',
-                          'Arena Club - R\$ 9.980,00',
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      _ListaRanking(
-                        titulo: 'Vendas de Ingressos',
-                        itens: [
-                          'Lote Promocional - 142 vendidos',
-                          '1º Lote - 98 vendidos',
-                          'VIP - 47 vendidos',
-                        ],
-                      ),
-                    ],
-                  );
-                }
-
-                return const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _ListaRanking(
-                        titulo: 'Produtos Mais Vendidos',
-                        itens: [
-                          '1. Heineken Long Neck - 120 un',
-                          '2. Combo Whisky - 84 un',
-                          '3. Água Mineral - 73 un',
-                          '4. Red Bull - 66 un',
-                        ],
+                    )
+                  : _erro != null && _painel == null
+                  ? _EstadoErro(mensagem: _erro!, onTentarNovamente: _carregar)
+                  : RefreshIndicator(
+                      onRefresh: _carregar,
+                      color: ClubbarColors.ambar,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(16),
+                        children: [_conteudo(_painel!)],
                       ),
                     ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: _ListaRanking(
-                        titulo: 'Total de Vendas por Loja',
-                        itens: [
-                          'Canto da Ema - R\$ 18.500,00',
-                          'Bar do Centro - R\$ 12.300,00',
-                          'Arena Club - R\$ 9.980,00',
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: _ListaRanking(
-                        titulo: 'Vendas de Ingressos',
-                        itens: [
-                          'Lote Promocional - 142 vendidos',
-                          '1º Lote - 98 vendidos',
-                          'VIP - 47 vendidos',
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
             ),
           ],
         ),
@@ -171,192 +535,57 @@ class PainelGerencialPage extends StatelessWidget {
   }
 }
 
-class _KpiCard extends StatelessWidget {
-  final String titulo;
-  final String valor;
-  final IconData icone;
-
-  const _KpiCard({
-    required this.titulo,
-    required this.valor,
-    required this.icone,
-  });
+class _EstadoSemDados extends StatelessWidget {
+  final String mensagem;
+  const _EstadoSemDados({required this.mensagem});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 240,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icone, color: Colors.amber.shade800),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  valor,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 22),
+      child: Center(
+        child: Text(
+          mensagem,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: ClubbarColors.textoSecundario),
+        ),
       ),
     );
   }
 }
 
-class _PainelPizza extends StatelessWidget {
-  const _PainelPizza();
+class _EstadoErro extends StatelessWidget {
+  final String mensagem;
+  final Future<void> Function() onTentarNovamente;
+  const _EstadoErro({required this.mensagem, required this.onTentarNovamente});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 320,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Participação por Loja',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 18),
-          Expanded(
-            child: PieChart(
-              PieChartData(
-                sectionsSpace: 2,
-                centerSpaceRadius: 42,
-                sections: [
-                  PieChartSectionData(value: 40, title: '40%'),
-                  PieChartSectionData(value: 30, title: '30%'),
-                  PieChartSectionData(value: 20, title: '20%'),
-                  PieChartSectionData(value: 10, title: '10%'),
-                ],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 52,
+              color: ClubbarColors.erro,
+            ),
+            const SizedBox(height: 12),
+            Text(mensagem, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onTentarNovamente,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Tentar novamente'),
+              style: FilledButton.styleFrom(
+                backgroundColor: ClubbarColors.ambar,
+                foregroundColor: ClubbarColors.preto,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PainelBarras extends StatelessWidget {
-  const _PainelBarras();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 320,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Produtos Mais Vendidos',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 18),
-          Expanded(
-            child: BarChart(
-              BarChartData(
-                titlesData: FlTitlesData(show: true),
-                borderData: FlBorderData(show: false),
-                gridData: FlGridData(show: true),
-                barGroups: [
-                  BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 120)]),
-                  BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 84)]),
-                  BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 73)]),
-                  BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 66)]),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ListaRanking extends StatelessWidget {
-  final String titulo;
-  final List<String> itens;
-
-  const _ListaRanking({
-    required this.titulo,
-    required this.itens,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            titulo,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 14),
-          ...itens.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                item,
-                style: const TextStyle(fontSize: 15),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

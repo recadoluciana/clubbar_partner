@@ -36,7 +36,6 @@ class _LojaListPageState extends State<LojaListPage> {
   String _nomeOrganizacao = 'Organização não identificada';
   bool _carregandoOrganizacao = true;
   String _cargo = '';
-  bool _isSuperAdmin = false;
   int? _lojaUsuarioId;
   bool _carregandoPermissoes = true;
   int? _alterandoStatusLojaId;
@@ -55,7 +54,6 @@ class _LojaListPageState extends State<LojaListPage> {
   Future<void> _carregarPermissoes() async {
     final resultados = await Future.wait<dynamic>([
       StorageService.getCargo(),
-      StorageService.isSuperAdmin(),
       StorageService.getLojaId(),
     ]);
 
@@ -63,15 +61,13 @@ class _LojaListPageState extends State<LojaListPage> {
 
     setState(() {
       _cargo = (resultados[0] as String? ?? '').trim().toUpperCase();
-      _isSuperAdmin = resultados[1] as bool;
-      _lojaUsuarioId = resultados[2] as int?;
+      _lojaUsuarioId = resultados[1] as int?;
       _carregandoPermissoes = false;
     });
   }
 
   bool get _podeIncluirExcluir {
-    return !_carregandoPermissoes &&
-        (_isSuperAdmin || _cargo == 'SUPERADMIN' || _cargo == 'ADMIN');
+    return !_carregandoPermissoes && _cargo == 'ADMIN';
   }
 
   bool _podeAlterarLoja(Loja loja) {

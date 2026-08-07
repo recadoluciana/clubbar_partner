@@ -223,8 +223,11 @@ class _EventoListPageState extends State<EventoListPage> {
 
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) =>
-            EventoFormPage(organizacaoId: widget.organizacaoId, lojaId: lojaId),
+        builder: (_) => EventoFormPage(
+          organizacaoId: widget.organizacaoId,
+          lojaId: lojaId,
+          nomeLoja: _nomeLojaSelecionada(),
+        ),
       ),
     );
 
@@ -240,6 +243,7 @@ class _EventoListPageState extends State<EventoListPage> {
         builder: (_) => EventoFormPage(
           organizacaoId: widget.organizacaoId,
           lojaId: lojaId,
+          nomeLoja: _nomeLojaSelecionada(),
           evento: evento,
         ),
       ),
@@ -259,6 +263,7 @@ class _EventoListPageState extends State<EventoListPage> {
           eventoTitulo: evento.nmtituloevento,
           organizacaoId: widget.organizacaoId,
           lojaId: lojaId,
+          eventoInicio: evento.dtinicioevento,
         ),
       ),
     );

@@ -12,7 +12,6 @@ class StorageService {
 
   // NOVOS
   static const String _cargoKey = 'dscargo';
-  static const String _superAdminKey = 'is_superadmin';
 
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -84,17 +83,6 @@ class StorageService {
   static Future<String?> getCargo() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_cargoKey);
-  }
-
-  static Future<void> saveSuperAdmin(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_superAdminKey, value);
-  }
-
-  static Future<bool> isSuperAdmin() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    return prefs.getBool(_superAdminKey) ?? false;
   }
 
   static Future<void> clearToken() async {

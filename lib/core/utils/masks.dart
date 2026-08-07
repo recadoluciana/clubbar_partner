@@ -4,25 +4,51 @@ import 'package:flutter/services.dart';
 
 class DecimalInputFormatter extends TextInputFormatter {
   final int casasDecimais;
+  final bool usarSeparadorMilhar;
 
-  const DecimalInputFormatter({this.casasDecimais = 2});
+  const DecimalInputFormatter({
+    this.casasDecimais = 2,
+    this.usarSeparadorMilhar = false,
+  });
 
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    var texto = newValue.text
-        .replaceAll('.', ',')
-        .replaceAll(RegExp(r'[^0-9,]'), '');
+    final entrada = newValue.text.trim();
+    var texto = entrada.contains(',')
+        ? entrada.replaceAll('.', '')
+        : entrada.replaceFirst('.', ',');
+    texto = texto.replaceAll(RegExp(r'[^0-9,]'), '');
 
     final primeiraVirgula = texto.indexOf(',');
+    String inteiro;
+    String? decimal;
+
     if (primeiraVirgula >= 0) {
-      final inteiro = texto.substring(0, primeiraVirgula);
-      final decimal = texto.substring(primeiraVirgula + 1).replaceAll(',', '');
-      texto =
-          '$inteiro,${decimal.substring(0, decimal.length.clamp(0, casasDecimais))}';
+      inteiro = texto.substring(0, primeiraVirgula);
+      final decimaisDigitados = texto
+          .substring(primeiraVirgula + 1)
+          .replaceAll(',', '');
+      decimal = decimaisDigitados.substring(
+        0,
+        decimaisDigitados.length.clamp(0, casasDecimais),
+      );
+    } else {
+      inteiro = texto;
     }
+
+    inteiro = inteiro.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+
+    if (usarSeparadorMilhar && inteiro.isNotEmpty) {
+      inteiro = inteiro.replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'),
+        (_) => '.',
+      );
+    }
+
+    texto = decimal == null ? inteiro : '$inteiro,$decimal';
 
     return TextEditingValue(
       text: texto,

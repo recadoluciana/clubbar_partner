@@ -451,11 +451,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
 
       if (arquivo == null) return;
 
-      Uint8List? bytes;
-
-      if (kIsWeb) {
-        bytes = await arquivo.readAsBytes();
-      }
+      final bytes = await arquivo.readAsBytes();
 
       if (!mounted) return;
 
@@ -648,20 +644,16 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     }
 
     if (_imagemSelecionada != null) {
-      if (kIsWeb && _imagemBytes != null) {
+      if (_imagemBytes != null) {
         return Image.memory(
           _imagemBytes!,
           fit: BoxFit.cover,
           width: double.infinity,
+          errorBuilder: (_, _, _) => placeholder(),
         );
       }
 
-      return Image.network(
-        _imagemSelecionada!.path,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        errorBuilder: (_, _, _) => placeholder(),
-      );
+      return placeholder();
     }
 
     if (editando && imagemAtualUrl.isNotEmpty) {
@@ -769,7 +761,9 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           TextFormField(
             controller: _precoController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: const [DecimalInputFormatter()],
+            inputFormatters: const [
+              DecimalInputFormatter(usarSeparadorMilhar: true),
+            ],
             decoration: _decoracaoCampo(
               label: 'Preço',
               icone: Icons.attach_money_rounded,
@@ -925,7 +919,11 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             controller: _vrDescontoController,
             enabled: _descontoAtivo,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: const [DecimalInputFormatter()],
+            inputFormatters: [
+              DecimalInputFormatter(
+                usarSeparadorMilhar: _tipoDescontoSelecionado == 'VALOR',
+              ),
+            ],
             decoration: _decoracaoCampo(
               label: _tipoDescontoSelecionado == 'PERCENTUAL'
                   ? 'Desconto (%)'

@@ -15,6 +15,7 @@ class EventoLoteListPage extends StatefulWidget {
   final String eventoTitulo;
   final int organizacaoId;
   final int lojaId;
+  final String? eventoInicio;
 
   const EventoLoteListPage({
     super.key,
@@ -22,6 +23,7 @@ class EventoLoteListPage extends StatefulWidget {
     required this.eventoTitulo,
     required this.organizacaoId,
     required this.lojaId,
+    this.eventoInicio,
   });
 
   @override
@@ -139,6 +141,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           eventoId: widget.eventoId,
           organizacaoId: widget.organizacaoId,
           lojaId: widget.lojaId,
+          eventoInicio: widget.eventoInicio,
         ),
       ),
     );
@@ -152,6 +155,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           eventoId: widget.eventoId,
           organizacaoId: widget.organizacaoId,
           lojaId: widget.lojaId,
+          eventoInicio: widget.eventoInicio,
           lote: lote,
         ),
       ),

@@ -71,10 +71,6 @@ class AuthService {
       }
 
       await StorageService.saveCargo(cargo);
-
-      await StorageService.saveSuperAdmin(
-        data['is_superadmin'] == true || cargo == 'SUPERADMIN',
-      );
     } on AuthException {
       rethrow;
     } catch (_) {

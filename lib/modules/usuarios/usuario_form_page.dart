@@ -49,7 +49,6 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
   bool get usuarioPrincipal => editando && widget.usuario!.usuarioId == 1;
 
   static const List<String> _cargos = [
-    'SUPERADMIN',
     'ADMIN',
     'GERENTE',
     'CAIXA',
@@ -104,9 +103,6 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
   String _nomeCargo(String cargo) {
     switch (cargo) {
-      case 'SUPERADMIN':
-        return 'Superadministrador';
-
       case 'ADMIN':
         return 'Administrador';
 

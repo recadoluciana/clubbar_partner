@@ -12,6 +12,7 @@ import 'package:clubbar_partner/modules/painel_gerencial/painel_gerencial_page.d
 import 'package:clubbar_partner/modules/produtos/produto_list_page.dart';
 import 'package:clubbar_partner/modules/usuarios/usuario_list_page.dart';
 import 'package:clubbar_partner/modules/organizacao/organizacao_list_page.dart';
+import 'package:clubbar_partner/modules/agenda/agenda_mensal_page.dart';
 
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -106,6 +107,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
       case 'eventos':
         destino = EventoListPage(organizacaoId: organizacaoId);
+        break;
+
+      case 'agenda':
+        destino = AgendaMensalPage(organizacaoId: organizacaoId);
         break;
 
       case 'usuarios':
@@ -217,6 +222,12 @@ class _DashboardPageState extends State<DashboardPage> {
         titulo: 'Eventos',
         subtitulo: 'Shows e ingressos',
         icone: Icons.event_rounded,
+      ),
+      const _DashboardItem(
+        chave: 'agenda',
+        titulo: 'Agenda Mensal',
+        subtitulo: 'Eventos e atrações',
+        icone: Icons.calendar_month_rounded,
       ),
       const _DashboardItem(
         chave: 'usuarios',
