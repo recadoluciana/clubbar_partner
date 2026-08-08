@@ -14,6 +14,7 @@ import 'package:clubbar_partner/modules/usuarios/usuario_list_page.dart';
 import 'package:clubbar_partner/modules/organizacao/organizacao_list_page.dart';
 import 'package:clubbar_partner/modules/agenda/agenda_mensal_page.dart';
 import 'package:clubbar_partner/modules/agenda/agenda_consulta_page.dart';
+import 'package:clubbar_partner/modules/financeiro/financeiro_parceiro_page.dart';
 
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -124,6 +125,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
       case 'painel':
         destino = const PainelGerencialPage();
+        break;
+
+      case 'financeiro':
+        destino = const FinanceiroParceiroPage();
         break;
     }
 
@@ -251,6 +256,12 @@ class _DashboardPageState extends State<DashboardPage> {
         titulo: 'Gerencial',
         subtitulo: 'Indicadores',
         icone: Icons.analytics_rounded,
+      ),
+      const _DashboardItem(
+        chave: 'financeiro',
+        titulo: 'Financeiro',
+        subtitulo: 'Repasses e recebimentos',
+        icone: Icons.account_balance_wallet_rounded,
       ),
     ];
 
