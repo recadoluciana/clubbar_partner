@@ -14,7 +14,6 @@ import 'package:clubbar_partner/modules/financeiro/financeiro_parceiro_page.dart
 
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
-import '../../core/widgets/clubbar_footer.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -348,8 +347,6 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
 
             _conteudo(),
-
-            const ClubbarFooter(),
           ],
         ),
       ),

@@ -1,6 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
+  static final ValueNotifier<int> sessaoAlterada = ValueNotifier<int>(0);
+
+  static void _notificarSessaoAlterada() {
+    sessaoAlterada.value++;
+  }
+
   static const String _tokenKey = 'auth_token';
 
   static const String _lojaIdKey = 'loja_id';
@@ -33,6 +40,11 @@ class StorageService {
     return prefs.getInt(_lojaIdKey);
   }
 
+  static Future<void> clearLojaId() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_lojaIdKey);
+  }
+
   static Future<void> saveOrganizacaoId(int organizacaoId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_organizacaoIdKey, organizacaoId);
@@ -56,6 +68,7 @@ class StorageService {
   static Future<void> saveNomeUsuario(String nome) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_nomeUsuarioKey, nome);
+    _notificarSessaoAlterada();
   }
 
   static Future<String?> getNomeUsuario() async {
@@ -78,6 +91,7 @@ class StorageService {
   static Future<void> saveCargo(String cargo) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_cargoKey, cargo);
+    _notificarSessaoAlterada();
   }
 
   static Future<String?> getCargo() async {
@@ -89,5 +103,6 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.clear();
+    _notificarSessaoAlterada();
   }
 }

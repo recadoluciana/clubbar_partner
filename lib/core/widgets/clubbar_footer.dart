@@ -25,6 +25,7 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
     super.initState();
 
     _carregarUsuario();
+    StorageService.sessaoAlterada.addListener(_carregarUsuario);
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
@@ -38,6 +39,7 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
   @override
   void dispose() {
     _timer?.cancel();
+    StorageService.sessaoAlterada.removeListener(_carregarUsuario);
     super.dispose();
   }
 

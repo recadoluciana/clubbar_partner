@@ -6,6 +6,7 @@ import '../dashboard/dashboard_page.dart';
 import '../../core/services/storage_service.dart';
 import '../leitor_qr/barman_home_page.dart';
 import '../leitor_qr/porteiro_home_page.dart';
+import '../caixa/caixa_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -52,9 +53,9 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       if (cargoUpper == 'CAIXA') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tela do caixa será implementada.')),
-        );
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const CaixaPage()));
         return;
       }
 
@@ -64,7 +65,9 @@ class _LoginPageState extends State<LoginPage> {
         destino = const BarmanHomePage();
       } else if (cargoUpper == 'PORTEIRO') {
         destino = const PorteiroHomePage();
-      } else if (cargoUpper == 'ADMIN' || cargoUpper == 'GERENTE') {
+      } else if (cargoUpper == 'SUPERADMIN' ||
+          cargoUpper == 'ADMIN' ||
+          cargoUpper == 'GERENTE') {
         destino = const DashboardPage();
       }
 
@@ -117,6 +120,7 @@ class _LoginPageState extends State<LoginPage> {
             tooltip: 'Sair',
             onPressed: () async {
               await StorageService.clearToken();
+              if (!context.mounted) return;
 
               if (kIsWeb) {
                 Navigator.of(context).pushAndRemoveUntil(

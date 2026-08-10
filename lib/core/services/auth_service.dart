@@ -54,6 +54,8 @@ class AuthService {
 
       if (lojaId != null) {
         await StorageService.saveLojaId(lojaId);
+      } else {
+        await StorageService.clearLojaId();
       }
 
       if (usuarioId != null) {

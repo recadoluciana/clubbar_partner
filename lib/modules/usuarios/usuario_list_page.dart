@@ -118,6 +118,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       case 'ADMIN':
         return 'Administrador';
 
+      case 'SUPERADMIN':
+        return 'Superadministrador';
+
       case 'GERENTE':
         return 'Gerente';
 
@@ -146,13 +149,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
     }
 
     return usuarios.where((usuario) {
-      return usuario.usuarioId.toString().contains(busca) ||
-          usuario.nmusuario.toLowerCase().contains(busca) ||
-          usuario.emailuser.toLowerCase().contains(busca) ||
-          usuario.dscargo.toLowerCase().contains(busca) ||
-          _nomeCargo(usuario.dscargo).toLowerCase().contains(busca) ||
-          (usuario.situsuario ?? '').toLowerCase().contains(busca) ||
-          _nomeLoja(usuario.lojaId).toLowerCase().contains(busca);
+      return usuario.nmusuario.toLowerCase().contains(busca);
     }).toList();
   }
 
@@ -309,7 +306,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       controller: _buscaController,
       onChanged: _filtrar,
       decoration: InputDecoration(
-        hintText: 'Buscar por nome, e-mail, cargo ou loja',
+        hintText: 'Buscar por nome',
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: _buscaController.text.isNotEmpty
             ? IconButton(
@@ -336,7 +333,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   }
 
   Widget _badgeCargo(Usuario usuario) {
-    final principal = usuario.usuarioId == 1;
+    final principal =
+        usuario.usuarioId == 1 ||
+        usuario.dscargo.trim().toUpperCase() == 'SUPERADMIN';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -377,7 +376,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
     final ativo = status == 'ATIVO' || status == 'ATIVA';
 
-    final principal = usuario.usuarioId == 1;
+    final principal =
+        usuario.usuarioId == 1 ||
+        usuario.dscargo.trim().toUpperCase() == 'SUPERADMIN';
 
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
@@ -628,6 +629,48 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
     return Column(children: _usuariosFiltrados.map(_cardUsuario).toList());
   }
 
+  Widget _botaoCircularHeader({
+    required String tooltip,
+    required IconData icone,
+    required VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      width: 42,
+      height: 42,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icone, size: 22),
+        color: ClubbarColors.preto,
+        disabledColor: ClubbarColors.textoSecundario,
+        style: IconButton.styleFrom(
+          backgroundColor: ClubbarColors.ambar,
+          disabledBackgroundColor: ClubbarColors.borda,
+          shape: const CircleBorder(),
+        ),
+      ),
+    );
+  }
+
+  Widget _acoesHeader() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _botaoCircularHeader(
+          tooltip: 'Atualizar',
+          icone: Icons.refresh_rounded,
+          onPressed: _carregando ? null : _carregarTudo,
+        ),
+        const SizedBox(width: 8),
+        _botaoCircularHeader(
+          tooltip: 'Novo usuário',
+          icone: Icons.person_add_alt_1_rounded,
+          onPressed: _abrirNovoUsuario,
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -643,62 +686,12 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
               subtitulo: _carregando
                   ? 'Carregando usuários...'
                   : '${_usuarios.length} usuário(s) cadastrado(s)',
+              trailing: _acoesHeader(),
             ),
 
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-              child: Column(
-                children: [
-                  _campoBusca(),
-
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 52,
-                          child: ElevatedButton.icon(
-                            onPressed: _abrirNovoUsuario,
-                            icon: const Icon(Icons.person_add_alt_1_rounded),
-                            label: const Text(
-                              'Novo Usuário',
-                              style: TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: ClubbarColors.ambar,
-                              foregroundColor: ClubbarColors.preto,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      SizedBox(
-                        width: 52,
-                        height: 52,
-                        child: OutlinedButton(
-                          onPressed: _carregarTudo,
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            foregroundColor: ClubbarColors.textoPrincipal,
-                            side: const BorderSide(color: ClubbarColors.borda),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Icon(Icons.refresh_rounded),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              child: _campoBusca(),
             ),
 
             const SizedBox(height: 14),

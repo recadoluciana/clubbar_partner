@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/clubbar_footer.dart';
 import 'modules/auth/login_page.dart';
 import 'modules/dashboard/dashboard_page.dart';
 import 'modules/leitor_qr/barman_home_page.dart';
 import 'modules/leitor_qr/porteiro_home_page.dart';
+import 'modules/caixa/caixa_page.dart';
 
 class ClubbarPartnerApp extends StatelessWidget {
   const ClubbarPartnerApp({super.key});
@@ -15,6 +17,12 @@ class ClubbarPartnerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Clubbar Parceiro',
       theme: AppTheme.light,
+      builder: (context, child) => Column(
+        children: [
+          Expanded(child: child ?? const SizedBox.shrink()),
+          const ClubbarFooter(),
+        ],
+      ),
       home: const SplashDeciderPage(),
     );
   }
@@ -64,13 +72,15 @@ class _SplashDeciderPageState extends State<SplashDeciderPage> {
         return const PorteiroHomePage();
       }
 
-      if (cargoUpper == 'BARMAN' ||
-          cargoUpper == 'GARCOM' ||
-          cargoUpper == 'CAIXA') {
+      if (cargoUpper == 'BARMAN' || cargoUpper == 'GARCOM') {
         return const BarmanHomePage();
       }
 
-      if (cargoUpper == 'ADMIN' || cargoUpper == 'GERENTE') {
+      if (cargoUpper == 'CAIXA') return const CaixaPage();
+
+      if (cargoUpper == 'SUPERADMIN' ||
+          cargoUpper == 'ADMIN' ||
+          cargoUpper == 'GERENTE') {
         return const DashboardPage();
       }
       return const LoginPage();

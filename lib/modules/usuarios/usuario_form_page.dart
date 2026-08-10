@@ -46,7 +46,11 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
   bool get editando => widget.usuario != null;
 
-  bool get usuarioPrincipal => editando && widget.usuario!.usuarioId == 1;
+  bool get usuarioPrincipal =>
+      editando && (widget.usuario!.usuarioId == 1 || usuarioSuperadmin);
+
+  bool get usuarioSuperadmin =>
+      editando && widget.usuario!.dscargo.trim().toUpperCase() == 'SUPERADMIN';
 
   static const List<String> _cargos = [
     'ADMIN',
@@ -73,7 +77,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
       _cargoSelecionado = usuario.dscargo.trim().toUpperCase();
 
-      if (!_cargos.contains(_cargoSelecionado)) {
+      if (!_cargos.contains(_cargoSelecionado) && !usuarioSuperadmin) {
         _cargoSelecionado = 'BARMAN';
       }
     }
@@ -290,11 +294,14 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
           ? widget.usuario!.dscargo
           : _cargoSelecionado;
 
-      if ((cargo == 'BARMAN' || cargo == 'PORTEIRO') &&
+      if ((cargo == 'CAIXA' ||
+              cargo == 'BARMAN' ||
+              cargo == 'GARCOM' ||
+              cargo == 'PORTEIRO') &&
           _lojaIdSelecionada == null) {
         AppSnackBar.aviso(
           context,
-          'Barman e Porteiro devem estar vinculados a uma loja.',
+          'Caixa, Barman, Garçom e Porteiro devem estar vinculados a uma loja.',
         );
         setState(() => _salvando = false);
         return;
@@ -420,6 +427,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
   }
 
   Widget _campoCargo() {
+    final cargosDisponiveis = usuarioSuperadmin
+        ? const ['SUPERADMIN', ..._cargos]
+        : _cargos;
     return DropdownButtonFormField<String>(
       initialValue: _cargoSelecionado,
       isExpanded: true,
@@ -433,7 +443,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
               )
             : null,
       ),
-      items: _cargos
+      items: cargosDisponiveis
           .map(
             (cargo) => DropdownMenuItem<String>(
               value: cargo,
@@ -441,7 +451,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
             ),
           )
           .toList(),
-      onChanged: usuarioPrincipal || _salvando
+      onChanged: usuarioPrincipal || usuarioSuperadmin || _salvando
           ? null
           : (value) {
               if (value == null) return;

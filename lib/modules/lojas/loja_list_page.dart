@@ -68,7 +68,8 @@ class _LojaListPageState extends State<LojaListPage> {
     });
   }
 
-  bool get _cargoGerencial => _cargo == 'ADMIN' || _cargo == 'GERENTE';
+  bool get _cargoGerencial =>
+      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'GERENTE';
 
   bool get _podeIncluirLoja {
     return !_carregandoPermissoes && _cargoGerencial && _lojaUsuarioId == null;
