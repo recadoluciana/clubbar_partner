@@ -9,7 +9,7 @@ import 'package:clubbar_partner/modules/lojas/loja_list_page.dart';
 import 'package:clubbar_partner/modules/painel_gerencial/painel_gerencial_page.dart';
 import 'package:clubbar_partner/modules/cardapio/cardapio_loja_page.dart';
 import 'package:clubbar_partner/modules/organizacao/organizacao_list_page.dart';
-import 'package:clubbar_partner/modules/agenda/agenda_mensal_page.dart';
+import 'package:clubbar_partner/modules/agenda/agenda_loja_page.dart';
 import 'package:clubbar_partner/modules/financeiro/financeiro_parceiro_page.dart';
 
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -99,7 +99,7 @@ class _DashboardPageState extends State<DashboardPage> {
         break;
 
       case 'agenda':
-        destino = AgendaMensalPage(organizacaoId: organizacaoId);
+        destino = AgendaLojaPage(organizacaoId: organizacaoId);
         break;
 
       case 'painel':

@@ -18,8 +18,15 @@ import 'evento_lote_list_page.dart';
 
 class EventoListPage extends StatefulWidget {
   final int organizacaoId;
+  final int? lojaIdInicial;
+  final bool fixarLoja;
 
-  const EventoListPage({super.key, required this.organizacaoId});
+  const EventoListPage({
+    super.key,
+    required this.organizacaoId,
+    this.lojaIdInicial,
+    this.fixarLoja = false,
+  });
 
   @override
   State<EventoListPage> createState() => _EventoListPageState();
@@ -45,6 +52,7 @@ class _EventoListPageState extends State<EventoListPage> {
   @override
   void initState() {
     super.initState();
+    _lojaIdSelecionada = widget.lojaIdInicial;
     _carregarLojas();
   }
 
@@ -118,7 +126,7 @@ class _EventoListPageState extends State<EventoListPage> {
       final lojas = await _lojaRepository.listar(widget.organizacaoId);
       if (!mounted) return;
 
-      int? selecionada = _lojaIdSelecionada;
+      int? selecionada = widget.lojaIdInicial ?? _lojaIdSelecionada;
       if (lojas.isNotEmpty) {
         if (!lojas.any((loja) => loja.lojaId == selecionada)) {
           selecionada = lojas.first.lojaId;
@@ -853,8 +861,10 @@ class _EventoListPageState extends State<EventoListPage> {
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
               child: Column(
                 children: [
-                  _campoLoja(),
-                  const SizedBox(height: 12),
+                  if (!widget.fixarLoja) ...[
+                    _campoLoja(),
+                    const SizedBox(height: 12),
+                  ],
                   _campoBusca(),
                 ],
               ),

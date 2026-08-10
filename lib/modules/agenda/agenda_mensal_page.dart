@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/repositories/atracao_repository.dart';
-import '../../core/repositories/loja_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -13,67 +12,45 @@ import '../atracoes/atracao_list_page.dart';
 import '../eventos/evento_list_page.dart';
 
 class AgendaMensalPage extends StatefulWidget {
-  final int organizacaoId;
-  const AgendaMensalPage({super.key, required this.organizacaoId});
+  final Loja loja;
+  const AgendaMensalPage({super.key, required this.loja});
   @override
   State<AgendaMensalPage> createState() => _AgendaMensalPageState();
 }
 
 class _AgendaMensalPageState extends State<AgendaMensalPage> {
   static const _clubbarAppUrl = 'https://app.clubbar.com.br';
-  final _repo = AtracaoRepository(), _lojasRepo = LojaRepository();
+  final _repo = AtracaoRepository();
   DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
-  List<Loja> _lojas = [];
   List<AgendaEvento> _eventos = [];
-  int? _lojaId;
   bool _loading = true;
   String? _erro;
   @override
   void initState() {
     super.initState();
-    _iniciar();
-  }
-
-  Future<void> _iniciar() async {
-    try {
-      final ls = await _lojasRepo.listar(widget.organizacaoId);
-      if (!mounted) return;
-      setState(() {
-        _lojas = ls;
-        _lojaId = ls.isEmpty ? null : ls.first.lojaId;
-      });
-      await _carregar();
-    } catch (e) {
-      if (mounted)
-        setState(() {
-          _erro = e.toString();
-          _loading = false;
-        });
-    }
+    _carregar();
   }
 
   Future<void> _carregar() async {
-    if (_lojaId == null) {
-      setState(() => _loading = false);
-      return;
-    }
     setState(() {
       _loading = true;
       _erro = null;
     });
     try {
-      final es = await _repo.agenda(_lojaId!, _mes);
-      if (mounted)
+      final es = await _repo.agenda(widget.loja.lojaId, _mes);
+      if (mounted) {
         setState(() {
           _eventos = es;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _erro = e.toString().replaceFirst('Exception: ', '');
           _loading = false;
         });
+      }
     }
   }
 
@@ -82,19 +59,8 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     _carregar();
   }
 
-  Loja? get _lojaAtual {
-    for (final loja in _lojas) {
-      if (loja.lojaId == _lojaId) return loja;
-    }
-    return null;
-  }
-
   Future<void> _compartilharAgenda() async {
-    final loja = _lojaAtual;
-    if (loja == null) {
-      AppSnackBar.aviso(context, 'Selecione uma loja para compartilhar.');
-      return;
-    }
+    final loja = widget.loja;
     final eventos =
         _eventos.where((e) => (e.status).toUpperCase() == 'ATIVO').toList()
           ..sort((a, b) => a.inicio.compareTo(b.inicio));
@@ -296,11 +262,12 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                         if (c.mounted) Navigator.pop(c, true);
                       } catch (e) {
                         setLocal(() => salvando = false);
-                        if (mounted)
+                        if (mounted) {
                           AppSnackBar.erro(
                             context,
                             e.toString().replaceFirst('Exception: ', ''),
                           );
+                        }
                       }
                     },
               child: Text(salvando ? 'Salvando...' : 'Salvar'),
@@ -316,8 +283,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   }
 
   Future<void> _criarEventoNoDia(DateTime dia) async {
-    final lojaId = _lojaId;
-    if (lojaId == null) return;
+    final lojaId = widget.loja.lojaId;
     final atracoes = await _repo.listar();
     if (!mounted) return;
     if (atracoes.isEmpty) {
@@ -608,7 +574,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       actions: [
         IconButton(
           tooltip: 'Compartilhar agenda',
-          onPressed: _lojaId == null ? null : _compartilharAgenda,
+          onPressed: _compartilharAgenda,
           icon: const Icon(Icons.share),
         ),
         PopupMenuButton<String>(
@@ -618,8 +584,11 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
             if (valor != 'eventos') return;
             await Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) =>
-                    EventoListPage(organizacaoId: widget.organizacaoId),
+                builder: (_) => EventoListPage(
+                  organizacaoId: widget.loja.organizacaoId,
+                  lojaIdInicial: widget.loja.lojaId,
+                  fixarLoja: true,
+                ),
               ),
             );
             if (mounted) await _carregar();
@@ -643,49 +612,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
         children: [
           ClubbarPageHeader(
             titulo: 'Agenda Mensal',
-            subtitulo: 'Monte a programação de atrações dos seus eventos',
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: _lojaId,
-                    decoration: const InputDecoration(
-                      labelText: 'Loja',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _lojas
-                        .map(
-                          (l) => DropdownMenuItem(
-                            value: l.lojaId,
-                            child: Text(l.nmloja),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      setState(() => _lojaId = v);
-                      _carregar();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AtracaoListPage(),
-                      ),
-                    );
-                    _carregar();
-                  },
-                  icon: const Icon(Icons.mic),
-                  label: const Text('Atrações'),
-                ),
-              ],
-            ),
+            subtitulo: widget.loja.nmloja,
           ),
           Padding(
             padding: const EdgeInsets.all(10),
