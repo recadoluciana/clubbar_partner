@@ -24,6 +24,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   String _nomeOrganizacao = 'Organização';
+  String _cargo = '';
 
   bool _carregando = true;
 
@@ -43,7 +44,12 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _carregarDadosUsuario() async {
     try {
-      final nomeOrganizacao = await StorageService.getNomeOrganizacao();
+      final dados = await Future.wait<dynamic>([
+        StorageService.getNomeOrganizacao(),
+        StorageService.getCargo(),
+      ]);
+      final nomeOrganizacao = dados[0] as String?;
+      final cargo = dados[1] as String?;
 
       if (!mounted) return;
 
@@ -51,6 +57,7 @@ class _DashboardPageState extends State<DashboardPage> {
         _nomeOrganizacao = nomeOrganizacao?.trim().isNotEmpty == true
             ? nomeOrganizacao!.trim()
             : 'Organização';
+        _cargo = (cargo ?? '').trim().toUpperCase();
 
         _carregando = false;
       });
@@ -73,6 +80,16 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _abrirModulo(BuildContext context, String chaveModulo) async {
+    if (chaveModulo == 'painel' &&
+        _cargo != 'SUPERADMIN' &&
+        _cargo != 'ADMIN') {
+      AppSnackBar.aviso(
+        context,
+        'O painel gerencial é exclusivo para Superadmin e Admin.',
+      );
+      return;
+    }
+
     final organizacaoId = await _getOrganizacaoId();
 
     if (organizacaoId == null || organizacaoId == 0) {
@@ -206,12 +223,13 @@ class _DashboardPageState extends State<DashboardPage> {
         subtitulo: 'Eventos e atrações',
         icone: Icons.calendar_month_rounded,
       ),
-      const _DashboardItem(
-        chave: 'painel',
-        titulo: 'Gerencial',
-        subtitulo: 'Indicadores',
-        icone: Icons.analytics_rounded,
-      ),
+      if (_cargo == 'SUPERADMIN' || _cargo == 'ADMIN')
+        const _DashboardItem(
+          chave: 'painel',
+          titulo: 'Gerencial',
+          subtitulo: 'Consolidado das lojas',
+          icone: Icons.analytics_rounded,
+        ),
       const _DashboardItem(
         chave: 'financeiro',
         titulo: 'Financeiro',
