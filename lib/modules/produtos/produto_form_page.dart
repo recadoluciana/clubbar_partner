@@ -19,12 +19,14 @@ class ProdutoFormPage extends StatefulWidget {
   final int lojaId;
   final int organizacaoId;
   final Map<String, dynamic>? produto;
+  final int? categoriaIdInicial;
 
   const ProdutoFormPage({
     super.key,
     required this.lojaId,
     required this.organizacaoId,
     this.produto,
+    this.categoriaIdInicial,
   });
 
   @override
@@ -86,6 +88,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
         produto['dtfimdesconto'],
       );
     } else {
+      _categoriaIdSelecionada = widget.categoriaIdInicial;
       _vrDescontoController.text = '0,00';
     }
 

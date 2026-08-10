@@ -15,8 +15,15 @@ import 'categoria_form_page.dart';
 
 class CategoriaListPage extends StatefulWidget {
   final int organizacaoId;
+  final int? lojaIdInicial;
+  final bool fixarLoja;
 
-  const CategoriaListPage({super.key, required this.organizacaoId});
+  const CategoriaListPage({
+    super.key,
+    required this.organizacaoId,
+    this.lojaIdInicial,
+    this.fixarLoja = false,
+  });
 
   @override
   State<CategoriaListPage> createState() => _CategoriaListPageState();
@@ -42,6 +49,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
   @override
   void initState() {
     super.initState();
+    _lojaIdSelecionada = widget.lojaIdInicial;
     _carregarLojas();
   }
 
@@ -794,8 +802,10 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
               child: Column(
                 children: [
-                  _campoLoja(),
-                  const SizedBox(height: 12),
+                  if (!widget.fixarLoja) ...[
+                    _campoLoja(),
+                    const SizedBox(height: 12),
+                  ],
                   _campoBusca(),
                 ],
               ),

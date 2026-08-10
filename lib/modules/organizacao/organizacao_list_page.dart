@@ -8,6 +8,7 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/organizacao.dart';
 import 'organizacao_form_page.dart';
+import '../usuarios/usuario_list_page.dart';
 
 class OrganizacaoListPage extends StatefulWidget {
   const OrganizacaoListPage({super.key});
@@ -628,7 +629,24 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Gerenciar usuários',
+            icon: const Icon(Icons.people_alt_rounded),
+            onPressed: _organizacao == null
+                ? null
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => UsuarioListPage(
+                        organizacaoId: _organizacao!.organizacaoId,
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [

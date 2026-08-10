@@ -5,15 +5,11 @@ import 'package:clubbar_partner/core/widgets/app_snackbar.dart';
 import 'package:clubbar_partner/core/widgets/dashboard_menu_card.dart';
 
 import 'package:clubbar_partner/modules/auth/login_page.dart';
-import 'package:clubbar_partner/modules/categorias/categoria_list_page.dart';
-import 'package:clubbar_partner/modules/eventos/evento_list_page.dart';
 import 'package:clubbar_partner/modules/lojas/loja_list_page.dart';
 import 'package:clubbar_partner/modules/painel_gerencial/painel_gerencial_page.dart';
-import 'package:clubbar_partner/modules/produtos/produto_list_page.dart';
-import 'package:clubbar_partner/modules/usuarios/usuario_list_page.dart';
+import 'package:clubbar_partner/modules/cardapio/cardapio_loja_page.dart';
 import 'package:clubbar_partner/modules/organizacao/organizacao_list_page.dart';
 import 'package:clubbar_partner/modules/agenda/agenda_mensal_page.dart';
-import 'package:clubbar_partner/modules/agenda/agenda_consulta_page.dart';
 import 'package:clubbar_partner/modules/financeiro/financeiro_parceiro_page.dart';
 
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -99,28 +95,12 @@ class _DashboardPageState extends State<DashboardPage> {
         destino = LojaListPage(organizacaoId: organizacaoId);
         break;
 
-      case 'categorias':
-        destino = CategoriaListPage(organizacaoId: organizacaoId);
-        break;
-
-      case 'produtos':
-        destino = ProdutoListPage(organizacaoId: organizacaoId);
-        break;
-
-      case 'eventos':
-        destino = EventoListPage(organizacaoId: organizacaoId);
+      case 'cardapio':
+        destino = CardapioLojaPage(organizacaoId: organizacaoId);
         break;
 
       case 'agenda':
         destino = AgendaMensalPage(organizacaoId: organizacaoId);
-        break;
-
-      case 'agenda_consulta':
-        destino = AgendaConsultaPage(organizacaoId: organizacaoId);
-        break;
-
-      case 'usuarios':
-        destino = UsuarioListPage(organizacaoId: organizacaoId);
         break;
 
       case 'painel':
@@ -216,40 +196,16 @@ class _DashboardPageState extends State<DashboardPage> {
         icone: Icons.storefront_rounded,
       ),
       const _DashboardItem(
-        chave: 'categorias',
-        titulo: 'Categorias',
-        subtitulo: 'Organização do menu',
-        icone: Icons.category_rounded,
-      ),
-      const _DashboardItem(
-        chave: 'produtos',
-        titulo: 'Produtos',
-        subtitulo: 'Cardápio',
-        icone: Icons.inventory_2_rounded,
-      ),
-      const _DashboardItem(
-        chave: 'eventos',
-        titulo: 'Eventos',
-        subtitulo: 'Shows e ingressos',
-        icone: Icons.event_rounded,
+        chave: 'cardapio',
+        titulo: 'Cardápio Digital',
+        subtitulo: 'Categorias e produtos',
+        icone: Icons.restaurant_menu_rounded,
       ),
       const _DashboardItem(
         chave: 'agenda',
         titulo: 'Agenda Mensal',
         subtitulo: 'Eventos e atrações',
         icone: Icons.calendar_month_rounded,
-      ),
-      const _DashboardItem(
-        chave: 'agenda_consulta',
-        titulo: 'Agenda Pública',
-        subtitulo: 'Visualizar e compartilhar',
-        icone: Icons.ios_share_rounded,
-      ),
-      const _DashboardItem(
-        chave: 'usuarios',
-        titulo: 'Usuários',
-        subtitulo: 'Acessos',
-        icone: Icons.people_alt_rounded,
       ),
       const _DashboardItem(
         chave: 'painel',

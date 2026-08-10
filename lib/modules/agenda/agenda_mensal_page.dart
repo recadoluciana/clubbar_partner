@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/repositories/atracao_repository.dart';
 import '../../core/repositories/loja_repository.dart';
@@ -9,6 +10,7 @@ import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/atracao.dart';
 import '../../models/loja.dart';
 import '../atracoes/atracao_list_page.dart';
+import '../eventos/evento_list_page.dart';
 
 class AgendaMensalPage extends StatefulWidget {
   final int organizacaoId;
@@ -18,6 +20,7 @@ class AgendaMensalPage extends StatefulWidget {
 }
 
 class _AgendaMensalPageState extends State<AgendaMensalPage> {
+  static const _clubbarAppUrl = 'https://app.clubbar.com.br';
   final _repo = AtracaoRepository(), _lojasRepo = LojaRepository();
   DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
   List<Loja> _lojas = [];
@@ -77,6 +80,69 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   void _mudarMes(int delta) {
     setState(() => _mes = DateTime(_mes.year, _mes.month + delta));
     _carregar();
+  }
+
+  Loja? get _lojaAtual {
+    for (final loja in _lojas) {
+      if (loja.lojaId == _lojaId) return loja;
+    }
+    return null;
+  }
+
+  Future<void> _compartilharAgenda() async {
+    final loja = _lojaAtual;
+    if (loja == null) {
+      AppSnackBar.aviso(context, 'Selecione uma loja para compartilhar.');
+      return;
+    }
+    final eventos =
+        _eventos.where((e) => (e.status).toUpperCase() == 'ATIVO').toList()
+          ..sort((a, b) => a.inicio.compareTo(b.inicio));
+    final meses = const [
+      'janeiro',
+      'fevereiro',
+      'março',
+      'abril',
+      'maio',
+      'junho',
+      'julho',
+      'agosto',
+      'setembro',
+      'outubro',
+      'novembro',
+      'dezembro',
+    ];
+    final cidade = loja.nmcidade?.trim();
+    final texto = StringBuffer(
+      'Veja a agenda do ${loja.nmloja}${cidade?.isNotEmpty == true ? ' em $cidade' : ''} para o mês de ${meses[_mes.month - 1]}:\n\n',
+    );
+    for (final evento in eventos) {
+      final atracoes = [...evento.atracoes]
+        ..sort((a, b) => a.inicio.compareTo(b.inicio));
+      final inicio = atracoes.isEmpty ? evento.inicio : atracoes.first.inicio;
+      if (inicio.year != _mes.year || inicio.month != _mes.month) continue;
+      texto.writeln(
+        '${DateFormat('dd/MM').format(inicio)} - ${const ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'][inicio.weekday - 1]} às ${DateFormat('HH:mm').format(inicio)}',
+      );
+      texto.writeln(evento.titulo);
+      for (final atracao in atracoes) {
+        final estilo = atracao.atracao.estiloMusical?.trim();
+        texto.writeln(
+          '• ${atracao.atracao.nome}${estilo?.isNotEmpty == true ? ', $estilo' : ''} (${DateFormat('HH:mm').format(atracao.inicio)}–${DateFormat('HH:mm').format(atracao.fim)})',
+        );
+      }
+      texto.writeln();
+    }
+    texto
+      ..writeln('Veja mais e compre seu ingresso digital pelo Clubbar App:')
+      ..writeln('$_clubbarAppUrl/?loja_id=${loja.lojaId}');
+    await Clipboard.setData(ClipboardData(text: texto.toString().trim()));
+    if (mounted) {
+      AppSnackBar.sucesso(
+        context,
+        'Agenda copiada. Cole no WhatsApp, Instagram ou onde desejar.',
+      );
+    }
   }
 
   List<AgendaEvento> _doDia(DateTime d) => _eventos.where((e) {
@@ -537,7 +603,41 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      actions: [
+        IconButton(
+          tooltip: 'Compartilhar agenda',
+          onPressed: _lojaId == null ? null : _compartilharAgenda,
+          icon: const Icon(Icons.share),
+        ),
+        PopupMenuButton<String>(
+          tooltip: 'Mais opções',
+          icon: const Icon(Icons.more_vert_rounded),
+          onSelected: (valor) async {
+            if (valor != 'eventos') return;
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    EventoListPage(organizacaoId: widget.organizacaoId),
+              ),
+            );
+            if (mounted) await _carregar();
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem<String>(
+              value: 'eventos',
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.event_note_rounded),
+                title: Text('Gerenciar eventos'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
     body: SafeArea(
       child: Column(
         children: [

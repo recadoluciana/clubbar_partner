@@ -290,6 +290,16 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
           ? widget.usuario!.dscargo
           : _cargoSelecionado;
 
+      if ((cargo == 'BARMAN' || cargo == 'PORTEIRO') &&
+          _lojaIdSelecionada == null) {
+        AppSnackBar.aviso(
+          context,
+          'Barman e Porteiro devem estar vinculados a uma loja.',
+        );
+        setState(() => _salvando = false);
+        return;
+      }
+
       if (editando) {
         await _usuarioRepository.atualizar(
           organizacaoId: widget.organizacaoId,

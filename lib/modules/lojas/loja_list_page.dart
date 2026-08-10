@@ -68,17 +68,23 @@ class _LojaListPageState extends State<LojaListPage> {
     });
   }
 
-  bool get _podeIncluirExcluir {
-    return !_carregandoPermissoes && _cargo == 'ADMIN';
+  bool get _cargoGerencial => _cargo == 'ADMIN' || _cargo == 'GERENTE';
+
+  bool get _podeIncluirLoja {
+    return !_carregandoPermissoes && _cargoGerencial && _lojaUsuarioId == null;
   }
 
   bool _podeAlterarLoja(Loja loja) {
     if (_carregandoPermissoes) return false;
-    if (_podeIncluirExcluir) return true;
+    if (!_cargoGerencial) return false;
+    return _lojaUsuarioId == null || _lojaUsuarioId == loja.lojaId;
+  }
 
-    return _cargo == 'GERENTE' &&
-        _lojaUsuarioId != null &&
-        _lojaUsuarioId == loja.lojaId;
+  void _avisarSomenteConsulta() {
+    AppSnackBar.aviso(
+      context,
+      'Você não pode alterar esta loja. Seu acesso permite apenas consultá-la.',
+    );
   }
 
   Future<void> _carregarNomeOrganizacao() async {
@@ -225,10 +231,12 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Future<void> _abrirNovaLoja() async {
-    if (!_podeIncluirExcluir) {
+    if (!_podeIncluirLoja) {
       AppSnackBar.aviso(
         context,
-        'Somente administradores podem cadastrar lojas.',
+        _lojaUsuarioId != null
+            ? 'Seu usuário está vinculado a uma loja e não pode cadastrar outra.'
+            : 'Somente administradores e gerentes podem cadastrar lojas.',
       );
       return;
     }
@@ -244,10 +252,7 @@ class _LojaListPageState extends State<LojaListPage> {
 
   Future<void> _abrirEdicao(Loja loja) async {
     if (!_podeAlterarLoja(loja)) {
-      AppSnackBar.aviso(
-        context,
-        'A função Editar não é permitida para este usuário/cargo.',
-      );
+      _avisarSomenteConsulta();
       return;
     }
 
@@ -409,11 +414,8 @@ class _LojaListPageState extends State<LojaListPage> {
   Future<void> _excluirLoja(Loja loja) async {
     if (_excluindo) return;
 
-    if (!_podeIncluirExcluir) {
-      AppSnackBar.aviso(
-        context,
-        'A função Excluir não é permitida para este usuário/cargo.',
-      );
+    if (!_podeAlterarLoja(loja)) {
+      _avisarSomenteConsulta();
       return;
     }
 
@@ -455,7 +457,7 @@ class _LojaListPageState extends State<LojaListPage> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: AspectRatio(
-        aspectRatio: 4 / 3,
+        aspectRatio: 8 / 3,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -936,14 +938,12 @@ class _LojaListPageState extends State<LojaListPage> {
           icone: Icons.refresh_rounded,
           onPressed: _carregando ? null : _carregarLojas,
         ),
-        if (_podeIncluirExcluir) ...[
-          const SizedBox(width: 8),
-          _botaoCircularHeader(
-            tooltip: 'Adicionar loja',
-            icone: Icons.add_rounded,
-            onPressed: _abrirNovaLoja,
-          ),
-        ],
+        const SizedBox(width: 8),
+        _botaoCircularHeader(
+          tooltip: 'Adicionar loja',
+          icone: Icons.add_rounded,
+          onPressed: _abrirNovaLoja,
+        ),
       ],
     );
   }
@@ -1006,7 +1006,7 @@ class _LojaListPageState extends State<LojaListPage> {
               ),
             ),
 
-            if (!temBusca && _podeIncluirExcluir) ...[
+            if (!temBusca) ...[
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 onPressed: _abrirNovaLoja,
