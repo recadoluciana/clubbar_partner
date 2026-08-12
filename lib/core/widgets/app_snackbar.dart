@@ -58,33 +58,30 @@ class AppSnackBar {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          behavior: celular
-              ? SnackBarBehavior.fixed
-              : SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.floating,
           width: celular ? null : 520,
+          margin: celular ? const EdgeInsets.fromLTRB(8, 0, 8, 8) : null,
           backgroundColor: cor,
-          elevation: 8,
-          duration: const Duration(seconds: 4),
+          elevation: 5,
+          duration: const Duration(milliseconds: 3500),
           dismissDirection: DismissDirection.down,
-          showCloseIcon: true,
+          showCloseIcon: !celular,
           closeIconColor: corTexto,
           shape: RoundedRectangleBorder(
-            borderRadius: celular
-                ? const BorderRadius.vertical(top: Radius.circular(18))
-                : BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           content: Row(
             children: [
-              Icon(icone, color: corTexto, size: 24),
-              const SizedBox(width: 12),
+              Icon(icone, color: corTexto, size: 20),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   mensagem,
                   style: TextStyle(
                     color: corTexto,
-                    fontSize: 14,
-                    height: 1.35,
+                    fontSize: 13,
+                    height: 1.2,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

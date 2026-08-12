@@ -78,74 +78,83 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
 
     final hora = DateFormat('HH:mm:ss', 'pt_BR').format(_agora);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: const BoxDecoration(
-        color: ClubbarColors.preto,
-        border: Border(top: BorderSide(color: ClubbarColors.branco, width: 1)),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.person_rounded,
-            size: 17,
-            color: ClubbarColors.branco,
+    return ColoredBox(
+      color: ClubbarColors.preto,
+      child: SafeArea(
+        top: false,
+        minimum: EdgeInsets.zero,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: const BoxDecoration(
+            color: ClubbarColors.preto,
+            border: Border(
+              top: BorderSide(color: ClubbarColors.branco, width: 1),
+            ),
           ),
-
-          const SizedBox(width: 6),
-
-          Expanded(
-            child: Text(
-              '$_nomeUsuario • $_cargo',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+          child: Row(
+            children: [
+              const Icon(
+                Icons.person_rounded,
+                size: 17,
                 color: ClubbarColors.branco,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
               ),
-            ),
+
+              const SizedBox(width: 6),
+
+              Expanded(
+                child: Text(
+                  '$_nomeUsuario • $_cargo',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ClubbarColors.branco,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              const Icon(
+                Icons.calendar_today_rounded,
+                size: 14,
+                color: ClubbarColors.branco,
+              ),
+
+              const SizedBox(width: 4),
+
+              Text(
+                data,
+                style: const TextStyle(
+                  color: ClubbarColors.branco,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              const Icon(
+                Icons.schedule_rounded,
+                size: 15,
+                color: ClubbarColors.branco,
+              ),
+
+              const SizedBox(width: 4),
+
+              Text(
+                hora,
+                style: const TextStyle(
+                  color: ClubbarColors.branco,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
           ),
-
-          const SizedBox(width: 8),
-
-          const Icon(
-            Icons.calendar_today_rounded,
-            size: 14,
-            color: ClubbarColors.branco,
-          ),
-
-          const SizedBox(width: 4),
-
-          Text(
-            data,
-            style: const TextStyle(
-              color: ClubbarColors.branco,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-
-          const SizedBox(width: 8),
-
-          const Icon(
-            Icons.schedule_rounded,
-            size: 15,
-            color: ClubbarColors.branco,
-          ),
-
-          const SizedBox(width: 4),
-
-          Text(
-            hora,
-            style: const TextStyle(
-              color: ClubbarColors.branco,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
