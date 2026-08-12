@@ -127,6 +127,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       case 'CAIXA':
         return 'Caixa';
 
+      case 'TOTEM':
+        return 'Totem';
+
       case 'BARMAN':
         return 'Barman';
 

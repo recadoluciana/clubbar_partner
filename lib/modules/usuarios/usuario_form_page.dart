@@ -56,6 +56,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
     'ADMIN',
     'GERENTE',
     'CAIXA',
+    'TOTEM',
     'BARMAN',
     'GARCOM',
     'PORTEIRO',
@@ -115,6 +116,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
       case 'CAIXA':
         return 'Caixa';
+
+      case 'TOTEM':
+        return 'Totem';
 
       case 'BARMAN':
         return 'Barman';
@@ -295,6 +299,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
           : _cargoSelecionado;
 
       if ((cargo == 'CAIXA' ||
+              cargo == 'TOTEM' ||
               cargo == 'BARMAN' ||
               cargo == 'GARCOM' ||
               cargo == 'PORTEIRO') &&

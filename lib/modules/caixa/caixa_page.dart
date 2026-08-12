@@ -134,7 +134,9 @@ class _CaixaPageState extends State<CaixaPage> {
                   style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 6),
-                const Text('Cliente: CLUBBAR_CAIXA'),
+                Text(
+                  'Cliente: ${_contexto?['cliente_nome'] ?? 'Consumidor nao identificado'}',
+                ),
                 const Divider(height: 28),
                 if (_itens.isEmpty)
                   const Padding(
