@@ -169,7 +169,7 @@ class _CaixaPageState extends State<CaixaPage> {
                           await _iniciarPagamento();
                         },
                   icon: const Icon(Icons.payments_rounded),
-                  label: const Text('Receber por PIX ou cartão'),
+                  label: const Text('Receber por PIX'),
                 ),
               ],
             ),
