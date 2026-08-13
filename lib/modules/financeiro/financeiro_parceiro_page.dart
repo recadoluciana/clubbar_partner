@@ -232,6 +232,7 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: ClubbarAppBar(
+        mostrarVoltar: true,
         actions: [
           IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh)),
         ],

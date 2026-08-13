@@ -7,6 +7,7 @@ import '../../core/services/storage_service.dart';
 import '../leitor_qr/barman_home_page.dart';
 import '../leitor_qr/porteiro_home_page.dart';
 import '../caixa/caixa_page.dart';
+import '../../core/widgets/clubbar_footer.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,7 +24,16 @@ class _LoginPageState extends State<LoginPage> {
   bool _mostrarSenha = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ClubbarFooter.visibility.value = false;
+    });
+  }
+
+  @override
   void dispose() {
+    ClubbarFooter.visibility.value = true;
     _emailController.dispose();
     _senhaController.dispose();
     super.dispose();

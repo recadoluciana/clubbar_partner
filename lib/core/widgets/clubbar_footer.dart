@@ -9,6 +9,8 @@ import '../theme/clubbar_colors.dart';
 class ClubbarFooter extends StatefulWidget {
   const ClubbarFooter({super.key});
 
+  static final ValueNotifier<bool> visibility = ValueNotifier<bool>(true);
+
   @override
   State<ClubbarFooter> createState() => _ClubbarFooterState();
 }

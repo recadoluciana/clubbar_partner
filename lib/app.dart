@@ -17,11 +17,14 @@ class ClubbarPartnerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Clubbar Parceiro',
       theme: AppTheme.light,
-      builder: (context, child) => Column(
-        children: [
-          Expanded(child: child ?? const SizedBox.shrink()),
-          const ClubbarFooter(),
-        ],
+      builder: (context, child) => ValueListenableBuilder<bool>(
+        valueListenable: ClubbarFooter.visibility,
+        builder: (context, mostrarFooter, _) => Column(
+          children: [
+            Expanded(child: child ?? const SizedBox.shrink()),
+            if (mostrarFooter) const ClubbarFooter(),
+          ],
+        ),
       ),
       home: const SplashDeciderPage(),
     );
