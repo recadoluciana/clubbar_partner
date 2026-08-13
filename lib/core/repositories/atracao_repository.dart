@@ -28,8 +28,9 @@ class AtracaoRepository {
     );
     final req = http.MultipartRequest(atracao == null ? 'POST' : 'PUT', uri);
     final token = await StorageService.getToken();
-    if (token?.isNotEmpty == true)
+    if (token?.isNotEmpty == true) {
       req.headers['Authorization'] = 'Bearer $token';
+    }
     req.fields.addAll({
       'nmatracao': nome,
       'dsestilomusical': estilo,
@@ -51,14 +52,16 @@ class AtracaoRepository {
     }
     final resp = await req.send();
     final body = await resp.stream.bytesToString();
-    if (resp.statusCode < 200 || resp.statusCode >= 300)
+    if (resp.statusCode < 200 || resp.statusCode >= 300) {
       throw Exception(_erro(body));
+    }
   }
 
   Future<void> excluir(int id) async {
     final r = await ApiService.delete('/atracoes/$id');
-    if (r.statusCode < 200 || r.statusCode >= 300)
+    if (r.statusCode < 200 || r.statusCode >= 300) {
       throw Exception(_erro(r.body));
+    }
   }
 
   Future<List<AgendaEvento>> agenda(int lojaId, DateTime mes) async {
@@ -82,8 +85,9 @@ class AtracaoRepository {
       'dtinicioatracao': inicio.toIso8601String(),
       'dtfimatracao': fim.toIso8601String(),
     });
-    if (r.statusCode < 200 || r.statusCode >= 300)
+    if (r.statusCode < 200 || r.statusCode >= 300) {
       throw Exception(_erro(r.body));
+    }
   }
 
   Future<void> atualizarProgramacao({
@@ -97,14 +101,16 @@ class AtracaoRepository {
       'dtinicioatracao': inicio.toIso8601String(),
       'dtfimatracao': fim.toIso8601String(),
     });
-    if (r.statusCode < 200 || r.statusCode >= 300)
+    if (r.statusCode < 200 || r.statusCode >= 300) {
       throw Exception(_erro(r.body));
+    }
   }
 
   Future<void> removerProgramacao(int id) async {
     final r = await ApiService.delete('/eventos/atracoes/$id');
-    if (r.statusCode < 200 || r.statusCode >= 300)
+    if (r.statusCode < 200 || r.statusCode >= 300) {
       throw Exception(_erro(r.body));
+    }
   }
 
   Future<void> criarEventoRapido({

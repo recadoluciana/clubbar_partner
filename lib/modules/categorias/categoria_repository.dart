@@ -5,7 +5,6 @@ import '../../models/categoria.dart';
 
 class CategoriaRepository {
   Future<List<Categoria>> listar(int lojaId) async {
-    var ApiService;
     final response = await ApiService.get('/lojas/$lojaId/categorias');
 
     if (response.statusCode == 200) {

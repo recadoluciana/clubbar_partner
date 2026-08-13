@@ -65,11 +65,12 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
       });
       await _load();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _erro = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -84,17 +85,19 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
     });
     try {
       final x = await _repo.agenda(_lojaId!, _mes);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _eventos = x.where((e) => e.status.toUpperCase() == 'ATIVO').toList();
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _erro = e.toString().replaceFirst('Exception: ', '');
           _loading = false;
         });
+      }
     }
   }
 
@@ -108,8 +111,9 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
     for (final e in _eventos) {
       final porDia = <DateTime, List<EventoAtracao>>{};
       for (final a in e.atracoes) {
-        if (a.inicio.year != _mes.year || a.inicio.month != _mes.month)
+        if (a.inicio.year != _mes.year || a.inicio.month != _mes.month) {
           continue;
+        }
         final d = DateTime(a.inicio.year, a.inicio.month, a.inicio.day);
         porDia.putIfAbsent(d, () => []).add(a);
       }
@@ -177,11 +181,12 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
       const ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'][d.weekday - 1];
   Future<void> _share() async {
     await Clipboard.setData(ClipboardData(text: _texto()));
-    if (mounted)
+    if (mounted) {
       AppSnackBar.sucesso(
         context,
         'Agenda copiada. Cole no WhatsApp, Instagram ou onde desejar.',
       );
+    }
   }
 
   @override

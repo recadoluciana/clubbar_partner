@@ -22,13 +22,13 @@ class _LeitorQrRetiradaIngressoScreenState
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   Future<void> vibrarSucesso() async {
-    if (await Vibration.hasVibrator() ?? false) {
+    if (await Vibration.hasVibrator()) {
       Vibration.vibrate(duration: 200);
     }
   }
 
   Future<void> vibrarErro() async {
-    if (await Vibration.hasVibrator() ?? false) {
+    if (await Vibration.hasVibrator()) {
       Vibration.vibrate(pattern: [0, 300, 150, 300]);
     }
   }
@@ -224,8 +224,9 @@ class _LeitorQrRetiradaIngressoScreenState
             ElevatedButton(
               onPressed: () async {
                 try {
-                  final resposta =
-                      await ApiService.confirmarRetiradaPorToken(token: token);
+                  final resposta = await ApiService.confirmarRetiradaPorToken(
+                    token: token,
+                  );
 
                   if (!mounted) return;
 

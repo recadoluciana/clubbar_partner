@@ -27,20 +27,17 @@ class EventoLoteRepository {
     String? dtFimVenda,
     String status = 'ATIVO',
   }) async {
-    final response = await ApiService.post(
-      '/eventos/$eventoId/lotes',
-      {
-        'organizacao_id': organizacaoId,
-        'loja_id': lojaId,
-        'nmlote': nome,
-        'vrprecolote': preco,
-        'qttotallote': quantidadeTotal,
-        'qtvendidalote': quantidadeVendida,
-        'dtiniciovenda': dtInicioVenda,
-        'dtfimvenda': dtFimVenda,
-        'statuslote': status,
-      },
-    );
+    final response = await ApiService.post('/eventos/$eventoId/lotes', {
+      'organizacao_id': organizacaoId,
+      'loja_id': lojaId,
+      'nmlote': nome,
+      'vrprecolote': preco,
+      'qttotallote': quantidadeTotal,
+      'qtvendidalote': quantidadeVendida,
+      'dtiniciovenda': dtInicioVenda,
+      'dtfimvenda': dtFimVenda,
+      'statuslote': status,
+    });
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Erro ao criar lote: ${response.body}');
@@ -60,21 +57,18 @@ class EventoLoteRepository {
     String? dtFimVenda,
     String? status,
   }) async {
-    final response = await ApiService.put(
-      '/eventos/lotes/$loteId',
-      {
-        'organizacao_id': organizacaoId,
-        'loja_id': lojaId,
-        'evento_id': eventoId,
-        'nmlote': nome,
-        'vrprecolote': preco,
-        'qttotallote': quantidadeTotal,
-        'qtvendidalote': quantidadeVendida,
-        'dtiniciovenda': dtInicioVenda,
-        'dtfimvenda': dtFimVenda,
-        'statuslote': status,
-      },
-    );
+    final response = await ApiService.put('/eventos/lotes/$loteId', {
+      'organizacao_id': organizacaoId,
+      'loja_id': lojaId,
+      'evento_id': eventoId,
+      'nmlote': nome,
+      'vrprecolote': preco,
+      'qttotallote': quantidadeTotal,
+      'qtvendidalote': quantidadeVendida,
+      'dtiniciovenda': dtInicioVenda,
+      'dtfimvenda': dtFimVenda,
+      'statuslote': status,
+    });
 
     if (response.statusCode != 200) {
       throw Exception('Erro ao atualizar lote: ${response.body}');

@@ -68,7 +68,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
     if (x == null) return;
     try {
       final url = await _repo.upload(widget.loja.lojaId, x);
-      if (mounted)
+      if (mounted) {
         setState(
           () => _fotos.add({
             'titulo': 'Foto da loja',
@@ -76,6 +76,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
             'ordem': _fotos.length + 1,
           }),
         );
+      }
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, e.toString());
     }
@@ -131,7 +132,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
         ],
       ),
     );
-    if (ok == true && titulo.text.trim().isNotEmpty)
+    if (ok == true && titulo.text.trim().isNotEmpty) {
       setState(
         () => _posts.add({
           'titulo': titulo.text.trim(),
@@ -140,6 +141,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
           'data_publicacao': DateTime.now().toIso8601String().substring(0, 10),
         }),
       );
+    }
     titulo.dispose();
     desc.dispose();
     imagem.dispose();

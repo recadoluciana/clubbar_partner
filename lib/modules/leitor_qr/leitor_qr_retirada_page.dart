@@ -39,7 +39,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
   }
 
   Future<void> vibrarSucesso() async {
-    final possuiVibrador = await Vibration.hasVibrator() ?? false;
+    final possuiVibrador = await Vibration.hasVibrator();
 
     if (possuiVibrador) {
       await Vibration.vibrate(duration: 200);
@@ -47,7 +47,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
   }
 
   Future<void> vibrarErro() async {
-    final possuiVibrador = await Vibration.hasVibrator() ?? false;
+    final possuiVibrador = await Vibration.hasVibrator();
 
     if (possuiVibrador) {
       await Vibration.vibrate(pattern: [0, 300, 150, 300]);
@@ -554,7 +554,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(13),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.10),
+                            color: Colors.red.withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Text(
@@ -669,7 +669,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
        */
       final resposta = await ApiService.confirmarRetiradaPorToken(token: token);
 
-      if (!mounted) return false;
+      if (!mounted || !dialogContext.mounted) return false;
 
       Navigator.pop(dialogContext, true);
 
@@ -716,7 +716,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
       await tocarErro();
       await vibrarErro();
 
-      if (!mounted) return false;
+      if (!mounted || !dialogContext.mounted) return false;
 
       Navigator.pop(dialogContext, true);
 
@@ -737,7 +737,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
       width: 150,
       height: 150,
       decoration: BoxDecoration(
-        color: Colors.amber.withOpacity(0.16),
+        color: Colors.amber.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Icon(
@@ -767,7 +767,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
             width: 39,
             height: 39,
             decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.14),
+              color: Colors.amber.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icone, color: Colors.black87, size: 21),
@@ -823,7 +823,10 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
           decoration: BoxDecoration(
             gradient: RadialGradient(
               radius: 0.75,
-              colors: [Colors.transparent, Colors.black.withOpacity(0.58)],
+              colors: [
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.58),
+              ],
               stops: const [0.55, 1],
             ),
           ),
@@ -847,7 +850,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.72),
+              color: Colors.black.withValues(alpha: 0.72),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Text(
@@ -866,7 +869,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
 
         if (processando)
           Container(
-            color: Colors.black.withOpacity(0.28),
+            color: Colors.black.withValues(alpha: 0.28),
             alignment: Alignment.center,
             child: const CircularProgressIndicator(color: Colors.amber),
           ),
@@ -900,7 +903,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                   width: 92,
                   height: 92,
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.16),
+                    color: Colors.amber.withValues(alpha: 0.16),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(

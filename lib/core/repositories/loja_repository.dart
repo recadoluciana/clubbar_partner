@@ -86,8 +86,9 @@ class LojaRepository {
     request.fields['dsinstaloja'] = instagram ?? '';
     request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
     request.fields['idvalidadeprod'] = idvalidadeprod == 'N' ? 'N' : 'S';
-    if (capacidadeTotal != null)
+    if (capacidadeTotal != null) {
       request.fields['qtcpdloja'] = capacidadeTotal.toString();
+    }
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -170,8 +171,9 @@ class LojaRepository {
     request.fields['dsinstaloja'] = instagram ?? '';
     request.fields['aberto24x7'] = aberto24x7 == 'S' ? 'S' : 'N';
     request.fields['idvalidadeprod'] = idvalidadeprod == 'N' ? 'N' : 'S';
-    if (capacidadeTotal != null)
+    if (capacidadeTotal != null) {
       request.fields['qtcpdloja'] = capacidadeTotal.toString();
+    }
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();

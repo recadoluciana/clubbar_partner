@@ -296,7 +296,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.10),
+              color: Colors.blue.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(Icons.info_outline_rounded, color: Colors.blue),

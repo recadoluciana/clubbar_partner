@@ -61,8 +61,9 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
       AppSnackBar.sucesso(context, 'Atração salva com sucesso.');
       Navigator.pop(context, true);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
@@ -132,8 +133,7 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
                                     child: Image.network(
                                       _url!,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _placeholder(),
+                                      errorBuilder: (_, _, _) => _placeholder(),
                                     ),
                                   )
                                 : _placeholder(),

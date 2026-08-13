@@ -15,10 +15,7 @@ class OrganizacaoRepository {
     throw Exception('Erro ao carregar organização: ${response.body}');
   }
 
-  Future<void> atualizar(
-    int usuarioId,
-    Map<String, dynamic> dados,
-  ) async {
+  Future<void> atualizar(int usuarioId, Map<String, dynamic> dados) async {
     final response = await ApiService.put(
       '/organizacoes/usuario/$usuarioId',
       dados,
@@ -30,10 +27,7 @@ class OrganizacaoRepository {
   }
 
   Future<void> criar(Map<String, dynamic> dados) async {
-    final response = await ApiService.post(
-      '/organizacoes',
-      dados,
-    );
+    final response = await ApiService.post('/organizacoes', dados);
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Erro ao criar organização: ${response.body}');

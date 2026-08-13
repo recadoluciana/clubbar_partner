@@ -32,17 +32,19 @@ class _AtracaoListPageState extends State<AtracaoListPage> {
     });
     try {
       final x = await _repo.listar();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _itens = x;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _erro = e.toString().replaceFirst('Exception: ', '');
           _loading = false;
         });
+      }
     }
   }
 
@@ -51,8 +53,9 @@ class _AtracaoListPageState extends State<AtracaoListPage> {
           context,
           MaterialPageRoute(builder: (_) => AtracaoFormPage(atracao: a)),
         ) ==
-        true)
+        true) {
       _carregar();
+    }
   }
 
   Future<void> _excluir(Atracao a) async {
@@ -81,8 +84,9 @@ class _AtracaoListPageState extends State<AtracaoListPage> {
         _carregar();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 

@@ -25,8 +25,9 @@ class LojaPerfilRepository {
       Uri.parse('${ApiConfig.baseUrl}/lojas/$lojaId/conteudo/upload'),
     );
     final token = await StorageService.getToken();
-    if (token?.isNotEmpty == true)
+    if (token?.isNotEmpty == true) {
       req.headers['Authorization'] = 'Bearer $token';
+    }
     req.files.add(
       kIsWeb
           ? http.MultipartFile.fromBytes(
@@ -50,14 +51,16 @@ class LojaPerfilRepository {
 
   Future<void> _put(String path, Map<String, dynamic> body) async {
     final r = await ApiService.put(path, body);
-    if (r.statusCode < 200 || r.statusCode >= 300)
+    if (r.statusCode < 200 || r.statusCode >= 300) {
       throw Exception(_erro(r.body));
+    }
   }
 
   Future<void> _delete(String path) async {
     final r = await ApiService.delete(path);
-    if (r.statusCode < 200 || r.statusCode >= 300)
+    if (r.statusCode < 200 || r.statusCode >= 300) {
       throw Exception(_erro(r.body));
+    }
   }
 
   String _erro(String body) {
