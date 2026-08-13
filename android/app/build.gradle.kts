@@ -100,6 +100,32 @@ android {
             isShrinkResources = false
         }
     }
+    applicationVariants.all {
+        val flavor = flavorName
+        val build = buildType.name
+        val apkName = "partner-$flavor-$build.apk"
+
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = apkName
+        }
+
+        assembleProvider.configure {
+            doLast {
+                val sourceApk = layout.buildDirectory
+                    .file("outputs/apk/$flavor/$build/$apkName")
+                    .get()
+                    .asFile
+                val flutterOutputDir = layout.buildDirectory
+                    .dir("outputs/flutter-apk")
+                    .get()
+                    .asFile
+
+                flutterOutputDir.mkdirs()
+                sourceApk.copyTo(flutterOutputDir.resolve(apkName), overwrite = true)
+            }
+        }
+    }
 }
 
 flutter {
