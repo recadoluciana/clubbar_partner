@@ -50,6 +50,15 @@ class CaixaRepository {
     _erro(response.body);
   }
 
+  Future<Map<String, dynamic>> simularPagamentoPix(String checkoutId) async {
+    final response = await ApiService.post(
+      '/caixa/checkout/$checkoutId/simular-pagamento-pix',
+      const {},
+    );
+    if (response.statusCode == 200) return _map(response.body);
+    _erro(response.body);
+  }
+
   Future<Map<String, dynamic>> tickets(String checkoutId) async {
     final response = await ApiService.get(
       '/caixa/checkout/$checkoutId/tickets',

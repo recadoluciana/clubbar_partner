@@ -220,12 +220,19 @@ class _CaixaPageState extends State<CaixaPage> {
       final id = '${pix['pagamento_id']}';
       final imagem = '${pix['encoded_image'] ?? ''}'.split(',').last;
       final payload = '${pix['payload'] ?? ''}';
+      final simulacaoDisponivel = pix['simulacao_sandbox_disponivel'] == true;
       if (!mounted) return;
       var dialogoAberto = true;
+      var simulacaoEnviada = false;
+      final restante = ValueNotifier<int>(600);
+      final relogio = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (restante.value > 0) restante.value--;
+      });
       unawaited(
         _aguardarConfirmacao(
           id,
           silencioso: true,
+          deveContinuar: () => dialogoAberto,
           aoConfirmar: () {
             if (dialogoAberto && mounted) Navigator.of(context).pop();
           },
@@ -246,11 +253,47 @@ class _CaixaPageState extends State<CaixaPage> {
                 if (imagem.isNotEmpty)
                   Image.memory(base64Decode(imagem), width: 260, height: 260),
                 const SizedBox(height: 12),
-                const Text('Aguardando confirmação do Asaas...'),
+                ValueListenableBuilder<int>(
+                  valueListenable: restante,
+                  builder: (_, segundos, child) => Text(
+                    'Aguardando confirmacao do Asaas... '
+                    '${(segundos ~/ 60).toString().padLeft(2, '0')}:'
+                    '${(segundos % 60).toString().padLeft(2, '0')}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
               ],
             ),
           ),
           actions: [
+            if (simulacaoDisponivel)
+              FilledButton.tonalIcon(
+                onPressed: () async {
+                  if (simulacaoEnviada) return;
+                  simulacaoEnviada = true;
+                  try {
+                    final retorno = await _caixa.simularPagamentoPix(id);
+                    if (dialogContext.mounted) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        SnackBar(content: Text('${retorno['mensagem']}')),
+                      );
+                    }
+                  } catch (e) {
+                    simulacaoEnviada = false;
+                    if (dialogContext.mounted) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            e.toString().replaceFirst('Exception: ', ''),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.science_outlined),
+                label: const Text('Simular pagamento (Sandbox)'),
+              ),
             TextButton.icon(
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: payload));
@@ -265,12 +308,14 @@ class _CaixaPageState extends State<CaixaPage> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Fechar'),
+              child: const Text('Cancelar espera'),
             ),
           ],
         ),
       );
       dialogoAberto = false;
+      relogio.cancel();
+      restante.dispose();
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -283,14 +328,16 @@ class _CaixaPageState extends State<CaixaPage> {
   Future<void> _aguardarConfirmacao(
     String id, {
     bool silencioso = false,
+    bool Function()? deveContinuar,
     VoidCallback? aoConfirmar,
   }) async {
     if (!silencioso && mounted) {
       AppSnackBar.aviso(context, 'Aguardando a confirmação do pagamento...');
     }
     try {
-      for (var tentativa = 0; tentativa < 90; tentativa++) {
+      for (var tentativa = 0; tentativa < 300; tentativa++) {
         await Future<void>.delayed(const Duration(seconds: 2));
+        if (deveContinuar != null && !deveContinuar()) return;
         final retorno = await _caixa.tickets(id);
         if ('${retorno['status']}'.toUpperCase() == 'PAGO') {
           final tickets = (retorno['tickets'] as List? ?? [])
