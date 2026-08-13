@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -166,10 +168,21 @@ class _CaixaPageState extends State<CaixaPage> {
                       ? null
                       : () async {
                           Navigator.pop(sheetContext);
-                          await _iniciarPagamento();
+                          await _iniciarPix();
                         },
                   icon: const Icon(Icons.payments_rounded),
-                  label: const Text('Receber por PIX'),
+                  label: const Text('Receber por Pix agora'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _itens.isEmpty || _checkoutEmAndamento
+                      ? null
+                      : () async {
+                          Navigator.pop(sheetContext);
+                          await _iniciarCartao();
+                        },
+                  icon: const Icon(Icons.credit_card_rounded),
+                  label: const Text('Receber por cartão'),
                 ),
               ],
             ),
@@ -179,10 +192,10 @@ class _CaixaPageState extends State<CaixaPage> {
     );
   }
 
-  Future<void> _iniciarPagamento() async {
+  Future<void> _iniciarCartao() async {
     setState(() => _checkoutEmAndamento = true);
     try {
-      final checkout = await _caixa.checkout();
+      final checkout = await _caixa.checkoutCartao();
       final id = '${checkout['pagamento_id']}';
       final url = Uri.parse('${checkout['checkout_url']}');
       await launchUrl(
@@ -190,8 +203,92 @@ class _CaixaPageState extends State<CaixaPage> {
         mode: LaunchMode.externalApplication,
         webOnlyWindowName: '_blank',
       );
+      await _aguardarConfirmacao(id);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _checkoutEmAndamento = false);
+    }
+  }
+
+  Future<void> _iniciarPix() async {
+    setState(() => _checkoutEmAndamento = true);
+    try {
+      final pix = await _caixa.checkoutPix();
+      final id = '${pix['pagamento_id']}';
+      final imagem = '${pix['encoded_image'] ?? ''}'.split(',').last;
+      final payload = '${pix['payload'] ?? ''}';
       if (!mounted) return;
+      var dialogoAberto = true;
+      unawaited(
+        _aguardarConfirmacao(
+          id,
+          silencioso: true,
+          aoConfirmar: () {
+            if (dialogoAberto && mounted) Navigator.of(context).pop();
+          },
+        ),
+      );
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Receber por Pix'),
+          content: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Peça ao cliente para escanear o QR Code.'),
+                const SizedBox(height: 16),
+                if (imagem.isNotEmpty)
+                  Image.memory(base64Decode(imagem), width: 260, height: 260),
+                const SizedBox(height: 12),
+                const Text('Aguardando confirmação do Asaas...'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: payload));
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('Código Pix copiado.')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.copy_rounded),
+              label: const Text('Copiar Pix'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Fechar'),
+            ),
+          ],
+        ),
+      );
+      dialogoAberto = false;
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _checkoutEmAndamento = false);
+    }
+  }
+
+  Future<void> _aguardarConfirmacao(
+    String id, {
+    bool silencioso = false,
+    VoidCallback? aoConfirmar,
+  }) async {
+    if (!silencioso && mounted) {
       AppSnackBar.aviso(context, 'Aguardando a confirmação do pagamento...');
+    }
+    try {
       for (var tentativa = 0; tentativa < 90; tentativa++) {
         await Future<void>.delayed(const Duration(seconds: 2));
         final retorno = await _caixa.tickets(id);
@@ -203,6 +300,7 @@ class _CaixaPageState extends State<CaixaPage> {
           await _imprimirTickets(tickets, int.parse('${retorno['venda_id']}'));
           await _carregar();
           if (mounted) {
+            aoConfirmar?.call();
             AppSnackBar.sucesso(
               context,
               'Pagamento confirmado e tickets gerados.',
@@ -221,8 +319,6 @@ class _CaixaPageState extends State<CaixaPage> {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
       }
-    } finally {
-      if (mounted) setState(() => _checkoutEmAndamento = false);
     }
   }
 

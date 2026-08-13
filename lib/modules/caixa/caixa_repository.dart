@@ -38,8 +38,14 @@ class CaixaRepository {
     }
   }
 
-  Future<Map<String, dynamic>> checkout() async {
-    final response = await ApiService.post('/caixa/checkout', const {});
+  Future<Map<String, dynamic>> checkoutPix() async {
+    final response = await ApiService.post('/caixa/checkout/pix', const {});
+    if (response.statusCode == 200) return _map(response.body);
+    _erro(response.body);
+  }
+
+  Future<Map<String, dynamic>> checkoutCartao() async {
+    final response = await ApiService.post('/caixa/checkout/cartao', const {});
     if (response.statusCode == 200) return _map(response.body);
     _erro(response.body);
   }
