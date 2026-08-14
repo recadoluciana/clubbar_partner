@@ -150,7 +150,35 @@ class _CaixaPageState extends State<CaixaPage> {
                     contentPadding: EdgeInsets.zero,
                     title: Text('${item['nmproduto']}'),
                     subtitle: Text('${item['qtitcarrinho']} unidade(s)'),
-                    trailing: Text(_moeda.format(item['subtotal'] ?? 0)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_moeda.format(item['subtotal'] ?? 0)),
+                        IconButton(
+                          tooltip: 'Remover uma unidade',
+                          onPressed: () async {
+                            try {
+                              await _caixa.removerUmaUnidade(
+                                int.parse('${item['produto_id']}'),
+                              );
+                              final carrinho = await _caixa.carrinho();
+                              if (!mounted) return;
+                              setState(() => _carrinho = carrinho);
+                              if (sheetContext.mounted) setLocal(() {});
+                            } catch (e) {
+                              if (mounted) {
+                                AppSnackBar.erro(
+                                  this.context,
+                                  e.toString().replaceFirst('Exception: ', ''),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.remove_circle_outline),
+                          color: Colors.redAccent,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const Divider(),

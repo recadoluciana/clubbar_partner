@@ -38,6 +38,13 @@ class CaixaRepository {
     }
   }
 
+  Future<void> removerUmaUnidade(int produtoId) async {
+    final response = await ApiService.delete(
+      '/caixa/carrinho/itens/$produtoId/um',
+    );
+    if (response.statusCode != 200) _erro(response.body);
+  }
+
   Future<void> limparCarrinho() async {
     final response = await ApiService.delete('/caixa/carrinho');
     if (response.statusCode != 200) _erro(response.body);
