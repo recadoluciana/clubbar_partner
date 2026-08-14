@@ -63,7 +63,7 @@ class AppSnackBar {
           margin: celular ? const EdgeInsets.fromLTRB(8, 0, 8, 8) : null,
           backgroundColor: cor,
           elevation: 5,
-          duration: const Duration(milliseconds: 3500),
+          duration: const Duration(seconds: 3),
           dismissDirection: DismissDirection.down,
           showCloseIcon: !celular,
           closeIconColor: corTexto,

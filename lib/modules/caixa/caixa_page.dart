@@ -264,9 +264,14 @@ class _CaixaPageState extends State<CaixaPage> {
       if (!mounted) return;
       var dialogoAberto = true;
       var acaoEmAndamento = false;
+      var simulacaoEnviada = false;
       final restante = ValueNotifier<int>(600);
       final relogio = Timer.periodic(const Duration(seconds: 1), (_) {
         if (restante.value > 0) restante.value--;
+        if (restante.value == 0 && dialogoAberto && mounted) {
+          dialogoAberto = false;
+          Navigator.of(context, rootNavigator: true).pop();
+        }
       });
       unawaited(
         _aguardarConfirmacao(
@@ -284,14 +289,14 @@ class _CaixaPageState extends State<CaixaPage> {
         builder: (dialogContext) => AlertDialog(
           title: const Text('Receber por Pix'),
           content: SizedBox(
-            width: 360,
+            width: 310,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text('Peça ao cliente para escanear o QR Code.'),
                 const SizedBox(height: 16),
                 if (imagem.isNotEmpty)
-                  Image.memory(base64Decode(imagem), width: 260, height: 260),
+                  Image.memory(base64Decode(imagem), width: 210, height: 210),
                 const SizedBox(height: 12),
                 ValueListenableBuilder<int>(
                   valueListenable: restante,
@@ -309,24 +314,22 @@ class _CaixaPageState extends State<CaixaPage> {
             if (simulacaoDisponivel)
               FilledButton.tonalIcon(
                 onPressed: () async {
-                  if (acaoEmAndamento) return;
+                  if (acaoEmAndamento || simulacaoEnviada) return;
                   acaoEmAndamento = true;
+                  simulacaoEnviada = true;
                   try {
                     final retorno = await _caixa.simularPagamentoPix(id);
+                    acaoEmAndamento = false;
                     if (dialogContext.mounted) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        SnackBar(content: Text('${retorno['mensagem']}')),
-                      );
+                      AppSnackBar.info(dialogContext, '${retorno['mensagem']}');
                     }
                   } catch (e) {
                     acaoEmAndamento = false;
+                    simulacaoEnviada = false;
                     if (dialogContext.mounted) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            e.toString().replaceFirst('Exception: ', ''),
-                          ),
-                        ),
+                      AppSnackBar.erro(
+                        dialogContext,
+                        e.toString().replaceFirst('Exception: ', ''),
                       );
                     }
                   }
@@ -338,9 +341,7 @@ class _CaixaPageState extends State<CaixaPage> {
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: payload));
                 if (dialogContext.mounted) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('Código Pix copiado.')),
-                  );
+                  AppSnackBar.info(dialogContext, 'C\u00f3digo Pix copiado.');
                 }
               },
               icon: const Icon(Icons.copy_rounded),
@@ -363,12 +364,9 @@ class _CaixaPageState extends State<CaixaPage> {
                 } catch (e) {
                   acaoEmAndamento = false;
                   if (dialogContext.mounted) {
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          e.toString().replaceFirst('Exception: ', ''),
-                        ),
-                      ),
+                    AppSnackBar.erro(
+                      dialogContext,
+                      e.toString().replaceFirst('Exception: ', ''),
                     );
                   }
                 }
@@ -376,12 +374,26 @@ class _CaixaPageState extends State<CaixaPage> {
               icon: const Icon(Icons.edit_note_rounded),
               label: const Text('Cancelar PIX e editar pedido'),
             ),
+            TextButton.icon(
+              onPressed: acaoEmAndamento
+                  ? null
+                  : () => Navigator.pop(dialogContext),
+              icon: const Icon(Icons.close_rounded),
+              label: const Text('Fechar e continuar'),
+            ),
           ],
         ),
       );
+      final tempoEsgotado = restante.value == 0;
       dialogoAberto = false;
       relogio.cancel();
       restante.dispose();
+      if (tempoEsgotado && mounted) {
+        AppSnackBar.info(
+          context,
+          'Tempo de espera encerrado. O pagamento pode ser consultado depois.',
+        );
+      }
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -429,6 +441,8 @@ class _CaixaPageState extends State<CaixaPage> {
         );
       }
     } catch (e) {
+      if (silencioso) aoConfirmar?.call();
+      await Future<void>.delayed(const Duration(milliseconds: 250));
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
       }
