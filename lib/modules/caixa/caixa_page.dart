@@ -223,7 +223,7 @@ class _CaixaPageState extends State<CaixaPage> {
       final simulacaoDisponivel = pix['simulacao_sandbox_disponivel'] == true;
       if (!mounted) return;
       var dialogoAberto = true;
-      var simulacaoEnviada = false;
+      var acaoEmAndamento = false;
       final restante = ValueNotifier<int>(600);
       final relogio = Timer.periodic(const Duration(seconds: 1), (_) {
         if (restante.value > 0) restante.value--;
@@ -269,8 +269,8 @@ class _CaixaPageState extends State<CaixaPage> {
             if (simulacaoDisponivel)
               FilledButton.tonalIcon(
                 onPressed: () async {
-                  if (simulacaoEnviada) return;
-                  simulacaoEnviada = true;
+                  if (acaoEmAndamento) return;
+                  acaoEmAndamento = true;
                   try {
                     final retorno = await _caixa.simularPagamentoPix(id);
                     if (dialogContext.mounted) {
@@ -279,7 +279,7 @@ class _CaixaPageState extends State<CaixaPage> {
                       );
                     }
                   } catch (e) {
-                    simulacaoEnviada = false;
+                    acaoEmAndamento = false;
                     if (dialogContext.mounted) {
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
                         SnackBar(
@@ -306,9 +306,34 @@ class _CaixaPageState extends State<CaixaPage> {
               icon: const Icon(Icons.copy_rounded),
               label: const Text('Copiar Pix'),
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar espera'),
+            TextButton.icon(
+              onPressed: () async {
+                if (acaoEmAndamento) return;
+                acaoEmAndamento = true;
+                try {
+                  await _caixa.cancelarPix(id);
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  if (mounted) {
+                    AppSnackBar.sucesso(
+                      context,
+                      'QR Code cancelado. O carrinho foi liberado para edicao.',
+                    );
+                  }
+                } catch (e) {
+                  acaoEmAndamento = false;
+                  if (dialogContext.mounted) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          e.toString().replaceFirst('Exception: ', ''),
+                        ),
+                      ),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.edit_note_rounded),
+              label: const Text('Cancelar PIX e editar pedido'),
             ),
           ],
         ),
