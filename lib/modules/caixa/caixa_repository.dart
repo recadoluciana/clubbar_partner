@@ -38,6 +38,11 @@ class CaixaRepository {
     }
   }
 
+  Future<void> limparCarrinho() async {
+    final response = await ApiService.delete('/caixa/carrinho');
+    if (response.statusCode != 200) _erro(response.body);
+  }
+
   Future<Map<String, dynamic>> checkoutPix() async {
     final response = await ApiService.post('/caixa/checkout/pix', const {});
     if (response.statusCode == 200) return _map(response.body);
@@ -63,6 +68,12 @@ class CaixaRepository {
       '/caixa/checkout/$checkoutId/simular-pagamento-pix',
       const {},
     );
+    if (response.statusCode == 200) return _map(response.body);
+    _erro(response.body);
+  }
+
+  Future<Map<String, dynamic>> ticketsUltimaVenda() async {
+    final response = await ApiService.get('/caixa/vendas/ultima/tickets');
     if (response.statusCode == 200) return _map(response.body);
     _erro(response.body);
   }

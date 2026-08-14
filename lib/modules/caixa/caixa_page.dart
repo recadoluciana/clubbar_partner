@@ -184,6 +184,17 @@ class _CaixaPageState extends State<CaixaPage> {
                   icon: const Icon(Icons.credit_card_rounded),
                   label: const Text('Receber por cartão'),
                 ),
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: _itens.isEmpty
+                      ? null
+                      : () async {
+                          Navigator.pop(sheetContext);
+                          await _limparCarrinho();
+                        },
+                  icon: const Icon(Icons.delete_sweep_outlined),
+                  label: const Text('Limpar carrinho'),
+                ),
               ],
             ),
           ),
@@ -221,6 +232,7 @@ class _CaixaPageState extends State<CaixaPage> {
       final imagem = '${pix['encoded_image'] ?? ''}'.split(',').last;
       final payload = '${pix['payload'] ?? ''}';
       final simulacaoDisponivel = pix['simulacao_sandbox_disponivel'] == true;
+      await _carregar();
       if (!mounted) return;
       var dialogoAberto = true;
       var acaoEmAndamento = false;
@@ -312,6 +324,7 @@ class _CaixaPageState extends State<CaixaPage> {
                 acaoEmAndamento = true;
                 try {
                   await _caixa.cancelarPix(id);
+                  await _carregar();
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                   if (mounted) {
                     AppSnackBar.sucesso(
@@ -396,8 +409,9 @@ class _CaixaPageState extends State<CaixaPage> {
 
   Future<void> _imprimirTickets(
     List<Map<String, dynamic>> tickets,
-    int vendaId,
-  ) async {
+    int vendaId, {
+    bool segundaVia = false,
+  }) async {
     if (tickets.isEmpty) {
       throw Exception('A venda foi paga, mas não retornou tickets.');
     }
@@ -421,6 +435,14 @@ class _CaixaPageState extends State<CaixaPage> {
                 ),
               ),
               pw.Text('${ticket['loja']}', textAlign: pw.TextAlign.center),
+              if (segundaVia)
+                pw.Text(
+                  'SEGUNDA VIA',
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
               pw.Divider(),
               pw.Text(
                 '${ticket['produto']}',
@@ -463,6 +485,37 @@ class _CaixaPageState extends State<CaixaPage> {
     );
   }
 
+  Future<void> _limparCarrinho() async {
+    try {
+      await _caixa.limparCarrinho();
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Carrinho limpo.');
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  Future<void> _reimprimirUltimaVenda() async {
+    try {
+      final retorno = await _caixa.ticketsUltimaVenda();
+      final tickets = (retorno['tickets'] as List? ?? [])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+      await _imprimirTickets(
+        tickets,
+        int.parse('${retorno['venda_id']}'),
+        segundaVia: true,
+      );
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
   Future<void> _sair() async {
     await StorageService.clearToken();
     if (!mounted) return;
@@ -479,6 +532,11 @@ class _CaixaPageState extends State<CaixaPage> {
       mostrarSair: true,
       onSair: _sair,
       actions: [
+        IconButton(
+          tooltip: 'Reimprimir ultima venda',
+          onPressed: _reimprimirUltimaVenda,
+          icon: const Icon(Icons.print_rounded),
+        ),
         IconButton(
           tooltip: 'Carrinho ($_quantidade)',
           onPressed: _abrirCarrinho,
