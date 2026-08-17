@@ -218,36 +218,8 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
-    appBar: ClubbarAppBar(
-      mostrarVoltar: true,
-      actions: [
-        IconButton(
-          tooltip: 'Compartilhar',
-          onPressed: _compartilhar,
-          icon: const Icon(Icons.share),
-        ),
-        PopupMenuButton<String>(
-          tooltip: 'Gerenciar cadastros',
-          onSelected: _abrirGerenciamento,
-          itemBuilder: (_) => const [
-            PopupMenuItem(
-              value: 'categorias',
-              child: ListTile(
-                leading: Icon(Icons.category_outlined),
-                title: Text('Gerenciar categorias'),
-              ),
-            ),
-            PopupMenuItem(
-              value: 'produtos',
-              child: ListTile(
-                leading: Icon(Icons.inventory_2_outlined),
-                title: Text('Gerenciar produtos'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
+    appBar: const ClubbarAppBar(mostrarVoltar: true),
+
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => _abrirProduto(),
       icon: const Icon(Icons.add),
@@ -256,8 +228,48 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
     body: Column(
       children: [
         ClubbarPageHeader(
-          titulo: 'Cardápio Digital',
-          subtitulo: '${widget.loja.nmloja} • Assim aparecerá para o cliente',
+          titulo: 'Cardápio Digital - ${widget.loja.nmloja}',
+          subtitulo: 'Assim aparecerá para o cliente',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Compartilhar',
+                onPressed: _compartilhar,
+                icon: const Icon(Icons.share_rounded),
+                style: IconButton.styleFrom(
+                  foregroundColor: ClubbarColors.preto,
+                  backgroundColor: ClubbarColors.ambar,
+                ),
+              ),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                tooltip: 'Gerenciar cadastros',
+                onSelected: _abrirGerenciamento,
+                icon: const Icon(Icons.more_vert_rounded),
+                color: ClubbarColors.branco,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'categorias',
+                    child: ListTile(
+                      leading: Icon(Icons.category_outlined),
+                      title: Text('Gerenciar categorias'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'produtos',
+                    child: ListTile(
+                      leading: Icon(Icons.inventory_2_outlined),
+                      title: Text('Gerenciar produtos'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         Expanded(
           child: _carregando

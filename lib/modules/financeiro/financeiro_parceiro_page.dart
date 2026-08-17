@@ -8,7 +8,10 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 
 class FinanceiroParceiroPage extends StatefulWidget {
-  const FinanceiroParceiroPage({super.key});
+  final int? lojaId;
+  final String? nomeLoja;
+
+  const FinanceiroParceiroPage({super.key, this.lojaId, this.nomeLoja});
 
   @override
   State<FinanceiroParceiroPage> createState() => _FinanceiroParceiroPageState();
@@ -21,6 +24,7 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
   Map<String, dynamic>? _conta;
   int? _lojaId;
   bool _carregando = true;
+  String? _filtroStatus;
 
   @override
   void initState() {
@@ -31,7 +35,7 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
   Future<void> _carregar() async {
     setState(() => _carregando = true);
     try {
-      final lojaId = await StorageService.getLojaId();
+      final lojaId = widget.lojaId ?? await StorageService.getLojaId();
       if (lojaId == null || lojaId <= 0) {
         throw Exception('Selecione uma loja para consultar o financeiro.');
       }
@@ -59,6 +63,18 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
 
   double _numero(Object? v) =>
       v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0;
+
+  String _formatarData(Object? valor) {
+    final data = DateTime.tryParse(valor?.toString() ?? '');
+    return data == null ? '--/--/----' : DateFormat('dd/MM/yyyy').format(data);
+  }
+
+  bool _recebido(Map repasse) =>
+      repasse['status']?.toString().toUpperCase() == 'PAGO';
+
+  void _alternarFiltro(String filtro) {
+    setState(() => _filtroStatus = _filtroStatus == filtro ? null : filtro);
+  }
 
   Future<void> _editarConta() async {
     if (_lojaId == null) return;
@@ -203,9 +219,28 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
     ),
   );
 
-  Widget _card(String titulo, Object? valor, IconData icone, Color cor) =>
-      Expanded(
-        child: Card(
+  Widget _card(
+    String titulo,
+    Object? valor,
+    IconData icone,
+    Color cor,
+    String filtro,
+  ) => Expanded(
+    child: Semantics(
+      button: true,
+      selected: _filtroStatus == filtro,
+      child: Card(
+        color: _filtroStatus == filtro ? cor.withValues(alpha: 0.12) : null,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+            color: _filtroStatus == filtro ? cor : Colors.transparent,
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _alternarFiltro(filtro),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -224,11 +259,46 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
+
+  Widget _repasseCard(Map r) {
+    final recebido = _recebido(r);
+    final cor = recebido ? Colors.green : Colors.red;
+    final status = recebido ? 'Recebido' : 'Aguardando repasse';
+    return Card(
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: cor.withValues(alpha: 0.12),
+          child: Icon(
+            recebido ? Icons.check_circle : Icons.schedule,
+            color: cor,
+          ),
+        ),
+        title: Text(
+          _moeda.format(_numero(r['vrrepasse'])),
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(
+          'Venda #${r['venda_id']} • $status\n'
+          'Venda em ${_formatarData(r['dtvenda'])}'
+          '${recebido && r['dtpagamento'] != null ? '\nRecebido em ${_formatarData(r['dtpagamento'])}' : ''}',
+        ),
+        isThreeLine: true,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final repasses = (_dados['repasses'] as List? ?? const []).cast<Map>();
+    final repassesFiltrados = repasses.where((r) {
+      if (_filtroStatus == null) return true;
+      return _filtroStatus == 'recebido' ? _recebido(r) : !_recebido(r);
+    }).toList();
+    final nomeLoja =
+        widget.nomeLoja?.trim() ?? _dados['nmloja']?.toString().trim() ?? '';
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: ClubbarAppBar(
@@ -239,8 +309,8 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
       ),
       body: Column(
         children: [
-          const ClubbarPageHeader(
-            titulo: 'Meu financeiro',
+          ClubbarPageHeader(
+            titulo: nomeLoja.isEmpty ? 'Financeiro' : 'Financeiro - $nomeLoja',
             subtitulo: 'Acompanhe os repasses das suas vendas',
           ),
           Expanded(
@@ -257,13 +327,15 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
                               'A receber',
                               _dados['total_a_receber'],
                               Icons.schedule,
-                              Colors.orange,
+                              Colors.red,
+                              'a_receber',
                             ),
                             _card(
                               'Recebido',
                               _dados['total_recebido'],
                               Icons.check_circle,
                               Colors.green,
+                              'recebido',
                             ),
                           ],
                         ),
@@ -302,38 +374,20 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
                             ),
                           ),
                         ),
-                        if (repasses.isEmpty)
-                          const Card(
+                        if (repassesFiltrados.isEmpty)
+                          Card(
                             child: Padding(
-                              padding: EdgeInsets.all(28),
+                              padding: const EdgeInsets.all(28),
                               child: Center(
-                                child: Text('Ainda não há repasses.'),
+                                child: Text(
+                                  repasses.isEmpty
+                                      ? 'Ainda não há repasses.'
+                                      : 'Nenhum lançamento neste filtro.',
+                                ),
                               ),
                             ),
                           ),
-                        ...repasses.map(
-                          (r) => Card(
-                            child: ListTile(
-                              leading: const CircleAvatar(
-                                backgroundColor: ClubbarColors.ambarClaro,
-                                child: Icon(
-                                  Icons.payments,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              title: Text(
-                                _moeda.format(_numero(r['vrrepasse'])),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              subtitle: Text(
-                                'Venda #${r['venda_id']} • ${r['status']}\n${r['dtpagamento'] != null ? 'Recebido em ${r['dtpagamento'].toString().substring(0, 10)}' : 'Aguardando repasse'}',
-                              ),
-                              isThreeLine: true,
-                            ),
-                          ),
-                        ),
+                        ...repassesFiltrados.map(_repasseCard),
                       ],
                     ),
                   ),

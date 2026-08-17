@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:clubbar_partner/core/services/storage_service.dart';
-import 'package:clubbar_partner/core/theme/clubbar_colors.dart';
-import 'package:clubbar_partner/core/widgets/app_snackbar.dart';
-import 'package:clubbar_partner/core/widgets/dashboard_menu_card.dart';
 
-import 'package:clubbar_partner/modules/auth/login_page.dart';
-import 'package:clubbar_partner/modules/lojas/loja_list_page.dart';
-import 'package:clubbar_partner/modules/painel_gerencial/painel_gerencial_page.dart';
-import 'package:clubbar_partner/modules/cardapio/cardapio_loja_page.dart';
-import 'package:clubbar_partner/modules/organizacao/organizacao_list_page.dart';
-import 'package:clubbar_partner/modules/agenda/agenda_loja_page.dart';
-import 'package:clubbar_partner/modules/financeiro/financeiro_parceiro_page.dart';
-
+import '../../core/services/storage_service.dart';
+import '../../core/theme/clubbar_colors.dart';
+import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../auth/login_page.dart';
+import '../lojas/loja_list_page.dart';
+import '../organizacao/organizacao_list_page.dart';
+import '../painel_gerencial/painel_gerencial_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -25,21 +20,15 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   String _nomeOrganizacao = 'Organização';
   String _cargo = '';
-
+  int? _organizacaoId;
   bool _carregando = true;
+
+  bool get _podeVerGerencial => _cargo == 'SUPERADMIN' || _cargo == 'ADMIN';
 
   @override
   void initState() {
     super.initState();
-
     _carregarDadosUsuario();
-
-    if (!mounted) return;
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   Future<void> _carregarDadosUsuario() async {
@@ -47,305 +36,115 @@ class _DashboardPageState extends State<DashboardPage> {
       final dados = await Future.wait<dynamic>([
         StorageService.getNomeOrganizacao(),
         StorageService.getCargo(),
+        StorageService.getOrganizacaoId(),
       ]);
-      final nomeOrganizacao = dados[0] as String?;
-      final cargo = dados[1] as String?;
-
       if (!mounted) return;
-
+      final nome = (dados[0] as String? ?? '').trim();
       setState(() {
-        _nomeOrganizacao = nomeOrganizacao?.trim().isNotEmpty == true
-            ? nomeOrganizacao!.trim()
-            : 'Organização';
-        _cargo = (cargo ?? '').trim().toUpperCase();
-
+        _nomeOrganizacao = nome.isEmpty ? 'Organização' : nome;
+        _cargo = (dados[1] as String? ?? '').trim().toUpperCase();
+        _organizacaoId = dados[2] as int?;
         _carregando = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-
-      setState(() {
-        _carregando = false;
-      });
-
-      AppSnackBar.erro(
-        context,
-        'Não foi possível carregar os dados do usuário.',
-      );
+      setState(() => _carregando = false);
+      AppSnackBar.erro(context, 'Não foi possível carregar a organização.');
     }
   }
 
-  Future<int?> _getOrganizacaoId() {
-    return StorageService.getOrganizacaoId();
+  Future<void> _abrirOrganizacao() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const OrganizacaoListPage()),
+    );
+    if (mounted) await _carregarDadosUsuario();
   }
 
-  Future<void> _abrirModulo(BuildContext context, String chaveModulo) async {
-    if (chaveModulo == 'painel' &&
-        _cargo != 'SUPERADMIN' &&
-        _cargo != 'ADMIN') {
+  Future<void> _abrirGerencial() async {
+    if (!_podeVerGerencial) {
       AppSnackBar.aviso(
         context,
         'O painel gerencial é exclusivo para Superadmin e Admin.',
       );
       return;
     }
-
-    final organizacaoId = await _getOrganizacaoId();
-
-    if (organizacaoId == null || organizacaoId == 0) {
-      if (!context.mounted) return;
-
-      AppSnackBar.erro(context, 'Organização não encontrada no login.');
-
-      return;
-    }
-
-    Widget? destino;
-
-    switch (chaveModulo) {
-      case 'organizacao':
-        destino = const OrganizacaoListPage();
-        break;
-
-      case 'lojas':
-        destino = LojaListPage(organizacaoId: organizacaoId);
-        break;
-
-      case 'cardapio':
-        destino = CardapioLojaPage(organizacaoId: organizacaoId);
-        break;
-
-      case 'agenda':
-        destino = AgendaLojaPage(organizacaoId: organizacaoId);
-        break;
-
-      case 'painel':
-        destino = const PainelGerencialPage();
-        break;
-
-      case 'financeiro':
-        destino = const FinanceiroParceiroPage();
-        break;
-    }
-
-    if (destino == null) {
-      if (!context.mounted) return;
-
-      AppSnackBar.aviso(context, 'Este módulo ainda não está disponível.');
-
-      return;
-    }
-
-    if (!context.mounted) return;
-
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => destino!));
-
-    if (chaveModulo == 'organizacao' && mounted) {
-      await _carregarDadosUsuario();
-    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const PainelGerencialPage()),
+    );
   }
 
   Future<void> _sair() async {
     final confirmar = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: ClubbarColors.fundo,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.logout_rounded, color: ClubbarColors.erro),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Sair do Clubbar Parceiro',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-            ],
-          ),
-          content: const Text('Deseja realmente encerrar sua sessão?'),
-          actions: [
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pop(dialogContext, false);
-              },
-              icon: const Icon(Icons.close_rounded),
-              label: const Text('Cancelar'),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(dialogContext, true);
-              },
-              icon: const Icon(Icons.logout_rounded),
-              label: const Text('Sair'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ClubbarColors.erro,
-                foregroundColor: ClubbarColors.branco,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: ClubbarColors.fundo,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: ClubbarColors.erro),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Sair do Clubbar Parceiro',
+                style: TextStyle(fontWeight: FontWeight.w900),
               ),
             ),
           ],
-        );
-      },
+        ),
+        content: const Text('Deseja realmente encerrar sua sessão?'),
+        actions: [
+          OutlinedButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            icon: const Icon(Icons.close_rounded),
+            label: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Sair'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ClubbarColors.erro,
+              foregroundColor: ClubbarColors.branco,
+            ),
+          ),
+        ],
+      ),
     );
-
     if (confirmar != true) return;
-
     await StorageService.clearToken();
-
     if (!mounted) return;
-
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (_) => false,
     );
   }
 
-  Widget _gradeModulos() {
-    final modulos = <_DashboardItem>[
-      const _DashboardItem(
-        chave: 'lojas',
-        titulo: 'Lojas',
-        subtitulo: 'Estabelecimentos',
-        icone: Icons.storefront_rounded,
-      ),
-      const _DashboardItem(
-        chave: 'cardapio',
-        titulo: 'Cardápio Digital',
-        subtitulo: 'Categorias e produtos',
-        icone: Icons.restaurant_menu_rounded,
-      ),
-      const _DashboardItem(
-        chave: 'agenda',
-        titulo: 'Agenda Mensal',
-        subtitulo: 'Eventos e atrações',
-        icone: Icons.calendar_month_rounded,
-      ),
-      if (_cargo == 'SUPERADMIN' || _cargo == 'ADMIN')
-        const _DashboardItem(
-          chave: 'painel',
-          titulo: 'Gerencial',
-          subtitulo: 'Consolidado das lojas',
-          icone: Icons.analytics_rounded,
-        ),
-      const _DashboardItem(
-        chave: 'financeiro',
-        titulo: 'Financeiro',
-        subtitulo: 'Repasses e recebimentos',
-        icone: Icons.account_balance_wallet_rounded,
-      ),
-    ];
-
-    return GridView.builder(
-      padding: EdgeInsets.zero,
-      itemCount: modulos.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1.75,
-      ),
-      itemBuilder: (context, index) {
-        final modulo = modulos[index];
-
-        return DashboardMenuCard(
-          titulo: modulo.titulo,
-          subtitulo: modulo.subtitulo,
-          icone: modulo.icone,
-          onTap: () {
-            _abrirModulo(context, modulo.chave);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _conteudo() {
-    if (_carregando) {
-      return const Expanded(
-        child: Center(
-          child: CircularProgressIndicator(color: ClubbarColors.ambar),
-        ),
-      );
-    }
-
-    return Expanded(
-      child: RefreshIndicator(
-        color: ClubbarColors.ambar,
-        onRefresh: _carregarDadosUsuario,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: ClubbarColors.branco,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: ClubbarColors.borda),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: ClubbarColors.ambarClaro,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.apartment_rounded,
-                      color: ClubbarColors.preto,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Organização atual',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: ClubbarColors.textoSecundario,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          _nomeOrganizacao,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: ClubbarColors.textoPrincipal,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => _abrirModulo(context, 'organizacao'),
-                    tooltip: 'Editar organização',
-                    icon: const Icon(Icons.edit_rounded),
-                    style: IconButton.styleFrom(
-                      foregroundColor: ClubbarColors.preto,
-                      backgroundColor: ClubbarColors.ambarClaro,
-                    ),
-                  ),
-                ],
-              ),
+  Widget _acoesHeader() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_podeVerGerencial) ...[
+          IconButton(
+            onPressed: _abrirGerencial,
+            tooltip: 'Painel Gerencial',
+            icon: const Icon(Icons.analytics_rounded),
+            style: IconButton.styleFrom(
+              foregroundColor: ClubbarColors.branco,
+              backgroundColor: ClubbarColors.sucesso,
             ),
-            const SizedBox(height: 14),
-            _gradeModulos(),
-          ],
+          ),
+          const SizedBox(width: 8),
+        ],
+        IconButton(
+          onPressed: _abrirOrganizacao,
+          tooltip: 'Editar organização',
+          icon: const Icon(Icons.edit_rounded),
+          style: IconButton.styleFrom(
+            foregroundColor: ClubbarColors.preto,
+            backgroundColor: ClubbarColors.ambar,
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -353,35 +152,33 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-
       appBar: ClubbarAppBar(mostrarSair: true, onSair: _sair),
-
       body: SafeArea(
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Painel do Parceiro',
-              subtitulo: 'Escolha uma opção para continuar',
+              titulo: _nomeOrganizacao,
+              subtitulo: 'Gerencie seus estabelecimentos',
+              trailing: _carregando ? null : _acoesHeader(),
             ),
-
-            _conteudo(),
+            Expanded(
+              child: _carregando
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: ClubbarColors.ambar,
+                      ),
+                    )
+                  : _organizacaoId == null || _organizacaoId == 0
+                  ? const Center(child: Text('Organização não encontrada.'))
+                  : LojaListPage(
+                      key: ValueKey(_organizacaoId),
+                      organizacaoId: _organizacaoId!,
+                      embedded: true,
+                    ),
+            ),
           ],
         ),
       ),
     );
   }
-}
-
-class _DashboardItem {
-  final String chave;
-  final String titulo;
-  final String subtitulo;
-  final IconData icone;
-
-  const _DashboardItem({
-    required this.chave,
-    required this.titulo,
-    required this.subtitulo,
-    required this.icone,
-  });
 }

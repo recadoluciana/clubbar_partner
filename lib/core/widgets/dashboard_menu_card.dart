@@ -22,78 +22,87 @@ class DashboardMenuCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: ClubbarColors.branco,
-      elevation: 1,
-      shadowColor: ClubbarColors.sombra,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(9),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: ClubbarColors.borda),
-          ),
-          child: Stack(
-            children: [
-              if (badge != null) Positioned(top: 0, right: 0, child: badge!),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final amplo = constraints.maxWidth >= 260;
+        final tamanhoIconeContainer = amplo ? 64.0 : 52.0;
+        final tamanhoIcone = amplo ? 32.0 : 27.0;
 
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        color: ClubbarColors.ambarClaro,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        icone,
-                        size: 23,
-                        color: corIcone ?? ClubbarColors.preto,
-                      ),
-                    ),
-
-                    const SizedBox(height: 7),
-
-                    Text(
-                      titulo,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: ClubbarColors.textoPrincipal,
-                      ),
-                    ),
-
-                    if (subtitulo != null && subtitulo!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 2),
-
-                      Text(
-                        subtitulo!,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 9.5,
-                          height: 1.1,
-                          color: ClubbarColors.textoSecundario,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+        return Material(
+          color: ClubbarColors.branco,
+          elevation: amplo ? 2 : 1,
+          shadowColor: ClubbarColors.sombra,
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: onTap,
+            child: Container(
+              padding: EdgeInsets.all(amplo ? 20 : 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: ClubbarColors.borda),
               ),
-            ],
+              child: Stack(
+                children: [
+                  if (badge != null)
+                    Positioned(top: 0, right: 0, child: badge!),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: tamanhoIconeContainer,
+                          height: tamanhoIconeContainer,
+                          decoration: BoxDecoration(
+                            color: ClubbarColors.ambarClaro,
+                            borderRadius: BorderRadius.circular(
+                              amplo ? 20 : 17,
+                            ),
+                          ),
+                          child: Icon(
+                            icone,
+                            size: tamanhoIcone,
+                            color: corIcone ?? ClubbarColors.preto,
+                          ),
+                        ),
+                        SizedBox(height: amplo ? 14 : 10),
+                        Text(
+                          titulo,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: amplo ? 18 : 15,
+                            height: 1.15,
+                            fontWeight: FontWeight.w900,
+                            color: ClubbarColors.textoPrincipal,
+                          ),
+                        ),
+                        if (subtitulo != null &&
+                            subtitulo!.trim().isNotEmpty) ...[
+                          SizedBox(height: amplo ? 6 : 4),
+                          Text(
+                            subtitulo!,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: amplo ? 13.5 : 11.5,
+                              height: 1.25,
+                              color: ClubbarColors.textoSecundario,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

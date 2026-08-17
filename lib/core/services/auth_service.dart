@@ -13,6 +13,66 @@ class AuthException implements Exception {
 }
 
 class AuthService {
+  static Future<String> solicitarRecuperacao(String email) async {
+    try {
+      final response = await ApiService.post('/auth/esqueci-senha-user', {
+        'email': email.trim().toLowerCase(),
+      });
+      final data = response.body.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        throw AuthException(
+          data is Map && data['detail'] != null
+              ? data['detail'].toString()
+              : 'Não foi possível solicitar a recuperação.',
+        );
+      }
+      return data is Map && data['message'] != null
+          ? data['message'].toString()
+          : 'Código de recuperação enviado.';
+    } on AuthException {
+      rethrow;
+    } catch (_) {
+      throw const AuthException(
+        'Não foi possível conectar ao servidor. Tente novamente.',
+      );
+    }
+  }
+
+  static Future<String> redefinirSenha({
+    required String email,
+    required String codigo,
+    required String novaSenha,
+  }) async {
+    try {
+      final response = await ApiService.post('/auth/redefinir-senha-user', {
+        'email': email.trim().toLowerCase(),
+        'codigo': codigo.trim(),
+        'nova_senha': novaSenha,
+      });
+      final data = response.body.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        throw AuthException(
+          data is Map && data['detail'] != null
+              ? data['detail'].toString()
+              : 'Não foi possível redefinir a senha.',
+        );
+      }
+      return data is Map && data['message'] != null
+          ? data['message'].toString()
+          : 'Senha redefinida com sucesso.';
+    } on AuthException {
+      rethrow;
+    } catch (_) {
+      throw const AuthException(
+        'Não foi possível conectar ao servidor. Tente novamente.',
+      );
+    }
+  }
+
   static Future<void> login(String email, String senha) async {
     try {
       final response = await ApiService.post('/auth/loginuser', {

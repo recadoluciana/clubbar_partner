@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../repositories/loja_repository.dart';
 import '../services/storage_service.dart';
 import '../theme/clubbar_colors.dart';
 
@@ -18,6 +19,7 @@ class ClubbarFooter extends StatefulWidget {
 class _ClubbarFooterState extends State<ClubbarFooter> {
   String _nomeUsuario = 'Usuário';
   String _cargo = 'Usuário';
+  String _nomeLoja = 'Todas as lojas';
 
   DateTime _agora = DateTime.now();
   Timer? _timer;
@@ -46,19 +48,42 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
   }
 
   Future<void> _carregarUsuario() async {
-    final nomeUsuario = await StorageService.getNomeUsuario();
-    final cargo = await StorageService.getCargo();
+    final dados = await Future.wait<dynamic>([
+      StorageService.getNomeUsuario(),
+      StorageService.getCargo(),
+      StorageService.getLojaId(),
+      StorageService.getOrganizacaoId(),
+    ]);
+    final nomeUsuario = dados[0] as String?;
+    final cargo = dados[1] as String?;
+    final lojaId = dados[2] as int?;
+    final organizacaoId = dados[3] as int?;
+    var nomeLoja = 'Todas as lojas';
+
+    if (lojaId != null && lojaId > 0 && organizacaoId != null) {
+      try {
+        final lojas = await LojaRepository().listar(organizacaoId);
+        nomeLoja = lojas
+            .where((loja) => loja.lojaId == lojaId)
+            .map((loja) => loja.nmloja.trim())
+            .firstWhere(
+              (nome) => nome.isNotEmpty,
+              orElse: () => 'Loja #$lojaId',
+            );
+      } catch (_) {
+        nomeLoja = 'Loja #$lojaId';
+      }
+    }
 
     if (!mounted) return;
-
     setState(() {
       _nomeUsuario = nomeUsuario?.trim().isNotEmpty == true
           ? nomeUsuario!.trim()
           : 'Usuário';
-
       _cargo = _formatarCargo(
         cargo?.trim().isNotEmpty == true ? cargo!.trim() : 'Usuário',
       );
+      _nomeLoja = nomeLoja;
     });
   }
 
@@ -106,7 +131,7 @@ class _ClubbarFooterState extends State<ClubbarFooter> {
 
               Expanded(
                 child: Text(
-                  '$_nomeUsuario • $_cargo',
+                  '$_nomeUsuario • $_cargo • $_nomeLoja',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/repositories/atracao_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -25,10 +26,21 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   List<AgendaEvento> _eventos = [];
   bool _loading = true;
   String? _erro;
+  String _nomeOrganizacao = 'Organização';
+
   @override
   void initState() {
     super.initState();
     _carregar();
+    _carregarNomeOrganizacao();
+  }
+
+  Future<void> _carregarNomeOrganizacao() async {
+    final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
+    if (!mounted) return;
+    setState(() {
+      _nomeOrganizacao = nome.isEmpty ? 'Organização' : nome;
+    });
   }
 
   Future<void> _carregar() async {
@@ -611,8 +623,8 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       child: Column(
         children: [
           ClubbarPageHeader(
-            titulo: 'Agenda Mensal',
-            subtitulo: widget.loja.nmloja,
+            titulo: 'Agenda Mensal - ${widget.loja.nmloja}',
+            subtitulo: _nomeOrganizacao,
           ),
           Padding(
             padding: const EdgeInsets.all(10),

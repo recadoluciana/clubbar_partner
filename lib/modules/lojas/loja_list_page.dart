@@ -12,6 +12,9 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
+import '../agenda/agenda_mensal_page.dart';
+import '../cardapio/cardapio_digital_page.dart';
+import '../financeiro/financeiro_parceiro_page.dart';
 import 'horario_funcionamento_screen.dart';
 import 'loja_form_page.dart';
 import 'loja_imagens_page.dart';
@@ -20,8 +23,13 @@ import 'loja_politica_ingresso_page.dart';
 
 class LojaListPage extends StatefulWidget {
   final int organizacaoId;
+  final bool embedded;
 
-  const LojaListPage({super.key, required this.organizacaoId});
+  const LojaListPage({
+    super.key,
+    required this.organizacaoId,
+    this.embedded = false,
+  });
 
   @override
   State<LojaListPage> createState() => _LojaListPageState();
@@ -336,6 +344,27 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
+  Future<void> _abrirCardapio(Loja loja) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => CardapioDigitalPage(loja: loja)),
+    );
+  }
+
+  Future<void> _abrirAgenda(Loja loja) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => AgendaMensalPage(loja: loja)),
+    );
+  }
+
+  Future<void> _abrirFinanceiro(Loja loja) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) =>
+            FinanceiroParceiroPage(lojaId: loja.lojaId, nomeLoja: loja.nmloja),
+      ),
+    );
+  }
+
   Future<bool> _confirmarExclusao(Loja loja) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -643,6 +672,12 @@ class _LojaListPageState extends State<LojaListPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (acao) {
         switch (acao) {
+          case 'cardapio':
+            _abrirCardapio(loja);
+          case 'agenda':
+            _abrirAgenda(loja);
+          case 'financeiro':
+            _abrirFinanceiro(loja);
           case 'imagens':
             _abrirImagens(loja);
           case 'horarios':
@@ -660,6 +695,34 @@ class _LojaListPageState extends State<LojaListPage> {
         }
       },
       itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'cardapio',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.restaurant_menu_rounded),
+            title: Text('Cardápio Digital'),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'agenda',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.calendar_month_rounded),
+            title: Text('Agenda Mensal'),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'financeiro',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.account_balance_wallet_rounded),
+            title: Text('Financeiro'),
+          ),
+        ),
+        const PopupMenuDivider(),
         const PopupMenuItem(
           value: 'imagens',
           child: ListTile(
@@ -1099,16 +1162,88 @@ class _LojaListPageState extends State<LojaListPage> {
       return _estadoVazio();
     }
 
-    return Column(children: _lojasFiltradas.map(_cardLoja).toList());
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 900) {
+          return Column(children: _lojasFiltradas.map(_cardLoja).toList());
+        }
+        const espacamento = 16.0;
+        final larguraCard = (constraints.maxWidth - espacamento) / 2;
+        return Wrap(
+          spacing: espacamento,
+          runSpacing: espacamento,
+          children: _lojasFiltradas
+              .map(
+                (loja) => SizedBox(width: larguraCard, child: _cardLoja(loja)),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+
+  Widget _lista({required bool mostrarTitulo}) {
+    return Column(
+      children: [
+        if (mostrarTitulo)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Estabelecimentos',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: ClubbarColors.textoPrincipal,
+                    ),
+                  ),
+                ),
+                _acoesHeader(),
+              ],
+            ),
+          ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(20, mostrarTitulo ? 14 : 18, 20, 0),
+          child: _campoBusca(),
+        ),
+        const SizedBox(height: 14),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _carregarLojas,
+            color: ClubbarColors.ambar,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+              children: [
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1180),
+                    child: _conteudoLista(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) {
+      return ColoredBox(
+        color: ClubbarColors.fundo,
+        child: SafeArea(top: false, child: _lista(mostrarTitulo: true)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-
       body: SafeArea(
         child: Column(
           children: [
@@ -1117,27 +1252,7 @@ class _LojaListPageState extends State<LojaListPage> {
               subtitulo: _subtituloHeader(),
               trailing: _acoesHeader(),
             ),
-
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-              child: _campoBusca(),
-            ),
-
-            const SizedBox(height: 14),
-
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _carregarLojas,
-                color: ClubbarColors.ambar,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-                  children: [_conteudoLista()],
-                ),
-              ),
-            ),
+            Expanded(child: _lista(mostrarTitulo: false)),
           ],
         ),
       ),
