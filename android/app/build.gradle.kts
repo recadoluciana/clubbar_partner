@@ -54,7 +54,7 @@ android {
             resValue(
                 type = "string",
                 name = "app_name",
-                value = "Clubbar Partner Dev",
+                value = "Clubbar Partner",
             )
         }
 

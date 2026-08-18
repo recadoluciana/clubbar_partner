@@ -4,8 +4,10 @@ import '../../models/painel_gerencial.dart';
 import '../services/api_service.dart';
 
 class PainelGerencialRepository {
-  Future<PainelGerencial> buscar() async {
-    final response = await ApiService.get('/painel-gerencial');
+  Future<PainelGerencial> buscar({required int ano, required int mes}) async {
+    final response = await ApiService.get(
+      '/painel-gerencial?ano=$ano&mes=$mes',
+    );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data is Map<String, dynamic>) {

@@ -37,6 +37,18 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
   bool _carregando = true;
   String? _erro;
   String _nomeOrganizacao = 'Organização não identificada';
+  String _cargo = '';
+  DateTime _mesSelecionado = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+  );
+
+  bool get _podeTrocarMes => _cargo == 'SUPERADMIN' || _cargo == 'ADMIN';
+  bool get _mesAtual {
+    final agora = DateTime.now();
+    return _mesSelecionado.year == agora.year &&
+        _mesSelecionado.month == agora.month;
+  }
 
   @override
   void initState() {
@@ -51,14 +63,19 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
     if (!_carregando) setState(() => _carregando = true);
     try {
       final resultados = await Future.wait([
-        _repository.buscar(),
+        _repository.buscar(
+          ano: _mesSelecionado.year,
+          mes: _mesSelecionado.month,
+        ),
         StorageService.getNomeOrganizacao(),
+        StorageService.getCargo(),
       ]);
       if (!mounted) return;
       final nome = (resultados[1] as String? ?? '').trim();
       setState(() {
         _painel = resultados[0] as PainelGerencial;
         _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+        _cargo = (resultados[2] as String? ?? '').trim().toUpperCase();
         _erro = null;
         _carregando = false;
       });
@@ -71,6 +88,27 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
       });
       AppSnackBar.erro(context, mensagem);
     }
+  }
+
+  Future<void> _mudarMes(int deslocamento) async {
+    if (!_podeTrocarMes || _carregando) return;
+    final novo = DateTime(
+      _mesSelecionado.year,
+      _mesSelecionado.month + deslocamento,
+    );
+    final atual = DateTime(DateTime.now().year, DateTime.now().month);
+    if (novo.isAfter(atual)) return;
+    setState(() {
+      _mesSelecionado = novo;
+      _painel = null;
+      _erro = null;
+    });
+    await _carregar();
+  }
+
+  String _tituloMes() {
+    final nome = DateFormat('MMMM', 'pt_BR').format(_mesSelecionado);
+    return '${nome[0].toUpperCase()}${nome.substring(1)} de ${_mesSelecionado.year}';
   }
 
   Widget _botaoAtualizar() {
@@ -89,6 +127,27 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _acoesMes() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_podeTrocarMes) ...[
+          IconButton(
+            tooltip: 'Mês anterior',
+            onPressed: _carregando ? null : () => _mudarMes(-1),
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
+          IconButton(
+            tooltip: 'Próximo mês',
+            onPressed: _carregando || _mesAtual ? null : () => _mudarMes(1),
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
+        ],
+        _botaoAtualizar(),
+      ],
     );
   }
 
@@ -505,9 +564,9 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Painel gerencial',
+              titulo: _tituloMes(),
               subtitulo: _subtitulo(),
-              trailing: _botaoAtualizar(),
+              trailing: _acoesMes(),
             ),
             Expanded(
               child: _carregando && _painel == null

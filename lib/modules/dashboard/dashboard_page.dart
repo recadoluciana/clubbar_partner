@@ -1,14 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_card.dart';
 import '../auth/login_page.dart';
 import '../lojas/loja_list_page.dart';
 import '../organizacao/organizacao_list_page.dart';
 import '../painel_gerencial/painel_gerencial_page.dart';
+import '../usuarios/usuario_list_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -19,16 +24,30 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   String _nomeOrganizacao = 'Organização';
+  String _nomeUsuario = 'Usuário';
   String _cargo = '';
   int? _organizacaoId;
   bool _carregando = true;
+  DateTime _agora = DateTime.now();
+  Timer? _timer;
 
-  bool get _podeVerGerencial => _cargo == 'SUPERADMIN' || _cargo == 'ADMIN';
+  bool get _podeEditarOrganizacao => _cargo == 'SUPERADMIN';
+  bool get _podeVerGerencial =>
+      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'GERENTE';
 
   @override
   void initState() {
     super.initState();
     _carregarDadosUsuario();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _agora = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   Future<void> _carregarDadosUsuario() async {
@@ -37,6 +56,7 @@ class _DashboardPageState extends State<DashboardPage> {
         StorageService.getNomeOrganizacao(),
         StorageService.getCargo(),
         StorageService.getOrganizacaoId(),
+        StorageService.getNomeUsuario(),
       ]);
       if (!mounted) return;
       final nome = (dados[0] as String? ?? '').trim();
@@ -44,6 +64,8 @@ class _DashboardPageState extends State<DashboardPage> {
         _nomeOrganizacao = nome.isEmpty ? 'Organização' : nome;
         _cargo = (dados[1] as String? ?? '').trim().toUpperCase();
         _organizacaoId = dados[2] as int?;
+        final usuario = (dados[3] as String? ?? '').trim();
+        _nomeUsuario = usuario.isEmpty ? 'Usuário' : usuario;
         _carregando = false;
       });
     } catch (_) {
@@ -60,11 +82,31 @@ class _DashboardPageState extends State<DashboardPage> {
     if (mounted) await _carregarDadosUsuario();
   }
 
+  Future<void> _abrirLojas() async {
+    final organizacaoId = _organizacaoId;
+    if (organizacaoId == null || organizacaoId <= 0) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => LojaListPage(organizacaoId: organizacaoId),
+      ),
+    );
+  }
+
+  Future<void> _abrirUsuarios() async {
+    final organizacaoId = _organizacaoId;
+    if (organizacaoId == null || organizacaoId <= 0) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => UsuarioListPage(organizacaoId: organizacaoId),
+      ),
+    );
+  }
+
   Future<void> _abrirGerencial() async {
     if (!_podeVerGerencial) {
       AppSnackBar.aviso(
         context,
-        'O painel gerencial é exclusivo para Superadmin e Admin.',
+        'Seu cargo não possui acesso ao painel gerencial.',
       );
       return;
     }
@@ -119,32 +161,78 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _acoesHeader() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (_podeVerGerencial) ...[
-          IconButton(
-            onPressed: _abrirGerencial,
-            tooltip: 'Painel Gerencial',
-            icon: const Icon(Icons.analytics_rounded),
-            style: IconButton.styleFrom(
-              foregroundColor: ClubbarColors.branco,
-              backgroundColor: ClubbarColors.sucesso,
+  String _nomeCargo() {
+    if (_cargo == 'SUPERADMIN') return 'Superadministrador';
+    if (_cargo == 'ADMIN') return 'Administrador';
+    if (_cargo == 'GERENTE') return 'Gerente';
+    return _cargo;
+  }
+
+  String _subtitulo() {
+    final dataHora = DateFormat('dd/MM/yyyy HH:mm:ss', 'pt_BR').format(_agora);
+    return '$_nomeUsuario • ${_nomeCargo()} • $dataHora';
+  }
+
+  Widget _opcao({
+    required String titulo,
+    required String subtitulo,
+    required IconData icone,
+    required VoidCallback? onTap,
+  }) {
+    final habilitado = onTap != null;
+    return ClubbarCard(
+      onTap: onTap,
+      elevation: 1,
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: habilitado
+                  ? ClubbarColors.ambarClaro
+                  : ClubbarColors.borda,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              icone,
+              color: habilitado
+                  ? ClubbarColors.preto
+                  : ClubbarColors.textoSecundario,
             ),
           ),
-          const SizedBox(width: 8),
-        ],
-        IconButton(
-          onPressed: _abrirOrganizacao,
-          tooltip: 'Editar organização',
-          icon: const Icon(Icons.edit_rounded),
-          style: IconButton.styleFrom(
-            foregroundColor: ClubbarColors.preto,
-            backgroundColor: ClubbarColors.ambar,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: habilitado
+                        ? ClubbarColors.textoPrincipal
+                        : ClubbarColors.textoSecundario,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitulo,
+                  style: const TextStyle(
+                    color: ClubbarColors.textoSecundario,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+          Icon(
+            habilitado ? Icons.chevron_right_rounded : Icons.lock_rounded,
+            color: ClubbarColors.textoSecundario,
+          ),
+        ],
+      ),
     );
   }
 
@@ -158,8 +246,7 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             ClubbarPageHeader(
               titulo: _nomeOrganizacao,
-              subtitulo: 'Gerencie seus estabelecimentos',
-              trailing: _carregando ? null : _acoesHeader(),
+              subtitulo: _subtitulo(),
             ),
             Expanded(
               child: _carregando
@@ -170,10 +257,46 @@ class _DashboardPageState extends State<DashboardPage> {
                     )
                   : _organizacaoId == null || _organizacaoId == 0
                   ? const Center(child: Text('Organização não encontrada.'))
-                  : LojaListPage(
-                      key: ValueKey(_organizacaoId),
-                      organizacaoId: _organizacaoId!,
-                      embedded: true,
+                  : ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        _opcao(
+                          titulo: 'Editar Organização',
+                          subtitulo: _podeEditarOrganizacao
+                              ? 'Atualize os dados cadastrais da organização.'
+                              : 'Disponível somente para o Superadministrador.',
+                          icone: Icons.business_rounded,
+                          onTap: _podeEditarOrganizacao
+                              ? _abrirOrganizacao
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Gerenciar Lojas',
+                          subtitulo: _cargo == 'GERENTE'
+                              ? 'Consulte e edite os dados da sua loja.'
+                              : 'Cadastre e administre as lojas da organização.',
+                          icone: Icons.storefront_rounded,
+                          onTap: _abrirLojas,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Gerenciar Usuários',
+                          subtitulo: _cargo == 'GERENTE'
+                              ? 'Administre os usuários vinculados à sua loja.'
+                              : 'Liste, inclua, altere e exclua acessos.',
+                          icone: Icons.manage_accounts_rounded,
+                          onTap: _abrirUsuarios,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Painel Gerencial da Organização',
+                          subtitulo:
+                              'Acompanhe vendas, lojas, produtos e ingressos.',
+                          icone: Icons.analytics_rounded,
+                          onTap: _podeVerGerencial ? _abrirGerencial : null,
+                        ),
+                      ],
                     ),
             ),
           ],

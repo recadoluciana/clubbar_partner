@@ -22,6 +22,9 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
 
   bool _carregando = true;
   Organizacao? _organizacao;
+  String _cargo = '';
+
+  bool get _podeEditarOrganizacao => _cargo == 'SUPERADMIN';
 
   @override
   void initState() {
@@ -125,6 +128,9 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
 
     try {
       final usuarioId = await StorageService.getUsuarioId();
+      final cargo = (await StorageService.getCargo() ?? '')
+          .trim()
+          .toUpperCase();
 
       if (usuarioId == null || usuarioId == 0) {
         throw Exception('Usuário não encontrado no login.');
@@ -136,6 +142,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
 
       setState(() {
         _organizacao = organizacao;
+        _cargo = cargo;
       });
     } catch (e) {
       debugPrint('[ORGANIZAÇÃO] Erro ao carregar: $e');
@@ -353,7 +360,9 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     return _cardSecao(
       icone: Icons.business_rounded,
       titulo: 'Identificação',
-      onEditar: () => _editarOrganizacao(OrganizacaoSecao.empresa),
+      onEditar: _podeEditarOrganizacao
+          ? () => _editarOrganizacao(OrganizacaoSecao.empresa)
+          : null,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 9),
@@ -431,7 +440,9 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     return _cardSecao(
       icone: Icons.contact_phone_rounded,
       titulo: 'Contato',
-      onEditar: () => _editarOrganizacao(OrganizacaoSecao.contato),
+      onEditar: _podeEditarOrganizacao
+          ? () => _editarOrganizacao(OrganizacaoSecao.contato)
+          : null,
       children: [
         _linhaInformacao(
           icone: Icons.email_outlined,
@@ -452,7 +463,9 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     return _cardSecao(
       icone: Icons.location_on_rounded,
       titulo: 'Endereço',
-      onEditar: () => _editarOrganizacao(OrganizacaoSecao.endereco),
+      onEditar: _podeEditarOrganizacao
+          ? () => _editarOrganizacao(OrganizacaoSecao.endereco)
+          : null,
       children: [
         _linhaInformacao(
           icone: Icons.markunread_mailbox_outlined,
@@ -520,6 +533,35 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
           icone: Icons.update_rounded,
           titulo: 'Última atualização',
           valor: _formatarData(organizacao.dtultatu),
+        ),
+      ],
+    );
+  }
+
+  Widget _cardUsuarios(Organizacao organizacao) {
+    return _cardSecao(
+      icone: Icons.people_alt_rounded,
+      titulo: 'Usuários da organização',
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Text(
+            'Liste, inclua, altere e exclua os acessos desta organização conforme o cargo e a loja vinculada.',
+            style: TextStyle(color: ClubbarColors.textoSecundario, height: 1.4),
+          ),
+        ),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    UsuarioListPage(organizacaoId: organizacao.organizacaoId),
+              ),
+            ),
+            icon: const Icon(Icons.manage_accounts_rounded),
+            label: const Text('Gerenciar usuários'),
+          ),
         ),
       ],
     );
@@ -618,6 +660,8 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
             const SizedBox(height: 14),
             _cardEndereco(organizacao),
             const SizedBox(height: 14),
+            _cardUsuarios(organizacao),
+            const SizedBox(height: 14),
             _cardSistema(organizacao),
           ],
         ),
@@ -629,24 +673,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: ClubbarAppBar(
-        mostrarVoltar: true,
-        actions: [
-          IconButton(
-            tooltip: 'Gerenciar usuários',
-            icon: const Icon(Icons.people_alt_rounded),
-            onPressed: _organizacao == null
-                ? null
-                : () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => UsuarioListPage(
-                        organizacaoId: _organizacao!.organizacaoId,
-                      ),
-                    ),
-                  ),
-          ),
-        ],
-      ),
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: SafeArea(
         child: Column(
           children: [

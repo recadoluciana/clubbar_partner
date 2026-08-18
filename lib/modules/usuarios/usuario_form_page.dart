@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/repositories/loja_repository.dart';
 import '../../core/repositories/usuario_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -43,6 +44,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
   String _statusSelecionado = 'ATIVO';
   String _cargoSelecionado = 'BARMAN';
+  String _cargoLogado = '';
 
   bool get editando => widget.usuario != null;
 
@@ -62,6 +64,18 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
     'PORTEIRO',
   ];
 
+  bool get _cargoSemLoja => _cargoSelecionado == 'ADMIN';
+  bool get _usuarioLogadoGerente => _cargoLogado == 'GERENTE';
+
+  bool get _cargoExigeLoja => const {
+    'GERENTE',
+    'CAIXA',
+    'TOTEM',
+    'BARMAN',
+    'GARCOM',
+    'PORTEIRO',
+  }.contains(_cargoSelecionado);
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +91,10 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       _statusSelecionado = (usuario.situsuario ?? 'ATIVO').toUpperCase();
 
       _cargoSelecionado = usuario.dscargo.trim().toUpperCase();
+
+      if (_cargoSelecionado == 'ADMIN') {
+        _lojaIdSelecionada = null;
+      }
 
       if (!_cargos.contains(_cargoSelecionado) && !usuarioSuperadmin) {
         _cargoSelecionado = 'BARMAN';
@@ -140,6 +158,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
     });
 
     try {
+      final cargoLogado = (await StorageService.getCargo() ?? '')
+          .trim()
+          .toUpperCase();
       final lista = await _lojaRepository.listar(widget.organizacaoId);
 
       if (!mounted) return;
@@ -153,7 +174,12 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
       setState(() {
         _lojas = lista;
-        _lojaIdSelecionada = lojaSelecionada;
+        _cargoLogado = cargoLogado;
+        _lojaIdSelecionada =
+            lojaSelecionada ??
+            (_usuarioLogadoGerente && lista.isNotEmpty
+                ? lista.first.lojaId
+                : null);
         _carregandoLojas = false;
       });
     } catch (_) {
@@ -298,12 +324,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
           ? widget.usuario!.dscargo
           : _cargoSelecionado;
 
-      if ((cargo == 'CAIXA' ||
-              cargo == 'TOTEM' ||
-              cargo == 'BARMAN' ||
-              cargo == 'GARCOM' ||
-              cargo == 'PORTEIRO') &&
-          _lojaIdSelecionada == null) {
+      if (_cargoExigeLoja && _lojaIdSelecionada == null) {
         AppSnackBar.aviso(
           context,
           'Caixa, Barman, Garçom e Porteiro devem estar vinculados a uma loja.',
@@ -434,6 +455,8 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
   Widget _campoCargo() {
     final cargosDisponiveis = usuarioSuperadmin
         ? const ['SUPERADMIN', ..._cargos]
+        : _usuarioLogadoGerente
+        ? _cargos.where((cargo) => cargo != 'ADMIN').toList()
         : _cargos;
     return DropdownButtonFormField<String>(
       initialValue: _cargoSelecionado,
@@ -463,6 +486,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
               setState(() {
                 _cargoSelecionado = value;
+                if (value == 'ADMIN') {
+                  _lojaIdSelecionada = null;
+                }
               });
             },
     );
@@ -660,10 +686,11 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                                     icone: Icons.storefront_outlined,
                                   ),
                                   items: [
-                                    const DropdownMenuItem<int?>(
-                                      value: null,
-                                      child: Text('Sem loja vinculada'),
-                                    ),
+                                    if (!_cargoExigeLoja)
+                                      const DropdownMenuItem<int?>(
+                                        value: null,
+                                        child: Text('Sem loja vinculada'),
+                                      ),
                                     ..._lojas.map(
                                       (loja) => DropdownMenuItem<int?>(
                                         value: loja.lojaId,
@@ -671,13 +698,20 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                                       ),
                                     ),
                                   ],
-                                  onChanged: _salvando
+                                  onChanged:
+                                      _salvando ||
+                                          _cargoSemLoja ||
+                                          _usuarioLogadoGerente
                                       ? null
                                       : (value) {
                                           setState(() {
                                             _lojaIdSelecionada = value;
                                           });
                                         },
+                                  validator: (value) =>
+                                      _cargoExigeLoja && value == null
+                                      ? 'Selecione uma loja.'
+                                      : null,
                                 ),
 
                           const SizedBox(height: 14),

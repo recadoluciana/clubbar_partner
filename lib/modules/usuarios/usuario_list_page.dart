@@ -214,7 +214,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   Future<void> _excluirUsuario(Usuario usuario) async {
     if (_excluindo) return;
 
-    if (usuario.usuarioId == 1) {
+    if (usuario.dscargo.trim().toUpperCase() == 'SUPERADMIN') {
       AppSnackBar.erro(
         context,
         'O usuário principal do sistema não pode ser excluído.',
@@ -386,7 +386,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
       elevation: 1,
-      onTap: () => _abrirEdicao(usuario),
+      onTap: principal ? null : () => _abrirEdicao(usuario),
       child: Column(
         children: [
           Row(
@@ -528,9 +528,13 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _excluindo ? null : () => _abrirEdicao(usuario),
-                  icon: const Icon(Icons.edit_rounded),
-                  label: const Text('Editar'),
+                  onPressed: principal || _excluindo
+                      ? null
+                      : () => _abrirEdicao(usuario),
+                  icon: Icon(
+                    principal ? Icons.lock_rounded : Icons.edit_rounded,
+                  ),
+                  label: Text(principal ? 'Protegido' : 'Editar'),
                 ),
               ),
 
