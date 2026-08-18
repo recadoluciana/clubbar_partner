@@ -19,12 +19,24 @@ class ClubbarPartnerApp extends StatelessWidget {
       theme: AppTheme.light,
       builder: (context, child) => ValueListenableBuilder<bool>(
         valueListenable: ClubbarFooter.visibility,
-        builder: (context, mostrarFooter, _) => Column(
-          children: [
-            Expanded(child: child ?? const SizedBox.shrink()),
-            if (mostrarFooter) const ClubbarFooter(),
-          ],
-        ),
+        builder: (context, mostrarFooter, _) {
+          final conteudo = child ?? const SizedBox.shrink();
+
+          return Column(
+            children: [
+              Expanded(
+                child: mostrarFooter
+                    ? MediaQuery.removePadding(
+                        context: context,
+                        removeBottom: true,
+                        child: conteudo,
+                      )
+                    : conteudo,
+              ),
+              if (mostrarFooter) const ClubbarFooter(),
+            ],
+          );
+        },
       ),
       home: const SplashDeciderPage(),
     );
