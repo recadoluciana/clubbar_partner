@@ -28,19 +28,28 @@ class CaixaRepository {
     _erro(response.body);
   }
 
-  Future<void> adicionar(int produtoId) async {
+  Future<void> adicionar(
+    int produtoId, {
+    int quantidade = 1,
+    String? observacao,
+  }) async {
     final response = await ApiService.post('/caixa/carrinho/itens', {
       'produto_id': produtoId,
-      'quantidade': 1,
+      'quantidade': quantidade,
+      'observacao': observacao?.trim(),
     });
     if (response.statusCode != 200 && response.statusCode != 201) {
       _erro(response.body);
     }
   }
 
-  Future<void> removerUmaUnidade(int produtoId) async {
+  Future<void> removerUmaUnidade(
+    int produtoId, {
+    String observacao = '',
+  }) async {
+    final observacaoQuery = Uri.encodeQueryComponent(observacao.trim());
     final response = await ApiService.delete(
-      '/caixa/carrinho/itens/$produtoId/um',
+      '/caixa/carrinho/itens/$produtoId/um?observacao=$observacaoQuery',
     );
     if (response.statusCode != 200) _erro(response.body);
   }

@@ -16,6 +16,7 @@ import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_footer.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/categoria.dart';
 import '../auth/login_page.dart';
@@ -40,6 +41,12 @@ class _CaixaPageState extends State<CaixaPage> {
   int? _categoriaId;
   bool _carregando = true;
   bool _checkoutEmAndamento = false;
+  final _buscaController = TextEditingController();
+  String _busca = '';
+  String _nomeUsuario = 'Usuário';
+  String _cargo = 'Caixa';
+  DateTime _agora = DateTime.now();
+  Timer? _relogioCabecalho;
 
   List<Map<String, dynamic>> get _itens => (_carrinho['itens'] as List? ?? [])
       .whereType<Map>()
@@ -54,8 +61,46 @@ class _CaixaPageState extends State<CaixaPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ClubbarFooter.visibility.value = false;
+    });
+    _carregarIdentificacao();
+    _relogioCabecalho = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _agora = DateTime.now());
+    });
     _carregar();
   }
+
+  @override
+  void dispose() {
+    _relogioCabecalho?.cancel();
+    _buscaController.dispose();
+    ClubbarFooter.visibility.value = true;
+    super.dispose();
+  }
+
+  Future<void> _carregarIdentificacao() async {
+    final dados = await Future.wait([
+      StorageService.getNomeUsuario(),
+      StorageService.getCargo(),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _nomeUsuario = dados[0]?.trim().isNotEmpty == true
+          ? dados[0]!.trim()
+          : 'Usuário';
+      _cargo = _formatarCargo(dados[1] ?? 'Caixa');
+    });
+  }
+
+  String _formatarCargo(String valor) => valor
+      .trim()
+      .replaceAll('_', ' ')
+      .toLowerCase()
+      .split(' ')
+      .where((parte) => parte.isNotEmpty)
+      .map((parte) => '${parte[0].toUpperCase()}${parte.substring(1)}')
+      .join(' ');
 
   Future<void> _carregar() async {
     setState(() => _carregando = true);
@@ -83,6 +128,10 @@ class _CaixaPageState extends State<CaixaPage> {
             )
             .toList();
         _carrinho = resultados[2] as Map<String, dynamic>;
+        if (_categorias.isNotEmpty &&
+            !_categorias.any((c) => c.categoriaId == _categoriaId)) {
+          _categoriaId = _categorias.first.categoriaId;
+        }
       });
     } catch (e) {
       if (mounted) {
@@ -93,11 +142,18 @@ class _CaixaPageState extends State<CaixaPage> {
     }
   }
 
-  List<Map<String, dynamic>> get _produtosVisiveis => _categoriaId == null
-      ? _produtos
-      : _produtos
-            .where((p) => int.tryParse('${p['categoria_id']}') == _categoriaId)
-            .toList();
+  List<Map<String, dynamic>> get _produtosVisiveis {
+    final termo = _busca.trim().toLowerCase();
+    return _produtos.where((produto) {
+      final pertenceCategoria =
+          int.tryParse('${produto['categoria_id']}') == _categoriaId;
+      final texto =
+          '${produto['nmproduto'] ?? ''} '
+                  '${produto['dsproduto'] ?? ''} ${produto['nmcategoria'] ?? ''}'
+              .toLowerCase();
+      return pertenceCategoria && (termo.isEmpty || texto.contains(termo));
+    }).toList();
+  }
 
   String? _imagem(Map<String, dynamic> produto) {
     final valor = '${produto['urlfotoproduto'] ?? ''}'.trim();
@@ -105,13 +161,31 @@ class _CaixaPageState extends State<CaixaPage> {
     return valor.startsWith('http') ? valor : ApiConfig.buildUrl(valor);
   }
 
-  Future<void> _adicionar(Map<String, dynamic> produto) async {
+  Future<void> _abrirProduto(Map<String, dynamic> produto) async {
+    final pedido = await Navigator.push<_ProdutoPedido>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _ProdutoCashierPage(
+          produto: produto,
+          imagem: _imagem(produto),
+          moeda: _moeda,
+        ),
+      ),
+    );
+    if (pedido == null) return;
     try {
-      await _caixa.adicionar(int.parse('${produto['produto_id']}'));
+      await _caixa.adicionar(
+        int.parse('${produto['produto_id']}'),
+        quantidade: pedido.quantidade,
+        observacao: pedido.observacao,
+      );
       final carrinho = await _caixa.carrinho();
       if (!mounted) return;
       setState(() => _carrinho = carrinho);
-      AppSnackBar.sucesso(context, '${produto['nmproduto']} adicionado.');
+      AppSnackBar.sucesso(
+        context,
+        '${pedido.quantidade}x ${produto['nmproduto']} adicionado ao carrinho.',
+      );
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -125,105 +199,125 @@ class _CaixaPageState extends State<CaixaPage> {
       isScrollControlled: true,
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setLocal) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Carrinho do Caixa',
-                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Cliente: ${_contexto?['cliente_nome'] ?? 'Consumidor nao identificado'}',
-                ),
-                const Divider(height: 28),
-                if (_itens.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text('Carrinho vazio.', textAlign: TextAlign.center),
+          child: SizedBox(
+            height: MediaQuery.sizeOf(context).height * .82,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Carrinho do Caixa',
+                    style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
                   ),
-                ..._itens.map(
-                  (item) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('${item['nmproduto']}'),
-                    subtitle: Text('${item['qtitcarrinho']} unidade(s)'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_moeda.format(item['subtotal'] ?? 0)),
-                        IconButton(
-                          tooltip: 'Remover uma unidade',
-                          onPressed: () async {
-                            try {
-                              await _caixa.removerUmaUnidade(
-                                int.parse('${item['produto_id']}'),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Cliente: ${_contexto?['cliente_nome'] ?? 'Consumidor nao identificado'}',
+                  ),
+                  const Divider(height: 28),
+                  Expanded(
+                    child: _itens.isEmpty
+                        ? const Center(child: Text('Carrinho vazio.'))
+                        : ListView.builder(
+                            itemCount: _itens.length,
+                            itemBuilder: (_, index) {
+                              final item = _itens[index];
+                              final observacao = '${item['dsobsitcar'] ?? ''}'
+                                  .trim();
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text('${item['nmproduto']}'),
+                                subtitle: Text(
+                                  '${item['qtitcarrinho']} unidade(s)'
+                                  '${observacao.isEmpty ? '' : '\nObs.: $observacao'}',
+                                ),
+                                isThreeLine: observacao.isNotEmpty,
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(_moeda.format(item['subtotal'] ?? 0)),
+                                    IconButton(
+                                      tooltip: 'Remover uma unidade',
+                                      onPressed: () async {
+                                        try {
+                                          await _caixa.removerUmaUnidade(
+                                            int.parse('${item['produto_id']}'),
+                                            observacao: observacao,
+                                          );
+                                          final carrinho = await _caixa
+                                              .carrinho();
+                                          if (!mounted) return;
+                                          setState(() => _carrinho = carrinho);
+                                          if (sheetContext.mounted) {
+                                            setLocal(() {});
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            AppSnackBar.erro(
+                                              this.context,
+                                              e.toString().replaceFirst(
+                                                'Exception: ',
+                                                '',
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      icon: const Icon(
+                                        Icons.remove_circle_outline,
+                                      ),
+                                      color: Colors.redAccent,
+                                    ),
+                                  ],
+                                ),
                               );
-                              final carrinho = await _caixa.carrinho();
-                              if (!mounted) return;
-                              setState(() => _carrinho = carrinho);
-                              if (sheetContext.mounted) setLocal(() {});
-                            } catch (e) {
-                              if (mounted) {
-                                AppSnackBar.erro(
-                                  this.context,
-                                  e.toString().replaceFirst('Exception: ', ''),
-                                );
-                              }
-                            }
-                          },
-                          icon: const Icon(Icons.remove_circle_outline),
-                          color: Colors.redAccent,
-                        ),
-                      ],
+                            },
+                          ),
+                  ),
+                  const Divider(),
+                  Text(
+                    'Total: ${_moeda.format(_total)}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                ),
-                const Divider(),
-                Text(
-                  'Total: ${_moeda.format(_total)}',
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: _itens.isEmpty || _checkoutEmAndamento
+                        ? null
+                        : () async {
+                            Navigator.pop(sheetContext);
+                            await _iniciarPix();
+                          },
+                    icon: const Icon(Icons.payments_rounded),
+                    label: const Text('Receber por Pix agora'),
                   ),
-                ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: _itens.isEmpty || _checkoutEmAndamento
-                      ? null
-                      : () async {
-                          Navigator.pop(sheetContext);
-                          await _iniciarPix();
-                        },
-                  icon: const Icon(Icons.payments_rounded),
-                  label: const Text('Receber por Pix agora'),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: _itens.isEmpty || _checkoutEmAndamento
-                      ? null
-                      : () async {
-                          Navigator.pop(sheetContext);
-                          await _iniciarCartao();
-                        },
-                  icon: const Icon(Icons.credit_card_rounded),
-                  label: const Text('Receber por cartão'),
-                ),
-                const SizedBox(height: 10),
-                TextButton.icon(
-                  onPressed: _itens.isEmpty
-                      ? null
-                      : () async {
-                          Navigator.pop(sheetContext);
-                          await _limparCarrinho();
-                        },
-                  icon: const Icon(Icons.delete_sweep_outlined),
-                  label: const Text('Limpar carrinho'),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _itens.isEmpty || _checkoutEmAndamento
+                        ? null
+                        : () async {
+                            Navigator.pop(sheetContext);
+                            await _iniciarCartao();
+                          },
+                    icon: const Icon(Icons.credit_card_rounded),
+                    label: const Text('Receber por cartão'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: _itens.isEmpty
+                        ? null
+                        : () async {
+                            Navigator.pop(sheetContext);
+                            await _limparCarrinho();
+                          },
+                    icon: const Icon(Icons.delete_sweep_outlined),
+                    label: const Text('Limpar carrinho'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -570,33 +664,59 @@ class _CaixaPageState extends State<CaixaPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
-    appBar: ClubbarAppBar(
-      mostrarSair: true,
-      onSair: _sair,
-      actions: [
-        IconButton(
-          tooltip: 'Reimprimir ultima venda',
-          onPressed: _reimprimirUltimaVenda,
-          icon: const Icon(Icons.print_rounded),
-        ),
-        IconButton(
-          tooltip: 'Carrinho ($_quantidade)',
-          onPressed: _abrirCarrinho,
-          icon: Badge(
-            isLabelVisible: _quantidade > 0,
-            label: Text('$_quantidade'),
-            child: const Icon(Icons.shopping_cart_rounded),
-          ),
-        ),
-      ],
-    ),
+    appBar: ClubbarAppBar(mostrarSair: true, onSair: _sair),
     body: _carregando || _contexto == null
         ? const Center(child: CircularProgressIndicator())
         : Column(
             children: [
               ClubbarPageHeader(
-                titulo: 'Cardápio Digital',
-                subtitulo: '${_contexto!['nmloja']} • Frente de Caixa',
+                titulo: 'Clubbar Cashier - ${_contexto!['nmloja']}',
+                subtitulo:
+                    '$_nomeUsuario • $_cargo • ${_contexto!['nmloja']} • '
+                    '${DateFormat('dd/MM/yyyy HH:mm:ss', 'pt_BR').format(_agora)}',
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Reimprimir última venda',
+                      onPressed: _reimprimirUltimaVenda,
+                      icon: const Icon(Icons.print_rounded),
+                    ),
+                    IconButton(
+                      tooltip: 'Carrinho ($_quantidade)',
+                      onPressed: _abrirCarrinho,
+                      icon: Badge(
+                        isLabelVisible: _quantidade > 0,
+                        label: Text('$_quantidade'),
+                        child: const Icon(Icons.shopping_cart_rounded),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
+                child: TextField(
+                  controller: _buscaController,
+                  onChanged: (valor) => setState(() => _busca = valor),
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    labelText: 'Buscar produto',
+                    hintText: 'Digite o nome ou a descrição',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _busca.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Limpar busca',
+                            onPressed: () {
+                              _buscaController.clear();
+                              setState(() => _busca = '');
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
               ),
               SizedBox(
                 height: 58,
@@ -607,14 +727,6 @@ class _CaixaPageState extends State<CaixaPage> {
                   ),
                   scrollDirection: Axis.horizontal,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: const Text('Todos'),
-                        selected: _categoriaId == null,
-                        onSelected: (_) => setState(() => _categoriaId = null),
-                      ),
-                    ),
                     ..._categorias.map(
                       (categoria) => Padding(
                         padding: const EdgeInsets.only(right: 8),
@@ -649,7 +761,7 @@ class _CaixaPageState extends State<CaixaPage> {
                       return Card(
                         clipBehavior: Clip.antiAlias,
                         child: InkWell(
-                          onTap: () => _adicionar(produto),
+                          onTap: () => _abrirProduto(produto),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -688,14 +800,6 @@ class _CaixaPageState extends State<CaixaPage> {
                                             0,
                                       ),
                                     ),
-                                    const SizedBox(height: 6),
-                                    const Row(
-                                      children: [
-                                        Icon(Icons.add_shopping_cart, size: 17),
-                                        SizedBox(width: 4),
-                                        Text('Adicionar'),
-                                      ],
-                                    ),
                                   ],
                                 ),
                               ),
@@ -710,4 +814,184 @@ class _CaixaPageState extends State<CaixaPage> {
             ],
           ),
   );
+}
+
+class _ProdutoPedido {
+  final int quantidade;
+  final String observacao;
+
+  const _ProdutoPedido(this.quantidade, this.observacao);
+}
+
+class _ProdutoCashierPage extends StatefulWidget {
+  final Map<String, dynamic> produto;
+  final String? imagem;
+  final NumberFormat moeda;
+
+  const _ProdutoCashierPage({
+    required this.produto,
+    required this.imagem,
+    required this.moeda,
+  });
+
+  @override
+  State<_ProdutoCashierPage> createState() => _ProdutoCashierPageState();
+}
+
+class _ProdutoCashierPageState extends State<_ProdutoCashierPage> {
+  final _observacaoController = TextEditingController();
+  int _quantidade = 1;
+
+  double _numero(Object? valor) =>
+      double.tryParse('${valor ?? 0}'.replaceAll(',', '.')) ?? 0;
+
+  @override
+  void dispose() {
+    _observacaoController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final produto = widget.produto;
+    final descricao = '${produto['dsproduto'] ?? ''}'.trim();
+    final preco = _numero(produto['vrprecofinal'] ?? produto['vrprecoprod']);
+    final precoOriginal = _numero(produto['vrprecoprod']);
+    final temDesconto =
+        produto['descontoativo'] == true && precoOriginal > preco;
+
+    return Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            if (widget.imagem != null)
+              Container(
+                height: 260,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Image.network(
+                  widget.imagem!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) =>
+                      const Icon(Icons.fastfood_rounded, size: 72),
+                ),
+              )
+            else
+              Container(
+                height: 180,
+                decoration: BoxDecoration(
+                  color: ClubbarColors.ambarClaro,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(Icons.fastfood_rounded, size: 72),
+              ),
+            const SizedBox(height: 20),
+            Text(
+              '${produto['nmproduto']}',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${produto['nmcategoria'] ?? 'Sem categoria'}',
+              style: const TextStyle(
+                color: ClubbarColors.textoSecundario,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (descricao.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(descricao, style: const TextStyle(fontSize: 16)),
+            ],
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Text(
+                  widget.moeda.format(preco),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (temDesconto) ...[
+                  const SizedBox(width: 10),
+                  Text(
+                    widget.moeda.format(precoOriginal),
+                    style: const TextStyle(
+                      color: ClubbarColors.textoSecundario,
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const Divider(height: 34),
+            const Text(
+              'Quantidade',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                IconButton.filledTonal(
+                  onPressed: _quantidade > 1
+                      ? () => setState(() => _quantidade--)
+                      : null,
+                  icon: const Icon(Icons.remove_rounded),
+                ),
+                SizedBox(
+                  width: 64,
+                  child: Text(
+                    '$_quantidade',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton.filled(
+                  onPressed: () => setState(() => _quantidade++),
+                  icon: const Icon(Icons.add_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            TextField(
+              controller: _observacaoController,
+              minLines: 3,
+              maxLines: 5,
+              maxLength: 500,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Observação',
+                hintText: 'Ex.: sem gelo, retirar cebola...',
+                alignLabelWithHint: true,
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(
+                context,
+                _ProdutoPedido(_quantidade, _observacaoController.text.trim()),
+              ),
+              icon: const Icon(Icons.add_shopping_cart_rounded),
+              label: Text(
+                'Adicionar $_quantidade ao carrinho • '
+                '${widget.moeda.format(preco * _quantidade)}',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
