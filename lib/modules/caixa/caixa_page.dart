@@ -16,7 +16,6 @@ import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
-import '../../core/widgets/clubbar_footer.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/categoria.dart';
 import '../auth/login_page.dart';
@@ -61,9 +60,6 @@ class _CaixaPageState extends State<CaixaPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ClubbarFooter.visibility.value = false;
-    });
     _carregarIdentificacao();
     _relogioCabecalho = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _agora = DateTime.now());
@@ -75,7 +71,6 @@ class _CaixaPageState extends State<CaixaPage> {
   void dispose() {
     _relogioCabecalho?.cancel();
     _buscaController.dispose();
-    ClubbarFooter.visibility.value = true;
     super.dispose();
   }
 
@@ -331,11 +326,14 @@ class _CaixaPageState extends State<CaixaPage> {
       final checkout = await _caixa.checkoutCartao();
       final id = '${checkout['pagamento_id']}';
       final url = Uri.parse('${checkout['checkout_url']}');
-      await launchUrl(
+      final abriuCheckout = await launchUrl(
         url,
-        mode: LaunchMode.externalApplication,
+        mode: LaunchMode.inAppBrowserView,
         webOnlyWindowName: '_blank',
       );
+      if (!abriuCheckout) {
+        throw Exception('Não foi possível abrir o checkout do cartão.');
+      }
       await _aguardarConfirmacao(id);
     } catch (e) {
       if (mounted) {

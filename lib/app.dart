@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
-import 'core/widgets/clubbar_footer.dart';
 import 'modules/auth/login_page.dart';
 import 'modules/dashboard/dashboard_page.dart';
 import 'modules/leitor_qr/barman_home_page.dart';
@@ -17,27 +16,6 @@ class ClubbarPartnerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Clubbar Parceiro',
       theme: AppTheme.light,
-      builder: (context, child) => ValueListenableBuilder<bool>(
-        valueListenable: ClubbarFooter.visibility,
-        builder: (context, mostrarFooter, _) {
-          final conteudo = child ?? const SizedBox.shrink();
-
-          return Column(
-            children: [
-              Expanded(
-                child: mostrarFooter
-                    ? MediaQuery.removePadding(
-                        context: context,
-                        removeBottom: true,
-                        child: conteudo,
-                      )
-                    : conteudo,
-              ),
-              if (mostrarFooter) const ClubbarFooter(),
-            ],
-          );
-        },
-      ),
       home: const SplashDeciderPage(),
     );
   }

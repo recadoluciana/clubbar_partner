@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
-import '../../core/widgets/clubbar_footer.dart';
 import '../caixa/caixa_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../leitor_qr/barman_home_page.dart';
@@ -25,16 +24,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _recuperando = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ClubbarFooter.visibility.value = false;
-    });
-  }
-
-  @override
   void dispose() {
-    ClubbarFooter.visibility.value = true;
     _emailController.dispose();
     _senhaController.dispose();
     super.dispose();
