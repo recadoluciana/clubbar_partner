@@ -14,7 +14,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.mostrarSair = false,
     this.onVoltar,
     this.onSair,
-    this.logoPath = 'assets/images/logo.png',
+    this.logoPath = 'assets/images/clubbar_topbar.png',
     this.actions,
   });
 

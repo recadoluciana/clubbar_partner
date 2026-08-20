@@ -9,6 +9,8 @@ import '../../../core/config/api_config.dart';
 import '../../../core/services/api_service.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/widgets/app_snackbar.dart';
+
 class LeitorQrRetiradaScreen extends StatefulWidget {
   const LeitorQrRetiradaScreen({super.key});
 
@@ -117,9 +119,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
 
                 if (!dialogContext.mounted) return;
 
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Diagnóstico copiado.')),
-                );
+                AppSnackBar.sucesso(dialogContext, 'Diagnóstico copiado.');
               },
               icon: const Icon(Icons.copy_rounded),
               label: const Text('Copiar'),
