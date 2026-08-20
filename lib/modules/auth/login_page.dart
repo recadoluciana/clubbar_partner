@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/services/auth_service.dart';
+import '../../core/services/app_exit_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -488,7 +489,7 @@ class _LoginPageState extends State<LoginPage> {
             tooltip: 'Fechar aplicativo',
             onPressed: () async {
               await StorageService.clearToken();
-              await SystemNavigator.pop();
+              await AppExitService.fechar();
             },
             icon: const Icon(Icons.close_rounded),
           ),

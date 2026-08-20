@@ -27,10 +27,10 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.black,
       foregroundColor: Colors.white,
       elevation: 0,
-      centerTitle: true,
+      centerTitle: false,
       toolbarHeight: 60,
       automaticallyImplyLeading: false,
-      titleSpacing: 0,
+      titleSpacing: 8,
 
       leading: mostrarVoltar
           ? IconButton(
@@ -48,13 +48,14 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
         height: 54,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Image.asset(
-            logoPath,
-            height: 50,
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) {
-              return const Center(
-                child: Text(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Image.asset(
+              logoPath,
+              height: 50,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) {
+                return const Text(
                   'CLUBBAR',
                   style: TextStyle(
                     color: Colors.white,
@@ -62,9 +63,9 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
