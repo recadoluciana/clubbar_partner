@@ -19,14 +19,20 @@ class _ApiStatusIndicatorState extends State<ApiStatusIndicator> {
   Timer? _timer;
   bool _online = false;
   bool _bancoOnline = false;
-  bool _consultando = true;
   String _ambiente = '?';
+
+  bool get _exibirDev =>
+      ApiConfig.isDev ||
+      ApiConfig.baseUrl.contains('desenvolvimento') ||
+      ApiConfig.baseUrl.contains('localhost');
 
   @override
   void initState() {
     super.initState();
-    _consultar();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _consultar());
+    if (_exibirDev) {
+      _consultar();
+      _timer = Timer.periodic(const Duration(seconds: 30), (_) => _consultar());
+    }
   }
 
   @override
@@ -50,7 +56,6 @@ class _ApiStatusIndicatorState extends State<ApiStatusIndicator> {
             (dados['api'] == null || dados['api'] == 'online');
         _bancoOnline = dados['database'] == 'online';
         _ambiente = (dados['environment'] ?? '?').toString().toUpperCase();
-        _consultando = false;
       });
     } catch (_) {
       if (!mounted) return;
@@ -58,63 +63,79 @@ class _ApiStatusIndicatorState extends State<ApiStatusIndicator> {
         _online = false;
         _bancoOnline = false;
         _ambiente = '?';
-        _consultando = false;
       });
     }
   }
 
+  Future<void> _mostrarDetalhes() async {
+    await _consultar();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.developer_mode_rounded, color: Colors.red),
+            SizedBox(width: 10),
+            Text('Ambiente DEV'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('API: ${_online ? 'online' : 'offline'}'),
+            const SizedBox(height: 8),
+            Text('Banco: ${_bancoOnline ? 'online' : 'offline'}'),
+            const SizedBox(height: 8),
+            Text('Ambiente: $_ambiente'),
+            const SizedBox(height: 8),
+            Text('Versão: ${widget.versao}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final cor = _consultando || (_online && !_bancoOnline)
-        ? Colors.amber
-        : _online
-        ? Colors.greenAccent.shade400
-        : Colors.redAccent;
-    final api = _consultando ? '...' : (_online ? 'ON' : 'OFF');
+    if (!_exibirDev) return const SizedBox.shrink();
 
-    final iconeApi = _consultando
-        ? Icons.sync_rounded
-        : _online
-        ? Icons.cloud_done_rounded
-        : Icons.cloud_off_rounded;
-
-    return Tooltip(
-      message:
-          'API: ${_online ? 'online' : 'offline'} | Banco: ${_bancoOnline ? 'online' : 'offline'} | Ambiente: $_ambiente',
-      child: InkWell(
-        onTap: _consultar,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(iconeApi, color: cor, size: 15),
-              const SizedBox(width: 3),
-              Text(
-                'API $api',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Tooltip(
+        message: 'Ver informações do ambiente',
+        child: InkWell(
+          onTap: _mostrarDetalhes,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.red.shade700,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.circle, color: Colors.white, size: 7),
+                SizedBox(width: 5),
+                Text(
+                  'DEV',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .5,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 5),
-              Icon(
-                Icons.storage_rounded,
-                color: _bancoOnline ? Colors.greenAccent.shade400 : cor,
-                size: 14,
-              ),
-              const SizedBox(width: 2),
-              Text(
-                'DB $_ambiente · v${widget.versao}',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

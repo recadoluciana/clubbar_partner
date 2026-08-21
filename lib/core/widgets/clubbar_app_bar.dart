@@ -45,14 +45,14 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
           : null,
 
       title: SizedBox(
-        height: 54,
+        height: 56,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Align(
             alignment: Alignment.centerLeft,
             child: Image.asset(
               logoPath,
-              height: 50,
+              height: 52,
               fit: BoxFit.contain,
               errorBuilder: (_, _, _) {
                 return const Text(
@@ -74,10 +74,13 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (actions != null) ...actions!,
 
         if (mostrarSair)
-          IconButton(
-            tooltip: 'Sair',
-            icon: const Icon(Icons.logout_rounded, size: 24),
-            onPressed: onSair,
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              tooltip: 'Sair',
+              icon: const Icon(Icons.logout_rounded, size: 24),
+              onPressed: onSair,
+            ),
           ),
       ],
     );
