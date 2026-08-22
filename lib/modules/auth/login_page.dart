@@ -519,35 +519,40 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final desktop = constraints.maxWidth >= 900;
-          if (desktop) {
-            return Row(
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: ColoredBox(
-                    color: Colors.amber,
-                    child: _marca(compacta: false),
-                  ),
-                ),
-                Expanded(
-                  flex: 6,
-                  child: ColoredBox(
-                    color: Colors.amber,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFFC107),
+              Color(0xFFFFD95A),
+              Color(0xFFFFECB3),
+              Color(0xFFFFFBF0),
+            ],
+            stops: [0, .32, .68, 1],
+          ),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final desktop = constraints.maxWidth >= 900;
+            if (desktop) {
+              return Row(
+                children: [
+                  Expanded(flex: 5, child: _marca(compacta: false)),
+                  Expanded(
+                    flex: 6,
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(48),
                       child: Center(child: _campoLogin()),
                     ),
                   ),
-                ),
-              ],
-            );
-          }
-          return Container(
-            color: Colors.amber,
-            child: SingleChildScrollView(
+                ],
+              );
+            }
+            return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 32),
               child: Column(
                 children: [
@@ -556,9 +561,9 @@ class _LoginPageState extends State<LoginPage> {
                   _campoLogin(),
                 ],
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
