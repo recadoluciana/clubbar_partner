@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,6 +8,7 @@ import '../../core/services/app_exit_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../caixa/caixa_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../leitor_qr/barman_home_page.dart';
@@ -24,9 +27,27 @@ class _LoginPageState extends State<LoginPage> {
   bool _carregando = false;
   bool _mostrarSenha = false;
   bool _recuperando = false;
+  bool _corujaOlhoFechado = false;
+  Timer? _timerCoruja;
+
+  @override
+  void initState() {
+    super.initState();
+    _timerCoruja = Timer.periodic(const Duration(milliseconds: 1800), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _corujaOlhoFechado = true);
+      Future<void>.delayed(const Duration(milliseconds: 180), () {
+        if (mounted) setState(() => _corujaOlhoFechado = false);
+      });
+    });
+  }
 
   @override
   void dispose() {
+    _timerCoruja?.cancel();
     _emailController.dispose();
     _senhaController.dispose();
     super.dispose();
@@ -370,8 +391,8 @@ class _LoginPageState extends State<LoginPage> {
             child: FilledButton.icon(
               onPressed: _carregando ? null : _fazerLogin,
               style: FilledButton.styleFrom(
-                backgroundColor: ClubbarColors.preto,
-                foregroundColor: ClubbarColors.branco,
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -381,7 +402,7 @@ class _LoginPageState extends State<LoginPage> {
                       dimension: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: Colors.black,
                       ),
                     )
                   : const Icon(Icons.login_rounded),
@@ -427,13 +448,22 @@ class _LoginPageState extends State<LoginPage> {
             ? CrossAxisAlignment.center
             : CrossAxisAlignment.start,
         children: [
-          Image.asset('assets/images/logo.png', height: compacta ? 58 : 82),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 100),
+            child: Image.asset(
+              _corujaOlhoFechado
+                  ? 'assets/images/corujao_piscando.png'
+                  : 'assets/images/corujao.png',
+              key: ValueKey(_corujaOlhoFechado),
+              height: compacta ? 92 : 120,
+            ),
+          ),
           SizedBox(height: compacta ? 10 : 30),
           if (!compacta) ...[
             const Text(
               'Sua operação,\nsempre sob controle.',
               style: TextStyle(
-                color: Colors.white,
+                color: Colors.black,
                 fontSize: 38,
                 height: 1.12,
                 fontWeight: FontWeight.w900,
@@ -443,7 +473,7 @@ class _LoginPageState extends State<LoginPage> {
             const Text(
               'Acompanhe vendas, agenda, cardápio e financeiro em um só lugar.',
               style: TextStyle(
-                color: Color(0xFFD6D6D6),
+                color: Color(0xFF3F3300),
                 fontSize: 17,
                 height: 1.5,
               ),
@@ -476,14 +506,8 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F3F5),
-      appBar: AppBar(
-        backgroundColor: ClubbarColors.preto,
-        foregroundColor: ClubbarColors.branco,
-        title: const Text(
-          'Clubbar Partner',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+      backgroundColor: Colors.amber,
+      appBar: ClubbarAppBar(
         actions: [
           IconButton(
             tooltip: 'Fechar aplicativo',
@@ -503,45 +527,26 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 Expanded(
                   flex: 5,
-                  child: Container(
-                    height: double.infinity,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF111111),
-                          Color(0xFF292000),
-                          Color(0xFF5A4300),
-                        ],
-                      ),
-                    ),
+                  child: ColoredBox(
+                    color: Colors.amber,
                     child: _marca(compacta: false),
                   ),
                 ),
                 Expanded(
                   flex: 6,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(48),
-                    child: Center(child: _campoLogin()),
+                  child: ColoredBox(
+                    color: Colors.amber,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(48),
+                      child: Center(child: _campoLogin()),
+                    ),
                   ),
                 ),
               ],
             );
           }
           return Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  ClubbarColors.preto,
-                  Color(0xFF3B2C00),
-                  Color(0xFFF2F3F5),
-                ],
-                stops: [0, 0.3, 0.3],
-              ),
-            ),
+            color: Colors.amber,
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 32),
               child: Column(
@@ -569,9 +574,9 @@ class _Beneficio extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: Colors.black.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white24),
+        border: Border.all(color: Colors.black12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -581,7 +586,7 @@ class _Beneficio extends StatelessWidget {
           Text(
             texto,
             style: const TextStyle(
-              color: Colors.white,
+              color: Colors.black87,
               fontWeight: FontWeight.w700,
             ),
           ),
