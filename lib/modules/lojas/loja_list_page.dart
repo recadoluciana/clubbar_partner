@@ -1013,15 +1013,11 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   String _subtituloHeader() {
-    final organizacao = _carregandoOrganizacao
-        ? 'Carregando organização...'
-        : _nomeOrganizacao;
-
     if (_carregando) {
-      return '$organizacao • Carregando estabelecimentos...';
+      return 'Carregando lojas...';
     }
 
-    return '$organizacao • ${_lojas.length} '
+    return '${_lojas.length} '
         '${_lojas.length == 1 ? 'loja cadastrada' : 'lojas cadastradas'}';
   }
 
@@ -1243,12 +1239,18 @@ class _LojaListPageState extends State<LojaListPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: const ClubbarAppBar(
+        mostrarVoltar: true,
+        centralizarLogo: true,
+        alturaLogo: 54,
+      ),
       body: SafeArea(
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Lojas',
+              titulo: _carregandoOrganizacao
+                  ? 'Carregando organização...'
+                  : _nomeOrganizacao,
               subtitulo: _subtituloHeader(),
               trailing: _acoesHeader(),
             ),

@@ -277,7 +277,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Gerenciar Lojas',
+                          titulo: 'Gerenciar Loja',
                           subtitulo: _cargo == 'GERENTE'
                               ? 'Consulte e edite os dados da sua loja.'
                               : 'Cadastre e administre as lojas da organização.',
@@ -286,7 +286,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Gerenciar Usuários',
+                          titulo: 'Gerenciar Usuário',
                           subtitulo: _cargo == 'GERENTE'
                               ? 'Administre os usuários vinculados à sua loja.'
                               : 'Liste, inclua, altere e exclua acessos.',
@@ -295,9 +295,9 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Painel Gerencial da Organização',
+                          titulo: 'Painel Gerencial',
                           subtitulo:
-                              'Acompanhe vendas, lojas, produtos e ingressos.',
+                              'Acompanhe suas vendas por loja, produtos e ingressos.',
                           icone: Icons.analytics_rounded,
                           onTap: _podeVerGerencial ? _abrirGerencial : null,
                         ),

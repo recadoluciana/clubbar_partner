@@ -5,12 +5,14 @@ import '../theme/clubbar_colors.dart';
 class ClubbarPageHeader extends StatelessWidget {
   final String titulo;
   final String subtitulo;
+  final Widget? subtituloWidget;
   final Widget? trailing;
 
   const ClubbarPageHeader({
     super.key,
     required this.titulo,
     required this.subtitulo,
+    this.subtituloWidget,
     this.trailing,
   });
 
@@ -53,17 +55,18 @@ class ClubbarPageHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                subtitulo,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  height: 1.3,
-                  color: ClubbarColors.textoSecundario,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              subtituloWidget ??
+                  Text(
+                    subtitulo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.3,
+                      color: ClubbarColors.textoSecundario,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
             ],
           );
 

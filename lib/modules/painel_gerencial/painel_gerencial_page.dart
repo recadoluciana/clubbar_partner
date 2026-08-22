@@ -22,7 +22,6 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
   final _repository = PainelGerencialRepository();
   final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _inteiro = NumberFormat.decimalPattern('pt_BR');
-  final _data = DateFormat('dd/MM/yyyy');
 
   static const _coresGrafico = <Color>[
     ClubbarColors.ambar,
@@ -130,35 +129,39 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
     );
   }
 
-  Widget _acoesMes() {
+  Widget _seletorMes() {
+    Widget navegacao({required bool anterior}) {
+      if (!_podeTrocarMes) return const SizedBox.square(dimension: 40);
+      return IconButton(
+        tooltip: anterior ? 'Mês anterior' : 'Próximo mês',
+        onPressed: _carregando || (!anterior && _mesAtual)
+            ? null
+            : () => _mudarMes(anterior ? -1 : 1),
+        icon: Icon(
+          anterior ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+        ),
+      );
+    }
+
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        if (_podeTrocarMes) ...[
-          IconButton(
-            tooltip: 'Mês anterior',
-            onPressed: _carregando ? null : () => _mudarMes(-1),
-            icon: const Icon(Icons.chevron_left_rounded),
+        navegacao(anterior: true),
+        Expanded(
+          child: Text(
+            _tituloMes(),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              color: ClubbarColors.textoSecundario,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-          IconButton(
-            tooltip: 'Próximo mês',
-            onPressed: _carregando || _mesAtual ? null : () => _mudarMes(1),
-            icon: const Icon(Icons.chevron_right_rounded),
-          ),
-        ],
-        _botaoAtualizar(),
+        ),
+        navegacao(anterior: false),
       ],
     );
-  }
-
-  String _subtitulo() {
-    final painel = _painel;
-    if (_carregando && painel == null) return 'Carregando indicadores...';
-    if (painel?.periodoInicio == null || painel?.periodoFim == null) {
-      return _nomeOrganizacao;
-    }
-    return '$_nomeOrganizacao • ${_data.format(painel!.periodoInicio!)} a '
-        '${_data.format(painel.periodoFim!)}';
   }
 
   Widget _kpi({
@@ -214,14 +217,6 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
   }
 
   Widget _kpis(PainelGerencial painel) {
-    final totalProdutos = painel.produtosMaisVendidos.fold<double>(
-      0,
-      (total, item) => total + item.valor,
-    );
-    final totalIngressos = painel.ingressosMaisVendidos.fold<double>(
-      0,
-      (total, item) => total + item.valor,
-    );
     final referenciaMes = painel.periodoFim ?? DateTime.now();
     final nomeMes = DateFormat('MMMM', 'pt_BR').format(referenciaMes);
 
@@ -238,12 +233,12 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
       ),
       (
         'Total vendido em produtos no mês',
-        _moeda.format(totalProdutos),
+        _moeda.format(painel.totalProdutosMes),
         Icons.shopping_bag_outlined,
       ),
       (
         'Total vendido em ingressos no mês',
-        _moeda.format(totalIngressos),
+        _moeda.format(painel.totalIngressosMes),
         Icons.confirmation_number_outlined,
       ),
     ];
@@ -564,9 +559,10 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: _tituloMes(),
-              subtitulo: _subtitulo(),
-              trailing: _acoesMes(),
+              titulo: _nomeOrganizacao,
+              subtitulo: _tituloMes(),
+              subtituloWidget: _seletorMes(),
+              trailing: _botaoAtualizar(),
             ),
             Expanded(
               child: _carregando && _painel == null
