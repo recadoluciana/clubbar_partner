@@ -19,7 +19,6 @@ class _ApiStatusIndicatorState extends State<ApiStatusIndicator> {
   Timer? _timer;
   bool _online = false;
   bool _bancoOnline = false;
-  String _ambiente = '?';
 
   bool get _exibirDev =>
       ApiConfig.isDev ||
@@ -55,14 +54,12 @@ class _ApiStatusIndicatorState extends State<ApiStatusIndicator> {
             response.statusCode == 200 &&
             (dados['api'] == null || dados['api'] == 'online');
         _bancoOnline = dados['database'] == 'online';
-        _ambiente = (dados['environment'] ?? '?').toString().toUpperCase();
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _online = false;
         _bancoOnline = false;
-        _ambiente = '?';
       });
     }
   }
@@ -88,7 +85,7 @@ class _ApiStatusIndicatorState extends State<ApiStatusIndicator> {
             const SizedBox(height: 8),
             Text('Banco: ${_bancoOnline ? 'online' : 'offline'}'),
             const SizedBox(height: 8),
-            Text('Ambiente: $_ambiente'),
+            const Text('Ambiente: Desenvolvimento'),
             const SizedBox(height: 8),
             Text('Versão: ${widget.versao}'),
           ],

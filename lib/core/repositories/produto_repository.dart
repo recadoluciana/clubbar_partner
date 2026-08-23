@@ -65,6 +65,8 @@ class ProdutoRepository {
     double vrdesconto = 0.0,
     String? dtinidesconto,
     String? dtfimdesconto,
+    double? pccashback,
+    bool cashbackPersonalizado = false,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/produtos');
 
@@ -87,6 +89,10 @@ class ProdutoRepository {
     // NOVOS CAMPOS
     request.fields['tipodesconto'] = tipodesconto;
     request.fields['vrdesconto'] = vrdesconto.toString();
+    request.fields['usacashbackproduto'] = cashbackPersonalizado ? 'S' : 'N';
+    if (cashbackPersonalizado && pccashback != null) {
+      request.fields['pccashback'] = pccashback.toString();
+    }
 
     if (dtinidesconto != null && dtinidesconto.trim().isNotEmpty) {
       request.fields['dtinidesconto'] = dtinidesconto.trim();
@@ -122,6 +128,8 @@ class ProdutoRepository {
     double? vrdesconto,
     String? dtinidesconto,
     String? dtfimdesconto,
+    double? pccashback,
+    bool? cashbackPersonalizado,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/produtos/$produtoId');
 
@@ -154,6 +162,12 @@ class ProdutoRepository {
     }
     if (vrdesconto != null) {
       request.fields['vrdesconto'] = vrdesconto.toString();
+    }
+    if (cashbackPersonalizado != null) {
+      request.fields['usacashbackproduto'] = cashbackPersonalizado ? 'S' : 'N';
+    }
+    if (cashbackPersonalizado == true && pccashback != null) {
+      request.fields['pccashback'] = pccashback.toString();
     }
     if (dtinidesconto != null) {
       request.fields['dtinidesconto'] = dtinidesconto.trim();

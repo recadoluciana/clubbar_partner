@@ -45,6 +45,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
   final _vrDescontoController = TextEditingController();
   final _dtIniDescontoController = TextEditingController();
   final _dtFimDescontoController = TextEditingController();
+  final _cashbackController = TextEditingController();
 
   bool _salvando = false;
   bool _carregandoCategorias = true;
@@ -54,6 +55,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
 
   String _statusSelecionado = 'ATIVO';
   String _tipoDescontoSelecionado = 'NENHUM';
+  bool _cashbackPersonalizado = false;
 
   XFile? _imagemSelecionada;
   Uint8List? _imagemBytes;
@@ -87,6 +89,11 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
       _dtFimDescontoController.text = _formatarDataTela(
         produto['dtfimdesconto'],
       );
+      final cashback = produto['pccashback'];
+      _cashbackPersonalizado = cashback != null;
+      _cashbackController.text = cashback == null
+          ? ''
+          : _formatarNumeroTela(cashback);
     } else {
       _categoriaIdSelecionada = widget.categoriaIdInicial;
       _vrDescontoController.text = '0,00';
@@ -106,6 +113,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     _vrDescontoController.dispose();
     _dtIniDescontoController.dispose();
     _dtFimDescontoController.dispose();
+    _cashbackController.dispose();
     super.dispose();
   }
 
@@ -545,6 +553,16 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
       }
 
       final vrDesconto = _valorDesconto;
+      final percentualCashback = _cashbackPersonalizado
+          ? _numero(_cashbackController.text)
+          : null;
+
+      if (_cashbackPersonalizado &&
+          (percentualCashback == null ||
+              percentualCashback < 0 ||
+              percentualCashback > 100)) {
+        throw Exception('O cashback deve ficar entre 0% e 100%.');
+      }
 
       if (_tipoDescontoSelecionado == 'PERCENTUAL' && vrDesconto > 100) {
         throw Exception('O desconto percentual não pode ser maior que 100%.');
@@ -590,6 +608,8 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           vrdesconto: _descontoAtivo ? vrDesconto : 0,
           dtinidesconto: _descontoAtivo ? dtIniDesconto : '',
           dtfimdesconto: _descontoAtivo ? dtFimDesconto : '',
+          pccashback: percentualCashback,
+          cashbackPersonalizado: _cashbackPersonalizado,
         );
       } else {
         await _produtoRepository.criar(
@@ -605,6 +625,8 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           vrdesconto: _descontoAtivo ? vrDesconto : 0,
           dtinidesconto: _descontoAtivo ? dtIniDesconto : '',
           dtfimdesconto: _descontoAtivo ? dtFimDesconto : '',
+          pccashback: percentualCashback,
+          cashbackPersonalizado: _cashbackPersonalizado,
         );
       }
 
@@ -1027,6 +1049,68 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     );
   }
 
+  Widget _cardCashback() {
+    return ClubbarCard(
+      elevation: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Cashback do produto',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Opcional. Quando desativado, este produto usa o percentual geral da loja.',
+            style: TextStyle(
+              fontSize: 13,
+              color: ClubbarColors.textoSecundario,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _cashbackPersonalizado,
+            activeThumbColor: ClubbarColors.ambar,
+            title: const Text('Definir percentual específico'),
+            onChanged: _salvando
+                ? null
+                : (value) => setState(() {
+                    _cashbackPersonalizado = value;
+                    if (!value) _cashbackController.clear();
+                  }),
+          ),
+          if (_cashbackPersonalizado) ...[
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _cashbackController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: const [DecimalInputFormatter()],
+              decoration: _decoracaoCampo(
+                label: 'Cashback (%)',
+                icone: Icons.savings_outlined,
+                hint: '0,00',
+              ),
+              validator: (value) {
+                if (!_cashbackPersonalizado) return null;
+                final numero = _numero(value ?? '');
+                if (value == null || value.trim().isEmpty) {
+                  return 'Informe o percentual';
+                }
+                if (numero < 0 || numero > 100) {
+                  return 'Informe um valor entre 0 e 100';
+                }
+                return null;
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _linhaResumo({
     required String titulo,
     required String valor,
@@ -1123,6 +1207,8 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
                     _cardDados(),
                     const SizedBox(height: 16),
                     _cardDesconto(),
+                    const SizedBox(height: 16),
+                    _cardCashback(),
                     const SizedBox(height: 16),
                     _cardResumo(),
                     const SizedBox(height: 20),

@@ -26,6 +26,8 @@ class Loja {
   final String aberto24x7;
   final String idvalidadeprod;
   final int? capacidadeTotal;
+  final String usacashback;
+  final double pccashback;
 
   Loja({
     required this.lojaId,
@@ -53,6 +55,8 @@ class Loja {
     this.aberto24x7 = 'N',
     this.idvalidadeprod = 'S',
     this.capacidadeTotal,
+    this.usacashback = 'N',
+    this.pccashback = 0,
   });
 
   factory Loja.fromJson(Map<String, dynamic> json) {
@@ -85,6 +89,8 @@ class Loja {
         valorPadrao: 'S',
       ),
       capacidadeTotal: _toNullableInt(json['qtcpdloja']),
+      usacashback: _normalizarSimNao(json['usacashback']),
+      pccashback: double.tryParse('${json['pccashback'] ?? 0}') ?? 0,
     );
   }
 
@@ -115,6 +121,8 @@ class Loja {
       'aberto24x7': aberto24x7,
       'idvalidadeprod': idvalidadeprod,
       'qtcpdloja': capacidadeTotal,
+      'usacashback': usacashback,
+      'pccashback': pccashback,
     };
   }
 
@@ -144,6 +152,8 @@ class Loja {
     String? aberto24x7,
     String? idvalidadeprod,
     int? capacidadeTotal,
+    String? usacashback,
+    double? pccashback,
   }) {
     return Loja(
       lojaId: lojaId ?? this.lojaId,
@@ -171,6 +181,8 @@ class Loja {
       aberto24x7: aberto24x7 ?? this.aberto24x7,
       idvalidadeprod: idvalidadeprod ?? this.idvalidadeprod,
       capacidadeTotal: capacidadeTotal ?? this.capacidadeTotal,
+      usacashback: usacashback ?? this.usacashback,
+      pccashback: pccashback ?? this.pccashback,
     );
   }
 
@@ -219,7 +231,9 @@ class Loja {
             other.dsestiloloja == dsestiloloja &&
             other.aberto24x7 == aberto24x7 &&
             other.idvalidadeprod == idvalidadeprod &&
-            other.capacidadeTotal == capacidadeTotal;
+            other.capacidadeTotal == capacidadeTotal &&
+            other.usacashback == usacashback &&
+            other.pccashback == pccashback;
   }
 
   @override
@@ -249,5 +263,7 @@ class Loja {
     aberto24x7,
     idvalidadeprod,
     capacidadeTotal,
+    usacashback,
+    pccashback,
   ]);
 }

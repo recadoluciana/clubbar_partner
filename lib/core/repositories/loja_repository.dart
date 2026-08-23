@@ -62,6 +62,8 @@ class LojaRepository {
     XFile? imagem,
     XFile? imagemFachada,
     int? capacidadeTotal,
+    String usacashback = 'N',
+    double pccashback = 0,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas');
 
@@ -89,6 +91,8 @@ class LojaRepository {
     if (capacidadeTotal != null) {
       request.fields['qtcpdloja'] = capacidadeTotal.toString();
     }
+    request.fields['usacashback'] = usacashback == 'S' ? 'S' : 'N';
+    request.fields['pccashback'] = pccashback.toStringAsFixed(2);
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -147,6 +151,8 @@ class LojaRepository {
     XFile? imagem,
     XFile? imagemFachada,
     int? capacidadeTotal,
+    String usacashback = 'N',
+    double pccashback = 0,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas/$lojaId');
 
@@ -174,6 +180,8 @@ class LojaRepository {
     if (capacidadeTotal != null) {
       request.fields['qtcpdloja'] = capacidadeTotal.toString();
     }
+    request.fields['usacashback'] = usacashback == 'S' ? 'S' : 'N';
+    request.fields['pccashback'] = pccashback.toStringAsFixed(2);
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -220,6 +228,8 @@ class LojaRepository {
       aberto24x7: aberto24x7,
       idvalidadeprod: loja.idvalidadeprod,
       capacidadeTotal: loja.capacidadeTotal,
+      usacashback: loja.usacashback,
+      pccashback: loja.pccashback,
     );
   }
 
@@ -251,6 +261,8 @@ class LojaRepository {
       aberto24x7: loja.aberto24x7,
       idvalidadeprod: loja.idvalidadeprod,
       capacidadeTotal: loja.capacidadeTotal,
+      usacashback: loja.usacashback,
+      pccashback: loja.pccashback,
       imagem: logo,
       imagemFachada: fachada,
     );

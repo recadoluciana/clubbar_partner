@@ -41,6 +41,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
       TextEditingController();
   final TextEditingController _instagramController = TextEditingController();
   final TextEditingController _capacidadeController = TextEditingController();
+  final TextEditingController _percentualCashbackController =
+      TextEditingController();
 
   bool _salvando = false;
   bool _carregandoNomeOrganizacao = true;
@@ -50,6 +52,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   int? _estadoId;
   int? _cidadeId;
   String _idValidadeProd = 'S';
+  bool _usaCashback = false;
 
   bool get editando => widget.loja != null;
   bool get _controlaValidadeProduto => _idValidadeProd == 'S';
@@ -65,6 +68,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
     final telefone = Validators.somenteNumeros(_telefoneController.text);
     final diasValidade = int.tryParse(_diasValidadeController.text.trim());
     final capacidade = int.tryParse(_capacidadeController.text.trim());
+    final percentualCashback = double.tryParse(
+      _percentualCashbackController.text.replaceAll(',', '.'),
+    );
 
     if (nome.isEmpty) return 'Informe o nome da loja.';
     if (nome.length < 3) {
@@ -133,6 +139,12 @@ class _LojaFormPageState extends State<LojaFormPage> {
         return 'Os dias de validade devem ser maiores que zero.';
       }
     }
+    if (_usaCashback &&
+        (percentualCashback == null ||
+            percentualCashback <= 0 ||
+            percentualCashback > 100)) {
+      return 'Informe um percentual de cashback entre 0,01% e 100%.';
+    }
 
     return null;
   }
@@ -160,8 +172,13 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _idValidadeProd = widget.loja!.idvalidadeprod;
       _capacidadeController.text =
           widget.loja!.capacidadeTotal?.toString() ?? '';
+      _usaCashback = widget.loja!.usacashback == 'S';
+      _percentualCashbackController.text = widget.loja!.pccashback
+          .toStringAsFixed(2)
+          .replaceAll('.', ',');
     } else {
       _diasValidadeController.text = '90';
+      _percentualCashbackController.text = '5,00';
     }
 
     _carregarNomeOrganizacao();
@@ -198,6 +215,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
     _numeroEnderecoController.dispose();
     _instagramController.dispose();
     _capacidadeController.dispose();
+    _percentualCashbackController.dispose();
     super.dispose();
   }
 
@@ -322,6 +340,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
           aberto24x7: widget.loja!.aberto24x7,
           idvalidadeprod: _idValidadeProd,
           capacidadeTotal: int.parse(_capacidadeController.text.trim()),
+          usacashback: _usaCashback ? 'S' : 'N',
+          pccashback: double.parse(
+            _percentualCashbackController.text.replaceAll(',', '.'),
+          ),
         );
 
         if (!mounted) return;
@@ -344,6 +366,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
           instagram: _instagramController.text.trim(),
           idvalidadeprod: _idValidadeProd,
           capacidadeTotal: int.parse(_capacidadeController.text.trim()),
+          usacashback: _usaCashback ? 'S' : 'N',
+          pccashback: double.parse(
+            _percentualCashbackController.text.replaceAll(',', '.'),
+          ),
         );
 
         if (!mounted) return;
@@ -366,6 +392,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
           endloja: _enderecoController.text.trim(),
           dsinstaloja: _instagramController.text.trim(),
           capacidadeTotal: int.parse(_capacidadeController.text.trim()),
+          usacashback: _usaCashback ? 'S' : 'N',
+          pccashback: double.parse(
+            _percentualCashbackController.text.replaceAll(',', '.'),
+          ),
         );
 
         final horariosSalvos = await Navigator.of(context).push<bool>(
@@ -677,6 +707,55 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     _estadoId = estado?.estadoId;
                                     _cidadeId = cidade?.cidadeId;
                                   },
+                                ),
+                                const Divider(height: 32),
+                                SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  value: _usaCashback,
+                                  onChanged: _salvando
+                                      ? null
+                                      : (value) => setState(
+                                          () => _usaCashback = value,
+                                        ),
+                                  activeTrackColor: ClubbarColors.ambar,
+                                  secondary: Icon(
+                                    Icons.savings_outlined,
+                                    color: _usaCashback
+                                        ? ClubbarColors.ambarEscuro
+                                        : ClubbarColors.textoSecundario,
+                                  ),
+                                  title: const Text(
+                                    'Usar cashback nesta loja',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  subtitle: const Text(
+                                    'Válido somente para compras de produtos desta loja.',
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextFormField(
+                                  controller: _percentualCashbackController,
+                                  enabled: _usaCashback && !_salvando,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d{0,3}([,.]\d{0,2})?'),
+                                    ),
+                                  ],
+                                  decoration: _decoracaoCampo(
+                                    label: 'Percentual de cashback',
+                                    icone: Icons.percent_rounded,
+                                    hint: '5,00',
+                                    helperText: _usaCashback
+                                        ? 'O saldo ficará pendente por 7 dias e terá validade de 90 dias.'
+                                        : 'Cashback desativado para esta loja.',
+                                  ),
+                                  validator: (_) => _validarCamposLoja(),
                                 ),
                               ],
                             ),
