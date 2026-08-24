@@ -708,55 +708,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     _cidadeId = cidade?.cidadeId;
                                   },
                                 ),
-                                const Divider(height: 32),
-                                SwitchListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  value: _usaCashback,
-                                  onChanged: _salvando
-                                      ? null
-                                      : (value) => setState(
-                                          () => _usaCashback = value,
-                                        ),
-                                  activeTrackColor: ClubbarColors.ambar,
-                                  secondary: Icon(
-                                    Icons.savings_outlined,
-                                    color: _usaCashback
-                                        ? ClubbarColors.ambarEscuro
-                                        : ClubbarColors.textoSecundario,
-                                  ),
-                                  title: const Text(
-                                    'Usar cashback nesta loja',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  subtitle: const Text(
-                                    'Válido somente para compras de produtos desta loja.',
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  controller: _percentualCashbackController,
-                                  enabled: _usaCashback && !_salvando,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(
-                                      RegExp(r'^\d{0,3}([,.]\d{0,2})?'),
-                                    ),
-                                  ],
-                                  decoration: _decoracaoCampo(
-                                    label: 'Percentual de cashback',
-                                    icone: Icons.percent_rounded,
-                                    hint: '5,00',
-                                    helperText: _usaCashback
-                                        ? 'O saldo ficará pendente por 7 dias e terá validade de 90 dias.'
-                                        : 'Cashback desativado para esta loja.',
-                                  ),
-                                  validator: (_) => _validarCamposLoja(),
-                                ),
                               ],
                             ),
                           ),

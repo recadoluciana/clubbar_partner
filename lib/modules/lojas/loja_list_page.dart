@@ -570,19 +570,24 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  Widget _badgeAberto24Horas() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: ClubbarColors.erro,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: const Text(
-        'ABERTO 24 HORAS',
-        style: TextStyle(
-          color: ClubbarColors.branco,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
+  Widget _atalhoHorario(Loja loja) {
+    final aberto24Horas = loja.aberto24x7 == 'S';
+    return InkWell(
+      onTap: () => _abrirHorarios(loja),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: aberto24Horas ? ClubbarColors.erro : ClubbarColors.ambar,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          aberto24Horas ? 'Aberto 24 horas' : 'Horário de atendimento',
+          style: TextStyle(
+            color: aberto24Horas ? ClubbarColors.branco : ClubbarColors.preto,
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
     );
@@ -695,8 +700,6 @@ class _LojaListPageState extends State<LojaListPage> {
             _abrirFinanceiro(loja);
           case 'imagens':
             _abrirImagens(loja);
-          case 'horarios':
-            _abrirHorarios(loja);
           case 'conteudo':
             _abrirConteudo(loja);
           case 'politica':
@@ -746,15 +749,6 @@ class _LojaListPageState extends State<LojaListPage> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.photo_library_outlined),
             title: Text('Logo e Foto fachada'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'horarios',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.schedule_rounded),
-            title: Text('Horário de atendimento'),
           ),
         ),
         const PopupMenuItem(
@@ -858,33 +852,47 @@ class _LojaListPageState extends State<LojaListPage> {
                       ],
                     ),
 
-                    if (loja.aberto24x7 == 'S') ...[
-                      const SizedBox(height: 7),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: _badgeAberto24Horas(),
-                      ),
-                    ],
-
                     if (enderecoCompleto.isNotEmpty)
                       _linhaInformacao(
                         icone: Icons.location_on_outlined,
                         texto: enderecoCompleto,
                       ),
 
-                    if (telefone.isNotEmpty)
-                      _linhaInformacao(
-                        icone: Icons.phone_outlined,
-                        texto: telefone,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Row(
+                        children: [
+                          if (telefone.isNotEmpty) ...[
+                            const Icon(
+                              Icons.phone_outlined,
+                              size: 17,
+                              color: ClubbarColors.textoSecundario,
+                            ),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                telefone,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: ClubbarColors.textoSecundario,
+                                ),
+                              ),
+                            ),
+                          ] else
+                            const Spacer(),
+                          const SizedBox(width: 8),
+                          _atalhoHorario(loja),
+                        ],
                       ),
+                    ),
 
                     _linhaInformacao(
                       icone: loja.idvalidadeprod == 'S'
                           ? Icons.event_available_outlined
                           : Icons.event_busy_outlined,
                       texto: loja.idvalidadeprod == 'S'
-                          ? 'Validade dos produtos: ${loja.nrdiavalidade ?? 90} dias'
-                          : 'Produtos sem prazo de validade',
+                          ? 'Validade dos tickets de produtos: ${loja.nrdiavalidade ?? 90} dias'
+                          : 'Tickets de produtos sem prazo de validade',
                     ),
                   ],
                 ),
