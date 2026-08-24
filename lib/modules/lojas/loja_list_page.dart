@@ -20,6 +20,7 @@ import 'loja_form_page.dart';
 import 'loja_imagens_page.dart';
 import 'loja_conteudo_page.dart';
 import 'loja_politica_ingresso_page.dart';
+import 'loja_configuracao_produtos_page.dart';
 
 class LojaListPage extends StatefulWidget {
   final int organizacaoId;
@@ -344,6 +345,22 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
+  Future<void> _abrirConfiguracaoProdutos(
+    Loja loja,
+    LojaConfiguracaoTipo tipo,
+  ) async {
+    if (!_podeAlterarLoja(loja)) {
+      _avisarSomenteConsulta();
+      return;
+    }
+    final alterado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => LojaConfiguracaoProdutosPage(loja: loja, tipo: tipo),
+      ),
+    );
+    if (alterado == true && mounted) await _carregarLojas();
+  }
+
   Future<void> _abrirCardapio(Loja loja) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => CardapioDigitalPage(loja: loja)),
@@ -663,8 +680,6 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Widget _menuAcoesLoja(Loja loja) {
-    final alterandoStatus = _alterandoStatusLojaId == loja.lojaId;
-
     return PopupMenuButton<String>(
       tooltip: 'Ações da loja',
       icon: const Icon(Icons.more_vert_rounded),
@@ -686,12 +701,13 @@ class _LojaListPageState extends State<LojaListPage> {
             _abrirConteudo(loja);
           case 'politica':
             _abrirPoliticaIngressos(loja);
-          case 'editar':
-            _abrirEdicao(loja);
-          case 'status':
-            _alterarStatus(loja);
-          case 'excluir':
-            _excluirLoja(loja);
+          case 'politica_produtos':
+            _abrirConfiguracaoProdutos(
+              loja,
+              LojaConfiguracaoTipo.politicaProdutos,
+            );
+          case 'cashback':
+            _abrirConfiguracaoProdutos(loja, LojaConfiguracaoTipo.cashback);
         }
       },
       itemBuilder: (context) => [
@@ -729,7 +745,7 @@ class _LojaListPageState extends State<LojaListPage> {
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.photo_library_outlined),
-            title: Text('Imagens'),
+            title: Text('Logo e Foto fachada'),
           ),
         ),
         const PopupMenuItem(
@@ -738,7 +754,7 @@ class _LojaListPageState extends State<LojaListPage> {
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.schedule_rounded),
-            title: Text('Horários'),
+            title: Text('Horário de atendimento'),
           ),
         ),
         const PopupMenuItem(
@@ -760,49 +776,21 @@ class _LojaListPageState extends State<LojaListPage> {
           ),
         ),
         const PopupMenuItem(
-          value: 'editar',
+          value: 'politica_produtos',
           child: ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.edit_rounded),
-            title: Text('Editar'),
+            leading: Icon(Icons.inventory_2_outlined),
+            title: Text('Política de produtos'),
           ),
         ),
-        PopupMenuItem(
-          value: 'status',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: alterandoStatus
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    _lojaAtiva(loja)
-                        ? Icons.pause_circle_outline_rounded
-                        : Icons.play_circle_outline_rounded,
-                    color: _lojaAtiva(loja)
-                        ? ClubbarColors.aviso
-                        : ClubbarColors.sucesso,
-                  ),
-            title: Text(_lojaAtiva(loja) ? 'Inativar' : 'Reativar'),
-          ),
-        ),
-        const PopupMenuDivider(),
         const PopupMenuItem(
-          value: 'excluir',
+          value: 'cashback',
           child: ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              Icons.delete_outline_rounded,
-              color: ClubbarColors.erro,
-            ),
-            title: Text(
-              'Excluir loja',
-              style: TextStyle(color: ClubbarColors.erro),
-            ),
+            leading: Icon(Icons.savings_outlined),
+            title: Text('Gerenciar cashback'),
           ),
         ),
       ],
@@ -810,6 +798,7 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Widget _cardLoja(Loja loja) {
+    final alterandoStatus = _alterandoStatusLojaId == loja.lojaId;
     final endereco = (loja.endloja ?? '').trim();
     final numeroEndereco = loja.nrendeloja.trim();
     final cep = Formatters.cep(loja.nrceploja.trim());
@@ -920,6 +909,49 @@ class _LojaListPageState extends State<LojaListPage> {
                   caminho: loja.urlfachadaloja,
                   badge: 'Fachada',
                   icone: Icons.storefront_outlined,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _abrirEdicao(loja),
+                  icon: const Icon(Icons.edit_rounded, size: 17),
+                  label: const Text('Editar'),
+                ),
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: alterandoStatus
+                      ? null
+                      : () => _alterarStatus(loja),
+                  icon: alterandoStatus
+                      ? const SizedBox.square(
+                          dimension: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          _lojaAtiva(loja)
+                              ? Icons.pause_circle_outline_rounded
+                              : Icons.play_circle_outline_rounded,
+                          size: 17,
+                        ),
+                  label: Text(_lojaAtiva(loja) ? 'Inativar' : 'Reativar'),
+                ),
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _excluindo ? null : () => _excluirLoja(loja),
+                  icon: const Icon(Icons.delete_outline_rounded, size: 17),
+                  label: const Text('Excluir'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ClubbarColors.erro,
+                  ),
                 ),
               ),
             ],

@@ -233,6 +233,65 @@ class LojaRepository {
     );
   }
 
+  Future<void> atualizarPoliticaProdutos({
+    required Loja loja,
+    required String controlaValidade,
+    int? diasValidade,
+  }) async {
+    await _atualizarConfiguracoes(
+      loja: loja,
+      idvalidadeprod: controlaValidade,
+      diasValidade: diasValidade,
+    );
+  }
+
+  Future<void> atualizarCashback({
+    required Loja loja,
+    required bool ativo,
+    required double percentual,
+  }) async {
+    await _atualizarConfiguracoes(
+      loja: loja,
+      usacashback: ativo ? 'S' : 'N',
+      pccashback: ativo ? percentual : 0,
+    );
+  }
+
+  Future<void> _atualizarConfiguracoes({
+    required Loja loja,
+    String? idvalidadeprod,
+    int? diasValidade,
+    String? usacashback,
+    double? pccashback,
+  }) async {
+    final estadoId = loja.estadoId;
+    final cidadeId = loja.cidadeId;
+    if (estadoId == null || cidadeId == null) {
+      throw Exception('Estado e cidade da loja não foram identificados.');
+    }
+
+    await atualizar(
+      lojaId: loja.lojaId,
+      organizacaoId: loja.organizacaoId,
+      estadoId: estadoId,
+      cidadeId: cidadeId,
+      nome: loja.nmloja,
+      estiloLoja: loja.dsestiloloja,
+      bairro: loja.dsbairroloja,
+      telefone: loja.nrtelloja,
+      diasValidade: diasValidade ?? loja.nrdiavalidade,
+      endereco: loja.endloja,
+      cep: loja.nrceploja,
+      numeroEndereco: loja.nrendeloja,
+      instagram: loja.dsinstaloja,
+      aberto24x7: loja.aberto24x7,
+      idvalidadeprod: idvalidadeprod ?? loja.idvalidadeprod,
+      capacidadeTotal: loja.capacidadeTotal,
+      usacashback: usacashback ?? loja.usacashback,
+      pccashback: pccashback ?? loja.pccashback,
+    );
+  }
+
   Future<void> atualizarImagens({
     required Loja loja,
     XFile? logo,
