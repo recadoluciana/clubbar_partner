@@ -245,16 +245,31 @@ class LojaRepository {
     );
   }
 
-  Future<void> atualizarCashback({
-    required Loja loja,
-    required bool ativo,
-    required double percentual,
+  Future<Map<String, dynamic>> buscarConfigCashback(int lojaId) async {
+    final response = await ApiService.get('/cashback/config/$lojaId');
+    final data = response.body.isEmpty
+        ? <String, dynamic>{}
+        : Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(data['detail'] ?? 'Erro ao consultar o cashback.');
+    }
+    return data;
+  }
+
+  Future<void> salvarConfigCashback({
+    required int lojaId,
+    required Map<String, dynamic> configuracao,
   }) async {
-    await _atualizarConfiguracoes(
-      loja: loja,
-      usacashback: ativo ? 'S' : 'N',
-      pccashback: ativo ? percentual : 0,
+    final response = await ApiService.put(
+      '/cashback/config/$lojaId',
+      configuracao,
     );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final data = response.body.isEmpty
+          ? <String, dynamic>{}
+          : Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+      throw Exception(data['detail'] ?? 'Erro ao salvar o cashback.');
+    }
   }
 
   Future<void> _atualizarConfiguracoes({
