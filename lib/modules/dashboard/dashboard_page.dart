@@ -15,6 +15,7 @@ import '../lojas/loja_list_page.dart';
 import '../organizacao/organizacao_list_page.dart';
 import '../painel_gerencial/painel_gerencial_page.dart';
 import '../usuarios/usuario_list_page.dart';
+import '../financeiro_onboarding/dados_financeiros_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -113,6 +114,14 @@ class _DashboardPageState extends State<DashboardPage> {
     }
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const PainelGerencialPage()),
+    );
+  }
+
+  Future<void> _abrirFinanceiro({bool integracao = false}) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => DadosFinanceirosPage(mostrarIntegracao: integracao),
+      ),
     );
   }
 
@@ -266,7 +275,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       padding: const EdgeInsets.all(16),
                       children: [
                         _opcao(
-                          titulo: 'Editar Organização',
+                          titulo: 'Minha organização',
                           subtitulo: _podeEditarOrganizacao
                               ? 'Atualize os dados cadastrais da organização.'
                               : 'Disponível somente para o Superadministrador.',
@@ -277,7 +286,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Gerenciar Loja',
+                          titulo: 'Minhas lojas',
                           subtitulo: _cargo == 'GERENTE'
                               ? 'Consulte e edite os dados da sua loja.'
                               : 'Cadastre e administre as lojas da organização.',
@@ -286,7 +295,23 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Gerenciar Usuário',
+                          titulo: 'Dados financeiros',
+                          subtitulo:
+                              'Informe o titular e os dados cadastrais dos recebimentos.',
+                          icone: Icons.account_balance_wallet_rounded,
+                          onTap: () => _abrirFinanceiro(),
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Integração Asaas',
+                          subtitulo:
+                              'Envie documentos e acompanhe a liberação das vendas.',
+                          icone: Icons.verified_user_rounded,
+                          onTap: () => _abrirFinanceiro(integracao: true),
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Usuários e permissões',
                           subtitulo: _cargo == 'GERENTE'
                               ? 'Administre os usuários vinculados à sua loja.'
                               : 'Liste, inclua, altere e exclua acessos.',

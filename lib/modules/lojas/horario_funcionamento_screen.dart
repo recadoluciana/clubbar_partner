@@ -543,7 +543,7 @@ class _HorarioFuncionamentoScreenState
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Horários - ${widget.nomeLoja}',
+              titulo: 'Horário Atendimento - ${widget.nomeLoja}',
               subtitulo: _carregandoNomeOrganizacao
                   ? 'Carregando organização...'
                   : _nomeOrganizacao,
