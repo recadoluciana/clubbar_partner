@@ -18,6 +18,7 @@ class BarmanHomePage extends StatefulWidget {
 
 class _BarmanHomePageState extends State<BarmanHomePage> {
   String nomeUsuario = 'Barman';
+  String cargoUsuario = 'BARMAN';
   String nomeLoja = '';
   String logoLoja = '';
   String dataHoraAtual = '';
@@ -81,6 +82,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
 
     try {
       final nome = await StorageService.getNomeUsuario();
+      final cargo = await StorageService.getCargo();
       final usuarioId = await StorageService.getUsuarioId();
 
       if (usuarioId == null || usuarioId == 0) {
@@ -99,6 +101,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
 
       setState(() {
         nomeUsuario = nome?.trim().isNotEmpty == true ? nome!.trim() : 'Barman';
+        cargoUsuario = (cargo ?? 'BARMAN').trim().toUpperCase();
 
         nomeLoja = nomeLojaRecebido.isNotEmpty
             ? nomeLojaRecebido
@@ -127,6 +130,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
   }
 
   Future<void> sair() async {
+    final tituloCargo = cargoUsuario == 'GARCOM' ? 'Waiter' : 'Barman';
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -134,9 +138,9 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text(
-            'Sair do Clubbar Barman',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          title: Text(
+            'Sair do $tituloCargo',
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           content: const Text('Deseja realmente encerrar sua sessão?'),
           actions: [
@@ -458,6 +462,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final tituloCargo = cargoUsuario == 'GARCOM' ? 'Waiter' : 'Barman';
     final subtitulo = carregando
         ? 'Carregando dados da loja...'
         : nomeLoja.isEmpty
@@ -472,7 +477,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
       body: SafeArea(
         child: Column(
           children: [
-            ClubbarPageHeader(titulo: 'Clubbar Barman', subtitulo: subtitulo),
+            ClubbarPageHeader(titulo: tituloCargo, subtitulo: subtitulo),
 
             _conteudo(),
           ],

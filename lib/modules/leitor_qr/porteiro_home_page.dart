@@ -96,7 +96,7 @@ class _PorteiroHomePageState extends State<PorteiroHomePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  'Clubbar Entrance',
+                  'Ticketman',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
