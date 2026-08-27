@@ -39,6 +39,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
+  final _politicaCancelamentoController = TextEditingController();
+  final _politicaReembolsoController = TextEditingController();
+  final _politicaCashbackController = TextEditingController();
   final _dataInicioController = TextEditingController();
   final _horaInicioController = TextEditingController();
   final _dataFimController = TextEditingController();
@@ -64,6 +67,10 @@ class _EventoFormPageState extends State<EventoFormPage> {
     if (evento != null) {
       _tituloController.text = evento.nmtituloevento;
       _descricaoController.text = evento.dsdescevento ?? '';
+      _politicaCancelamentoController.text =
+          evento.dspoliticacancelamento ?? '';
+      _politicaReembolsoController.text = evento.dspoliticareembolso ?? '';
+      _politicaCashbackController.text = evento.dspoliticacashback ?? '';
       _localController.text = evento.nmlocalevento ?? '';
       _enderecoController.text = evento.dsendlocevento ?? '';
       _statusSelecionado = evento.statusevento ?? 'ATIVO';
@@ -88,6 +95,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
   void dispose() {
     _tituloController.dispose();
     _descricaoController.dispose();
+    _politicaCancelamentoController.dispose();
+    _politicaReembolsoController.dispose();
+    _politicaCashbackController.dispose();
     _dataInicioController.dispose();
     _horaInicioController.dispose();
     _dataFimController.dispose();
@@ -273,6 +283,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
           eventoId: widget.evento!.eventoId,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
+          politicaCancelamento: _politicaCancelamentoController.text.trim(),
+          politicaReembolso: _politicaReembolsoController.text.trim(),
+          politicaCashback: _politicaCashbackController.text.trim(),
           dataInicio: inicio,
           dataFim: fim,
           local: _localController.text.trim(),
@@ -287,6 +300,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
           produtoIdIngresso: 1,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
+          politicaCancelamento: _politicaCancelamentoController.text.trim(),
+          politicaReembolso: _politicaReembolsoController.text.trim(),
+          politicaCashback: _politicaCashbackController.text.trim(),
           dataInicio: inicio,
           dataFim: fim,
           local: _localController.text.trim(),
@@ -436,6 +452,39 @@ class _EventoFormPageState extends State<EventoFormPage> {
               label: 'Descrição',
               icone: Icons.description_outlined,
               hint: 'Descreva o evento',
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _politicaCancelamentoController,
+            maxLines: 3,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: _decoracaoCampo(
+              label: 'Política de cancelamento',
+              icone: Icons.event_busy_outlined,
+              hint: 'Informe prazos e condições para cancelamento',
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _politicaReembolsoController,
+            maxLines: 3,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: _decoracaoCampo(
+              label: 'Política de reembolso',
+              icone: Icons.currency_exchange_outlined,
+              hint: 'Explique como e quando o valor será devolvido',
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _politicaCashbackController,
+            maxLines: 3,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: _decoracaoCampo(
+              label: 'Política de cashback',
+              icone: Icons.savings_outlined,
+              hint: 'Informe as regras de geração e utilização',
             ),
           ),
           const SizedBox(height: 14),
