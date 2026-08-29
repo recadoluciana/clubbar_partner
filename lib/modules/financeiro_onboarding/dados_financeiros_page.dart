@@ -158,8 +158,9 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       setState(() => _preencher(d));
       AppSnackBar.sucesso(context, sucesso);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _processando = false);
     }
@@ -267,7 +268,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       padding: const EdgeInsets.all(16),
       children: [
         DropdownButtonFormField<String>(
-          value: _tipo,
+          initialValue: _tipo,
           decoration: const InputDecoration(
             labelText: 'Tipo de titular',
             border: OutlineInputBorder(),
