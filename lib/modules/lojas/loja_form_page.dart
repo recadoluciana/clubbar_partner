@@ -72,21 +72,21 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _percentualCashbackController.text.replaceAll(',', '.'),
     );
 
-    if (nome.isEmpty) return 'Informe o nome da loja.';
+    if (nome.isEmpty) return 'Informe o nome do estabelecimento.';
     if (nome.length < 3) {
-      return 'O nome da loja deve ter pelo menos 3 caracteres.';
+      return 'O nome do estabelecimento deve ter pelo menos 3 caracteres.';
     }
     if (nome.length > 120) {
-      return 'O nome da loja pode ter no máximo 120 caracteres.';
+      return 'O nome do estabelecimento pode ter no máximo 120 caracteres.';
     }
     if (estiloLoja.length > 255) {
       return 'O estilo musical pode ter no máximo 255 caracteres.';
     }
     if (_estadoId == null || _estadoId == 0) {
-      return 'Selecione o estado da loja.';
+      return 'Selecione o estado do estabelecimento.';
     }
     if (_cidadeId == null || _cidadeId == 0) {
-      return 'Selecione a cidade da loja.';
+      return 'Selecione a cidade do estabelecimento.';
     }
     if (bairro.length > 120) {
       return 'O bairro pode ter no máximo 120 caracteres.';
@@ -95,13 +95,13 @@ class _LojaFormPageState extends State<LojaFormPage> {
       return 'O endereço pode ter no máximo 255 caracteres.';
     }
     if (cep.isEmpty) {
-      return 'Informe o CEP da loja.';
+      return 'Informe o CEP do estabelecimento.';
     }
     if (cep.length != 8) {
       return 'Informe um CEP válido com 8 dígitos.';
     }
     if (_ultimoCepConsultado != cep) {
-      return 'Consulte o CEP antes de salvar a loja.';
+      return 'Consulte o CEP antes de salvar o estabelecimento.';
     }
     if (numeroEndereco.isEmpty) {
       return 'Informe o número do endereço ou S/N.';
@@ -128,7 +128,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       }
     }
     if (capacidade == null || capacidade <= 0) {
-      return 'Informe a capacidade total de pessoas da loja.';
+      return 'Informe a capacidade total de pessoas do estabelecimento.';
     }
 
     if (_controlaValidadeProduto) {
@@ -347,7 +347,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
         );
 
         if (!mounted) return;
-        AppSnackBar.sucesso(context, 'Loja atualizada com sucesso.');
+        AppSnackBar.sucesso(context, 'Estabelecimento atualizado com sucesso.');
         Navigator.of(context).pop(true);
       } else {
         final nomeLoja = _nomeController.text.trim();
@@ -415,7 +415,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
         if (horariosSalvos != true) {
           AppSnackBar.aviso(
             context,
-            'A loja foi cadastrada. O horário de funcionamento poderá ser '
+            'O estabelecimento foi cadastrado. O horário de funcionamento poderá ser '
             'configurado depois.',
           );
         }
@@ -483,8 +483,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
           children: [
             ClubbarPageHeader(
               titulo: editando
-                  ? 'Editar Loja - ${widget.loja!.nmloja}'
-                  : 'Nova Loja',
+                  ? 'Editar estabelecimento - ${widget.loja!.nmloja}'
+                  : 'Novo estabelecimento',
               subtitulo: _carregandoNomeOrganizacao
                   ? 'Carregando empresa...'
                   : _nomeOrganizacao,
@@ -521,14 +521,14 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     LengthLimitingTextInputFormatter(120),
                                   ],
                                   decoration: _decoracaoCampo(
-                                    label: 'Nome da loja',
+                                    label: 'Nome do estabelecimento',
                                     icone: Icons.store_outlined,
-                                    hint: 'Digite o nome da loja',
+                                    hint: 'Digite o nome do estabelecimento',
                                   ).copyWith(counterText: ''),
                                   validator: (value) {
                                     final texto = value?.trim() ?? '';
                                     if (texto.isEmpty) {
-                                      return 'Informe o nome da loja.';
+                                      return 'Informe o nome do estabelecimento.';
                                     }
                                     if (texto.length < 3) {
                                       return 'Informe pelo menos 3 caracteres.';
@@ -546,7 +546,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     LengthLimitingTextInputFormatter(255),
                                   ],
                                   decoration: _decoracaoCampo(
-                                    label: 'Estilo musical da loja',
+                                    label: 'Estilo musical do estabelecimento',
                                     icone: Icons.music_note_outlined,
                                     hint:
                                         'Ex.: Sertanejo, rock, música ao vivo',
@@ -599,7 +599,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                       value ?? '',
                                     );
                                     if (cep.isEmpty) {
-                                      return 'Informe o CEP da loja.';
+                                      return 'Informe o CEP do estabelecimento.';
                                     }
                                     if (cep.length != 8) {
                                       return 'Informe um CEP válido.';
@@ -653,7 +653,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     LengthLimitingTextInputFormatter(255),
                                   ],
                                   decoration: _decoracaoCampo(
-                                    label: 'Endereço da loja',
+                                    label: 'Endereço do estabelecimento',
                                     icone: Icons.home_work_outlined,
                                     helperText:
                                         'Preenchido automaticamente pelo CEP.',
@@ -765,7 +765,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     LengthLimitingTextInputFormatter(255),
                                   ],
                                   decoration: _decoracaoCampo(
-                                    label: 'Instagram da loja',
+                                    label: 'Instagram do estabelecimento',
                                     icone: Icons.alternate_email,
                                     hint: '@nomedaloja',
                                   ).copyWith(counterText: ''),
@@ -892,7 +892,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   )
                                 : const Icon(Icons.save_outlined),
                             label: Text(
-                              _salvando ? 'Salvando...' : 'Salvar loja',
+                              _salvando ? 'Salvando...' : 'Salvar estabelecimento',
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.amber,

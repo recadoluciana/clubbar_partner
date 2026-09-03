@@ -219,7 +219,7 @@ class ApiService {
         throw Exception(
           body['detail']?.toString() ??
               body['message']?.toString() ??
-              'Não foi possível carregar os dados da loja.',
+              'Não foi possível carregar os dados do estabelecimento.',
         );
       }
 

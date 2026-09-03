@@ -225,7 +225,7 @@ class _EventoListPageState extends State<EventoListPage> {
   Future<void> _abrirNovoEvento() async {
     final lojaId = _lojaIdSelecionada;
     if (lojaId == null) {
-      AppSnackBar.aviso(context, 'Selecione uma loja.');
+      AppSnackBar.aviso(context, 'Selecione um estabelecimento.');
       return;
     }
 
@@ -383,7 +383,7 @@ class _EventoListPageState extends State<EventoListPage> {
       initialValue: _lojaIdSelecionada,
       isExpanded: true,
       decoration: _decoracaoFiltro(
-        label: 'Loja',
+        label: 'Estabelecimento',
         icone: Icons.storefront_rounded,
       ),
       items: _lojas.map((loja) {
@@ -735,7 +735,7 @@ class _EventoListPageState extends State<EventoListPage> {
             const SizedBox(height: 16),
             Text(
               !temLoja
-                  ? 'Nenhuma loja disponível'
+                  ? 'Nenhum estabelecimento disponível'
                   : temBusca
                   ? 'Nenhum evento encontrado'
                   : 'Nenhum evento cadastrado',
@@ -745,10 +745,10 @@ class _EventoListPageState extends State<EventoListPage> {
             const SizedBox(height: 7),
             Text(
               !temLoja
-                  ? 'Cadastre uma loja antes de criar eventos.'
+                  ? 'Cadastre um estabelecimento antes de criar eventos.'
                   : temBusca
                   ? 'Tente pesquisar por outro título, local ou situação.'
-                  : 'Cadastre o primeiro evento desta loja.',
+                  : 'Cadastre o primeiro evento deste estabelecimento.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -852,7 +852,7 @@ class _EventoListPageState extends State<EventoListPage> {
               subtitulo: _carregando
                   ? 'Carregando eventos...'
                   : nomeLoja.isEmpty
-                  ? 'Selecione uma loja'
+                  ? 'Selecione um estabelecimento'
                   : '$nomeLoja • ${_eventos.length} '
                         '${_eventos.length == 1 ? 'evento' : 'eventos'}',
               trailing: _acoesHeader(),

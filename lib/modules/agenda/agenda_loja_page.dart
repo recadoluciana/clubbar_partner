@@ -57,7 +57,7 @@ class _AgendaLojaPageState extends State<AgendaLojaPage> {
       children: [
         const ClubbarPageHeader(
           titulo: 'Agenda Mensal',
-          subtitulo: 'Escolha a loja que deseja visualizar',
+          subtitulo: 'Escolha o estabelecimento que deseja visualizar',
         ),
         Expanded(
           child: _carregando
@@ -70,7 +70,7 @@ class _AgendaLojaPageState extends State<AgendaLojaPage> {
                             Padding(
                               padding: EdgeInsets.all(40),
                               child: Center(
-                                child: Text('Nenhuma loja cadastrada.'),
+                                child: Text('Nenhum estabelecimento cadastrado.'),
                               ),
                             ),
                           ],

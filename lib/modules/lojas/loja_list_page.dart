@@ -93,7 +93,7 @@ class _LojaListPageState extends State<LojaListPage> {
   void _avisarSomenteConsulta() {
     AppSnackBar.aviso(
       context,
-      'Você não pode alterar esta loja. Seu acesso permite apenas consultá-la.',
+      'Você não pode alterar este estabelecimento. Seu acesso permite apenas consultá-lo.',
     );
   }
 
@@ -245,8 +245,8 @@ class _LojaListPageState extends State<LojaListPage> {
       AppSnackBar.aviso(
         context,
         _lojaUsuarioId != null
-            ? 'Seu usuário está vinculado a uma loja e não pode cadastrar outra.'
-            : 'Somente administradores e gerentes podem cadastrar lojas.',
+            ? 'Seu usuário está vinculado a um estabelecimento e não pode cadastrar outro.'
+            : 'Somente administradores e gerentes podem cadastrar estabelecimentos.',
       );
       return;
     }
@@ -402,14 +402,14 @@ class _LojaListPageState extends State<LojaListPage> {
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Excluir loja',
+                  'Excluir estabelecimento',
                   style: TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
             ],
           ),
           content: Text(
-            'Deseja realmente excluir a loja '
+            'Deseja realmente excluir o estabelecimento '
             '"${loja.nmloja}"?\n\n'
             'Essa ação não poderá ser desfeita.',
             style: const TextStyle(height: 1.4),
@@ -479,7 +479,7 @@ class _LojaListPageState extends State<LojaListPage> {
 
       if (!mounted) return;
 
-      AppSnackBar.sucesso(context, 'Loja excluída com sucesso.');
+      AppSnackBar.sucesso(context, 'Estabelecimento excluído com sucesso.');
 
       await _carregarLojas();
     } catch (e) {
@@ -616,8 +616,8 @@ class _LojaListPageState extends State<LojaListPage> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(ativa ? 'Inativar loja' : 'Reativar loja'),
-          content: Text('Deseja realmente $acao a loja “${loja.nmloja}”?'),
+          title: Text(ativa ? 'Inativar estabelecimento' : 'Reativar estabelecimento'),
+          content: Text('Deseja realmente $acao o estabelecimento “${loja.nmloja}”?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
@@ -646,7 +646,7 @@ class _LojaListPageState extends State<LojaListPage> {
       if (!mounted) return;
       AppSnackBar.sucesso(
         context,
-        ativa ? 'Loja inativada com sucesso.' : 'Loja reativada com sucesso.',
+        ativa ? 'Estabelecimento inativado com sucesso.' : 'Estabelecimento reativado com sucesso.',
       );
       await _carregarLojas();
     } catch (e) {
@@ -686,7 +686,7 @@ class _LojaListPageState extends State<LojaListPage> {
 
   Widget _menuAcoesLoja(Loja loja) {
     return PopupMenuButton<String>(
-      tooltip: 'Ações da loja',
+      tooltip: 'Ações do estabelecimento',
       icon: const Icon(Icons.more_vert_rounded),
       color: ClubbarColors.branco,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -757,7 +757,7 @@ class _LojaListPageState extends State<LojaListPage> {
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.auto_stories_outlined),
-            title: Text('Conteúdo da loja'),
+            title: Text('Conteúdo do estabelecimento'),
           ),
         ),
         const PopupMenuItem(
@@ -975,7 +975,7 @@ class _LojaListPageState extends State<LojaListPage> {
       onChanged: _filtrar,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
-        hintText: 'Buscar loja',
+        hintText: 'Buscar estabelecimento',
         prefixIcon: const Icon(
           Icons.search_rounded,
           color: ClubbarColors.textoSecundario,
@@ -1044,7 +1044,7 @@ class _LojaListPageState extends State<LojaListPage> {
         ),
         const SizedBox(width: 8),
         _botaoCircularHeader(
-          tooltip: 'Adicionar loja',
+          tooltip: 'Adicionar estabelecimento',
           icone: Icons.add_rounded,
           onPressed: _abrirNovaLoja,
         ),
@@ -1054,11 +1054,11 @@ class _LojaListPageState extends State<LojaListPage> {
 
   String _subtituloHeader() {
     if (_carregando) {
-      return 'Carregando lojas...';
+      return 'Carregando estabelecimentos...';
     }
 
     return '${_lojas.length} '
-        '${_lojas.length == 1 ? 'loja cadastrada' : 'lojas cadastradas'}';
+        '${_lojas.length == 1 ? 'estabelecimento cadastrado' : 'estabelecimentos cadastrados'}';
   }
 
   Widget _estadoVazio() {
@@ -1087,7 +1087,7 @@ class _LojaListPageState extends State<LojaListPage> {
             const SizedBox(height: 16),
 
             Text(
-              temBusca ? 'Nenhuma loja encontrada' : 'Nenhuma loja cadastrada',
+              temBusca ? 'Nenhum estabelecimento encontrado' : 'Nenhum estabelecimento cadastrado',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
@@ -1097,7 +1097,7 @@ class _LojaListPageState extends State<LojaListPage> {
             Text(
               temBusca
                   ? 'Tente pesquisar usando outro nome, bairro ou endereço.'
-                  : 'Cadastre a primeira loja da sua empresa.',
+                  : 'Cadastre o primeiro estabelecimento da sua empresa.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -1112,7 +1112,7 @@ class _LojaListPageState extends State<LojaListPage> {
                 onPressed: _abrirNovaLoja,
                 icon: const Icon(Icons.add_rounded),
                 label: const Text(
-                  'Adicionar loja',
+                  'Adicionar estabelecimento',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -1144,7 +1144,7 @@ class _LojaListPageState extends State<LojaListPage> {
             const SizedBox(height: 14),
 
             const Text(
-              'Não foi possível carregar as lojas',
+              'Não foi possível carregar os estabelecimentos',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),

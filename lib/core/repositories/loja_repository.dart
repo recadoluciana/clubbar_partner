@@ -25,7 +25,7 @@ class LojaRepository {
       return [];
     }
 
-    throw Exception('Erro ao listar lojas: ${response.body}');
+    throw Exception('Erro ao listar estabelecimentos: ${response.body}');
   }
 
   Future<http.MultipartFile> _montarArquivoImagem(
@@ -111,7 +111,7 @@ class LojaRepository {
     final responseBody = await response.stream.bytesToString();
 
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Erro ao criar loja: $responseBody');
+      throw Exception('Erro ao criar estabelecimento: $responseBody');
     }
 
     try {
@@ -200,7 +200,7 @@ class LojaRepository {
     final responseBody = await response.stream.bytesToString();
 
     if (response.statusCode != 200) {
-      throw Exception('Erro ao atualizar loja: $responseBody');
+      throw Exception('Erro ao atualizar estabelecimento: $responseBody');
     }
   }
 
@@ -208,7 +208,7 @@ class LojaRepository {
     final estadoId = loja.estadoId;
     final cidadeId = loja.cidadeId;
     if (estadoId == null || cidadeId == null) {
-      throw Exception('Estado e cidade da loja não foram identificados.');
+      throw Exception('Estado e cidade do estabelecimento não foram identificados.');
     }
 
     await atualizar(
@@ -282,7 +282,7 @@ class LojaRepository {
     final estadoId = loja.estadoId;
     final cidadeId = loja.cidadeId;
     if (estadoId == null || cidadeId == null) {
-      throw Exception('Estado e cidade da loja não foram identificados.');
+      throw Exception('Estado e cidade do estabelecimento não foram identificados.');
     }
 
     await atualizar(
@@ -315,7 +315,7 @@ class LojaRepository {
     final estadoId = loja.estadoId;
     final cidadeId = loja.cidadeId;
     if (estadoId == null || cidadeId == null) {
-      throw Exception('Estado e cidade da loja não foram identificados.');
+      throw Exception('Estado e cidade do estabelecimento não foram identificados.');
     }
 
     await atualizar(
@@ -346,7 +346,7 @@ class LojaRepository {
     final response = await ApiService.delete('/lojas/$lojaId');
 
     if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception('Erro ao excluir loja: ${response.body}');
+      throw Exception('Erro ao excluir estabelecimento: ${response.body}');
     }
   }
 
@@ -354,7 +354,7 @@ class LojaRepository {
     final response = await ApiService.patch('/lojas/$lojaId/inativar');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Erro ao inativar loja: ${response.body}');
+      throw Exception('Erro ao inativar estabelecimento: ${response.body}');
     }
   }
 
@@ -362,7 +362,7 @@ class LojaRepository {
     final response = await ApiService.patch('/lojas/$lojaId/reativar');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Erro ao reativar loja: ${response.body}');
+      throw Exception('Erro ao reativar estabelecimento: ${response.body}');
     }
   }
 }

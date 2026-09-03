@@ -189,7 +189,7 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
   Future<void> _compartilhar() async {
     final link = 'https://app.clubbar.com.br/?loja_id=${widget.loja.lojaId}';
     final texto =
-        'Veja o cardápio digital da ${widget.loja.nmloja} no Clubbar:\n$link';
+        'Veja o cardápio digital do estabelecimento ${widget.loja.nmloja} no Clubbar:\n$link';
     await Clipboard.setData(ClipboardData(text: texto));
     if (mounted) {
       AppSnackBar.sucesso(

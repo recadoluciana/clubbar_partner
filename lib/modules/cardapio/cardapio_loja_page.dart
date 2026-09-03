@@ -56,7 +56,7 @@ class _CardapioLojaPageState extends State<CardapioLojaPage> {
       children: [
         const ClubbarPageHeader(
           titulo: 'Cardápio Digital',
-          subtitulo: 'Escolha a loja que deseja configurar',
+          subtitulo: 'Escolha o estabelecimento que deseja configurar',
         ),
         Expanded(
           child: _carregando
@@ -69,7 +69,7 @@ class _CardapioLojaPageState extends State<CardapioLojaPage> {
                             Padding(
                               padding: EdgeInsets.all(40),
                               child: Center(
-                                child: Text('Nenhuma loja cadastrada.'),
+                                child: Text('Nenhum estabelecimento cadastrado.'),
                               ),
                             ),
                           ],

@@ -213,7 +213,7 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
                   child: DropdownButtonFormField<int>(
                     initialValue: _lojaId,
                     decoration: const InputDecoration(
-                      labelText: 'Loja',
+                      labelText: 'Estabelecimento',
                       border: OutlineInputBorder(),
                     ),
                     items: _lojas

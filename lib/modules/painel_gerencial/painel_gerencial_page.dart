@@ -274,7 +274,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Participação por loja',
+            'Participação por estabelecimento',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 14),

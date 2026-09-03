@@ -38,7 +38,7 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
     try {
       final lojaId = widget.lojaId ?? await StorageService.getLojaId();
       if (lojaId == null || lojaId <= 0) {
-        throw Exception('Selecione uma loja para consultar o financeiro.');
+        throw Exception('Selecione um estabelecimento para consultar o financeiro.');
       }
       final resultados = await Future.wait([
         _repo.resumo(lojaId),

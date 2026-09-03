@@ -172,7 +172,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
   String _nomeLoja(int? lojaId) {
     if (lojaId == null) {
-      return 'Sem loja vinculada';
+      return 'Sem estabelecimento vinculado';
     }
 
     for (final loja in _lojas) {
@@ -181,7 +181,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       }
     }
 
-    return 'Loja não encontrada';
+    return 'Estabelecimento não encontrada';
   }
 
   Future<void> _abrirNovoUsuario() async {

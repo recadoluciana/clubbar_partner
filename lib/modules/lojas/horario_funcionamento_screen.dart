@@ -245,7 +245,7 @@ class _HorarioFuncionamentoScreenState
       AppSnackBar.sucesso(
         context,
         _funciona24x7
-            ? 'Loja configurada como aberta 24 horas.'
+            ? 'Estabelecimento configurado como aberta 24 horas.'
             : 'Horários salvos com sucesso.',
       );
       Navigator.of(context).pop(true);
@@ -490,7 +490,7 @@ class _HorarioFuncionamentoScreenState
             ),
             subtitle: Text(
               _funciona24x7
-                  ? 'A loja funciona todos os dias, durante 24 horas.'
+                  ? 'O estabelecimento funciona todos os dias, durante 24 horas.'
                   : 'Ative para não precisar informar horários por dia.',
             ),
             secondary: const Icon(

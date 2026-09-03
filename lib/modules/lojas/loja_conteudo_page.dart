@@ -71,7 +71,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
       if (mounted) {
         setState(
           () => _fotos.add({
-            'titulo': 'Foto da loja',
+            'titulo': 'Foto do estabelecimento',
             'url': url,
             'ordem': _fotos.length + 1,
           }),
@@ -86,7 +86,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
     final url = _video.text.trim();
     if (url.isEmpty) return;
     setState(() {
-      _videos.add({'titulo': 'Vídeo da loja', 'url': url});
+      _videos.add({'titulo': 'Vídeo do estabelecimento', 'url': url});
       _video.clear();
     });
   }
@@ -206,7 +206,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
       child: Column(
         children: [
           ClubbarPageHeader(
-            titulo: 'Conteúdo da Loja',
+            titulo: 'Conteúdo do estabelecimento',
             subtitulo: widget.loja.nmloja,
           ),
           Expanded(
@@ -215,14 +215,14 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
                 : ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      _card('Sobre a loja', [
+                      _card('Sobre o estabelecimento', [
                         TextField(
                           controller: _descricao,
                           minLines: 5,
                           maxLines: 12,
                           decoration: const InputDecoration(
                             hintText:
-                                'Conte a história, estrutura e diferenciais da loja.',
+                                'Conte a história, estrutura e diferenciais do estabelecimento.',
                             border: OutlineInputBorder(),
                           ),
                         ),

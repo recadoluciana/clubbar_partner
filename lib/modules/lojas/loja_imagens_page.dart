@@ -88,7 +88,7 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
         fachada: _fachada,
       );
       if (!mounted) return;
-      AppSnackBar.sucesso(context, 'Imagens da loja atualizadas com sucesso.');
+      AppSnackBar.sucesso(context, 'Imagens do estabelecimento atualizadas com sucesso.');
       Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, 'Erro ao salvar imagens: $e');
@@ -242,7 +242,7 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
                   _previewCliente(),
                   const SizedBox(height: 16),
                   _botaoImagem(
-                    titulo: 'Escolher logo da loja',
+                    titulo: 'Escolher logo do estabelecimento',
                     subtitulo: 'Prefira uma imagem quadrada com fundo limpo',
                     icone: Icons.image_outlined,
                     onPressed: () => _selecionar(logo: true),

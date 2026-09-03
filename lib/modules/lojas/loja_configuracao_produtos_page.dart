@@ -202,7 +202,7 @@ class _LojaConfiguracaoProdutosPageState
                                     : (valor) => setState(() => _ativo = valor),
                                 title: Text(
                                   _cashback
-                                      ? 'Usar cashback nesta loja'
+                                      ? 'Usar cashback neste estabelecimento'
                                       : 'Controlar validade dos produtos',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,

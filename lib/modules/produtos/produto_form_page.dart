@@ -1061,7 +1061,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Opcional. Quando desativado, este produto usa o percentual geral da loja.',
+            'Opcional. Quando desativado, este produto usa o percentual geral do estabelecimento.',
             style: TextStyle(
               fontSize: 13,
               color: ClubbarColors.textoSecundario,
