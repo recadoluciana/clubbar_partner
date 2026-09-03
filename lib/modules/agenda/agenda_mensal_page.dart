@@ -129,6 +129,14 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     return mesmoDia(e.inicio) ||
         e.atracoes.any((item) => mesmoDia(item.inicio));
   }).toList();
+
+  bool _diaPassado(DateTime dia) {
+    final hoje = DateTime.now();
+    final dataHoje = DateTime(hoje.year, hoje.month, hoje.day);
+    final dataDia = DateTime(dia.year, dia.month, dia.day);
+    return dataDia.isBefore(dataHoje);
+  }
+
   DateTime _horarioNoDia(AgendaEvento evento, DateTime dia) {
     final horarios =
         evento.atracoes
@@ -295,6 +303,14 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   }
 
   Future<void> _criarEventoNoDia(DateTime dia) async {
+    if (_diaPassado(dia)) {
+      AppSnackBar.aviso(
+        context,
+        'Não é permitido criar eventos em datas passadas.',
+      );
+      return;
+    }
+
     final lojaId = widget.loja.lojaId;
     final atracoes = await _repo.listar();
     if (!mounted) return;
@@ -494,7 +510,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     }
   }
 
-  void _abrirEvento(AgendaEvento e) {
+  void _abrirEvento(AgendaEvento e, {bool somenteConsulta = false}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -530,6 +546,17 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                   ],
                 ),
                 const Divider(),
+                if (somenteConsulta)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Data encerrada • disponível somente para consulta',
+                      style: TextStyle(
+                        color: ClubbarColors.textoSecundario,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 if (e.atracoes.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(20),
@@ -548,28 +575,34 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                     subtitle: Text(
                       '${DateFormat('dd/MM HH:mm').format(p.inicio)} → ${DateFormat('dd/MM HH:mm').format(p.fim)}',
                     ),
-                    onTap: () {
-                      Navigator.pop(sheet);
-                      _editarProgramacao(e, p);
-                    },
-                    trailing: IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: ClubbarColors.erro,
-                      ),
-                      onPressed: () => _remover(e, p),
-                    ),
+                    onTap: somenteConsulta
+                        ? null
+                        : () {
+                            Navigator.pop(sheet);
+                            _editarProgramacao(e, p);
+                          },
+                    trailing: somenteConsulta
+                        ? const Icon(Icons.lock_outline, size: 20)
+                        : IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: ClubbarColors.erro,
+                            ),
+                            onPressed: () => _remover(e, p),
+                          ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.pop(sheet);
-                    _editarProgramacao(e);
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Adicionar atração'),
-                ),
+                if (!somenteConsulta) ...[
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(sheet);
+                      _editarProgramacao(e);
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Adicionar atração'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -593,19 +626,35 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
           tooltip: 'Mais opções',
           icon: const Icon(Icons.more_vert_rounded),
           onSelected: (valor) async {
-            if (valor != 'eventos') return;
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => EventoListPage(
-                  organizacaoId: widget.loja.organizacaoId,
-                  lojaIdInicial: widget.loja.lojaId,
-                  fixarLoja: true,
+            if (valor == 'eventos') {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => EventoListPage(
+                    organizacaoId: widget.loja.organizacaoId,
+                    lojaIdInicial: widget.loja.lojaId,
+                    fixarLoja: true,
+                  ),
                 ),
-              ),
-            );
+              );
+            } else if (valor == 'atracoes') {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AtracaoListPage()),
+              );
+            } else {
+              return;
+            }
             if (mounted) await _carregar();
           },
           itemBuilder: (_) => const [
+            PopupMenuItem<String>(
+              value: 'atracoes',
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.music_note_rounded),
+                title: Text('Gerenciar atrações'),
+              ),
+            ),
             PopupMenuItem<String>(
               value: 'eventos',
               child: ListTile(
@@ -702,19 +751,26 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
               final n = i - vazios + 1;
               if (n < 1 || n > dias) return const SizedBox();
               final data = DateTime(_mes.year, _mes.month, n),
-                  eventos = _doDia(data);
+                  eventos = _doDia(data),
+                  passado = _diaPassado(data);
               return InkWell(
-                onTap: eventos.isEmpty ? () => _criarEventoNoDia(data) : null,
+                onTap: eventos.isEmpty && !passado
+                    ? () => _criarEventoNoDia(data)
+                    : null,
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
-                    color: eventos.isEmpty
+                    color: passado
+                        ? const Color(0xFFE9ECEF)
+                        : eventos.isEmpty
                         ? ClubbarColors.branco
                         : ClubbarColors.fundoCard,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: eventos.isEmpty
+                      color: passado
+                          ? const Color(0xFFD2D6DA)
+                          : eventos.isEmpty
                           ? ClubbarColors.ambarClaro
                           : ClubbarColors.borda,
                     ),
@@ -732,7 +788,8 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                           .map(
                             (e) => Expanded(
                               child: InkWell(
-                                onTap: () => _abrirEvento(e),
+                                onTap: () =>
+                                    _abrirEvento(e, somenteConsulta: passado),
                                 child: Container(
                                   width: double.infinity,
                                   margin: const EdgeInsets.only(bottom: 3),
@@ -755,13 +812,22 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                             ),
                           ),
                       if (eventos.isEmpty) const Spacer(),
-                      if (eventos.isEmpty)
+                      if (eventos.isEmpty && !passado)
                         const Align(
                           alignment: Alignment.bottomRight,
                           child: Icon(
                             Icons.add_circle_outline,
                             size: 16,
                             color: ClubbarColors.ambarEscuro,
+                          ),
+                        ),
+                      if (eventos.isEmpty && passado)
+                        const Align(
+                          alignment: Alignment.bottomRight,
+                          child: Icon(
+                            Icons.lock_outline,
+                            size: 15,
+                            color: ClubbarColors.textoSecundario,
                           ),
                         ),
                     ],

@@ -130,11 +130,14 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
   Future<void> _selecionarData({required bool inicio}) async {
     final agora = DateTime.now();
+    final hoje = DateTime(agora.year, agora.month, agora.day);
     final atual = inicio ? _dataInicioSelecionada : _dataFimSelecionada;
     final data = await showDatePicker(
       context: context,
-      initialDate: atual ?? agora,
-      firstDate: DateTime(2020),
+      initialDate: atual != null && (editando || !atual.isBefore(hoje))
+          ? atual
+          : hoje,
+      firstDate: editando ? DateTime(2020) : hoje,
       lastDate: DateTime(2100),
     );
     if (data == null || !mounted) return;
@@ -261,6 +264,20 @@ class _EventoFormPageState extends State<EventoFormPage> {
     if (_dataInicioSelecionada == null) {
       AppSnackBar.aviso(context, 'Informe a data e hora de início.');
       return;
+    }
+
+    if (!editando) {
+      final agora = DateTime.now();
+      final hoje = DateTime(agora.year, agora.month, agora.day);
+      final inicio = _dataInicioSelecionada!;
+      final diaInicio = DateTime(inicio.year, inicio.month, inicio.day);
+      if (diaInicio.isBefore(hoje)) {
+        AppSnackBar.aviso(
+          context,
+          'Não é permitido criar eventos em datas passadas.',
+        );
+        return;
+      }
     }
 
     if (_dataFimSelecionada != null &&

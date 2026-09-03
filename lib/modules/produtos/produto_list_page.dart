@@ -627,7 +627,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        ativo ? 'Ativo' : 'Inativo',
+        ativo ? 'Ativo' : 'Rascunho',
         style: TextStyle(
           color: ativo ? ClubbarColors.sucesso : ClubbarColors.erro,
           fontSize: 11,

@@ -876,7 +876,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             ),
             items: const [
               DropdownMenuItem(value: 'ATIVO', child: Text('Ativo')),
-              DropdownMenuItem(value: 'INATIVO', child: Text('Inativo')),
+              DropdownMenuItem(value: 'INATIVO', child: Text('Rascunho')),
             ],
             onChanged: _salvando
                 ? null

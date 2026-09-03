@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/repositories/financeiro_repository.dart';
+import '../../core/repositories/loja_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../models/loja.dart';
 
 class FinanceiroParceiroPage extends StatefulWidget {
   final int? lojaId;
@@ -20,37 +22,50 @@ class FinanceiroParceiroPage extends StatefulWidget {
 
 class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
   final _repo = FinanceiroRepository();
+  final _lojaRepo = LojaRepository();
   final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   Map<String, dynamic> _dados = {};
   Map<String, dynamic>? _conta;
   int? _lojaId;
+  List<Loja> _lojas = [];
+  String _nomeOrganizacao = 'Empresa';
   bool _carregando = true;
   String? _filtroStatus;
 
   @override
   void initState() {
     super.initState();
-    _carregar();
+    _inicializar();
   }
 
-  Future<void> _carregar() async {
+  Future<void> _inicializar() async {
     setState(() => _carregando = true);
     try {
-      final lojaId = widget.lojaId ?? await StorageService.getLojaId();
+      final organizacaoId = await StorageService.getOrganizacaoId();
+      final nomeOrganizacao = (await StorageService.getNomeOrganizacao() ?? '')
+          .trim();
+      final lojas = organizacaoId == null || organizacaoId <= 0
+          ? <Loja>[]
+          : await _lojaRepo.listar(organizacaoId);
+      final lojaSalva = await StorageService.getLojaId();
+      final lojaId =
+          widget.lojaId ??
+          lojaSalva ??
+          (lojas.isNotEmpty ? lojas.first.lojaId : null);
+      if (!mounted) return;
+      setState(() {
+        _nomeOrganizacao = nomeOrganizacao.isEmpty
+            ? 'Empresa'
+            : nomeOrganizacao;
+        _lojas = lojas;
+        _lojaId = lojaId;
+      });
       if (lojaId == null || lojaId <= 0) {
-        throw Exception('Selecione um estabelecimento para consultar o financeiro.');
+        throw Exception(
+          'Selecione um estabelecimento para consultar o financeiro.',
+        );
       }
-      final resultados = await Future.wait([
-        _repo.resumo(lojaId),
-        _repo.conta(lojaId),
-      ]);
-      if (mounted) {
-        setState(() {
-          _lojaId = lojaId;
-          _dados = resultados[0]!;
-          _conta = resultados[1];
-        });
-      }
+      await _carregarFinanceiro(lojaId);
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -58,6 +73,46 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
+  }
+
+  Future<void> _carregar() async {
+    final lojaId = _lojaId;
+    if (lojaId == null || lojaId <= 0) return;
+    setState(() => _carregando = true);
+    try {
+      await _carregarFinanceiro(lojaId);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
+
+  Future<void> _carregarFinanceiro(int lojaId) async {
+    final resultados = await Future.wait([
+      _repo.resumo(lojaId),
+      _repo.conta(lojaId),
+    ]);
+    if (mounted) {
+      setState(() {
+        _lojaId = lojaId;
+        _dados = resultados[0]!;
+        _conta = resultados[1];
+      });
+    }
+  }
+
+  Future<void> _selecionarLoja(int? lojaId) async {
+    if (lojaId == null || lojaId == _lojaId) return;
+    setState(() {
+      _lojaId = lojaId;
+      _dados = {};
+      _conta = null;
+      _filtroStatus = null;
+    });
+    await _carregar();
   }
 
   double _numero(Object? v) =>
@@ -296,8 +351,6 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
       if (_filtroStatus == null) return true;
       return _filtroStatus == 'recebido' ? _recebido(r) : !_recebido(r);
     }).toList();
-    final nomeLoja =
-        widget.nomeLoja?.trim() ?? _dados['nmloja']?.toString().trim() ?? '';
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: ClubbarAppBar(
@@ -309,8 +362,53 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
       body: Column(
         children: [
           ClubbarPageHeader(
-            titulo: nomeLoja.isEmpty ? 'Financeiro' : 'Financeiro - $nomeLoja',
-            subtitulo: 'Acompanhe os repasses das suas vendas',
+            titulo: _nomeOrganizacao,
+            subtitulo: '',
+            tituloStyle: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              color: ClubbarColors.info,
+            ),
+            subtituloWidget: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: DropdownButtonFormField<int>(
+                initialValue: _lojas.any((loja) => loja.lojaId == _lojaId)
+                    ? _lojaId
+                    : null,
+                decoration: InputDecoration(
+                  labelText: 'Estabelecimento',
+                  filled: true,
+                  fillColor: ClubbarColors.branco,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(13),
+                    borderSide: const BorderSide(color: ClubbarColors.info),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(13),
+                    borderSide: const BorderSide(color: ClubbarColors.info),
+                  ),
+                ),
+                items: _lojas
+                    .map(
+                      (loja) => DropdownMenuItem<int>(
+                        value: loja.lojaId,
+                        child: Text(
+                          loja.nmloja,
+                          style: const TextStyle(
+                            color: ClubbarColors.info,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: _carregando ? null : _selecionarLoja,
+              ),
+            ),
           ),
           Expanded(
             child: _carregando

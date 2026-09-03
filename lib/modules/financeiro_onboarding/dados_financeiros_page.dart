@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/repositories/localidade_repository.dart';
@@ -42,6 +43,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   };
   int? _organizacaoId, _estadoId, _cidadeId;
   String _tipo = 'PJ', _status = 'NAO_INICIADO', _onboardingUrl = '';
+  String _nomeOrganizacao = 'Empresa';
   bool _carregando = true, _processando = false, _consultandoCep = false;
   String? _ultimoCepConsultado;
 
@@ -85,16 +87,23 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     for (final e in mapa.entries) {
       _c[e.key]!.text = _texto(d[e.value]);
     }
+    _c['nascimento']!.text = _formatarDataExibicao(d['dtnascimento']);
+    _c['faturamento']!.text = _formatarMoeda(d['vrfaturamentomensal']);
   }
 
   Future<void> _carregar() async {
     try {
       final id = await StorageService.getOrganizacaoId();
       if (id == null) throw Exception('Empresa não identificada.');
+      final nomeOrganizacao = (await StorageService.getNomeOrganizacao() ?? '')
+          .trim();
       final dados = await _repo.consultar(id);
       if (!mounted) return;
       setState(() {
         _organizacaoId = id;
+        _nomeOrganizacao = nomeOrganizacao.isEmpty
+            ? 'Empresa'
+            : nomeOrganizacao;
         _preencher(dados);
         _carregando = false;
       });
@@ -107,6 +116,54 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
 
   String? _obrigatorio(String? v) =>
       (v ?? '').trim().isEmpty ? 'Campo obrigatório.' : null;
+
+  String _formatarDataExibicao(dynamic valor) {
+    final texto = _texto(valor).trim();
+    if (texto.isEmpty) return '';
+    final data = DateTime.tryParse(texto);
+    return data == null ? texto : DateFormat('dd/MM/yyyy').format(data);
+  }
+
+  String? _dataNascimentoIso() {
+    final texto = _c['nascimento']!.text.trim();
+    if (texto.isEmpty) return null;
+    try {
+      return DateFormat(
+        'yyyy-MM-dd',
+      ).format(DateFormat('dd/MM/yyyy').parseStrict(texto));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _formatarMoeda(dynamic valor) {
+    final numero = valor is num
+        ? valor.toDouble()
+        : double.tryParse(_texto(valor).replaceAll(',', '.')) ?? 0;
+    return NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(numero);
+  }
+
+  Future<void> _selecionarNascimento() async {
+    DateTime inicial = DateTime(1990, 1, 1);
+    final texto = _c['nascimento']!.text.trim();
+    try {
+      inicial = DateFormat('dd/MM/yyyy').parseStrict(texto);
+    } catch (_) {}
+    final selecionada = await showDatePicker(
+      context: context,
+      initialDate: inicial,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      helpText: 'Data de nascimento',
+      cancelText: 'Cancelar',
+      confirmText: 'Confirmar',
+    );
+    if (selecionada != null && mounted) {
+      setState(() {
+        _c['nascimento']!.text = DateFormat('dd/MM/yyyy').format(selecionada);
+      });
+    }
+  }
 
   Future<void> _buscarCep() async {
     final cep = _c['cep']!.text.replaceAll(RegExp(r'\D'), '');
@@ -227,13 +284,54 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     ),
   );
 
+  Widget _campoNascimento() => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextFormField(
+      controller: _c['nascimento'],
+      readOnly: true,
+      onTap: _selecionarNascimento,
+      validator: _obrigatorio,
+      decoration: InputDecoration(
+        labelText: 'Data de nascimento',
+        hintText: 'DD/MM/AAAA',
+        filled: true,
+        fillColor: Colors.white,
+        suffixIcon: const Icon(Icons.calendar_month_rounded),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    ),
+  );
+
+  Widget _campoFaturamento() => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextFormField(
+      controller: _c['faturamento'],
+      keyboardType: TextInputType.number,
+      inputFormatters: [_MoedaBrasileiraFormatter()],
+      validator: _obrigatorio,
+      decoration: InputDecoration(
+        labelText: 'Faturamento mensal estimado',
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    ),
+  );
+
+  double _valorMoeda(String texto) {
+    final normalizado = texto
+        .replaceAll(RegExp(r'[^0-9,\-]'), '')
+        .replaceAll(',', '.');
+    return double.tryParse(normalizado) ?? 0;
+  }
+
   Map<String, dynamic> _dados() => {
     'organizacao_id': _organizacaoId,
     'tipotitular': _tipo,
     'cpfcnpj': _c['cpfcnpj']!.text,
     'nmrazaosocial': _c['nome']!.text,
     'nmfantasia': _c['fantasia']!.text,
-    'dtnascimento': _tipo == 'PF' ? _c['nascimento']!.text : null,
+    'dtnascimento': _tipo == 'PF' ? _dataNascimentoIso() : null,
     'email': _c['email']!.text,
     'telefone': _c['telefone']!.text,
     'cep': _c['cep']!.text,
@@ -243,11 +341,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     'bairro': _c['bairro']!.text,
     'cidade_id': _cidadeId,
     'estado_id': _estadoId,
-    'vrfaturamentomensal':
-        double.tryParse(
-          _c['faturamento']!.text.replaceAll('.', '').replaceAll(',', '.'),
-        ) ??
-        0,
+    'vrfaturamentomensal': _valorMoeda(_c['faturamento']!.text),
   };
 
   Future<void> _executar(
@@ -366,56 +460,96 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     ],
   );
 
+  Widget _cardSecao({
+    required String titulo,
+    required IconData icone,
+    required List<Widget> children,
+  }) => Card(
+    margin: EdgeInsets.zero,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(18),
+      side: const BorderSide(color: ClubbarColors.borda),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(icone, color: ClubbarColors.info),
+              const SizedBox(width: 9),
+              Text(
+                titulo,
+                style: const TextStyle(
+                  color: ClubbarColors.info,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    ),
+  );
+
   Widget _formulario() => Form(
     key: _form,
     child: ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        DropdownButtonFormField<String>(
-          initialValue: _tipo,
-          decoration: const InputDecoration(
-            labelText: 'Tipo de titular',
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'PF', child: Text('Pessoa física')),
-            DropdownMenuItem(value: 'PJ', child: Text('Pessoa jurídica')),
+        _cardSecao(
+          titulo: 'Dados da empresa',
+          icone: Icons.business_rounded,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _tipo,
+              decoration: const InputDecoration(
+                labelText: 'Tipo de titular',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'PF', child: Text('Pessoa física')),
+                DropdownMenuItem(value: 'PJ', child: Text('Pessoa jurídica')),
+              ],
+              onChanged: (v) => setState(() => _tipo = v!),
+            ),
+            const SizedBox(height: 12),
+            _campo(
+              'cpfcnpj',
+              _tipo == 'PF' ? 'CPF' : 'CNPJ',
+              teclado: TextInputType.number,
+            ),
+            _campo('nome', _tipo == 'PF' ? 'Nome completo' : 'Razão social'),
+            _campo('fantasia', 'Nome fantasia', opcional: true),
+            if (_tipo == 'PF') _campoNascimento(),
+            _campo('email', 'E-mail', teclado: TextInputType.emailAddress),
+            _campo('telefone', 'Telefone', teclado: TextInputType.phone),
+            _campoFaturamento(),
           ],
-          onChanged: (v) => setState(() => _tipo = v!),
         ),
-        const SizedBox(height: 12),
-        _campo(
-          'cpfcnpj',
-          _tipo == 'PF' ? 'CPF' : 'CNPJ',
-          teclado: TextInputType.number,
-        ),
-        _campo('nome', _tipo == 'PF' ? 'Nome completo' : 'Razão social'),
-        _campo('fantasia', 'Nome fantasia', opcional: true),
-        if (_tipo == 'PF')
-          _campo(
-            'nascimento',
-            'Data de nascimento (AAAA-MM-DD)',
-            teclado: TextInputType.datetime,
-          ),
-        _campo('email', 'E-mail', teclado: TextInputType.emailAddress),
-        _campo('telefone', 'Telefone', teclado: TextInputType.phone),
-        _campo(
-          'faturamento',
-          'Faturamento mensal estimado',
-          teclado: const TextInputType.numberWithOptions(decimal: true),
-        ),
-        _campoCep(),
-        _campo('endereco', 'Endereço cadastral'),
-        _campo('numero', 'Número'),
-        _campo('complemento', 'Complemento', opcional: true),
-        _campo('bairro', 'Bairro'),
-        ClubbarLocalidadeField(
-          estadoInicialId: _estadoId,
-          cidadeInicialId: _cidadeId,
-          onChanged: (e, c) {
-            _estadoId = e?.estadoId;
-            _cidadeId = c?.cidadeId;
-          },
+        const SizedBox(height: 16),
+        _cardSecao(
+          titulo: 'Endereço da empresa',
+          icone: Icons.location_on_rounded,
+          children: [
+            _campoCep(),
+            _campo('endereco', 'Endereço cadastral'),
+            _campo('numero', 'Número'),
+            _campo('complemento', 'Complemento', opcional: true),
+            _campo('bairro', 'Bairro'),
+            ClubbarLocalidadeField(
+              estadoInicialId: _estadoId,
+              cidadeInicialId: _cidadeId,
+              onChanged: (e, c) {
+                _estadoId = e?.estadoId;
+                _cidadeId = c?.cidadeId;
+              },
+            ),
+          ],
         ),
         const SizedBox(height: 20),
         ElevatedButton.icon(
@@ -436,10 +570,17 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
         ClubbarPageHeader(
           titulo: widget.mostrarIntegracao
               ? 'Integração Asaas'
-              : 'Dados financeiros',
+              : _nomeOrganizacao,
           subtitulo: widget.mostrarIntegracao
               ? 'Ative e acompanhe seus recebimentos'
               : 'Dados do titular dos recebimentos',
+          tituloStyle: widget.mostrarIntegracao
+              ? null
+              : const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: ClubbarColors.info,
+                ),
         ),
         Expanded(
           child: _carregando
@@ -453,4 +594,26 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       ],
     ),
   );
+}
+
+class _MoedaBrasileiraFormatter extends TextInputFormatter {
+  final NumberFormat _formato = NumberFormat.currency(
+    locale: 'pt_BR',
+    symbol: 'R\$',
+  );
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitos = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digitos.isEmpty) return const TextEditingValue(text: '');
+    final valor = int.parse(digitos) / 100;
+    final texto = _formato.format(valor);
+    return TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
+    );
+  }
 }

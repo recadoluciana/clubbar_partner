@@ -12,7 +12,9 @@ import '../services/storage_service.dart';
 
 class ProdutoRepository {
   Future<List<dynamic>> listar(int lojaId) async {
-    final response = await ApiService.get('/lojas/$lojaId/produtos');
+    final response = await ApiService.get(
+      '/lojas/$lojaId/produtos?incluir_inativos=true',
+    );
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);

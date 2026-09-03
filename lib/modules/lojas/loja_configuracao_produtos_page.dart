@@ -182,6 +182,13 @@ class _LojaConfiguracaoProdutosPageState
           ClubbarPageHeader(
             titulo: _cashback ? widget.loja.nmloja : titulo,
             subtitulo: _cashback ? titulo : widget.loja.nmloja,
+            tituloStyle: _cashback
+                ? const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                    color: ClubbarColors.info,
+                  )
+                : null,
           ),
           Expanded(
             child: _carregando

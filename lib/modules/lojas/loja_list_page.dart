@@ -14,7 +14,6 @@ import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 import '../agenda/agenda_mensal_page.dart';
 import '../cardapio/cardapio_digital_page.dart';
-import '../financeiro/financeiro_parceiro_page.dart';
 import 'horario_funcionamento_screen.dart';
 import 'loja_form_page.dart';
 import 'loja_imagens_page.dart';
@@ -381,15 +380,6 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  Future<void> _abrirFinanceiro(Loja loja) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) =>
-            FinanceiroParceiroPage(lojaId: loja.lojaId, nomeLoja: loja.nmloja),
-      ),
-    );
-  }
-
   Future<bool> _confirmarExclusao(Loja loja) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -621,7 +611,15 @@ class _LojaListPageState extends State<LojaListPage> {
     final aberto24Horas = loja.aberto24x7 == 'S';
     final horarioDefinido =
         aberto24Horas || _horariosDefinidos.contains(loja.lojaId);
+    final usaCashback = loja.usacashback == 'S';
     final itens = [
+      _indicadorConfiguracao(
+        icone: Icons.savings_outlined,
+        titulo: 'Usar cashback',
+        subtitulo: usaCashback ? 'Sim' : 'Não',
+        definido: usaCashback,
+        cor: usaCashback ? ClubbarColors.sucesso : ClubbarColors.erro,
+      ),
       _indicadorConfiguracao(
         icone: Icons.image_outlined,
         titulo: logoDefinida ? 'Foto logo definida' : 'Foto logo pendente',
@@ -837,8 +835,6 @@ class _LojaListPageState extends State<LojaListPage> {
             _abrirCardapio(loja);
           case 'agenda':
             _abrirAgenda(loja);
-          case 'financeiro':
-            _abrirFinanceiro(loja);
           case 'imagens':
             _abrirImagens(loja);
           case 'conteudo':
@@ -871,15 +867,6 @@ class _LojaListPageState extends State<LojaListPage> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.calendar_month_rounded),
             title: Text('Agenda Mensal'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'financeiro',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.account_balance_wallet_rounded),
-            title: Text('Financeiro'),
           ),
         ),
         const PopupMenuDivider(),

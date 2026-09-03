@@ -31,7 +31,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.black,
       foregroundColor: Colors.white,
       elevation: 0,
-      centerTitle: centralizarLogo,
+      centerTitle: true,
       toolbarHeight: 60,
       automaticallyImplyLeading: false,
       titleSpacing: 8,
@@ -48,14 +48,10 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
 
-      title: SizedBox(
-        height: 56,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: centralizarLogo ? 1 : 4),
-          child: Align(
-            alignment: centralizarLogo
-                ? Alignment.center
-                : Alignment.centerLeft,
+      flexibleSpace: SafeArea(
+        bottom: false,
+        child: IgnorePointer(
+          child: Center(
             child: Image.asset(
               logoPath,
               height: alturaLogo,
