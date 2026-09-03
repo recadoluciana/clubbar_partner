@@ -10,11 +10,10 @@ import '../../core/utils/validators.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
-import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/organizacao.dart';
 
-enum OrganizacaoSecao { empresa, contato, endereco }
+enum OrganizacaoSecao { empresa, contato }
 
 class OrganizacaoFormPage extends StatefulWidget {
   final Organizacao organizacao;
@@ -36,23 +35,14 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
   final OrganizacaoRepository _repository = OrganizacaoRepository();
 
   final _nomeController = TextEditingController();
-  final _razaoSocialController = TextEditingController();
-  final _cnpjController = TextEditingController();
+  final _responsavelController = TextEditingController();
 
   final _emailController = TextEditingController();
   final _telefoneController = TextEditingController();
 
-  final _cepController = TextEditingController();
-  final _enderecoController = TextEditingController();
-  final _numeroController = TextEditingController();
-  final _complementoController = TextEditingController();
-  final _bairroController = TextEditingController();
-
-  int? _estadoId;
-  int? _cidadeId;
-
   bool _salvando = false;
   String _status = 'ATIVA';
+  String? _tipoOperacao;
 
   Organizacao get _organizacao => widget.organizacao;
 
@@ -65,17 +55,10 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
   @override
   void dispose() {
     _nomeController.dispose();
-    _razaoSocialController.dispose();
-    _cnpjController.dispose();
+    _responsavelController.dispose();
 
     _emailController.dispose();
     _telefoneController.dispose();
-
-    _cepController.dispose();
-    _enderecoController.dispose();
-    _numeroController.dispose();
-    _complementoController.dispose();
-    _bairroController.dispose();
 
     super.dispose();
   }
@@ -83,28 +66,14 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
   void _preencherCampos() {
     _nomeController.text = _organizacao.nmorganizacao;
 
-    _razaoSocialController.text = _organizacao.rzsocialorganizacao ?? '';
-
-    _cnpjController.text = Formatters.cnpj(_organizacao.cnpjorganizacao ?? '');
+    _responsavelController.text = _organizacao.nmresponsavelprincipal ?? '';
+    _tipoOperacao = _organizacao.tipooperacao;
 
     _emailController.text = _organizacao.emailorganizacao ?? '';
 
     _telefoneController.text = Formatters.telefone(
       _organizacao.telorganizacao ?? '',
     );
-
-    _cepController.text = Formatters.cep(_organizacao.ceporganizacao ?? '');
-
-    _enderecoController.text = _organizacao.endorganizacao ?? '';
-
-    _numeroController.text = _organizacao.nrendorganizacao ?? '';
-
-    _complementoController.text = _organizacao.complorganizacao ?? '';
-
-    _bairroController.text = _organizacao.nmbairro ?? '';
-
-    _estadoId = _organizacao.estadoId;
-    _cidadeId = _organizacao.cidadeId;
 
     _status = _organizacao.sitorganizacao.trim().isEmpty
         ? 'ATIVA'
@@ -118,9 +87,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
 
       case OrganizacaoSecao.contato:
         return 'Contato';
-
-      case OrganizacaoSecao.endereco:
-        return 'Endereço';
     }
   }
 
@@ -129,30 +95,16 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
       case OrganizacaoSecao.empresa:
         return {
           'nmorganizacao': _nomeController.text.trim(),
-          'rzsocialorganizacao': _razaoSocialController.text.trim().isEmpty
+          'nmresponsavelprincipal': _responsavelController.text.trim().isEmpty
               ? null
-              : _razaoSocialController.text.trim(),
-          'cnpjorganizacao': Validators.somenteNumeros(_cnpjController.text),
+              : _responsavelController.text.trim(),
+          'tipooperacao': _tipoOperacao,
         };
 
       case OrganizacaoSecao.contato:
         return {
           'emailorganizacao': _emailController.text.trim().toLowerCase(),
           'telorganizacao': Validators.somenteNumeros(_telefoneController.text),
-        };
-
-      case OrganizacaoSecao.endereco:
-        return {
-          'ceporganizacao': Validators.somenteNumeros(_cepController.text),
-          'endorganizacao': _enderecoController.text.trim(),
-          'nrendorganizacao': _numeroController.text.trim(),
-          'complorganizacao': _complementoController.text.trim().isEmpty
-              ? null
-              : _complementoController.text.trim(),
-          'nmbairro': _bairroController.text.trim(),
-          // Localidade
-          'estado_id': _estadoId,
-          'cidade_id': _cidadeId,
         };
     }
   }
@@ -164,18 +116,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
 
     if (!formularioValido) {
       return;
-    }
-
-    if (widget.secao == OrganizacaoSecao.endereco) {
-      if (_estadoId == null || _estadoId! <= 0) {
-        AppSnackBar.erro(context, 'Selecione um estado válido.');
-        return;
-      }
-
-      if (_cidadeId == null || _cidadeId! <= 0) {
-        AppSnackBar.erro(context, 'Selecione uma cidade válida.');
-        return;
-      }
     }
 
     final usuarioId = await StorageService.getUsuarioId();
@@ -279,41 +219,44 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
         ),
         const SizedBox(height: 14),
         TextFormField(
-          controller: _razaoSocialController,
+          controller: _responsavelController,
           textCapitalization: TextCapitalization.words,
-          maxLength: 160,
-          inputFormatters: [LengthLimitingTextInputFormatter(160)],
+          maxLength: 120,
+          inputFormatters: [LengthLimitingTextInputFormatter(120)],
           decoration: _decoracao(
-            label: 'Razão social',
-            icone: Icons.account_balance_outlined,
-          ),
-        ),
-        const SizedBox(height: 14),
-        TextFormField(
-          controller: _cnpjController,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            CnpjInputFormatter(),
-            LengthLimitingTextInputFormatter(18),
-          ],
-          decoration: _decoracao(
-            label: 'CNPJ',
-            hint: '00.000.000/0000-00',
-            icone: Icons.badge_outlined,
+            label: 'Responsável principal',
+            icone: Icons.person_outline_rounded,
           ),
           validator: (valor) {
             final texto = valor?.trim() ?? '';
-
-            if (texto.isEmpty) {
-              return 'Informe o CNPJ.';
-            }
-
-            if (!Validators.cnpjValido(texto)) {
-              return 'Informe um CNPJ válido.';
-            }
-
-            return null;
+            return texto.length < 2 ? 'Informe o responsável principal.' : null;
           },
+        ),
+        const SizedBox(height: 14),
+        DropdownButtonFormField<String>(
+          initialValue: _tipoOperacao,
+          decoration: _decoracao(
+            label: 'Tipo de operação',
+            icone: Icons.category_outlined,
+          ),
+          items: const [
+            DropdownMenuItem(value: 'BAR', child: Text('Bar')),
+            DropdownMenuItem(
+              value: 'CASA_NOTURNA',
+              child: Text('Casa noturna'),
+            ),
+            DropdownMenuItem(
+              value: 'CASA_EVENTOS',
+              child: Text('Casa de eventos'),
+            ),
+            DropdownMenuItem(
+              value: 'PRODUTOR_EVENTOS',
+              child: Text('Produtor de eventos'),
+            ),
+          ],
+          onChanged: _salvando
+              ? null
+              : (valor) => setState(() => _tipoOperacao = valor),
         ),
         const SizedBox(height: 14),
         DropdownButtonFormField<String>(
@@ -393,108 +336,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
     );
   }
 
-  Widget _campoEndereco() {
-    return Column(
-      children: [
-        TextFormField(
-          controller: _cepController,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            CepInputFormatter(),
-            LengthLimitingTextInputFormatter(9),
-          ],
-          decoration: _decoracao(
-            label: 'CEP',
-            hint: '00000-000',
-            icone: Icons.markunread_mailbox_outlined,
-          ),
-          validator: (valor) {
-            final numeros = Validators.somenteNumeros(valor ?? '');
-
-            if (numeros.length != 8) {
-              return 'Informe um CEP válido.';
-            }
-
-            return null;
-          },
-        ),
-        const SizedBox(height: 14),
-        TextFormField(
-          controller: _enderecoController,
-          textCapitalization: TextCapitalization.words,
-          maxLength: 255,
-          inputFormatters: [LengthLimitingTextInputFormatter(255)],
-          decoration: _decoracao(
-            label: 'Endereço',
-            icone: Icons.route_outlined,
-          ),
-          validator: (valor) {
-            if ((valor?.trim() ?? '').isEmpty) {
-              return 'Informe o endereço.';
-            }
-
-            return null;
-          },
-        ),
-        const SizedBox(height: 14),
-        TextFormField(
-          controller: _numeroController,
-          maxLength: 20,
-          inputFormatters: [LengthLimitingTextInputFormatter(20)],
-          decoration: _decoracao(label: 'Número', icone: Icons.pin_outlined),
-          validator: (valor) {
-            if ((valor?.trim() ?? '').isEmpty) {
-              return 'Informe o número.';
-            }
-
-            return null;
-          },
-        ),
-        const SizedBox(height: 14),
-        TextFormField(
-          controller: _complementoController,
-          textCapitalization: TextCapitalization.words,
-          maxLength: 120,
-          inputFormatters: [LengthLimitingTextInputFormatter(120)],
-          decoration: _decoracao(
-            label: 'Complemento',
-            icone: Icons.add_home_work_outlined,
-          ),
-        ),
-        const SizedBox(height: 14),
-        TextFormField(
-          controller: _bairroController,
-          textCapitalization: TextCapitalization.words,
-          maxLength: 120,
-          inputFormatters: [LengthLimitingTextInputFormatter(120)],
-          decoration: _decoracao(
-            label: 'Bairro',
-            icone: Icons.holiday_village_outlined,
-          ),
-          validator: (valor) {
-            if ((valor?.trim() ?? '').isEmpty) {
-              return 'Informe o bairro.';
-            }
-
-            return null;
-          },
-        ),
-        const SizedBox(height: 14),
-
-        ClubbarLocalidadeField(
-          estadoInicialId: _organizacao.estadoId,
-          cidadeInicialId: _organizacao.cidadeId,
-          obrigatorio: true,
-          habilitado: !_salvando,
-          onChanged: (estado, cidade) {
-            _estadoId = estado?.estadoId;
-            _cidadeId = cidade?.cidadeId;
-          },
-        ),
-      ],
-    );
-  }
-
   Widget _formularioDaSecao() {
     switch (widget.secao) {
       case OrganizacaoSecao.empresa:
@@ -502,9 +343,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
 
       case OrganizacaoSecao.contato:
         return _campoContato();
-
-      case OrganizacaoSecao.endereco:
-        return _campoEndereco();
     }
   }
 
