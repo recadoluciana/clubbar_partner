@@ -396,26 +396,29 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                 clipBehavior: Clip.none,
                 children: [
                   Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: principal
-                      ? ClubbarColors.ambar
-                      : ClubbarColors.ambarClaro,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: principal
-                    ? const Icon(Icons.admin_panel_settings_rounded, size: 29)
-                    : Text(
-                        usuario.nmusuario.trim().isEmpty
-                            ? '?'
-                            : usuario.nmusuario.trim()[0].toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      color: principal
+                          ? ClubbarColors.ambar
+                          : ClubbarColors.ambarClaro,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: principal
+                        ? const Icon(
+                            Icons.admin_panel_settings_rounded,
+                            size: 29,
+                          )
+                        : Text(
+                            usuario.nmusuario.trim().isEmpty
+                                ? '?'
+                                : usuario.nmusuario.trim()[0].toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                   ),
                   if (principal)
                     Positioned(

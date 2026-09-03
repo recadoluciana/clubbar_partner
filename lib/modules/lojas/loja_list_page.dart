@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../../core/config/api_config.dart';
 import '../../core/repositories/loja_repository.dart';
+import '../../core/repositories/loja_horario_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/formatters.dart';
@@ -39,6 +39,7 @@ class LojaListPage extends StatefulWidget {
 class _LojaListPageState extends State<LojaListPage> {
   final TextEditingController _buscaController = TextEditingController();
   final LojaRepository _repository = LojaRepository();
+  final LojaHorarioRepository _horarioRepository = LojaHorarioRepository();
 
   bool _carregando = true;
   bool _excluindo = false;
@@ -53,6 +54,8 @@ class _LojaListPageState extends State<LojaListPage> {
 
   List<Loja> _lojas = [];
   List<Loja> _lojasFiltradas = [];
+  Set<int> _horariosDefinidos = {};
+  Map<int, int> _diasAtendimento = {};
 
   @override
   void initState() {
@@ -157,12 +160,33 @@ class _LojaListPageState extends State<LojaListPage> {
 
     try {
       final lista = await _repository.listar(widget.organizacaoId);
+      final horariosDefinidos = <int>{};
+      final diasAtendimento = <int, int>{};
+      await Future.wait(
+        lista.map((loja) async {
+          try {
+            final horarios = await _horarioRepository.buscarPorLoja(
+              loja.lojaId,
+            );
+            if (horarios.any((item) => item.lojaHorarioId != null)) {
+              horariosDefinidos.add(loja.lojaId);
+            }
+            diasAtendimento[loja.lojaId] = horarios
+                .where((item) => !item.fechado)
+                .length;
+          } catch (_) {
+            // A listagem principal continua disponível mesmo se um horário falhar.
+          }
+        }),
+      );
 
       if (!mounted) return;
 
       setState(() {
         _lojas = lista;
         _lojasFiltradas = _aplicarFiltro(lista, _buscaController.text);
+        _horariosDefinidos = horariosDefinidos;
+        _diasAtendimento = diasAtendimento;
         _carregando = false;
       });
     } catch (e) {
@@ -222,22 +246,6 @@ class _LojaListPageState extends State<LojaListPage> {
     _buscaController.clear();
     _filtrar('');
     FocusScope.of(context).unfocus();
-  }
-
-  String _montarUrlImagem(String? caminhoImagem) {
-    final caminho = (caminhoImagem ?? '').trim();
-
-    if (caminho.isEmpty) {
-      return '';
-    }
-
-    if (caminho.startsWith('http://') || caminho.startsWith('https://')) {
-      return caminho;
-    }
-
-    return caminho.startsWith('/')
-        ? '${ApiConfig.baseUrl}$caminho'
-        : '${ApiConfig.baseUrl}/$caminho';
   }
 
   Future<void> _abrirNovaLoja() async {
@@ -495,92 +503,226 @@ class _LojaListPageState extends State<LojaListPage> {
     }
   }
 
-  Widget _fotoLoja({
-    required String? caminho,
-    required String badge,
-    required IconData icone,
-    bool circular = false,
-  }) {
-    final url = _montarUrlImagem(caminho);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(circular ? 999 : 14),
-      child: AspectRatio(
-        aspectRatio: circular ? 1 : 8 / 3,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(
-              color: ClubbarColors.ambarClaro,
-              alignment: Alignment.center,
-              child: url.isEmpty
-                  ? Icon(icone, color: ClubbarColors.textoSecundario, size: 32)
-                  : Image.network(
-                      url,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => Icon(
-                        icone,
-                        color: ClubbarColors.textoSecundario,
-                        size: 32,
-                      ),
-                    ),
+  Widget _controleStatus(Loja loja) {
+    final ativa = _lojaAtiva(loja);
+    final alterando = _alterandoStatusLojaId == loja.lojaId;
+
+    return Container(
+      padding: const EdgeInsets.only(left: 13, right: 5, top: 4, bottom: 4),
+      decoration: BoxDecoration(
+        color: ativa ? ClubbarColors.sucessoClaro : ClubbarColors.erroClaro,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: (ativa ? ClubbarColors.sucesso : ClubbarColors.erro)
+              .withValues(alpha: 0.28),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            ativa ? 'Ativo' : 'Inativo',
+            style: TextStyle(
+              color: ativa ? ClubbarColors.sucesso : ClubbarColors.erro,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
             ),
-            Positioned(
-              left: 8,
-              bottom: 8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                decoration: BoxDecoration(
-                  color: ClubbarColors.preto.withValues(alpha: 0.72),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  badge,
-                  style: const TextStyle(
-                    color: ClubbarColors.branco,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+          ),
+          const SizedBox(width: 3),
+          if (alterando)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            Transform.scale(
+              scale: 0.78,
+              child: Switch.adaptive(
+                value: ativa,
+                activeTrackColor: ClubbarColors.sucesso,
+                onChanged: _podeAlterarLoja(loja)
+                    ? (_) => _alterarStatus(loja)
+                    : null,
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _chipStatus(Loja loja) {
-    final ativa = _lojaAtiva(loja);
-
+  Widget _indicadorConfiguracao({
+    required IconData icone,
+    required String titulo,
+    required String subtitulo,
+    required bool definido,
+    Color? cor,
+  }) {
+    final destaque =
+        cor ??
+        (definido ? ClubbarColors.sucesso : ClubbarColors.textoSecundario);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: ativa ? ClubbarColors.sucessoClaro : ClubbarColors.erroClaro,
-        borderRadius: BorderRadius.circular(20),
+        color: destaque.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: destaque.withValues(alpha: 0.28)),
       ),
-      child: Text(
-        ativa ? 'Ativa' : 'Inativa',
-        style: TextStyle(
-          color: ativa ? ClubbarColors.sucesso : ClubbarColors.erro,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-        ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: destaque.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icone, size: 20, color: destaque),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: TextStyle(
+                    color: destaque,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitulo,
+                  style: const TextStyle(
+                    color: ClubbarColors.textoSecundario,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            definido ? Icons.check_circle_rounded : Icons.pending_outlined,
+            size: 18,
+            color: destaque,
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _resumoConfiguracoes(Loja loja) {
+    final logoDefinida = (loja.urllogoloja ?? '').trim().isNotEmpty;
+    final fachadaDefinida = (loja.urlfachadaloja ?? '').trim().isNotEmpty;
+    final aberto24Horas = loja.aberto24x7 == 'S';
+    final horarioDefinido =
+        aberto24Horas || _horariosDefinidos.contains(loja.lojaId);
+    final itens = [
+      _indicadorConfiguracao(
+        icone: Icons.image_outlined,
+        titulo: logoDefinida ? 'Foto logo definida' : 'Foto logo pendente',
+        subtitulo: logoDefinida
+            ? 'Identidade visual pronta'
+            : 'Adicione pelo menu',
+        definido: logoDefinida,
+      ),
+      _indicadorConfiguracao(
+        icone: Icons.storefront_outlined,
+        titulo: fachadaDefinida
+            ? 'Foto fachada definida'
+            : 'Foto fachada pendente',
+        subtitulo: fachadaDefinida ? 'Imagem cadastrada' : 'Adicione pelo menu',
+        definido: fachadaDefinida,
+      ),
+      _indicadorConfiguracao(
+        icone: aberto24Horas
+            ? Icons.schedule_rounded
+            : Icons.access_time_rounded,
+        titulo: aberto24Horas
+            ? 'Horário definido: 24 horas'
+            : horarioDefinido
+            ? 'Horário definido'
+            : 'Horário pendente',
+        subtitulo: aberto24Horas
+            ? 'Atendimento contínuo'
+            : horarioDefinido
+            ? 'Atendimento configurado'
+            : 'Defina o atendimento',
+        definido: horarioDefinido,
+        cor: horarioDefinido ? ClubbarColors.info : null,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 680) {
+          return Column(
+            children: [
+              for (var i = 0; i < itens.length; i++) ...[
+                itens[i],
+                if (i < itens.length - 1) const SizedBox(height: 8),
+              ],
+            ],
+          );
+        }
+        return Row(
+          children: [
+            for (var i = 0; i < itens.length; i++) ...[
+              Expanded(child: itens[i]),
+              if (i < itens.length - 1) const SizedBox(width: 8),
+            ],
+          ],
+        );
+      },
     );
   }
 
   Widget _atalhoHorario(Loja loja) {
+    final aberto24Horas = loja.aberto24x7 == 'S';
+    final dias = _diasAtendimento[loja.lojaId] ?? 0;
+    final dica = aberto24Horas
+        ? 'Aberto 24 horas, todos os dias da semana'
+        : dias > 0
+        ? 'Horário definido para $dias ${dias == 1 ? 'dia' : 'dias'} da semana'
+        : 'Nenhum horário de atendimento definido';
     return SizedBox(
       width: double.infinity,
-      child: OutlinedButton.icon(
+      child: OutlinedButton(
         onPressed: () => _abrirHorarios(loja),
-        icon: const Icon(Icons.schedule_rounded, size: 19),
-        label: const Text('Definir horário de atendimento'),
         style: OutlinedButton.styleFrom(
           foregroundColor: ClubbarColors.info,
           side: const BorderSide(color: ClubbarColors.info),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.schedule_rounded, size: 22),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Definir horário de atendimento',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    dica,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: ClubbarColors.textoSecundario,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
         ),
       ),
     );
@@ -791,7 +933,6 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Widget _cardLoja(Loja loja) {
-    final alterandoStatus = _alterandoStatusLojaId == loja.lojaId;
     final endereco = (loja.endloja ?? '').trim();
     final numeroEndereco = loja.nrendeloja.trim();
     final cep = Formatters.cep(loja.nrceploja.trim());
@@ -846,7 +987,22 @@ class _LojaListPageState extends State<LojaListPage> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _chipStatus(loja),
+                        IconButton(
+                          tooltip: 'Editar estabelecimento',
+                          onPressed: () => _abrirEdicao(loja),
+                          icon: const Icon(Icons.edit_rounded),
+                          color: ClubbarColors.info,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        IconButton(
+                          tooltip: 'Excluir estabelecimento',
+                          onPressed: _excluindo
+                              ? null
+                              : () => _excluirLoja(loja),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          color: ClubbarColors.erro,
+                          visualDensity: VisualDensity.compact,
+                        ),
                         _menuAcoesLoja(loja),
                       ],
                     ),
@@ -898,72 +1054,9 @@ class _LojaListPageState extends State<LojaListPage> {
           ),
 
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 96,
-                height: 96,
-                child: _fotoLoja(
-                  caminho: loja.urllogoloja,
-                  badge: 'Logo',
-                  icone: Icons.store_rounded,
-                  circular: true,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _fotoLoja(
-                  caminho: loja.urlfachadaloja,
-                  badge: 'Fachada',
-                  icone: Icons.storefront_outlined,
-                ),
-              ),
-            ],
-          ),
+          Align(alignment: Alignment.centerRight, child: _controleStatus(loja)),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _abrirEdicao(loja),
-                  icon: const Icon(Icons.edit_rounded, size: 17),
-                  label: const Text('Editar'),
-                ),
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: alterandoStatus
-                      ? null
-                      : () => _alterarStatus(loja),
-                  icon: alterandoStatus
-                      ? const SizedBox.square(
-                          dimension: 15,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          _lojaAtiva(loja)
-                              ? Icons.pause_circle_outline_rounded
-                              : Icons.play_circle_outline_rounded,
-                          size: 17,
-                        ),
-                  label: Text(_lojaAtiva(loja) ? 'Inativar' : 'Reativar'),
-                ),
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _excluindo ? null : () => _excluirLoja(loja),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 17),
-                  label: const Text('Excluir'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ClubbarColors.erro,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          _resumoConfiguracoes(loja),
           const SizedBox(height: 8),
           _atalhoHorario(loja),
         ],
