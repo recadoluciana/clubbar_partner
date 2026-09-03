@@ -50,11 +50,13 @@ class ClubbarPageHeader extends StatelessWidget {
                 titulo,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: tituloStyle ?? const TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w900,
-                  color: ClubbarColors.textoPrincipal,
-                ),
+                style:
+                    tituloStyle ??
+                    const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                      color: ClubbarColors.textoPrincipal,
+                    ),
               ),
               const SizedBox(height: 4),
               subtituloWidget ??
