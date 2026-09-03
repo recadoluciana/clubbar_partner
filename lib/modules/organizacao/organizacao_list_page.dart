@@ -77,16 +77,6 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
         '${doisDigitos(local.minute)}';
   }
 
-  String _formatarTipoOperacao(String? tipo) {
-    const nomes = {
-      'BAR': 'Bar',
-      'CASA_NOTURNA': 'Casa noturna',
-      'CASA_EVENTOS': 'Casa de eventos',
-      'PRODUTOR_EVENTOS': 'Produtor de eventos',
-    };
-    return nomes[tipo?.toUpperCase()] ?? _valorOuTraco(tipo);
-  }
-
   Future<void> _carregarOrganizacao() async {
     if (mounted) {
       setState(() {
@@ -173,7 +163,12 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
   }
 
   Widget _statusOrganizacao(Organizacao organizacao) {
-    final status = _valorOuTraco(organizacao.sitorganizacao);
+    final valor = organizacao.sitorganizacao.trim().toUpperCase();
+    final status = valor == 'ATIVA'
+        ? 'Ativa'
+        : valor == 'INATIVA'
+        ? 'Inativa'
+        : _valorOuTraco(organizacao.sitorganizacao);
 
     final cor = _corStatus(organizacao.sitorganizacao);
 
@@ -342,22 +337,6 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
           icone: Icons.person_outline_rounded,
           titulo: 'Responsável principal',
           valor: _valorOuTraco(organizacao.nmresponsavelprincipal),
-        ),
-        _divisor(),
-        _linhaInformacao(
-          icone: Icons.category_outlined,
-          titulo: 'Tipo de operação',
-          valor: _formatarTipoOperacao(organizacao.tipooperacao),
-        ),
-        _divisor(),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 9),
-          child: Row(
-            children: [
-              const Expanded(child: Text('Situação da empresa')),
-              _statusOrganizacao(organizacao),
-            ],
-          ),
         ),
       ],
     );
@@ -551,6 +530,14 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
                         ? _organizacao!.nmorganizacao.trim()
                         : 'Empresa não identificada'),
               subtitulo: 'Gerencie os dados da sua empresa',
+              tituloStyle: const TextStyle(
+                fontSize: 23,
+                fontWeight: FontWeight.w900,
+                color: Colors.blue,
+              ),
+              trailing: _organizacao == null
+                  ? null
+                  : _statusOrganizacao(_organizacao!),
             ),
             _conteudo(),
           ],

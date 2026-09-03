@@ -42,7 +42,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
 
   bool _salvando = false;
   String _status = 'ATIVA';
-  String? _tipoOperacao;
 
   Organizacao get _organizacao => widget.organizacao;
 
@@ -67,7 +66,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
     _nomeController.text = _organizacao.nmorganizacao;
 
     _responsavelController.text = _organizacao.nmresponsavelprincipal ?? '';
-    _tipoOperacao = _organizacao.tipooperacao;
 
     _emailController.text = _organizacao.emailorganizacao ?? '';
 
@@ -98,7 +96,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
           'nmresponsavelprincipal': _responsavelController.text.trim().isEmpty
               ? null
               : _responsavelController.text.trim(),
-          'tipooperacao': _tipoOperacao,
         };
 
       case OrganizacaoSecao.contato:
@@ -231,32 +228,6 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
             final texto = valor?.trim() ?? '';
             return texto.length < 2 ? 'Informe o responsável principal.' : null;
           },
-        ),
-        const SizedBox(height: 14),
-        DropdownButtonFormField<String>(
-          initialValue: _tipoOperacao,
-          decoration: _decoracao(
-            label: 'Tipo de operação',
-            icone: Icons.category_outlined,
-          ),
-          items: const [
-            DropdownMenuItem(value: 'BAR', child: Text('Bar')),
-            DropdownMenuItem(
-              value: 'CASA_NOTURNA',
-              child: Text('Casa noturna'),
-            ),
-            DropdownMenuItem(
-              value: 'CASA_EVENTOS',
-              child: Text('Casa de eventos'),
-            ),
-            DropdownMenuItem(
-              value: 'PRODUTOR_EVENTOS',
-              child: Text('Produtor de eventos'),
-            ),
-          ],
-          onChanged: _salvando
-              ? null
-              : (valor) => setState(() => _tipoOperacao = valor),
         ),
         const SizedBox(height: 14),
         DropdownButtonFormField<String>(

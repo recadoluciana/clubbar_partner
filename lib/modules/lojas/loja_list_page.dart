@@ -499,12 +499,13 @@ class _LojaListPageState extends State<LojaListPage> {
     required String? caminho,
     required String badge,
     required IconData icone,
+    bool circular = false,
   }) {
     final url = _montarUrlImagem(caminho);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(circular ? 999 : 14),
       child: AspectRatio(
-        aspectRatio: 8 / 3,
+        aspectRatio: circular ? 1 : 8 / 3,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -571,23 +572,15 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Widget _atalhoHorario(Loja loja) {
-    final aberto24Horas = loja.aberto24x7 == 'S';
-    return InkWell(
-      onTap: () => _abrirHorarios(loja),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-        decoration: BoxDecoration(
-          color: aberto24Horas ? ClubbarColors.erro : ClubbarColors.ambar,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          aberto24Horas ? 'Aberto 24 horas' : 'Horário de atendimento',
-          style: TextStyle(
-            color: aberto24Horas ? ClubbarColors.branco : ClubbarColors.preto,
-            fontSize: 10,
-            fontWeight: FontWeight.w900,
-          ),
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _abrirHorarios(loja),
+        icon: const Icon(Icons.schedule_rounded, size: 19),
+        label: const Text('Definir horário de atendimento'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: ClubbarColors.info,
+          side: const BorderSide(color: ClubbarColors.info),
         ),
       ),
     );
@@ -616,8 +609,12 @@ class _LojaListPageState extends State<LojaListPage> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(ativa ? 'Inativar estabelecimento' : 'Reativar estabelecimento'),
-          content: Text('Deseja realmente $acao o estabelecimento “${loja.nmloja}”?'),
+          title: Text(
+            ativa ? 'Inativar estabelecimento' : 'Reativar estabelecimento',
+          ),
+          content: Text(
+            'Deseja realmente $acao o estabelecimento “${loja.nmloja}”?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
@@ -646,7 +643,9 @@ class _LojaListPageState extends State<LojaListPage> {
       if (!mounted) return;
       AppSnackBar.sucesso(
         context,
-        ativa ? 'Estabelecimento inativado com sucesso.' : 'Estabelecimento reativado com sucesso.',
+        ativa
+            ? 'Estabelecimento inativado com sucesso.'
+            : 'Estabelecimento reativado com sucesso.',
       );
       await _carregarLojas();
     } catch (e) {
@@ -842,7 +841,7 @@ class _LojaListPageState extends State<LojaListPage> {
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w900,
-                              color: ClubbarColors.textoPrincipal,
+                              color: ClubbarColors.info,
                             ),
                           ),
                         ),
@@ -880,8 +879,6 @@ class _LojaListPageState extends State<LojaListPage> {
                             ),
                           ] else
                             const Spacer(),
-                          const SizedBox(width: 8),
-                          _atalhoHorario(loja),
                         ],
                       ),
                     ),
@@ -904,11 +901,14 @@ class _LojaListPageState extends State<LojaListPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
+              SizedBox(
+                width: 96,
+                height: 96,
                 child: _fotoLoja(
                   caminho: loja.urllogoloja,
                   badge: 'Logo',
                   icone: Icons.store_rounded,
+                  circular: true,
                 ),
               ),
               const SizedBox(width: 10),
@@ -964,6 +964,8 @@ class _LojaListPageState extends State<LojaListPage> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          _atalhoHorario(loja),
         ],
       ),
     );
@@ -1087,7 +1089,9 @@ class _LojaListPageState extends State<LojaListPage> {
             const SizedBox(height: 16),
 
             Text(
-              temBusca ? 'Nenhum estabelecimento encontrado' : 'Nenhum estabelecimento cadastrado',
+              temBusca
+                  ? 'Nenhum estabelecimento encontrado'
+                  : 'Nenhum estabelecimento cadastrado',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
@@ -1292,6 +1296,11 @@ class _LojaListPageState extends State<LojaListPage> {
                   ? 'Carregando empresa...'
                   : _nomeOrganizacao,
               subtitulo: _subtituloHeader(),
+              tituloStyle: const TextStyle(
+                fontSize: 23,
+                fontWeight: FontWeight.w900,
+                color: Colors.blue,
+              ),
               trailing: _acoesHeader(),
             ),
             Expanded(child: _lista(mostrarTitulo: false)),

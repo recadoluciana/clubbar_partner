@@ -13,7 +13,6 @@ class Organizacao {
   final String? nmbairro;
   final int? leadparceiroId;
   final String? nmresponsavelprincipal;
-  final String? tipooperacao;
   final String? nmleadorigem;
   final String sitorganizacao;
   final DateTime? dtcriacao;
@@ -37,7 +36,6 @@ class Organizacao {
     this.nmbairro,
     this.leadparceiroId,
     this.nmresponsavelprincipal,
-    this.tipooperacao,
     this.nmleadorigem,
     this.sitorganizacao = 'ATIVA',
     this.dtcriacao,
@@ -63,7 +61,6 @@ class Organizacao {
       nmbairro: json['nmbairro']?.toString(),
       leadparceiroId: _toNullableInt(json['leadparceiro_id']),
       nmresponsavelprincipal: json['nmresponsavelprincipal']?.toString(),
-      tipooperacao: json['tipooperacao']?.toString(),
       nmleadorigem: json['nmleadorigem']?.toString(),
       sitorganizacao: json['sitorganizacao']?.toString() ?? 'ATIVA',
       dtcriacao: _toNullableDateTime(json['dtcriacao']),
@@ -90,7 +87,6 @@ class Organizacao {
       'nmbairro': nmbairro,
       'leadparceiro_id': leadparceiroId,
       'nmresponsavelprincipal': nmresponsavelprincipal,
-      'tipooperacao': tipooperacao,
       'nmleadorigem': nmleadorigem,
       'sitorganizacao': sitorganizacao,
       'dtcriacao': dtcriacao?.toIso8601String(),

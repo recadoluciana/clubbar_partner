@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/repositories/loja_repository.dart';
 import '../../core/repositories/usuario_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -33,6 +34,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   bool _excluindo = false;
 
   String? _erro;
+  String _nomeOrganizacao = 'Empresa';
 
   List<Usuario> _usuarios = [];
   List<Usuario> _usuariosFiltrados = [];
@@ -43,6 +45,13 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
     super.initState();
 
     _carregarTudo();
+    _carregarNomeOrganizacao();
+  }
+
+  Future<void> _carregarNomeOrganizacao() async {
+    final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
+    if (!mounted) return;
+    setState(() => _nomeOrganizacao = nome.isEmpty ? 'Empresa' : nome);
   }
 
   @override
@@ -349,15 +358,6 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (principal) ...[
-            const Icon(
-              Icons.lock_rounded,
-              size: 13,
-              color: ClubbarColors.preto,
-            ),
-            const SizedBox(width: 4),
-          ],
-
           Flexible(
             child: Text(
               _nomeCargo(usuario.dscargo),
@@ -392,7 +392,10 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
@@ -413,6 +416,26 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
+                  ),
+                  if (principal)
+                    Positioned(
+                      right: -2,
+                      bottom: -2,
+                      child: Container(
+                        width: 23,
+                        height: 23,
+                        decoration: const BoxDecoration(
+                          color: ClubbarColors.info,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.lock_rounded,
+                          size: 14,
+                          color: ClubbarColors.branco,
+                        ),
+                      ),
+                    ),
+                ],
               ),
 
               const SizedBox(width: 13),
@@ -531,10 +554,8 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                   onPressed: principal || _excluindo
                       ? null
                       : () => _abrirEdicao(usuario),
-                  icon: Icon(
-                    principal ? Icons.lock_rounded : Icons.edit_rounded,
-                  ),
-                  label: Text(principal ? 'Protegido' : 'Editar'),
+                  icon: const Icon(Icons.edit_rounded),
+                  label: const Text('Editar'),
                 ),
               ),
 
@@ -545,12 +566,8 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                   onPressed: principal || _excluindo
                       ? null
                       : () => _excluirUsuario(usuario),
-                  icon: Icon(
-                    principal
-                        ? Icons.lock_rounded
-                        : Icons.delete_outline_rounded,
-                  ),
-                  label: Text(principal ? 'Protegido' : 'Excluir'),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  label: const Text('Excluir'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: principal
                         ? ClubbarColors.borda
@@ -689,10 +706,15 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Usuários',
+              titulo: _nomeOrganizacao,
               subtitulo: _carregando
                   ? 'Carregando usuários...'
                   : '${_usuarios.length} usuário(s) cadastrado(s)',
+              tituloStyle: const TextStyle(
+                fontSize: 23,
+                fontWeight: FontWeight.w900,
+                color: Colors.blue,
+              ),
               trailing: _acoesHeader(),
             ),
 

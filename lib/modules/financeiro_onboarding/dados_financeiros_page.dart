@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/repositories/localidade_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -19,6 +21,7 @@ class DadosFinanceirosPage extends StatefulWidget {
 
 class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   final _repo = TitularFinanceiroRepository();
+  final _localidadeRepository = LocalidadeRepository();
   final _form = GlobalKey<FormState>();
   final Map<String, TextEditingController> _c = {
     for (final nome in [
@@ -39,7 +42,8 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   };
   int? _organizacaoId, _estadoId, _cidadeId;
   String _tipo = 'PJ', _status = 'NAO_INICIADO', _onboardingUrl = '';
-  bool _carregando = true, _processando = false;
+  bool _carregando = true, _processando = false, _consultandoCep = false;
+  String? _ultimoCepConsultado;
 
   @override
   void initState() {
@@ -103,6 +107,106 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
 
   String? _obrigatorio(String? v) =>
       (v ?? '').trim().isEmpty ? 'Campo obrigatório.' : null;
+
+  Future<void> _buscarCep() async {
+    final cep = _c['cep']!.text.replaceAll(RegExp(r'\D'), '');
+    if (_consultandoCep || cep.length != 8 || cep == _ultimoCepConsultado) {
+      return;
+    }
+
+    setState(() => _consultandoCep = true);
+    try {
+      final endereco = await _localidadeRepository.buscarEnderecoPorCep(cep);
+      final estados = await _localidadeRepository.listarEstados();
+      final estado = estados
+          .where(
+            (item) =>
+                item.sgestado.trim().toUpperCase() == endereco.uf.toUpperCase(),
+          )
+          .firstOrNull;
+      if (estado == null) {
+        throw Exception('O estado retornado pelo CEP não foi encontrado.');
+      }
+
+      final cidades = await _localidadeRepository.listarCidadesPorEstado(
+        estado.estadoId,
+      );
+      final cidade = cidades
+          .where(
+            (item) =>
+                (endereco.codigoIbgeCidade != null &&
+                    item.cdibgecid == endereco.codigoIbgeCidade) ||
+                item.nmcidade.trim().toLowerCase() ==
+                    endereco.cidade.trim().toLowerCase(),
+          )
+          .firstOrNull;
+      if (cidade == null) {
+        throw Exception('A cidade retornada pelo CEP não foi encontrada.');
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _ultimoCepConsultado = cep;
+        _c['cep']!.text = endereco.cep.replaceAll(RegExp(r'\D'), '');
+        if (endereco.logradouro.isNotEmpty) {
+          _c['endereco']!.text = endereco.logradouro;
+        }
+        if (endereco.bairro.isNotEmpty) {
+          _c['bairro']!.text = endereco.bairro;
+        }
+        _estadoId = estado.estadoId;
+        _cidadeId = cidade.cidadeId;
+      });
+      AppSnackBar.sucesso(context, 'Endereço carregado pelo CEP.');
+    } catch (e) {
+      if (!mounted) return;
+      _ultimoCepConsultado = null;
+      AppSnackBar.erro(
+        context,
+        e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''),
+      );
+    } finally {
+      if (mounted) setState(() => _consultandoCep = false);
+    }
+  }
+
+  Widget _campoCep() => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextFormField(
+      controller: _c['cep'],
+      keyboardType: TextInputType.number,
+      enabled: !_consultandoCep,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(8),
+      ],
+      validator: (valor) {
+        final cep = (valor ?? '').replaceAll(RegExp(r'\D'), '');
+        if (cep.isEmpty) return 'Campo obrigatório.';
+        return cep.length == 8 ? null : 'Informe um CEP válido.';
+      },
+      onChanged: (valor) {
+        if (valor.replaceAll(RegExp(r'\D'), '').length == 8) {
+          _buscarCep();
+        } else {
+          _ultimoCepConsultado = null;
+        }
+      },
+      onFieldSubmitted: (_) => _buscarCep(),
+      decoration: InputDecoration(
+        labelText: 'CEP',
+        filled: true,
+        fillColor: Colors.white,
+        suffixIcon: _consultandoCep
+            ? const Padding(
+                padding: EdgeInsets.all(13),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.location_searching_rounded),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    ),
+  );
   Widget _campo(
     String nome,
     String label, {
@@ -300,7 +404,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
           'Faturamento mensal estimado',
           teclado: const TextInputType.numberWithOptions(decimal: true),
         ),
-        _campo('cep', 'CEP', teclado: TextInputType.number),
+        _campoCep(),
         _campo('endereco', 'Endereço cadastral'),
         _campo('numero', 'Número'),
         _campo('complemento', 'Complemento', opcional: true),
