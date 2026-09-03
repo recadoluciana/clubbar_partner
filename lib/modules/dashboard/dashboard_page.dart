@@ -25,7 +25,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  String _nomeOrganizacao = 'Organização';
+  String _nomeOrganizacao = 'Empresa';
   String _nomeUsuario = 'Usuário';
   String _cargo = '';
   int? _organizacaoId;
@@ -63,7 +63,7 @@ class _DashboardPageState extends State<DashboardPage> {
       if (!mounted) return;
       final nome = (dados[0] as String? ?? '').trim();
       setState(() {
-        _nomeOrganizacao = nome.isEmpty ? 'Organização' : nome;
+        _nomeOrganizacao = nome.isEmpty ? 'Empresa' : nome;
         _cargo = (dados[1] as String? ?? '').trim().toUpperCase();
         _organizacaoId = dados[2] as int?;
         final usuario = (dados[3] as String? ?? '').trim();
@@ -73,7 +73,7 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _carregando = false);
-      AppSnackBar.erro(context, 'Não foi possível carregar a organização.');
+      AppSnackBar.erro(context, 'Não foi possível carregar a empresa.');
     }
   }
 
@@ -137,7 +137,7 @@ class _DashboardPageState extends State<DashboardPage> {
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Sair do Clubbar Parceiro',
+                'Sair do Clubbar Partner',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
             ),
@@ -270,14 +270,14 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     )
                   : _organizacaoId == null || _organizacaoId == 0
-                  ? const Center(child: Text('Organização não encontrada.'))
+                  ? const Center(child: Text('Empresa não encontrada.'))
                   : ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
                         _opcao(
-                          titulo: 'Minha organização',
+                          titulo: 'Minha empresa',
                           subtitulo: _podeEditarOrganizacao
-                              ? 'Atualize os dados cadastrais da organização.'
+                              ? 'Atualize os dados cadastrais da empresa.'
                               : 'Disponível somente para o Superadministrador.',
                           icone: Icons.business_rounded,
                           onTap: _podeEditarOrganizacao
@@ -289,7 +289,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           titulo: 'Minhas lojas',
                           subtitulo: _cargo == 'GERENTE'
                               ? 'Consulte e edite os dados da sua loja.'
-                              : 'Cadastre e administre as lojas da organização.',
+                              : 'Cadastre e administre as lojas da empresa.',
                           icone: Icons.storefront_rounded,
                           onTap: _abrirLojas,
                         ),

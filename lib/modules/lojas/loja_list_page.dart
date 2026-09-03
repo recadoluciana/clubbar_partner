@@ -44,7 +44,7 @@ class _LojaListPageState extends State<LojaListPage> {
   bool _excluindo = false;
 
   String? _erro;
-  String _nomeOrganizacao = 'Organização não identificada';
+  String _nomeOrganizacao = 'Empresa não identificada';
   bool _carregandoOrganizacao = true;
   String _cargo = '';
   int? _lojaUsuarioId;
@@ -103,14 +103,14 @@ class _LojaListPageState extends State<LojaListPage> {
       if (!mounted) return;
 
       setState(() {
-        _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+        _nomeOrganizacao = nome.isEmpty ? 'Empresa não identificada' : nome;
         _carregandoOrganizacao = false;
       });
     } catch (_) {
       if (!mounted) return;
 
       setState(() {
-        _nomeOrganizacao = 'Organização não identificada';
+        _nomeOrganizacao = 'Empresa não identificada';
         _carregandoOrganizacao = false;
       });
     }
@@ -1097,7 +1097,7 @@ class _LojaListPageState extends State<LojaListPage> {
             Text(
               temBusca
                   ? 'Tente pesquisar usando outro nome, bairro ou endereço.'
-                  : 'Cadastre a primeira loja da sua organização.',
+                  : 'Cadastre a primeira loja da sua empresa.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -1289,7 +1289,7 @@ class _LojaListPageState extends State<LojaListPage> {
           children: [
             ClubbarPageHeader(
               titulo: _carregandoOrganizacao
-                  ? 'Carregando organização...'
+                  ? 'Carregando empresa...'
                   : _nomeOrganizacao,
               subtitulo: _subtituloHeader(),
               trailing: _acoesHeader(),

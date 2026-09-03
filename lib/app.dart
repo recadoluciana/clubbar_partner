@@ -14,7 +14,7 @@ class ClubbarPartnerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Clubbar Parceiro',
+      title: 'Clubbar Partner',
       theme: AppTheme.light,
       home: const SplashDeciderPage(),
     );

@@ -26,7 +26,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   List<AgendaEvento> _eventos = [];
   bool _loading = true;
   String? _erro;
-  String _nomeOrganizacao = 'Organização';
+  String _nomeOrganizacao = 'Empresa';
 
   @override
   void initState() {
@@ -39,7 +39,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
     if (!mounted) return;
     setState(() {
-      _nomeOrganizacao = nome.isEmpty ? 'Organização' : nome;
+      _nomeOrganizacao = nome.isEmpty ? 'Empresa' : nome;
     });
   }
 

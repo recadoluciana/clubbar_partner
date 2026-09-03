@@ -35,7 +35,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
   PainelGerencial? _painel;
   bool _carregando = true;
   String? _erro;
-  String _nomeOrganizacao = 'Organização não identificada';
+  String _nomeOrganizacao = 'Empresa não identificada';
   String _cargo = '';
   DateTime _mesSelecionado = DateTime(
     DateTime.now().year,
@@ -73,7 +73,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
       final nome = (resultados[1] as String? ?? '').trim();
       setState(() {
         _painel = resultados[0] as PainelGerencial;
-        _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+        _nomeOrganizacao = nome.isEmpty ? 'Empresa não identificada' : nome;
         _cargo = (resultados[2] as String? ?? '').trim().toUpperCase();
         _erro = null;
         _carregando = false;

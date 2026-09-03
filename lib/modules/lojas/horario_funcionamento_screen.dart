@@ -36,7 +36,7 @@ class _HorarioFuncionamentoScreenState
   bool _carregando = true;
   bool _salvando = false;
   late String _aberto24x7;
-  String _nomeOrganizacao = 'Organização não identificada';
+  String _nomeOrganizacao = 'Empresa não identificada';
   bool _carregandoNomeOrganizacao = true;
   String? _erro;
 
@@ -56,14 +56,14 @@ class _HorarioFuncionamentoScreenState
       if (!mounted) return;
 
       setState(() {
-        _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+        _nomeOrganizacao = nome.isEmpty ? 'Empresa não identificada' : nome;
         _carregandoNomeOrganizacao = false;
       });
     } catch (_) {
       if (!mounted) return;
 
       setState(() {
-        _nomeOrganizacao = 'Organização não identificada';
+        _nomeOrganizacao = 'Empresa não identificada';
         _carregandoNomeOrganizacao = false;
       });
     }
@@ -545,7 +545,7 @@ class _HorarioFuncionamentoScreenState
             ClubbarPageHeader(
               titulo: 'Horário Atendimento - ${widget.nomeLoja}',
               subtitulo: _carregandoNomeOrganizacao
-                  ? 'Carregando organização...'
+                  ? 'Carregando empresa...'
                   : _nomeOrganizacao,
             ),
             Expanded(

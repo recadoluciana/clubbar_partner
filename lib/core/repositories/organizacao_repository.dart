@@ -12,7 +12,7 @@ class OrganizacaoRepository {
       return Organizacao.fromJson(data);
     }
 
-    throw Exception('Erro ao carregar organização: ${response.body}');
+    throw Exception('Erro ao carregar empresa: ${response.body}');
   }
 
   Future<void> atualizar(int usuarioId, Map<String, dynamic> dados) async {
@@ -22,7 +22,7 @@ class OrganizacaoRepository {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Erro ao atualizar organização: ${response.body}');
+      throw Exception('Erro ao atualizar empresa: ${response.body}');
     }
   }
 
@@ -30,7 +30,7 @@ class OrganizacaoRepository {
     final response = await ApiService.post('/organizacoes', dados);
 
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Erro ao criar organização: ${response.body}');
+      throw Exception('Erro ao criar empresa: ${response.body}');
     }
   }
 }

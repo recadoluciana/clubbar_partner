@@ -48,7 +48,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   bool _carregandoNomeOrganizacao = true;
   bool _consultandoCep = false;
   String? _ultimoCepConsultado;
-  String _nomeOrganizacao = 'Organização não identificada';
+  String _nomeOrganizacao = 'Empresa não identificada';
   int? _estadoId;
   int? _cidadeId;
   String _idValidadeProd = 'S';
@@ -190,14 +190,14 @@ class _LojaFormPageState extends State<LojaFormPage> {
       if (!mounted) return;
 
       setState(() {
-        _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+        _nomeOrganizacao = nome.isEmpty ? 'Empresa não identificada' : nome;
         _carregandoNomeOrganizacao = false;
       });
     } catch (_) {
       if (!mounted) return;
 
       setState(() {
-        _nomeOrganizacao = 'Organização não identificada';
+        _nomeOrganizacao = 'Empresa não identificada';
         _carregandoNomeOrganizacao = false;
       });
     }
@@ -312,7 +312,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
     try {
       final organizacaoId = await StorageService.getOrganizacaoId();
       if (organizacaoId == null) {
-        throw Exception('Organização não encontrada no login');
+        throw Exception('Empresa não encontrada no login');
       }
 
       final telefoneSemMascara = Validators.somenteNumeros(
@@ -486,7 +486,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                   ? 'Editar Loja - ${widget.loja!.nmloja}'
                   : 'Nova Loja',
               subtitulo: _carregandoNomeOrganizacao
-                  ? 'Carregando organização...'
+                  ? 'Carregando empresa...'
                   : _nomeOrganizacao,
             ),
             Expanded(

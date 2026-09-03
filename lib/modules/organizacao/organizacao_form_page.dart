@@ -263,7 +263,7 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
           initialValue: _status,
           decoration:
               _decoracao(
-                label: 'Situação da organização',
+                label: 'Situação da empresa',
                 icone: Icons.toggle_on_outlined,
               ).copyWith(
                 helperText:
@@ -414,7 +414,7 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
           children: [
             ClubbarPageHeader(
               titulo: _tituloPagina,
-              subtitulo: 'Atualize os dados da organização',
+              subtitulo: 'Atualize os dados da empresa',
             ),
             _conteudo(),
           ],

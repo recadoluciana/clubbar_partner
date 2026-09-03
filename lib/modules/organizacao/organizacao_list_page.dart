@@ -121,7 +121,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
         _organizacao = null;
       });
 
-      AppSnackBar.erro(context, 'Não foi possível carregar a organização.');
+      AppSnackBar.erro(context, 'Não foi possível carregar a empresa.');
     } finally {
       if (mounted) {
         setState(() {
@@ -135,7 +135,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     final organizacao = _organizacao;
 
     if (organizacao == null) {
-      AppSnackBar.aviso(context, 'Organização não encontrada.');
+      AppSnackBar.aviso(context, 'Empresa não encontrada.');
 
       return;
     }
@@ -154,7 +154,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
 
       if (!mounted) return;
 
-      AppSnackBar.sucesso(context, 'Organização atualizada com sucesso.');
+      AppSnackBar.sucesso(context, 'Empresa atualizada com sucesso.');
     }
   }
 
@@ -327,14 +327,14 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
   Widget _cardIdentificacao(Organizacao organizacao) {
     return _cardSecao(
       icone: Icons.business_rounded,
-      titulo: 'Dados da organização',
+      titulo: 'Dados da empresa',
       onEditar: _podeEditarOrganizacao
           ? () => _editarOrganizacao(OrganizacaoSecao.empresa)
           : null,
       children: [
         _linhaInformacao(
           icone: Icons.storefront_outlined,
-          titulo: 'Nome da organização',
+          titulo: 'Nome da empresa',
           valor: _valorOuTraco(organizacao.nmorganizacao),
         ),
         _divisor(),
@@ -354,7 +354,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
           padding: const EdgeInsets.symmetric(vertical: 9),
           child: Row(
             children: [
-              const Expanded(child: Text('Situação da organização')),
+              const Expanded(child: Text('Situação da empresa')),
               _statusOrganizacao(organizacao),
             ],
           ),
@@ -410,7 +410,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
         children: [
           _linhaInformacao(
             icone: Icons.tag_rounded,
-            titulo: '#ID da organização',
+            titulo: '#ID da empresa',
             valor: '#${organizacao.organizacaoId}',
           ),
           _divisor(),
@@ -463,7 +463,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Organização não encontrada',
+                  'Empresa não encontrada',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 17,
@@ -473,7 +473,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Não foi possível carregar os dados da organização vinculada ao usuário.',
+                  'Não foi possível carregar os dados da empresa vinculada ao usuário.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
@@ -549,8 +549,8 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
                   ? 'Carregando...'
                   : (_organizacao?.nmorganizacao.trim().isNotEmpty == true
                         ? _organizacao!.nmorganizacao.trim()
-                        : 'Organização não identificada'),
-              subtitulo: 'Gerencie os dados da sua organização',
+                        : 'Empresa não identificada'),
+              subtitulo: 'Gerencie os dados da sua empresa',
             ),
             _conteudo(),
           ],

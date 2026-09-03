@@ -32,7 +32,7 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
   Uint8List? _fachadaBytes;
   bool _salvando = false;
   bool _carregandoOrganizacao = true;
-  String _nomeOrganizacao = 'Organização não identificada';
+  String _nomeOrganizacao = 'Empresa não identificada';
 
   bool get _possuiAlteracao => _logo != null || _fachada != null;
 
@@ -46,7 +46,7 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
     final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
     if (!mounted) return;
     setState(() {
-      _nomeOrganizacao = nome.isEmpty ? 'Organização não identificada' : nome;
+      _nomeOrganizacao = nome.isEmpty ? 'Empresa não identificada' : nome;
       _carregandoOrganizacao = false;
     });
   }
@@ -222,7 +222,7 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
             ClubbarPageHeader(
               titulo: 'Imagens - ${widget.loja.nmloja}',
               subtitulo: _carregandoOrganizacao
-                  ? 'Carregando organização...'
+                  ? 'Carregando empresa...'
                   : _nomeOrganizacao,
             ),
             Expanded(

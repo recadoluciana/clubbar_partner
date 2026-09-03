@@ -86,7 +86,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   Future<void> _carregar() async {
     try {
       final id = await StorageService.getOrganizacaoId();
-      if (id == null) throw Exception('Organização não identificada.');
+      if (id == null) throw Exception('Empresa não identificada.');
       final dados = await _repo.consultar(id);
       if (!mounted) return;
       setState(() {
@@ -341,7 +341,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
           child: _carregando
               ? const Center(child: CircularProgressIndicator())
               : (_organizacaoId == null
-                    ? const Center(child: Text('Organização não encontrada.'))
+                    ? const Center(child: Text('Empresa não encontrada.'))
                     : widget.mostrarIntegracao
                     ? _integracao()
                     : _formulario()),
