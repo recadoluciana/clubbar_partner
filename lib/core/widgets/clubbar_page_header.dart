@@ -7,6 +7,7 @@ class ClubbarPageHeader extends StatelessWidget {
   final String subtitulo;
   final Widget? subtituloWidget;
   final Widget? trailing;
+  final TextStyle? tituloStyle;
 
   const ClubbarPageHeader({
     super.key,
@@ -14,6 +15,7 @@ class ClubbarPageHeader extends StatelessWidget {
     required this.subtitulo,
     this.subtituloWidget,
     this.trailing,
+    this.tituloStyle,
   });
 
   @override
@@ -48,7 +50,7 @@ class ClubbarPageHeader extends StatelessWidget {
                 titulo,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: tituloStyle ?? const TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w900,
                   color: ClubbarColors.textoPrincipal,

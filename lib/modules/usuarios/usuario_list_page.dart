@@ -119,7 +119,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
         return 'Administrador';
 
       case 'SUPERADMIN':
-        return 'Superadministrador';
+        return 'Super administrador';
 
       case 'GERENTE':
         return 'Gerente';

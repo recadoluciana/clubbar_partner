@@ -172,7 +172,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   String _nomeCargo() {
-    if (_cargo == 'SUPERADMIN') return 'Superadministrador';
+    if (_cargo == 'SUPERADMIN') return 'Super administrador';
     if (_cargo == 'ADMIN') return 'Administrador';
     if (_cargo == 'GERENTE') return 'Gerente';
     return _cargo;
@@ -261,6 +261,11 @@ class _DashboardPageState extends State<DashboardPage> {
             ClubbarPageHeader(
               titulo: _nomeOrganizacao,
               subtitulo: _subtitulo(),
+              tituloStyle: const TextStyle(
+                fontSize: 23,
+                fontWeight: FontWeight.w900,
+                color: Colors.blue,
+              ),
             ),
             Expanded(
               child: _carregando
@@ -278,7 +283,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           titulo: 'Minha empresa',
                           subtitulo: _podeEditarOrganizacao
                               ? 'Atualize os dados cadastrais da empresa.'
-                              : 'Disponível somente para o Superadministrador.',
+                              : 'Disponível somente para o super administrador.',
                           icone: Icons.business_rounded,
                           onTap: _podeEditarOrganizacao
                               ? _abrirOrganizacao
