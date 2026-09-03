@@ -101,7 +101,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       return 'Informe um CEP válido com 8 dígitos.';
     }
     if (_ultimoCepConsultado != cep) {
-      return 'Consulte o CEP antes de salvar o estabelecimento.';
+      return 'Aguarde o carregamento automático do endereço pelo CEP.';
     }
     if (numeroEndereco.isEmpty) {
       return 'Informe o número do endereço ou S/N.';
@@ -585,6 +585,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     if (_ultimoCepConsultado != cep) {
                                       _limparEnderecoCarregado();
                                     }
+                                    if (cep.length == 8) {
+                                      _buscarCep();
+                                    }
                                   },
                                   onFieldSubmitted: (_) => _buscarCep(),
                                   decoration: _decoracaoCampo(
@@ -592,7 +595,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     icone: Icons.location_searching_rounded,
                                     hint: '00000-000',
                                     helperText:
-                                        'Preenche endereço, bairro, Estado e Cidade.',
+                                        'Ao completar o CEP, o endereço será preenchido automaticamente.',
                                   ),
                                   validator: (value) {
                                     final cep = Validators.somenteNumeros(
@@ -606,40 +609,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     }
                                     return null;
                                   },
-                                ),
-                                const SizedBox(height: 10),
-                                SizedBox(
-                                  height: 46,
-                                  child: FilledButton.icon(
-                                    onPressed: _salvando || _consultandoCep
-                                        ? null
-                                        : _buscarCep,
-                                    icon: _consultandoCep
-                                        ? const SizedBox.square(
-                                            dimension: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : const Icon(Icons.download_rounded),
-                                    label: Text(
-                                      _consultandoCep
-                                          ? 'Carregando endereço...'
-                                          : 'Carregar endereço pelo CEP',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: ClubbarColors.ambar,
-                                      foregroundColor: ClubbarColors.preto,
-                                      disabledBackgroundColor:
-                                          ClubbarColors.ambarClaro,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                  ),
                                 ),
                                 const SizedBox(height: 14),
                                 TextFormField(
@@ -892,7 +861,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   )
                                 : const Icon(Icons.save_outlined),
                             label: Text(
-                              _salvando ? 'Salvando...' : 'Salvar estabelecimento',
+                              _salvando
+                                  ? 'Salvando...'
+                                  : 'Salvar estabelecimento',
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.amber,
