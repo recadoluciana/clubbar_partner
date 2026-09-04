@@ -206,8 +206,13 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
       child: Column(
         children: [
           ClubbarPageHeader(
-            titulo: 'Conteúdo do estabelecimento',
-            subtitulo: widget.loja.nmloja,
+            titulo: widget.loja.nmloja,
+            subtitulo: 'Conteúdo do estabelecimento',
+            tituloStyle: const TextStyle(
+              color: Colors.blue,
+              fontSize: 23,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           Expanded(
             child: _loading
@@ -293,39 +298,114 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
                           icon: const Icon(Icons.post_add),
                           label: const Text('Nova publicação'),
                         ),
-                        ..._posts.asMap().entries.map(
-                          (e) => ListTile(
-                            title: Text(e.value['titulo']?.toString() ?? ''),
-                            subtitle: Text(
-                              e.value['descricao']?.toString() ?? '',
-                              maxLines: 2,
+                        ..._posts.asMap().entries.map((e) {
+                          final imagem = (e.value['imagem'] ?? '')
+                              .toString()
+                              .trim();
+                          return Container(
+                            margin: const EdgeInsets.only(top: 10),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: ClubbarColors.borda),
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            trailing: IconButton(
-                              onPressed: () =>
-                                  setState(() => _posts.removeAt(e.key)),
-                              icon: const Icon(Icons.delete_outline),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (imagem.isNotEmpty) ...[
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      _url(imagem),
+                                      width: double.infinity,
+                                      height: 180,
+                                      fit: BoxFit.contain,
+                                      errorBuilder:
+                                          (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) => Container(
+                                            height: 90,
+                                            color: ClubbarColors.fundo,
+                                            alignment: Alignment.center,
+                                            child: const Text(
+                                              'Não foi possível carregar a imagem deste link.',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                ],
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            e.value['titulo']?.toString() ?? '',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                          if ((e.value['descricao'] ?? '')
+                                              .toString()
+                                              .trim()
+                                              .isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              e.value['descricao'].toString(),
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () => setState(
+                                        () => _posts.removeAt(e.key),
+                                      ),
+                                      icon: const Icon(Icons.delete_outline),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
+                          );
+                        }),
                       ]),
                       const SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        onPressed: _saving ? null : _save,
-                        icon: const Icon(Icons.save),
-                        label: Text(
-                          _saving ? 'Salvando...' : 'Salvar conteúdo',
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: _delete,
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: ClubbarColors.erro,
-                        ),
-                        label: const Text(
-                          'Limpar conteúdo',
-                          style: TextStyle(color: ClubbarColors.erro),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _saving ? null : _save,
+                              icon: const Icon(Icons.save),
+                              label: Text(
+                                _saving ? 'Salvando...' : 'Salvar conteúdo',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _saving ? null : _delete,
+                              icon: const Icon(Icons.delete_outline),
+                              label: const Text('Limpar conteúdo'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: ClubbarColors.erro,
+                                side: const BorderSide(
+                                  color: ClubbarColors.erro,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
