@@ -151,12 +151,13 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
     );
     if (ok == true && titulo.text.trim().isNotEmpty) {
       final publicacao = {
-          'titulo': titulo.text.trim(),
-          'descricao': desc.text.trim(),
-          'imagem': imagem.text.trim(),
-          'data_publicacao': atual?['data_publicacao'] ??
-              DateTime.now().toIso8601String().substring(0, 10),
-        };
+        'titulo': titulo.text.trim(),
+        'descricao': desc.text.trim(),
+        'imagem': imagem.text.trim(),
+        'data_publicacao':
+            atual?['data_publicacao'] ??
+            DateTime.now().toIso8601String().substring(0, 10),
+      };
       setState(() {
         if (indice == null) {
           _posts.add(publicacao);
@@ -230,9 +231,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
             onPressed: () => Navigator.pop(context, true),
             icon: const Icon(Icons.delete_sweep_outlined),
             label: const Text('Limpar tudo'),
-            style: FilledButton.styleFrom(
-              backgroundColor: ClubbarColors.erro,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: ClubbarColors.erro),
           ),
         ],
       ),
