@@ -9,7 +9,6 @@ class Loja {
   final String nmloja;
   final String? dsbairroloja;
   final String? nrtelloja;
-  final String? dshorarioloja;
   final int? nrdiavalidade;
   final String? sitloja;
   final String? urllogoloja;
@@ -40,7 +39,6 @@ class Loja {
     required this.nmloja,
     this.dsbairroloja,
     this.nrtelloja,
-    this.dshorarioloja,
     this.nrdiavalidade,
     this.sitloja,
     this.urllogoloja,
@@ -71,7 +69,6 @@ class Loja {
       nmloja: (json['nmloja'] ?? '').toString(),
       dsbairroloja: json['dsbairroloja']?.toString(),
       nrtelloja: json['nrtelloja']?.toString(),
-      dshorarioloja: json['dshorarioloja']?.toString(),
       nrdiavalidade: json['nrdiavalidade'],
       sitloja: json['sitloja']?.toString(),
       urllogoloja: json['urllogoloja']?.toString(),
@@ -106,7 +103,6 @@ class Loja {
       'nmloja': nmloja,
       'dsbairroloja': dsbairroloja,
       'nrtelloja': nrtelloja,
-      'dshorarioloja': dshorarioloja,
       'nrdiavalidade': nrdiavalidade,
       'sitloja': sitloja,
       'urllogoloja': urllogoloja,
@@ -137,7 +133,6 @@ class Loja {
     String? nmloja,
     String? dsbairroloja,
     String? nrtelloja,
-    String? dshorarioloja,
     int? nrdiavalidade,
     String? sitloja,
     String? urllogoloja,
@@ -166,7 +161,6 @@ class Loja {
       nmloja: nmloja ?? this.nmloja,
       dsbairroloja: dsbairroloja ?? this.dsbairroloja,
       nrtelloja: nrtelloja ?? this.nrtelloja,
-      dshorarioloja: dshorarioloja ?? this.dshorarioloja,
       nrdiavalidade: nrdiavalidade ?? this.nrdiavalidade,
       sitloja: sitloja ?? this.sitloja,
       urllogoloja: urllogoloja ?? this.urllogoloja,
@@ -217,7 +211,6 @@ class Loja {
             other.nmloja == nmloja &&
             other.dsbairroloja == dsbairroloja &&
             other.nrtelloja == nrtelloja &&
-            other.dshorarioloja == dshorarioloja &&
             other.nrdiavalidade == nrdiavalidade &&
             other.sitloja == sitloja &&
             other.urllogoloja == urllogoloja &&
@@ -248,7 +241,6 @@ class Loja {
     nmloja,
     dsbairroloja,
     nrtelloja,
-    dshorarioloja,
     nrdiavalidade,
     sitloja,
     urllogoloja,

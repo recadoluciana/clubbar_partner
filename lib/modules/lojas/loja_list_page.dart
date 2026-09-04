@@ -14,6 +14,8 @@ import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 import '../agenda/agenda_mensal_page.dart';
 import '../cardapio/cardapio_digital_page.dart';
+import '../cardapio/cardapio_padrao_page.dart';
+import '../../core/repositories/cardapio_padrao_repository.dart';
 import 'horario_funcionamento_screen.dart';
 import 'loja_form_page.dart';
 import 'loja_imagens_page.dart';
@@ -39,6 +41,8 @@ class _LojaListPageState extends State<LojaListPage> {
   final TextEditingController _buscaController = TextEditingController();
   final LojaRepository _repository = LojaRepository();
   final LojaHorarioRepository _horarioRepository = LojaHorarioRepository();
+  final CardapioPadraoRepository _cardapioPadraoRepository =
+      CardapioPadraoRepository();
 
   bool _carregando = true;
   bool _excluindo = false;
@@ -54,7 +58,6 @@ class _LojaListPageState extends State<LojaListPage> {
   List<Loja> _lojas = [];
   List<Loja> _lojasFiltradas = [];
   Set<int> _horariosDefinidos = {};
-  Map<int, int> _diasAtendimento = {};
 
   @override
   void initState() {
@@ -160,7 +163,6 @@ class _LojaListPageState extends State<LojaListPage> {
     try {
       final lista = await _repository.listar(widget.organizacaoId);
       final horariosDefinidos = <int>{};
-      final diasAtendimento = <int, int>{};
       await Future.wait(
         lista.map((loja) async {
           try {
@@ -170,9 +172,6 @@ class _LojaListPageState extends State<LojaListPage> {
             if (horarios.any((item) => item.lojaHorarioId != null)) {
               horariosDefinidos.add(loja.lojaId);
             }
-            diasAtendimento[loja.lojaId] = horarios
-                .where((item) => !item.fechado)
-                .length;
           } catch (_) {
             // A listagem principal continua disponível mesmo se um horário falhar.
           }
@@ -185,7 +184,6 @@ class _LojaListPageState extends State<LojaListPage> {
         _lojas = lista;
         _lojasFiltradas = _aplicarFiltro(lista, _buscaController.text);
         _horariosDefinidos = horariosDefinidos;
-        _diasAtendimento = diasAtendimento;
         _carregando = false;
       });
     } catch (e) {
@@ -215,7 +213,6 @@ class _LojaListPageState extends State<LojaListPage> {
       final bairro = (loja.dsbairroloja ?? '').toLowerCase();
       final instagram = (loja.dsinstaloja ?? '').toLowerCase();
       final telefone = (loja.nrtelloja ?? '').toLowerCase();
-      final horario = (loja.dshorarioloja ?? '').toLowerCase();
       final status = (loja.sitloja ?? '').toLowerCase();
       final estado = (loja.nmestado ?? '').toLowerCase();
       final siglaEstado = (loja.sgestado ?? '').toLowerCase();
@@ -227,7 +224,6 @@ class _LojaListPageState extends State<LojaListPage> {
           bairro.contains(busca) ||
           instagram.contains(busca) ||
           telefone.contains(busca) ||
-          horario.contains(busca) ||
           status.contains(busca) ||
           estado.contains(busca) ||
           siglaEstado.contains(busca) ||
@@ -372,6 +368,60 @@ class _LojaListPageState extends State<LojaListPage> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => CardapioDigitalPage(loja: loja)),
     );
+  }
+
+  Future<void> _abrirCardapioPadrao() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => CardapioPadraoPage(
+          organizacaoId: widget.organizacaoId,
+          nomeOrganizacao: _nomeOrganizacao,
+          lojas: _lojas,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importarCardapioPadrao(Loja loja) async {
+    if (!_podeAlterarLoja(loja)) {
+      _avisarSomenteConsulta();
+      return;
+    }
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Importar cardápio padrão'),
+        content: Text(
+          'As categorias e os produtos que ainda não existem em “${loja.nmloja}” serão copiados. '
+          'Itens com o mesmo nome serão preservados, inclusive seus preços atuais.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Importar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+    try {
+      final resposta = await _cardapioPadraoRepository.importar(loja.lojaId);
+      if (!mounted) return;
+      final criados = resposta['produtos_criados'] ?? 0;
+      final ignorados = resposta['produtos_ignorados'] ?? 0;
+      AppSnackBar.sucesso(
+        context,
+        'Cardápio importado: $criados produtos incluídos e $ignorados preservados.',
+      );
+      await _abrirCardapio(loja);
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
+    }
   }
 
   Future<void> _abrirAgenda(Loja loja) async {
@@ -549,58 +599,67 @@ class _LojaListPageState extends State<LojaListPage> {
     required String subtitulo,
     required bool definido,
     Color? cor,
+    VoidCallback? onTap,
   }) {
     final destaque =
         cor ??
         (definido ? ClubbarColors.sucesso : ClubbarColors.textoSecundario);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: destaque.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: destaque.withValues(alpha: 0.28)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: destaque.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: destaque.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: destaque.withValues(alpha: 0.28)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: destaque.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icone, size: 20, color: destaque),
             ),
-            child: Icon(icone, size: 20, color: destaque),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: TextStyle(
-                    color: destaque,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: TextStyle(
+                      color: destaque,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitulo,
-                  style: const TextStyle(
-                    color: ClubbarColors.textoSecundario,
-                    fontSize: 11,
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitulo,
+                    style: const TextStyle(
+                      color: ClubbarColors.textoSecundario,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Icon(
-            definido ? Icons.check_circle_rounded : Icons.pending_outlined,
-            size: 18,
-            color: destaque,
-          ),
-        ],
+            Icon(
+              onTap != null
+                  ? Icons.chevron_right_rounded
+                  : definido
+                  ? Icons.check_circle_rounded
+                  : Icons.pending_outlined,
+              size: 18,
+              color: destaque,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -619,22 +678,28 @@ class _LojaListPageState extends State<LojaListPage> {
         subtitulo: usaCashback ? 'Sim' : 'Não',
         definido: usaCashback,
         cor: usaCashback ? ClubbarColors.sucesso : ClubbarColors.erro,
+        onTap: () =>
+            _abrirConfiguracaoProdutos(loja, LojaConfiguracaoTipo.cashback),
       ),
       _indicadorConfiguracao(
         icone: Icons.image_outlined,
         titulo: logoDefinida ? 'Foto logo definida' : 'Foto logo pendente',
         subtitulo: logoDefinida
             ? 'Identidade visual pronta'
-            : 'Adicione pelo menu',
+            : 'Toque para adicionar',
         definido: logoDefinida,
+        onTap: () => _abrirImagens(loja),
       ),
       _indicadorConfiguracao(
         icone: Icons.storefront_outlined,
         titulo: fachadaDefinida
             ? 'Foto fachada definida'
             : 'Foto fachada pendente',
-        subtitulo: fachadaDefinida ? 'Imagem cadastrada' : 'Adicione pelo menu',
+        subtitulo: fachadaDefinida
+            ? 'Imagem cadastrada'
+            : 'Toque para adicionar',
         definido: fachadaDefinida,
+        onTap: () => _abrirImagens(loja),
       ),
       _indicadorConfiguracao(
         icone: aberto24Horas
@@ -652,6 +717,7 @@ class _LojaListPageState extends State<LojaListPage> {
             : 'Defina o atendimento',
         definido: horarioDefinido,
         cor: horarioDefinido ? ClubbarColors.info : null,
+        onTap: () => _abrirHorarios(loja),
       ),
     ];
 
@@ -676,53 +742,6 @@ class _LojaListPageState extends State<LojaListPage> {
           ],
         );
       },
-    );
-  }
-
-  Widget _atalhoHorario(Loja loja) {
-    final aberto24Horas = loja.aberto24x7 == 'S';
-    final dias = _diasAtendimento[loja.lojaId] ?? 0;
-    final dica = aberto24Horas
-        ? 'Aberto 24 horas, todos os dias da semana'
-        : dias > 0
-        ? 'Horário definido para $dias ${dias == 1 ? 'dia' : 'dias'} da semana'
-        : 'Nenhum horário de atendimento definido';
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: () => _abrirHorarios(loja),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: ClubbarColors.info,
-          side: const BorderSide(color: ClubbarColors.info),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.schedule_rounded, size: 22),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Definir horário de atendimento',
-                    style: TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    dica,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: ClubbarColors.textoSecundario,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded),
-          ],
-        ),
-      ),
     );
   }
 
@@ -835,8 +854,6 @@ class _LojaListPageState extends State<LojaListPage> {
             _abrirCardapio(loja);
           case 'agenda':
             _abrirAgenda(loja);
-          case 'imagens':
-            _abrirImagens(loja);
           case 'conteudo':
             _abrirConteudo(loja);
           case 'politica':
@@ -846,8 +863,6 @@ class _LojaListPageState extends State<LojaListPage> {
               loja,
               LojaConfiguracaoTipo.politicaProdutos,
             );
-          case 'cashback':
-            _abrirConfiguracaoProdutos(loja, LojaConfiguracaoTipo.cashback);
         }
       },
       itemBuilder: (context) => [
@@ -870,15 +885,6 @@ class _LojaListPageState extends State<LojaListPage> {
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'imagens',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.photo_library_outlined),
-            title: Text('Logo e Foto fachada'),
-          ),
-        ),
         const PopupMenuItem(
           value: 'conteudo',
           child: ListTile(
@@ -904,15 +910,6 @@ class _LojaListPageState extends State<LojaListPage> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.inventory_2_outlined),
             title: Text('Política de produtos'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'cashback',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.savings_outlined),
-            title: Text('Gerenciar cashback'),
           ),
         ),
       ],
@@ -1045,7 +1042,14 @@ class _LojaListPageState extends State<LojaListPage> {
           const SizedBox(height: 10),
           _resumoConfiguracoes(loja),
           const SizedBox(height: 8),
-          _atalhoHorario(loja),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _importarCardapioPadrao(loja),
+              icon: const Icon(Icons.download_rounded),
+              label: const Text('Importar cardápio padrão da empresa'),
+            ),
+          ),
         ],
       ),
     );
@@ -1119,6 +1123,12 @@ class _LojaListPageState extends State<LojaListPage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        _botaoCircularHeader(
+          tooltip: 'Cardápio padrão da empresa',
+          icone: Icons.menu_book_rounded,
+          onPressed: _podeIncluirLoja ? _abrirCardapioPadrao : null,
+        ),
+        const SizedBox(width: 8),
         _botaoCircularHeader(
           tooltip: 'Atualizar',
           icone: Icons.refresh_rounded,
