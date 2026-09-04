@@ -17,6 +17,7 @@ import '../painel_gerencial/painel_gerencial_page.dart';
 import '../usuarios/usuario_list_page.dart';
 import '../financeiro_onboarding/dados_financeiros_page.dart';
 import '../financeiro/financeiro_parceiro_page.dart';
+import '../atracoes/atracao_list_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -35,6 +36,8 @@ class _DashboardPageState extends State<DashboardPage> {
   Timer? _timer;
 
   bool get _podeEditarOrganizacao => _cargo == 'SUPERADMIN';
+  bool get _podeGerenciarAtracoes =>
+      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN';
   bool get _podeVerGerencial =>
       _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'GERENTE';
 
@@ -93,6 +96,12 @@ class _DashboardPageState extends State<DashboardPage> {
         builder: (_) => LojaListPage(organizacaoId: organizacaoId),
       ),
     );
+  }
+
+  Future<void> _abrirAtracoes() async {
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const AtracaoListPage()));
   }
 
   Future<void> _abrirUsuarios() async {
@@ -295,6 +304,15 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: _podeEditarOrganizacao
                               ? _abrirOrganizacao
                               : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Atrações',
+                          subtitulo: _podeGerenciarAtracoes
+                              ? 'Cadastre bandas, DJs, artistas e apresentações da empresa.'
+                              : 'Disponível para administradores da empresa.',
+                          icone: Icons.mic_external_on_rounded,
+                          onTap: _podeGerenciarAtracoes ? _abrirAtracoes : null,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
