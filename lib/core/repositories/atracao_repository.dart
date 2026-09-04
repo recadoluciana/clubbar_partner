@@ -115,6 +115,7 @@ class AtracaoRepository {
 
   Future<void> criarEventoRapido({
     required int lojaId,
+    required String nomeEvento,
     required int atracaoId,
     required DateTime inicio,
     required DateTime fim,
@@ -122,6 +123,7 @@ class AtracaoRepository {
   }) async {
     final r = await ApiService.post('/agenda-mensal/evento-rapido', {
       'loja_id': lojaId,
+      'nmtituloevento': nomeEvento,
       'atracao_id': atracaoId,
       'dtinicioatracao': inicio.toIso8601String(),
       'dtfimatracao': fim.toIso8601String(),

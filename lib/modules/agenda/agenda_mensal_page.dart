@@ -325,6 +325,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     int selecionada = atracoes.first.atracaoId;
     DateTime inicio = DateTime(dia.year, dia.month, dia.day, 20);
     DateTime fim = inicio.add(const Duration(hours: 2));
+    final nomeEventoController = TextEditingController();
     final precoController = TextEditingController();
     bool salvando = false;
     final criado = await showDialog<bool>(
@@ -341,6 +342,18 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  TextField(
+                    controller: nomeEventoController,
+                    autofocus: true,
+                    maxLength: 120,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome do evento',
+                      hintText: 'Ex.: Noite do Samba',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   DropdownButtonFormField<int>(
                     initialValue: selecionada,
                     decoration: const InputDecoration(
@@ -411,9 +424,14 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
               onPressed: salvando
                   ? null
                   : () async {
+                      final nomeEvento = nomeEventoController.text.trim();
                       final preco = double.tryParse(
                         precoController.text.trim().replaceAll(',', '.'),
                       );
+                      if (nomeEvento.isEmpty) {
+                        AppSnackBar.aviso(context, 'Informe o nome do evento.');
+                        return;
+                      }
                       if (!fim.isAfter(inicio)) {
                         AppSnackBar.aviso(
                           context,
@@ -429,6 +447,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                       try {
                         await _repo.criarEventoRapido(
                           lojaId: lojaId,
+                          nomeEvento: nomeEvento,
                           atracaoId: selecionada,
                           inicio: inicio,
                           fim: fim,
@@ -452,6 +471,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
         ),
       ),
     );
+    nomeEventoController.dispose();
     precoController.dispose();
     if (criado == true) {
       await _carregar();
