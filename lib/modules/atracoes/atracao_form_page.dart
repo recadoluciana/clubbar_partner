@@ -18,23 +18,38 @@ class AtracaoFormPage extends StatefulWidget {
 class _AtracaoFormPageState extends State<AtracaoFormPage> {
   final _repo = AtracaoRepository();
   final _form = GlobalKey<FormState>();
-  late final TextEditingController _nome, _estilo, _descricao;
+  late final TextEditingController _nome, _descricao;
   XFile? _banner;
-  bool _salvando = false;
+  bool _salvando = false, _carregandoEstilos = true;
+  List<EstiloMusical> _estilos = [];
+  final Set<int> _estilosSelecionados = {};
   @override
   void initState() {
     super.initState();
     _nome = TextEditingController(text: widget.atracao?.nome);
-    _estilo = TextEditingController(text: widget.atracao?.estiloMusical);
     _descricao = TextEditingController(text: widget.atracao?.descricao);
+    _estilosSelecionados.addAll(widget.atracao?.estilos.map((e) => e.id) ?? []);
+    _carregarEstilos();
   }
 
   @override
   void dispose() {
     _nome.dispose();
-    _estilo.dispose();
     _descricao.dispose();
     super.dispose();
+  }
+
+  Future<void> _carregarEstilos() async {
+    try {
+      final estilos = await _repo.listarEstilos();
+      if (mounted) setState(() => _estilos = estilos);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _carregandoEstilos = false);
+    }
   }
 
   Future<void> _imagem() async {
@@ -48,12 +63,16 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
 
   Future<void> _salvar() async {
     if (!_form.currentState!.validate() || _salvando) return;
+    if (_estilosSelecionados.isEmpty) {
+      AppSnackBar.aviso(context, 'Selecione pelo menos um estilo musical.');
+      return;
+    }
     setState(() => _salvando = true);
     try {
       await _repo.salvar(
         atracao: widget.atracao,
         nome: _nome.text.trim(),
-        estilo: _estilo.text.trim(),
+        estilosIds: _estilosSelecionados.toList(),
         descricao: _descricao.text.trim(),
         banner: _banner,
       );
@@ -151,12 +170,64 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
                               : null,
                         ),
                         const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _estilo,
-                          decoration: _dec(
-                            'Estilo musical',
-                            Icons.music_note_rounded,
-                            hint: 'Rock, samba, eletrônico...',
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: ClubbarColors.branco,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: ClubbarColors.borda),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.music_note_rounded),
+                                  SizedBox(width: 9),
+                                  Text(
+                                    'Estilos musicais',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Selecione um ou vários estilos.',
+                                style: TextStyle(
+                                  color: ClubbarColors.textoSecundario,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              if (_carregandoEstilos)
+                                const Center(child: CircularProgressIndicator())
+                              else
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _estilos.map((estilo) {
+                                    final selecionado = _estilosSelecionados
+                                        .contains(estilo.id);
+                                    return FilterChip(
+                                      label: Text(estilo.nome),
+                                      selected: selecionado,
+                                      selectedColor: ClubbarColors.ambarClaro,
+                                      checkmarkColor: Colors.black,
+                                      onSelected: (valor) => setState(() {
+                                        if (valor) {
+                                          _estilosSelecionados.add(estilo.id);
+                                        } else {
+                                          _estilosSelecionados.remove(
+                                            estilo.id,
+                                          );
+                                        }
+                                      }),
+                                    );
+                                  }).toList(),
+                                ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 12),

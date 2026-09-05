@@ -5,6 +5,7 @@ class Atracao {
   final String? estiloMusical;
   final String? banner;
   final String? descricao;
+  final List<EstiloMusical> estilos;
 
   const Atracao({
     required this.atracaoId,
@@ -13,14 +14,36 @@ class Atracao {
     this.estiloMusical,
     this.banner,
     this.descricao,
+    this.estilos = const [],
   });
-  factory Atracao.fromJson(Map<String, dynamic> j) => Atracao(
-    atracaoId: int.tryParse('${j['atracao_id'] ?? 0}') ?? 0,
-    organizacaoId: int.tryParse('${j['organizacao_id'] ?? 0}') ?? 0,
-    nome: '${j['nmatracao'] ?? ''}',
-    estiloMusical: j['dsestilomusical']?.toString(),
-    banner: j['urlbanneratracao']?.toString(),
-    descricao: j['dsatracao']?.toString(),
+  factory Atracao.fromJson(Map<String, dynamic> j) {
+    final estilos = (j['estilos'] as List? ?? const [])
+        .whereType<Map>()
+        .map((e) => EstiloMusical.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+    return Atracao(
+      atracaoId: int.tryParse('${j['atracao_id'] ?? 0}') ?? 0,
+      organizacaoId: int.tryParse('${j['organizacao_id'] ?? 0}') ?? 0,
+      nome: '${j['nmatracao'] ?? ''}',
+      estiloMusical: estilos.isNotEmpty
+          ? estilos.map((e) => e.nome).join(', ')
+          : j['dsestilomusical']?.toString(),
+      banner: j['urlbanneratracao']?.toString(),
+      descricao: j['dsatracao']?.toString(),
+      estilos: estilos,
+    );
+  }
+}
+
+class EstiloMusical {
+  final int id;
+  final String nome;
+
+  const EstiloMusical({required this.id, required this.nome});
+
+  factory EstiloMusical.fromJson(Map<String, dynamic> json) => EstiloMusical(
+    id: int.tryParse('${json['estilomusical_id'] ?? 0}') ?? 0,
+    nome: '${json['nmestilomusical'] ?? ''}',
   );
 }
 

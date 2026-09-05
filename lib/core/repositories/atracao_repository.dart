@@ -8,6 +8,14 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 
 class AtracaoRepository {
+  Future<List<EstiloMusical>> listarEstilos() async {
+    final r = await ApiService.get('/estilos-musicais');
+    if (r.statusCode != 200) throw Exception(_erro(r.body));
+    return (jsonDecode(r.body) as List)
+        .map((e) => EstiloMusical.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
   Future<List<Atracao>> listar() async {
     final r = await ApiService.get('/atracoes');
     if (r.statusCode != 200) throw Exception(_erro(r.body));
@@ -19,7 +27,7 @@ class AtracaoRepository {
   Future<void> salvar({
     Atracao? atracao,
     required String nome,
-    required String estilo,
+    required List<int> estilosIds,
     required String descricao,
     XFile? banner,
   }) async {
@@ -33,7 +41,7 @@ class AtracaoRepository {
     }
     req.fields.addAll({
       'nmatracao': nome,
-      'dsestilomusical': estilo,
+      'estilos_ids': jsonEncode(estilosIds),
       'dsatracao': descricao,
     });
     if (banner != null) {
