@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/evento_repository.dart';
+import '../../core/repositories/localidade_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -35,6 +36,7 @@ class EventoFormPage extends StatefulWidget {
 class _EventoFormPageState extends State<EventoFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _repo = EventoRepository();
+  final _localidadeRepository = LocalidadeRepository();
   final _picker = ImagePicker();
 
   final _tituloController = TextEditingController();
@@ -47,6 +49,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
   final _dataFimController = TextEditingController();
   final _horaFimController = TextEditingController();
   final _localController = TextEditingController();
+  final _cepController = TextEditingController();
   final _enderecoController = TextEditingController();
 
   DateTime? _dataInicioSelecionada;
@@ -55,6 +58,8 @@ class _EventoFormPageState extends State<EventoFormPage> {
   Uint8List? _imagemBytes;
 
   bool _salvando = false;
+  bool _consultandoCep = false;
+  String? _ultimoCepConsultado;
   String _statusSelecionado = 'ATIVO';
 
   bool get editando => widget.evento != null;
@@ -103,6 +108,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
     _dataFimController.dispose();
     _horaFimController.dispose();
     _localController.dispose();
+    _cepController.dispose();
     _enderecoController.dispose();
     super.dispose();
   }
@@ -110,6 +116,35 @@ class _EventoFormPageState extends State<EventoFormPage> {
   String _mensagemErro(Object erro) {
     final texto = erro.toString().replaceFirst('Exception: ', '').trim();
     return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
+  }
+
+  Future<void> _buscarCep() async {
+    final cep = _cepController.text.replaceAll(RegExp(r'\D'), '');
+    if (cep.length != 8 || _consultandoCep || cep == _ultimoCepConsultado) {
+      return;
+    }
+    setState(() => _consultandoCep = true);
+    try {
+      final endereco = await _localidadeRepository.buscarEnderecoPorCep(cep);
+      if (!mounted) return;
+      final partes = <String>[
+        if (endereco.logradouro.isNotEmpty) endereco.logradouro,
+        if (endereco.bairro.isNotEmpty) endereco.bairro,
+        if (endereco.cidade.isNotEmpty)
+          endereco.uf.isEmpty
+              ? endereco.cidade
+              : '${endereco.cidade} - ${endereco.uf}',
+      ];
+      setState(() {
+        _ultimoCepConsultado = cep;
+        _cepController.text = endereco.cep;
+        _enderecoController.text = partes.join(', ');
+      });
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
+    } finally {
+      if (mounted) setState(() => _consultandoCep = false);
+    }
   }
 
   String _dataParaApi(DateTime? data) {
@@ -578,12 +613,54 @@ class _EventoFormPageState extends State<EventoFormPage> {
           ),
           const SizedBox(height: 14),
           TextFormField(
+            controller: _cepController,
+            keyboardType: TextInputType.number,
+            decoration:
+                _decoracaoCampo(
+                  label: 'CEP do evento',
+                  icone: Icons.markunread_mailbox_outlined,
+                  hint: '00000-000',
+                ).copyWith(
+                  suffixIcon: _consultandoCep
+                      ? const Padding(
+                          padding: EdgeInsets.all(14),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : IconButton(
+                          tooltip: 'Buscar CEP',
+                          onPressed: _buscarCep,
+                          icon: const Icon(Icons.search_rounded),
+                        ),
+                ),
+            onChanged: (valor) {
+              final numeros = valor.replaceAll(RegExp(r'\D'), '');
+              final limitado = numeros.length > 8
+                  ? numeros.substring(0, 8)
+                  : numeros;
+              final formatado = limitado.length > 5
+                  ? '${limitado.substring(0, 5)}-${limitado.substring(5)}'
+                  : limitado;
+              if (formatado != valor) {
+                _cepController.value = TextEditingValue(
+                  text: formatado,
+                  selection: TextSelection.collapsed(offset: formatado.length),
+                );
+              }
+              if (limitado != _ultimoCepConsultado) {
+                _ultimoCepConsultado = null;
+              }
+              if (limitado.length == 8) _buscarCep();
+            },
+            onFieldSubmitted: (_) => _buscarCep(),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
             controller: _enderecoController,
             textCapitalization: TextCapitalization.words,
             decoration: _decoracaoCampo(
               label: 'Endereço',
               icone: Icons.map_outlined,
-              hint: 'Rua, número e bairro',
+              hint: 'Rua, número, bairro, cidade e UF',
             ),
           ),
           const SizedBox(height: 14),

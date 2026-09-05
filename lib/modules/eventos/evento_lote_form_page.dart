@@ -39,11 +39,16 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   final _qtVendidaController = TextEditingController();
   final _dtInicioController = TextEditingController();
   final _dtFimController = TextEditingController();
+  final _numeroLoteController = TextEditingController(text: '1');
 
   bool _salvando = false;
   String _status = 'ATIVO';
   DateTime? _dataInicioSelecionada;
   DateTime? _dataFimSelecionada;
+  bool _modoSimples = true;
+  List<EventoSetor> _setores = [];
+  int? _setorId;
+  String _tipoIngresso = 'INTEIRA';
 
   bool get editando => widget.lote != null;
   int get _quantidadeTotal => int.tryParse(_qtTotalController.text.trim()) ?? 0;
@@ -75,11 +80,18 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       _qtTotalController.text = lote.qttotallote.toString();
       _qtVendidaController.text = lote.qtvendidalote.toString();
       _status = lote.statuslote ?? 'ATIVO';
+      _modoSimples = lote.eventoSetorId == null && lote.tipoIngresso == 'UNICO';
+      _setorId = lote.eventoSetorId;
+      _numeroLoteController.text = lote.numeroLote.toString();
+      _tipoIngresso = lote.tipoIngresso == 'UNICO'
+          ? 'INTEIRA'
+          : lote.tipoIngresso;
       _preencherData(lote.dtiniciovenda, _dtInicioController, inicio: true);
       _preencherData(lote.dtfimvenda, _dtFimController, inicio: false);
     } else {
       _qtVendidaController.text = '0';
     }
+    _carregarSetores();
   }
 
   @override
@@ -92,7 +104,77 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     _qtVendidaController.dispose();
     _dtInicioController.dispose();
     _dtFimController.dispose();
+    _numeroLoteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _carregarSetores() async {
+    try {
+      final setores = await _repo.listarSetores(widget.eventoId);
+      if (mounted) {
+        setState(
+          () => _setores = setores.where((e) => e.situacao == 'ATIVO').toList(),
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _novoSetor() async {
+    final nome = TextEditingController();
+    final capacidade = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Novo setor'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nome,
+              decoration: const InputDecoration(labelText: 'Nome do setor'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: capacidade,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Capacidade'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) {
+      nome.dispose();
+      capacidade.dispose();
+      return;
+    }
+    try {
+      final setor = await _repo.criarSetor(
+        eventoId: widget.eventoId,
+        nome: nome.text.trim(),
+        capacidade: int.tryParse(capacidade.text) ?? 0,
+      );
+      if (mounted) {
+        setState(() {
+          _setores.add(setor);
+          _setorId = setor.id;
+        });
+      }
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
+    }
+    nome.dispose();
+    capacidade.dispose();
   }
 
   void _atualizarResumo() {
@@ -193,6 +275,10 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   Future<void> _salvar() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
+    if (!_modoSimples && _setorId == null) {
+      AppSnackBar.aviso(context, 'Selecione o setor do ingresso.');
+      return;
+    }
 
     if (_quantidadeVendida > _quantidadeTotal) {
       AppSnackBar.aviso(
@@ -240,13 +326,24 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     setState(() => _salvando = true);
 
     try {
+      final numeroLote = _modoSimples
+          ? 1
+          : int.parse(_numeroLoteController.text);
+      final tipoIngresso = _modoSimples ? 'UNICO' : _tipoIngresso;
+      final setor = _setores.where((e) => e.id == _setorId).firstOrNull;
+      final nomeLote = _modoSimples
+          ? 'Ingresso único'
+          : '$numeroLoteº lote - ${setor!.nome} - ${_nomeTipo(tipoIngresso)}';
       if (editando) {
         await _repo.atualizar(
           loteId: widget.lote!.loteId,
           organizacaoId: widget.organizacaoId,
           lojaId: widget.lojaId,
           eventoId: widget.eventoId,
-          nome: _nomeController.text.trim(),
+          nome: nomeLote,
+          eventoSetorId: _modoSimples ? null : _setorId,
+          numeroLote: numeroLote,
+          tipoIngresso: tipoIngresso,
           preco: _preco,
           quantidadeTotal: _quantidadeTotal,
           quantidadeVendida: _quantidadeVendida,
@@ -259,7 +356,10 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           eventoId: widget.eventoId,
           organizacaoId: widget.organizacaoId,
           lojaId: widget.lojaId,
-          nome: _nomeController.text.trim(),
+          nome: nomeLote,
+          eventoSetorId: _modoSimples ? null : _setorId,
+          numeroLote: numeroLote,
+          tipoIngresso: tipoIngresso,
           preco: _preco,
           quantidadeTotal: _quantidadeTotal,
           quantidadeVendida: 0,
@@ -282,6 +382,16 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       if (mounted) setState(() => _salvando = false);
     }
   }
+
+  String _nomeTipo(String tipo) =>
+      {
+        'INTEIRA': 'Inteira',
+        'MEIA': 'Meia',
+        'SOCIAL': 'Social',
+        'CORTESIA': 'Cortesia',
+        'OUTRO': 'Outro',
+      }[tipo] ??
+      tipo;
 
   Widget _cardCabecalho() {
     return ClubbarCard(
@@ -330,17 +440,93 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     return ClubbarCard(
       child: Column(
         children: [
-          TextFormField(
-            controller: _nomeController,
-            decoration: _decoracaoCampo(
-              label: 'Nome do lote',
-              icone: Icons.label_outline_rounded,
-              hint: 'Ex.: Primeiro lote',
-            ),
-            validator: (value) =>
-                (value ?? '').trim().isEmpty ? 'Informe o nome do lote' : null,
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(
+                value: true,
+                label: Text('Ingresso único'),
+                icon: Icon(Icons.local_activity_outlined),
+              ),
+              ButtonSegment(
+                value: false,
+                label: Text('Setores e lotes'),
+                icon: Icon(Icons.account_tree_outlined),
+              ),
+            ],
+            selected: {_modoSimples},
+            onSelectionChanged: editando
+                ? null
+                : (v) => setState(() => _modoSimples = v.first),
           ),
           const SizedBox(height: 14),
+          if (!_modoSimples) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    initialValue: _setorId,
+                    decoration: _decoracaoCampo(
+                      label: 'Setor',
+                      icone: Icons.chair_alt_outlined,
+                    ),
+                    items: _setores
+                        .map(
+                          (s) => DropdownMenuItem(
+                            value: s.id,
+                            child: Text('${s.nome} (${s.capacidade})'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _setorId = v),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _novoSetor,
+                  tooltip: 'Novo setor',
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _numeroLoteController,
+                    keyboardType: TextInputType.number,
+                    decoration: _decoracaoCampo(
+                      label: 'Número do lote',
+                      icone: Icons.numbers,
+                    ),
+                    validator: (v) => (int.tryParse(v ?? '') ?? 0) < 1
+                        ? 'Informe o lote'
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _tipoIngresso,
+                    decoration: _decoracaoCampo(
+                      label: 'Tipo',
+                      icone: Icons.badge_outlined,
+                    ),
+                    items: ['INTEIRA', 'MEIA', 'SOCIAL', 'CORTESIA', 'OUTRO']
+                        .map(
+                          (v) => DropdownMenuItem(
+                            value: v,
+                            child: Text(_nomeTipo(v)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _tipoIngresso = v!),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
           TextFormField(
             controller: _precoController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),

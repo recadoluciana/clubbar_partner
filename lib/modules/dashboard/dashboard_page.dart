@@ -18,6 +18,8 @@ import '../usuarios/usuario_list_page.dart';
 import '../financeiro_onboarding/dados_financeiros_page.dart';
 import '../financeiro/financeiro_parceiro_page.dart';
 import '../atracoes/atracao_list_page.dart';
+import '../estilos_musicais/estilo_musical_list_page.dart';
+import '../auditoria/auditoria_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -102,6 +104,18 @@ class _DashboardPageState extends State<DashboardPage> {
     await Navigator.of(
       context,
     ).push<void>(MaterialPageRoute(builder: (_) => const AtracaoListPage()));
+  }
+
+  Future<void> _abrirEstilosMusicais() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const EstiloMusicalListPage()),
+    );
+  }
+
+  Future<void> _abrirAuditoria() async {
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const AuditoriaPage()));
   }
 
   Future<void> _abrirUsuarios() async {
@@ -307,6 +321,17 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
+                          titulo: 'Estilos musicais',
+                          subtitulo: _podeGerenciarAtracoes
+                              ? 'Cadastre e organize os estilos usados nas atrações.'
+                              : 'Disponível para administradores da empresa.',
+                          icone: Icons.library_music_rounded,
+                          onTap: _podeGerenciarAtracoes
+                              ? _abrirEstilosMusicais
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
                           titulo: 'Atrações',
                           subtitulo: _podeGerenciarAtracoes
                               ? 'Cadastre bandas, DJs, artistas e apresentações da empresa.'
@@ -365,6 +390,17 @@ class _DashboardPageState extends State<DashboardPage> {
                               'Acompanhe suas vendas por estabelecimento, produtos e ingressos.',
                           icone: Icons.analytics_rounded,
                           onTap: _podeVerGerencial ? _abrirGerencial : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Auditoria',
+                          subtitulo: _podeGerenciarAtracoes
+                              ? 'Consulte alterações realizadas pelos usuários da empresa.'
+                              : 'Disponível para administradores da empresa.',
+                          icone: Icons.fact_check_outlined,
+                          onTap: _podeGerenciarAtracoes
+                              ? _abrirAuditoria
+                              : null,
                         ),
                       ],
                     ),

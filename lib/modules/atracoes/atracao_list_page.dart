@@ -150,18 +150,29 @@ class _AtracaoListPageState extends State<AtracaoListPage> {
               ),
               subtitle: Text(
                 [
+                  if (a.descricao?.trim().isNotEmpty == true) a.descricao!,
                   if (a.estiloMusical?.trim().isNotEmpty == true)
                     a.estiloMusical!,
-                  if (a.descricao?.trim().isNotEmpty == true) a.descricao!,
                 ].join('\n'),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              trailing: PopupMenuButton<String>(
-                onSelected: (v) => v == 'e' ? _form(a) : _excluir(a),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'e', child: Text('Editar')),
-                  PopupMenuItem(value: 'x', child: Text('Excluir')),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Editar atração',
+                    onPressed: () => _form(a),
+                    icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                  ),
+                  IconButton(
+                    tooltip: 'Excluir atração',
+                    onPressed: () => _excluir(a),
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: ClubbarColors.erro,
+                    ),
+                  ),
                 ],
               ),
             ),

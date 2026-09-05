@@ -38,12 +38,18 @@ class Atracao {
 class EstiloMusical {
   final int id;
   final String nome;
+  final String situacao;
 
-  const EstiloMusical({required this.id, required this.nome});
+  const EstiloMusical({
+    required this.id,
+    required this.nome,
+    this.situacao = 'ATIVO',
+  });
 
   factory EstiloMusical.fromJson(Map<String, dynamic> json) => EstiloMusical(
     id: int.tryParse('${json['estilomusical_id'] ?? 0}') ?? 0,
     nome: '${json['nmestilomusical'] ?? ''}',
+    situacao: '${json['sitestilomusical'] ?? 'ATIVO'}'.toUpperCase(),
   );
 }
 
@@ -86,17 +92,25 @@ class AgendaEvento {
     required this.atracoes,
     this.bannerEvento,
   });
-  factory AgendaEvento.fromJson(Map<String, dynamic> j) => AgendaEvento(
-    eventoId: int.tryParse('${j['evento_id'] ?? 0}') ?? 0,
-    titulo: '${j['nmtituloevento'] ?? ''}',
-    inicio: DateTime.parse(j['dtinicioevento'].toString()),
-    fim: j['dtfimevento'] == null
-        ? null
-        : DateTime.tryParse(j['dtfimevento'].toString()),
-    status: '${j['statusevento'] ?? ''}',
-    bannerEvento: j['urlbannerevento']?.toString(),
-    atracoes: (j['atracoes'] as List? ?? const [])
-        .map((e) => EventoAtracao.fromJson(Map<String, dynamic>.from(e as Map)))
-        .toList(),
-  );
+  factory AgendaEvento.fromJson(Map<String, dynamic> j) {
+    final atracoes =
+        (j['atracoes'] as List? ?? const [])
+            .map(
+              (e) =>
+                  EventoAtracao.fromJson(Map<String, dynamic>.from(e as Map)),
+            )
+            .toList()
+          ..sort((a, b) => a.inicio.compareTo(b.inicio));
+    return AgendaEvento(
+      eventoId: int.tryParse('${j['evento_id'] ?? 0}') ?? 0,
+      titulo: '${j['nmtituloevento'] ?? ''}',
+      inicio: DateTime.parse(j['dtinicioevento'].toString()),
+      fim: j['dtfimevento'] == null
+          ? null
+          : DateTime.tryParse(j['dtfimevento'].toString()),
+      status: '${j['statusevento'] ?? ''}',
+      bannerEvento: j['urlbannerevento']?.toString(),
+      atracoes: atracoes,
+    );
+  }
 }

@@ -122,40 +122,47 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
                         InkWell(
                           onTap: _imagem,
                           borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            height: 210,
-                            decoration: BoxDecoration(
-                              color: ClubbarColors.branco,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: ClubbarColors.borda),
+                          child: AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: ClubbarColors.branco,
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: ClubbarColors.borda),
+                              ),
+                              child: _banner != null
+                                  ? FutureBuilder(
+                                      future: _banner!.readAsBytes(),
+                                      builder: (c, s) => s.hasData
+                                          ? ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(18),
+                                              child: Image.memory(
+                                                s.data!,
+                                                width: double.infinity,
+                                                height: double.infinity,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            )
+                                          : const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
+                                    )
+                                  : _url != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: Image.network(
+                                        _url!,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, _, _) =>
+                                            _placeholder(),
+                                      ),
+                                    )
+                                  : _placeholder(),
                             ),
-                            child: _banner != null
-                                ? FutureBuilder(
-                                    future: _banner!.readAsBytes(),
-                                    builder: (c, s) => s.hasData
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              18,
-                                            ),
-                                            child: Image.memory(
-                                              s.data!,
-                                              fit: BoxFit.cover,
-                                            ),
-                                          )
-                                        : const Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                  )
-                                : _url != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(18),
-                                    child: Image.network(
-                                      _url!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) => _placeholder(),
-                                    ),
-                                  )
-                                : _placeholder(),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -168,6 +175,16 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
                           validator: (v) => (v ?? '').trim().isEmpty
                               ? 'Informe o nome da atração.'
                               : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _descricao,
+                          minLines: 4,
+                          maxLines: 8,
+                          decoration: _dec(
+                            'Descrição da atração',
+                            Icons.description_rounded,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Container(
@@ -228,16 +245,6 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
                                   }).toList(),
                                 ),
                             ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _descricao,
-                          minLines: 4,
-                          maxLines: 8,
-                          decoration: _dec(
-                            'Descrição da atração',
-                            Icons.description_rounded,
                           ),
                         ),
                         const SizedBox(height: 20),

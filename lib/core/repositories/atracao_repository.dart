@@ -16,6 +16,35 @@ class AtracaoRepository {
         .toList();
   }
 
+  Future<List<EstiloMusical>> listarEstilosParaGerenciar() async {
+    final r = await ApiService.get('/estilos-musicais/gerenciar');
+    if (r.statusCode != 200) throw Exception(_erro(r.body));
+    return (jsonDecode(r.body) as List)
+        .map((e) => EstiloMusical.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<void> salvarEstilo({
+    EstiloMusical? estilo,
+    required String nome,
+    required String situacao,
+  }) async {
+    final dados = {'nmestilomusical': nome, 'sitestilomusical': situacao};
+    final r = estilo == null
+        ? await ApiService.post('/estilos-musicais', dados)
+        : await ApiService.put('/estilos-musicais/${estilo.id}', dados);
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception(_erro(r.body));
+    }
+  }
+
+  Future<void> excluirEstilo(int id) async {
+    final r = await ApiService.delete('/estilos-musicais/$id');
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception(_erro(r.body));
+    }
+  }
+
   Future<List<Atracao>> listar() async {
     final r = await ApiService.get('/atracoes');
     if (r.statusCode != 200) throw Exception(_erro(r.body));
