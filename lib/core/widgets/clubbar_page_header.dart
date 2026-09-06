@@ -5,6 +5,7 @@ import '../theme/clubbar_colors.dart';
 class ClubbarPageHeader extends StatelessWidget {
   final String titulo;
   final String subtitulo;
+  final Widget? tituloWidget;
   final Widget? subtituloWidget;
   final Widget? trailing;
   final TextStyle? tituloStyle;
@@ -14,6 +15,7 @@ class ClubbarPageHeader extends StatelessWidget {
     super.key,
     required this.titulo,
     required this.subtitulo,
+    this.tituloWidget,
     this.subtituloWidget,
     this.trailing,
     this.tituloStyle,
@@ -48,18 +50,19 @@ class ClubbarPageHeader extends StatelessWidget {
           final textos = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                titulo,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style:
-                    tituloStyle ??
-                    const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
-                      color: ClubbarColors.textoPrincipal,
-                    ),
-              ),
+              tituloWidget ??
+                  Text(
+                    titulo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        tituloStyle ??
+                        const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                          color: ClubbarColors.textoPrincipal,
+                        ),
+                  ),
               const SizedBox(height: 4),
               subtituloWidget ??
                   Text(

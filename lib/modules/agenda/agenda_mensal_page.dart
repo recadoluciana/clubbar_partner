@@ -721,19 +721,19 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
           ClubbarPageHeader(
             titulo: _loja.nmloja,
             subtitulo: 'Agenda Mensal',
-            tituloStyle: const TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-              color: Colors.blue,
-            ),
-            padding: const EdgeInsets.fromLTRB(18, 9, 12, 10),
-            trailing: Row(
+            tituloWidget: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (widget.lojas.length > 1)
                   PopupMenuButton<int>(
                     tooltip: 'Trocar estabelecimento',
-                    icon: const Icon(Icons.swap_horiz_rounded),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(
+                      Icons.swap_horiz_rounded,
+                      color: Colors.blue,
+                      size: 23,
+                    ),
                     onSelected: _selecionarLoja,
                     itemBuilder: (_) => widget.lojas
                         .map(
@@ -744,6 +744,30 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                         )
                         .toList(),
                   ),
+                if (widget.lojas.length > 1) const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    _loja.nmloja,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            tituloStyle: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              color: Colors.blue,
+            ),
+            padding: const EdgeInsets.fromLTRB(18, 9, 12, 10),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 FilledButton.icon(
                   onPressed: _loading ? null : _abrirGerenciarEventos,
                   icon: const Icon(Icons.event_note_rounded, size: 18),
