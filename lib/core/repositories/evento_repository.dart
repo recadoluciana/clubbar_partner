@@ -30,6 +30,23 @@ class EventoRepository {
         .toList();
   }
 
+  Future<List<Atracao>> listarAtracoesDisponiveis(int modeloId) async {
+    final response = await ApiService.get(
+      '/eventos-modelos/$modeloId/atracoes-disponiveis',
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        _mensagemErro(
+          response.body,
+          'Não foi possível listar as atrações cadastradas.',
+        ),
+      );
+    }
+    return (jsonDecode(response.body) as List)
+        .map((e) => Atracao.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
   Future<void> salvarAtracaoPadrao({
     required int modeloId,
     EventoModeloAtracao? item,

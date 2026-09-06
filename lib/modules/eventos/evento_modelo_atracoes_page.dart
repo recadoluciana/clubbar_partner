@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/repositories/atracao_repository.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -24,7 +23,6 @@ class EventoModeloAtracoesPage extends StatefulWidget {
 
 class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
   final _eventos = EventoRepository();
-  final _atracoes = AtracaoRepository();
   List<EventoModeloAtracao> _itens = [];
   List<Atracao> _catalogo = [];
   bool _carregando = true;
@@ -40,7 +38,7 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
     try {
       final resultados = await Future.wait([
         _eventos.listarAtracoesPadrao(widget.modeloId),
-        _atracoes.listar(),
+        _eventos.listarAtracoesDisponiveis(widget.modeloId),
       ]);
       if (!mounted) return;
       setState(() {
@@ -61,7 +59,10 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
 
   Future<void> _editar([EventoModeloAtracao? atual]) async {
     if (_catalogo.isEmpty) {
-      AppSnackBar.aviso(context, 'Cadastre uma atração primeiro.');
+      AppSnackBar.aviso(
+        context,
+        'Nenhuma atração cadastrada para esta organização.',
+      );
       return;
     }
     int atracaoId = atual?.atracaoId ?? _catalogo.first.atracaoId;
