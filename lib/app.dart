@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
 import 'modules/auth/login_page.dart';
@@ -16,6 +17,9 @@ class ClubbarPartnerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Clubbar Partner',
       theme: AppTheme.light,
+      locale: const Locale('pt', 'BR'),
+      supportedLocales: const [Locale('pt', 'BR')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: const SplashDeciderPage(),
     );
   }
