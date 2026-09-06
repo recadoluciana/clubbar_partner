@@ -22,6 +22,7 @@ import '../estilos_musicais/estilo_musical_list_page.dart';
 import '../auditoria/auditoria_page.dart';
 import '../cardapio/cardapio_loja_page.dart';
 import '../agenda/agenda_loja_page.dart';
+import '../extrato_asaas/extrato_asaas_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -174,6 +175,12 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _abrirPainelFinanceiro() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const FinanceiroParceiroPage()),
+    );
+  }
+
+  Future<void> _abrirExtratoAsaas() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const ExtratoAsaasPage()),
     );
   }
 
@@ -411,6 +418,13 @@ class _DashboardPageState extends State<DashboardPage> {
                               'Envie documentos e acompanhe a liberação das vendas.',
                           icone: Icons.verified_user_rounded,
                           onTap: () => _abrirFinanceiro(integracao: true),
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Extrato Asaas',
+                          subtitulo: 'Consulte o saldo e as transações recebidas na sua subconta.',
+                          icone: Icons.receipt_long_rounded,
+                          onTap: _podeVerGerencial ? _abrirExtratoAsaas : null,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
