@@ -49,133 +49,146 @@ class _CardapioLojaPageState extends State<CardapioLojaPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
-    body: Column(
-      children: [
-        const ClubbarPageHeader(
-          titulo: 'Cardápio Digital',
-          subtitulo: 'Escolha o estabelecimento que deseja configurar',
-        ),
-        Expanded(
-          child: _carregando
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _carregar,
-                  child: _lojas.isEmpty
-                      ? ListView(
-                          children: const [
-                            Padding(
-                              padding: EdgeInsets.all(40),
-                              child: Center(
-                                child: Text('Nenhum estabelecimento cadastrado.'),
-                              ),
-                            ),
-                          ],
-                        )
-                      : GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 1,
-                                mainAxisExtent: 150,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                              ),
-                          itemCount: _lojas.length,
-                          itemBuilder: (context, index) {
-                            final loja = _lojas[index];
-                            final imagem = _imagem(loja);
-                            return Card(
-                              clipBehavior: Clip.antiAlias,
-                              child: InkWell(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        CardapioDigitalPage(loja: loja),
+  Widget build(BuildContext context) {
+    if (!_carregando && _lojas.isNotEmpty) {
+      return CardapioDigitalPage(loja: _lojas.first, lojas: _lojas);
+    }
+    return Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      body: Column(
+        children: [
+          const ClubbarPageHeader(
+            titulo: 'Cardápio Digital',
+            subtitulo: 'Escolha o estabelecimento que deseja configurar',
+          ),
+          Expanded(
+            child: _carregando
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _carregar,
+                    child: _lojas.isEmpty
+                        ? ListView(
+                            children: const [
+                              Padding(
+                                padding: EdgeInsets.all(40),
+                                child: Center(
+                                  child: Text(
+                                    'Nenhum estabelecimento cadastrado.',
                                   ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 125,
-                                      height: double.infinity,
-                                      child: imagem == null
-                                          ? const ColoredBox(
-                                              color: ClubbarColors.ambarClaro,
-                                              child: Icon(
-                                                Icons.storefront,
-                                                size: 48,
-                                              ),
-                                            )
-                                          : Image.network(
-                                              imagem,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, _, _) =>
-                                                  const Icon(
-                                                    Icons.storefront,
-                                                    size: 48,
-                                                  ),
-                                            ),
+                              ),
+                            ],
+                          )
+                        : GridView.builder(
+                            padding: const EdgeInsets.all(16),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 1,
+                                  mainAxisExtent: 150,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                ),
+                            itemCount: _lojas.length,
+                            itemBuilder: (context, index) {
+                              final loja = _lojas[index];
+                              final imagem = _imagem(loja);
+                              return Card(
+                                clipBehavior: Clip.antiAlias,
+                                child: InkWell(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          CardapioDigitalPage(loja: loja),
                                     ),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(14),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              loja.nmloja,
-                                              style: const TextStyle(
-                                                fontSize: 17,
-                                                fontWeight: FontWeight.w900,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 125,
+                                        height: double.infinity,
+                                        child: imagem == null
+                                            ? const ColoredBox(
+                                                color: ClubbarColors.ambarClaro,
+                                                child: Icon(
+                                                  Icons.storefront,
+                                                  size: 48,
+                                                ),
+                                              )
+                                            : Image.network(
+                                                imagem,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, _, _) =>
+                                                    const Icon(
+                                                      Icons.storefront,
+                                                      size: 48,
+                                                    ),
                                               ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              [loja.dsbairroloja, loja.nmcidade]
-                                                  .where(
-                                                    (e) =>
-                                                        e?.trim().isNotEmpty ==
-                                                        true,
-                                                  )
-                                                  .join(' • '),
-                                              maxLines: 2,
-                                            ),
-                                            const SizedBox(height: 10),
-                                            const Row(
-                                              children: [
-                                                Text(
-                                                  'Abrir cardápio',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w700,
+                                      ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(14),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                loja.nmloja,
+                                                style: const TextStyle(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                [
+                                                      loja.dsbairroloja,
+                                                      loja.nmcidade,
+                                                    ]
+                                                    .where(
+                                                      (e) =>
+                                                          e
+                                                              ?.trim()
+                                                              .isNotEmpty ==
+                                                          true,
+                                                    )
+                                                    .join(' • '),
+                                                maxLines: 2,
+                                              ),
+                                              const SizedBox(height: 10),
+                                              const Row(
+                                                children: [
+                                                  Text(
+                                                    'Abrir cardápio',
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
                                                   ),
-                                                ),
-                                                SizedBox(width: 4),
-                                                Icon(
-                                                  Icons.arrow_forward,
-                                                  size: 18,
-                                                ),
-                                              ],
-                                            ),
-                                          ],
+                                                  SizedBox(width: 4),
+                                                  Icon(
+                                                    Icons.arrow_forward,
+                                                    size: 18,
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-        ),
-      ],
-    ),
-  );
+                              );
+                            },
+                          ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/repositories/atracao_repository.dart';
-import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -14,7 +13,12 @@ import '../eventos/evento_list_page.dart';
 
 class AgendaMensalPage extends StatefulWidget {
   final Loja loja;
-  const AgendaMensalPage({super.key, required this.loja});
+  final List<Loja> lojas;
+  const AgendaMensalPage({
+    super.key,
+    required this.loja,
+    this.lojas = const [],
+  });
   @override
   State<AgendaMensalPage> createState() => _AgendaMensalPageState();
 }
@@ -26,21 +30,21 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   List<AgendaEvento> _eventos = [];
   bool _loading = true;
   String? _erro;
-  String _nomeOrganizacao = 'Empresa';
+  late Loja _loja;
 
   @override
   void initState() {
     super.initState();
+    _loja = widget.loja;
     _carregar();
-    _carregarNomeOrganizacao();
   }
 
-  Future<void> _carregarNomeOrganizacao() async {
-    final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
-    if (!mounted) return;
-    setState(() {
-      _nomeOrganizacao = nome.isEmpty ? 'Empresa' : nome;
-    });
+  Future<void> _selecionarLoja(int? lojaId) async {
+    if (lojaId == null || lojaId == _loja.lojaId) return;
+    setState(
+      () => _loja = widget.lojas.firstWhere((item) => item.lojaId == lojaId),
+    );
+    await _carregar();
   }
 
   Future<void> _carregar() async {
@@ -49,7 +53,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       _erro = null;
     });
     try {
-      final es = await _repo.agenda(widget.loja.lojaId, _mes);
+      final es = await _repo.agenda(_loja.lojaId, _mes);
       if (mounted) {
         setState(() {
           _eventos = es;
@@ -72,7 +76,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   }
 
   Future<void> _compartilharAgenda() async {
-    final loja = widget.loja;
+    final loja = _loja;
     final eventos =
         _eventos.where((e) => (e.status).toUpperCase() == 'ATIVO').toList()
           ..sort((a, b) => a.inicio.compareTo(b.inicio));
@@ -311,7 +315,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       return;
     }
 
-    final lojaId = widget.loja.lojaId;
+    final lojaId = _loja.lojaId;
     final atracoes = await _repo.listar();
     if (!mounted) return;
     if (atracoes.isEmpty) {
@@ -650,8 +654,8 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
               await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => EventoListPage(
-                    organizacaoId: widget.loja.organizacaoId,
-                    lojaIdInicial: widget.loja.lojaId,
+                    organizacaoId: _loja.organizacaoId,
+                    lojaIdInicial: _loja.lojaId,
                     fixarLoja: true,
                   ),
                 ),
@@ -692,8 +696,24 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       child: Column(
         children: [
           ClubbarPageHeader(
-            titulo: 'Agenda Mensal - ${widget.loja.nmloja}',
-            subtitulo: _nomeOrganizacao,
+            titulo: 'Agenda Mensal',
+            subtitulo: _loja.nmloja,
+            subtituloWidget: widget.lojas.length > 1
+                ? DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: _loja.lojaId,
+                      onChanged: _loading ? null : _selecionarLoja,
+                      items: widget.lojas
+                          .map(
+                            (loja) => DropdownMenuItem<int>(
+                              value: loja.lojaId,
+                              child: Text(loja.nmloja),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  )
+                : Text(_loja.nmloja),
           ),
           Padding(
             padding: const EdgeInsets.all(10),

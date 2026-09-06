@@ -17,7 +17,12 @@ import '../produtos/produto_list_page.dart';
 
 class CardapioDigitalPage extends StatefulWidget {
   final Loja loja;
-  const CardapioDigitalPage({super.key, required this.loja});
+  final List<Loja> lojas;
+  const CardapioDigitalPage({
+    super.key,
+    required this.loja,
+    this.lojas = const [],
+  });
 
   @override
   State<CardapioDigitalPage> createState() => _CardapioDigitalPageState();
@@ -31,19 +36,31 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
   List<Map<String, dynamic>> _produtos = [];
   int? _categoriaId;
   bool _carregando = true;
+  late Loja _loja;
 
   @override
   void initState() {
     super.initState();
+    _loja = widget.loja;
     _carregar();
+  }
+
+  Future<void> _selecionarLoja(int? lojaId) async {
+    if (lojaId == null || lojaId == _loja.lojaId) return;
+    final loja = widget.lojas.firstWhere((item) => item.lojaId == lojaId);
+    setState(() {
+      _loja = loja;
+      _categoriaId = null;
+    });
+    await _carregar();
   }
 
   Future<void> _carregar() async {
     setState(() => _carregando = true);
     try {
       final resultados = await Future.wait([
-        _categoriasRepo.listar(widget.loja.lojaId),
-        _produtosRepo.listar(widget.loja.lojaId),
+        _categoriasRepo.listar(_loja.lojaId),
+        _produtosRepo.listar(_loja.lojaId),
       ]);
       final categorias =
           (resultados[0] as List<Categoria>)
@@ -146,7 +163,7 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
     if (nome == null || nome.isEmpty) return;
     try {
       final id = await _categoriasRepo.criar(
-        widget.loja.lojaId,
+        _loja.lojaId,
         nome,
         'ATIVA',
         _categorias.length + 1,
@@ -174,8 +191,8 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
       context,
       MaterialPageRoute(
         builder: (_) => ProdutoFormPage(
-          lojaId: widget.loja.lojaId,
-          organizacaoId: widget.loja.organizacaoId,
+          lojaId: _loja.lojaId,
+          organizacaoId: _loja.organizacaoId,
           produto: produto,
           categoriaIdInicial: _categoriaId,
         ),
@@ -187,9 +204,9 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
   }
 
   Future<void> _compartilhar() async {
-    final link = 'https://app.clubbar.com.br/?loja_id=${widget.loja.lojaId}';
+    final link = 'https://app.clubbar.com.br/?loja_id=${_loja.lojaId}';
     final texto =
-        'Veja o cardápio digital do estabelecimento ${widget.loja.nmloja} no Clubbar:\n$link';
+        'Veja o cardápio digital do estabelecimento ${_loja.nmloja} no Clubbar:\n$link';
     await Clipboard.setData(ClipboardData(text: texto));
     if (mounted) {
       AppSnackBar.sucesso(
@@ -202,13 +219,13 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
   Future<void> _abrirGerenciamento(String opcao) async {
     final Widget pagina = opcao == 'categorias'
         ? CategoriaListPage(
-            organizacaoId: widget.loja.organizacaoId,
-            lojaIdInicial: widget.loja.lojaId,
+            organizacaoId: _loja.organizacaoId,
+            lojaIdInicial: _loja.lojaId,
             fixarLoja: true,
           )
         : ProdutoListPage(
-            organizacaoId: widget.loja.organizacaoId,
-            lojaIdInicial: widget.loja.lojaId,
+            organizacaoId: _loja.organizacaoId,
+            lojaIdInicial: _loja.lojaId,
             fixarLoja: true,
           );
     await Navigator.push(context, MaterialPageRoute(builder: (_) => pagina));
@@ -228,8 +245,25 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
     body: Column(
       children: [
         ClubbarPageHeader(
-          titulo: 'Cardápio Digital - ${widget.loja.nmloja}',
-          subtitulo: 'Assim aparecerá para o cliente',
+          titulo: 'Cardápio Digital',
+          subtitulo: _loja.nmloja,
+          subtituloWidget: widget.lojas.length > 1
+              ? DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _loja.lojaId,
+                    isDense: true,
+                    onChanged: _carregando ? null : _selecionarLoja,
+                    items: widget.lojas
+                        .map(
+                          (loja) => DropdownMenuItem<int>(
+                            value: loja.lojaId,
+                            child: Text(loja.nmloja),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                )
+              : Text(_loja.nmloja),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

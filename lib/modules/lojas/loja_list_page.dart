@@ -12,7 +12,6 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
-import '../agenda/agenda_mensal_page.dart';
 import '../cardapio/cardapio_digital_page.dart';
 import '../cardapio/cardapio_padrao_page.dart';
 import '../../core/repositories/cardapio_padrao_repository.dart';
@@ -422,12 +421,6 @@ class _LojaListPageState extends State<LojaListPage> {
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
     }
-  }
-
-  Future<void> _abrirAgenda(Loja loja) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => AgendaMensalPage(loja: loja)),
-    );
   }
 
   Future<bool> _confirmarExclusao(Loja loja) async {
@@ -850,10 +843,6 @@ class _LojaListPageState extends State<LojaListPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (acao) {
         switch (acao) {
-          case 'cardapio':
-            _abrirCardapio(loja);
-          case 'agenda':
-            _abrirAgenda(loja);
           case 'conteudo':
             _abrirConteudo(loja);
           case 'politica':
@@ -866,25 +855,6 @@ class _LojaListPageState extends State<LojaListPage> {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'cardapio',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.restaurant_menu_rounded),
-            title: Text('Cardápio Digital'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'agenda',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.calendar_month_rounded),
-            title: Text('Agenda Mensal'),
-          ),
-        ),
-        const PopupMenuDivider(),
         const PopupMenuItem(
           value: 'conteudo',
           child: ListTile(

@@ -20,6 +20,8 @@ import '../financeiro/financeiro_parceiro_page.dart';
 import '../atracoes/atracao_list_page.dart';
 import '../estilos_musicais/estilo_musical_list_page.dart';
 import '../auditoria/auditoria_page.dart';
+import '../cardapio/cardapio_loja_page.dart';
+import '../agenda/agenda_loja_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -96,6 +98,26 @@ class _DashboardPageState extends State<DashboardPage> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => LojaListPage(organizacaoId: organizacaoId),
+      ),
+    );
+  }
+
+  Future<void> _abrirCardapioDigital() async {
+    final organizacaoId = _organizacaoId;
+    if (organizacaoId == null || organizacaoId <= 0) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => CardapioLojaPage(organizacaoId: organizacaoId),
+      ),
+    );
+  }
+
+  Future<void> _abrirAgendaMensal() async {
+    final organizacaoId = _organizacaoId;
+    if (organizacaoId == null || organizacaoId <= 0) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => AgendaLojaPage(organizacaoId: organizacaoId),
       ),
     );
   }
@@ -347,6 +369,22 @@ class _DashboardPageState extends State<DashboardPage> {
                               : 'Cadastre e administre os estabelecimentos da empresa.',
                           icone: Icons.storefront_rounded,
                           onTap: _abrirLojas,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Cardápio Digital',
+                          subtitulo:
+                              'Gerencie produtos, categorias e preços por estabelecimento.',
+                          icone: Icons.restaurant_menu_rounded,
+                          onTap: _abrirCardapioDigital,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Agenda Mensal',
+                          subtitulo:
+                              'Organize os eventos e atrações de cada estabelecimento.',
+                          icone: Icons.calendar_month_rounded,
+                          onTap: _abrirAgendaMensal,
                         ),
                         const SizedBox(height: 14),
                         _opcao(

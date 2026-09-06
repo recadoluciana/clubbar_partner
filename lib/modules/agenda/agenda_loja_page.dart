@@ -50,137 +50,145 @@ class _AgendaLojaPageState extends State<AgendaLojaPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
-    body: Column(
-      children: [
-        const ClubbarPageHeader(
-          titulo: 'Agenda Mensal',
-          subtitulo: 'Escolha o estabelecimento que deseja visualizar',
-        ),
-        Expanded(
-          child: _carregando
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _carregar,
-                  child: _lojas.isEmpty
-                      ? ListView(
-                          children: const [
-                            Padding(
-                              padding: EdgeInsets.all(40),
-                              child: Center(
-                                child: Text('Nenhum estabelecimento cadastrado.'),
-                              ),
-                            ),
-                          ],
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _lojas.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final loja = _lojas[index];
-                            final imagem = _imagem(loja);
-                            return Card(
-                              clipBehavior: Clip.antiAlias,
-                              child: InkWell(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        AgendaMensalPage(loja: loja),
+  Widget build(BuildContext context) {
+    if (!_carregando && _lojas.isNotEmpty) {
+      return AgendaMensalPage(loja: _lojas.first, lojas: _lojas);
+    }
+    return Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      body: Column(
+        children: [
+          const ClubbarPageHeader(
+            titulo: 'Agenda Mensal',
+            subtitulo: 'Escolha o estabelecimento que deseja visualizar',
+          ),
+          Expanded(
+            child: _carregando
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _carregar,
+                    child: _lojas.isEmpty
+                        ? ListView(
+                            children: const [
+                              Padding(
+                                padding: EdgeInsets.all(40),
+                                child: Center(
+                                  child: Text(
+                                    'Nenhum estabelecimento cadastrado.',
                                   ),
                                 ),
-                                child: SizedBox(
-                                  height: 150,
-                                  child: Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 125,
-                                        height: double.infinity,
-                                        child: imagem == null
-                                            ? const ColoredBox(
-                                                color: ClubbarColors.ambarClaro,
-                                                child: Icon(
-                                                  Icons.storefront,
-                                                  size: 48,
-                                                ),
-                                              )
-                                            : Image.network(
-                                                imagem,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (_, _, _) =>
-                                                    const Icon(
-                                                      Icons.storefront,
-                                                      size: 48,
-                                                    ),
-                                              ),
-                                      ),
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(14),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                loja.nmloja,
-                                                style: const TextStyle(
-                                                  fontSize: 17,
-                                                  fontWeight: FontWeight.w900,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 6),
-                                              Text(
-                                                [
-                                                      loja.dsbairroloja,
-                                                      loja.nmcidade,
-                                                    ]
-                                                    .where(
-                                                      (e) =>
-                                                          e
-                                                              ?.trim()
-                                                              .isNotEmpty ==
-                                                          true,
-                                                    )
-                                                    .join(' • '),
-                                                maxLines: 2,
-                                              ),
-                                              const SizedBox(height: 10),
-                                              const Row(
-                                                children: [
-                                                  Text(
-                                                    'Abrir agenda',
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
+                              ),
+                            ],
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _lojas.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final loja = _lojas[index];
+                              final imagem = _imagem(loja);
+                              return Card(
+                                clipBehavior: Clip.antiAlias,
+                                child: InkWell(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          AgendaMensalPage(loja: loja),
+                                    ),
+                                  ),
+                                  child: SizedBox(
+                                    height: 150,
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 125,
+                                          height: double.infinity,
+                                          child: imagem == null
+                                              ? const ColoredBox(
+                                                  color:
+                                                      ClubbarColors.ambarClaro,
+                                                  child: Icon(
+                                                    Icons.storefront,
+                                                    size: 48,
                                                   ),
-                                                  SizedBox(width: 4),
-                                                  Icon(
-                                                    Icons.arrow_forward,
-                                                    size: 18,
+                                                )
+                                              : Image.network(
+                                                  imagem,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, _, _) =>
+                                                      const Icon(
+                                                        Icons.storefront,
+                                                        size: 48,
+                                                      ),
+                                                ),
+                                        ),
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(14),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  loja.nmloja,
+                                                  style: const TextStyle(
+                                                    fontSize: 17,
+                                                    fontWeight: FontWeight.w900,
                                                   ),
-                                                ],
-                                              ),
-                                            ],
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Text(
+                                                  [
+                                                        loja.dsbairroloja,
+                                                        loja.nmcidade,
+                                                      ]
+                                                      .where(
+                                                        (e) =>
+                                                            e
+                                                                ?.trim()
+                                                                .isNotEmpty ==
+                                                            true,
+                                                      )
+                                                      .join(' • '),
+                                                  maxLines: 2,
+                                                ),
+                                                const SizedBox(height: 10),
+                                                const Row(
+                                                  children: [
+                                                    Text(
+                                                      'Abrir agenda',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 4),
+                                                    Icon(
+                                                      Icons.arrow_forward,
+                                                      size: 18,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-        ),
-      ],
-    ),
-  );
+                              );
+                            },
+                          ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 }

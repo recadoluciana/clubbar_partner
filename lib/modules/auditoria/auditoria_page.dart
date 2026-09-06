@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/repositories/auditoria_repository.dart';
+import '../../core/repositories/loja_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/auditoria.dart';
+import '../../models/loja.dart';
 
 class AuditoriaPage extends StatefulWidget {
   const AuditoriaPage({super.key});
@@ -18,6 +21,7 @@ class AuditoriaPage extends StatefulWidget {
 
 class _AuditoriaPageState extends State<AuditoriaPage> {
   final _repo = AuditoriaRepository();
+  final _lojaRepo = LojaRepository();
   final _busca = TextEditingController();
   List<AuditoriaItem> _itens = [];
   bool _carregando = true;
@@ -26,6 +30,7 @@ class _AuditoriaPageState extends State<AuditoriaPage> {
   String? _tabela;
   int? _lojaId;
   int _dias = 30;
+  Map<int, String> _nomesLojas = {};
 
   List<String> get _tabelas {
     final valores = _itens.map((item) => item.tabela).toSet().toList()..sort();
@@ -72,10 +77,20 @@ class _AuditoriaPageState extends State<AuditoriaPage> {
       _erro = null;
     });
     try {
-      final itens = await _repo.listar(dias: _dias);
+      final organizacaoId = await StorageService.getOrganizacaoId();
+      final resultados = await Future.wait<dynamic>([
+        _repo.listar(dias: _dias),
+        if (organizacaoId != null && organizacaoId > 0)
+          _lojaRepo.listar(organizacaoId)
+        else
+          Future.value(<Loja>[]),
+      ]);
+      final itens = resultados[0] as List<AuditoriaItem>;
+      final lojas = resultados[1] as List<Loja>;
       if (mounted) {
         setState(() {
           _itens = itens;
+          _nomesLojas = {for (final loja in lojas) loja.lojaId: loja.nmloja};
           if (_tabela != null && !_tabelas.contains(_tabela)) _tabela = null;
           _carregando = false;
         });
@@ -89,6 +104,8 @@ class _AuditoriaPageState extends State<AuditoriaPage> {
       }
     }
   }
+
+  String _nomeLoja(int id) => _nomesLojas[id] ?? 'Estabelecimento $id';
 
   Color _corAcao(String acao) => switch (acao) {
     'INCLUSAO' => Colors.green,
@@ -191,7 +208,7 @@ class _AuditoriaPageState extends State<AuditoriaPage> {
                 child: Text('Todos os estabelecimentos'),
               ),
               ..._lojas.map(
-                (id) => DropdownMenuItem(value: id, child: Text('Loja $id')),
+                (id) => DropdownMenuItem(value: id, child: Text(_nomeLoja(id))),
               ),
             ],
             onChanged: (valor) => setState(() => _lojaId = valor),
@@ -247,7 +264,8 @@ class _AuditoriaPageState extends State<AuditoriaPage> {
             _linha('E-mail', item.atorEmail!),
           if (item.metodoHttp?.isNotEmpty == true)
             _linha('Método', item.metodoHttp!),
-          if (item.lojaId != null) _linha('Loja', item.lojaId.toString()),
+          if (item.lojaId != null)
+            _linha('Estabelecimento', _nomeLoja(item.lojaId!)),
           if (item.rota?.isNotEmpty == true) _linha('Rota', item.rota!),
           if (item.dadosAnteriores != null)
             _dados('Dados anteriores', _json(item.dadosAnteriores)),
