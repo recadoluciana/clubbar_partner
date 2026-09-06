@@ -128,6 +128,33 @@ class AtracaoRepository {
         .toList();
   }
 
+  Future<Map<String, dynamic>> statusAgenda(int lojaId, DateTime mes) async {
+    final r = await ApiService.get(
+      '/agenda-mensal/status?loja_id=$lojaId&ano=${mes.year}&mes=${mes.month}',
+    );
+    if (r.statusCode != 200) throw Exception(_erro(r.body));
+    return Map<String, dynamic>.from(jsonDecode(r.body));
+  }
+
+  Future<String> publicarAgenda(int lojaId, DateTime mes) async {
+    final r = await ApiService.post(
+      '/agenda-mensal/publicar?loja_id=$lojaId&ano=${mes.year}&mes=${mes.month}',
+      const {'publicar_apos_aprovacao': true},
+    );
+    if (r.statusCode != 200) throw Exception(_erro(r.body));
+    return (jsonDecode(r.body)['mensagem'] ?? 'Agenda publicada.').toString();
+  }
+
+  Future<String> despublicarAgenda(int lojaId, DateTime mes) async {
+    final r = await ApiService.post(
+      '/agenda-mensal/despublicar?loja_id=$lojaId&ano=${mes.year}&mes=${mes.month}',
+      const {},
+    );
+    if (r.statusCode != 200) throw Exception(_erro(r.body));
+    return (jsonDecode(r.body)['mensagem'] ?? 'Agenda retirada da publicação.')
+        .toString();
+  }
+
   Future<void> adicionar({
     required int eventoId,
     required int atracaoId,

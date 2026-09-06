@@ -32,6 +32,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   List<AgendaEvento> _eventos = [];
   bool _loading = true;
   String? _erro;
+  String _statusAgenda = 'INATIVA';
   late Loja _loja;
 
   @override
@@ -68,10 +69,16 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       _erro = null;
     });
     try {
-      final es = await _repo.agenda(_loja.lojaId, _mes);
+      final resultados = await Future.wait([
+        _repo.agenda(_loja.lojaId, _mes),
+        _repo.statusAgenda(_loja.lojaId, _mes),
+      ]);
+      final es = resultados[0] as List<AgendaEvento>;
+      final status = resultados[1] as Map<String, dynamic>;
       if (mounted) {
         setState(() {
           _eventos = es;
+          _statusAgenda = (status['statusagenda'] ?? 'INATIVA').toString();
           _loading = false;
         });
       }
@@ -88,6 +95,21 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   void _mudarMes(int delta) {
     setState(() => _mes = DateTime(_mes.year, _mes.month + delta));
     _carregar();
+  }
+
+  Future<void> _alternarPublicacao() async {
+    try {
+      final publicada =
+          _statusAgenda == 'PUBLICADA' || _statusAgenda == 'AGUARDANDO_ASAAS';
+      final mensagem = publicada
+          ? await _repo.despublicarAgenda(_loja.lojaId, _mes)
+          : await _repo.publicarAgenda(_loja.lojaId, _mes);
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, mensagem);
+    } catch (e) {
+      if (mounted)
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   Future<void> _compartilharAgenda() async {
@@ -775,6 +797,38 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     minimumSize: const Size(0, 38),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: Row(
+              children: [
+                Chip(
+                  avatar: Icon(
+                    _statusAgenda == 'PUBLICADA'
+                        ? Icons.public
+                        : Icons.public_off,
+                    size: 17,
+                  ),
+                  label: Text(_statusAgenda.replaceAll('_', ' ')),
+                ),
+                const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: _loading ? null : _alternarPublicacao,
+                  icon: Icon(
+                    _statusAgenda == 'PUBLICADA' ||
+                            _statusAgenda == 'AGUARDANDO_ASAAS'
+                        ? Icons.visibility_off_outlined
+                        : Icons.publish_outlined,
+                  ),
+                  label: Text(
+                    _statusAgenda == 'PUBLICADA' ||
+                            _statusAgenda == 'AGUARDANDO_ASAAS'
+                        ? 'Retirar publicação'
+                        : 'Publicar agenda',
                   ),
                 ),
               ],

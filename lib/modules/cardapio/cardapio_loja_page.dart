@@ -7,7 +7,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
-import 'cardapio_digital_page.dart';
+import 'cardapios_page.dart';
 
 class CardapioLojaPage extends StatefulWidget {
   final int organizacaoId;
@@ -51,7 +51,7 @@ class _CardapioLojaPageState extends State<CardapioLojaPage> {
   @override
   Widget build(BuildContext context) {
     if (!_carregando && _lojas.isNotEmpty) {
-      return CardapioDigitalPage(loja: _lojas.first, lojas: _lojas);
+      return CardapiosPage(loja: _lojas.first, lojas: _lojas);
     }
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
@@ -99,8 +99,7 @@ class _CardapioLojaPageState extends State<CardapioLojaPage> {
                                   onTap: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          CardapioDigitalPage(loja: loja),
+                                      builder: (_) => CardapiosPage(loja: loja),
                                     ),
                                   ),
                                   child: Row(
