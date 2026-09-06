@@ -12,8 +12,30 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 
 class EventoRepository {
+  Future<void> agendar({
+    required int modeloId,
+    required DateTime inicio,
+    required String recorrencia,
+    required int repeticoes,
+  }) async {
+    final response =
+        await ApiService.post('/eventos-modelos/$modeloId/agendar', {
+          'dtinicio': inicio.toIso8601String(),
+          'recorrencia': recorrencia,
+          'repeticoes': repeticoes,
+        });
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(
+          response.body,
+          'Não foi possível adicionar o evento à agenda.',
+        ),
+      );
+    }
+  }
+
   Future<List<Evento>> listar(int lojaId) async {
-    final response = await ApiService.get('/eventos/loja/$lojaId');
+    final response = await ApiService.get('/eventos-modelos?loja_id=$lojaId');
 
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);
@@ -61,14 +83,16 @@ class EventoRepository {
     String? politicaCancelamento,
     String? politicaReembolso,
     String? politicaCashback,
-    required String dataInicio,
+    String? dataInicio,
     String? dataFim,
     String? local,
     String? endereco,
     String? status,
+    double precoPadrao = 0,
+    int? quantidadePadrao,
     XFile? imagem,
   }) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}/eventos');
+    final uri = Uri.parse('${ApiConfig.baseUrl}/eventos-modelos');
 
     final request = http.MultipartRequest('POST', uri);
 
@@ -81,7 +105,6 @@ class EventoRepository {
     request.fields['loja_id'] = lojaId.toString();
     request.fields['produto_id_ingresso'] = produtoIdIngresso.toString();
     request.fields['nmtituloevento'] = titulo;
-    request.fields['dtinicioevento'] = dataInicio;
 
     if (descricao != null && descricao.isNotEmpty) {
       request.fields['dsdescevento'] = descricao;
@@ -95,9 +118,6 @@ class EventoRepository {
     if (politicaCashback != null) {
       request.fields['dspoliticacashback'] = politicaCashback;
     }
-    if (dataFim != null && dataFim.isNotEmpty) {
-      request.fields['dtfimevento'] = dataFim;
-    }
     if (local != null && local.isNotEmpty) {
       request.fields['nmlocalevento'] = local;
     }
@@ -106,6 +126,10 @@ class EventoRepository {
     }
     if (status != null && status.isNotEmpty) {
       request.fields['statusevento'] = status;
+    }
+    request.fields['vrprecolote'] = precoPadrao.toStringAsFixed(2);
+    if (quantidadePadrao != null) {
+      request.fields['qttotallote'] = '$quantidadePadrao';
     }
 
     if (imagem != null) {
@@ -132,9 +156,11 @@ class EventoRepository {
     String? local,
     String? endereco,
     String? status,
+    double? precoPadrao,
+    int? quantidadePadrao,
     XFile? imagem,
   }) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}/eventos/$eventoId');
+    final uri = Uri.parse('${ApiConfig.baseUrl}/eventos-modelos/$eventoId');
 
     final request = http.MultipartRequest('PUT', uri);
 
@@ -158,12 +184,6 @@ class EventoRepository {
     if (politicaCashback != null) {
       request.fields['dspoliticacashback'] = politicaCashback;
     }
-    if (dataInicio != null && dataInicio.isNotEmpty) {
-      request.fields['dtinicioevento'] = dataInicio;
-    }
-    if (dataFim != null) {
-      request.fields['dtfimevento'] = dataFim;
-    }
     if (local != null) {
       request.fields['nmlocalevento'] = local;
     }
@@ -172,6 +192,12 @@ class EventoRepository {
     }
     if (status != null && status.isNotEmpty) {
       request.fields['statusevento'] = status;
+    }
+    if (precoPadrao != null) {
+      request.fields['vrprecolote'] = precoPadrao.toStringAsFixed(2);
+    }
+    if (quantidadePadrao != null) {
+      request.fields['qttotallote'] = '$quantidadePadrao';
     }
 
     if (imagem != null) {
@@ -189,7 +215,7 @@ class EventoRepository {
   }
 
   Future<void> excluir(int eventoId) async {
-    final response = await ApiService.delete('/eventos/$eventoId');
+    final response = await ApiService.delete('/eventos-modelos/$eventoId');
 
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Erro ao excluir evento: ${response.body}');

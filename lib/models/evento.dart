@@ -11,6 +11,8 @@ class Evento {
   final String? dtinicioevento;
   final String? dtfimevento;
   final String? statusevento;
+  final double vrPrecoPadrao;
+  final int? qtIngressosPadrao;
 
   final String? urlbannerevento;
   final String? nmlocalevento;
@@ -28,6 +30,8 @@ class Evento {
     this.dtinicioevento,
     this.dtfimevento,
     this.statusevento,
+    this.vrPrecoPadrao = 0,
+    this.qtIngressosPadrao,
     this.urlbannerevento,
     this.nmlocalevento,
     this.dsendlocevento,
@@ -47,6 +51,8 @@ class Evento {
       dtinicioevento: json['dtinicioevento']?.toString(),
       dtfimevento: json['dtfimevento']?.toString(),
       statusevento: json['statusevento']?.toString(),
+      vrPrecoPadrao: double.tryParse('${json['vrprecolote'] ?? 0}') ?? 0,
+      qtIngressosPadrao: int.tryParse('${json['qttotallote'] ?? ''}'),
 
       urlbannerevento: json['urlbannerevento']?.toString(),
       nmlocalevento: json['nmlocalevento']?.toString(),

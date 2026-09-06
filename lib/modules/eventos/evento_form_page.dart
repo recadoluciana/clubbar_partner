@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/evento_repository.dart';
@@ -44,16 +43,12 @@ class _EventoFormPageState extends State<EventoFormPage> {
   final _politicaCancelamentoController = TextEditingController();
   final _politicaReembolsoController = TextEditingController();
   final _politicaCashbackController = TextEditingController();
-  final _dataInicioController = TextEditingController();
-  final _horaInicioController = TextEditingController();
-  final _dataFimController = TextEditingController();
-  final _horaFimController = TextEditingController();
   final _localController = TextEditingController();
   final _cepController = TextEditingController();
   final _enderecoController = TextEditingController();
+  final _precoController = TextEditingController(text: '0,00');
+  final _quantidadeController = TextEditingController();
 
-  DateTime? _dataInicioSelecionada;
-  DateTime? _dataFimSelecionada;
   XFile? _imagemSelecionada;
   Uint8List? _imagemBytes;
 
@@ -79,20 +74,10 @@ class _EventoFormPageState extends State<EventoFormPage> {
       _localController.text = evento.nmlocalevento ?? '';
       _enderecoController.text = evento.dsendlocevento ?? '';
       _statusSelecionado = evento.statusevento ?? 'ATIVO';
-
-      final inicio = DateTime.tryParse(evento.dtinicioevento ?? '');
-      if (inicio != null) {
-        _dataInicioSelecionada = inicio;
-        _dataInicioController.text = DateFormat('dd/MM/yyyy').format(inicio);
-        _horaInicioController.text = DateFormat('HH:mm').format(inicio);
-      }
-
-      final fim = DateTime.tryParse(evento.dtfimevento ?? '');
-      if (fim != null) {
-        _dataFimSelecionada = fim;
-        _dataFimController.text = DateFormat('dd/MM/yyyy').format(fim);
-        _horaFimController.text = DateFormat('HH:mm').format(fim);
-      }
+      _precoController.text = evento.vrPrecoPadrao
+          .toStringAsFixed(2)
+          .replaceAll('.', ',');
+      _quantidadeController.text = evento.qtIngressosPadrao?.toString() ?? '';
     }
   }
 
@@ -103,13 +88,11 @@ class _EventoFormPageState extends State<EventoFormPage> {
     _politicaCancelamentoController.dispose();
     _politicaReembolsoController.dispose();
     _politicaCashbackController.dispose();
-    _dataInicioController.dispose();
-    _horaInicioController.dispose();
-    _dataFimController.dispose();
-    _horaFimController.dispose();
     _localController.dispose();
     _cepController.dispose();
     _enderecoController.dispose();
+    _precoController.dispose();
+    _quantidadeController.dispose();
     super.dispose();
   }
 
@@ -147,11 +130,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
     }
   }
 
-  String _dataParaApi(DateTime? data) {
-    if (data == null) return '';
-    return DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(data);
-  }
-
   String _montarUrlBannerAtual() {
     final caminho = (widget.evento?.urlbannerevento ?? '').trim();
     if (caminho.isEmpty) return '';
@@ -161,76 +139,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
     return caminho.startsWith('/')
         ? '${ApiConfig.baseUrl}$caminho'
         : '${ApiConfig.baseUrl}/$caminho';
-  }
-
-  Future<void> _selecionarData({required bool inicio}) async {
-    final agora = DateTime.now();
-    final hoje = DateTime(agora.year, agora.month, agora.day);
-    final atual = inicio ? _dataInicioSelecionada : _dataFimSelecionada;
-    final data = await showDatePicker(
-      context: context,
-      initialDate: atual != null && (editando || !atual.isBefore(hoje))
-          ? atual
-          : hoje,
-      firstDate: editando ? DateTime(2020) : hoje,
-      lastDate: DateTime(2100),
-    );
-    if (data == null || !mounted) return;
-    final hora = atual == null
-        ? (inicio ? TimeOfDay.now() : const TimeOfDay(hour: 23, minute: 59))
-        : TimeOfDay.fromDateTime(atual);
-    final valor = DateTime(
-      data.year,
-      data.month,
-      data.day,
-      hora.hour,
-      hora.minute,
-    );
-    setState(() {
-      if (inicio) {
-        _dataInicioSelecionada = valor;
-        _dataInicioController.text = DateFormat('dd/MM/yyyy').format(valor);
-        _horaInicioController.text = DateFormat('HH:mm').format(valor);
-      } else {
-        _dataFimSelecionada = valor;
-        _dataFimController.text = DateFormat('dd/MM/yyyy').format(valor);
-        _horaFimController.text = DateFormat('HH:mm').format(valor);
-      }
-    });
-  }
-
-  Future<void> _selecionarHora({required bool inicio}) async {
-    final atual = inicio ? _dataInicioSelecionada : _dataFimSelecionada;
-    if (atual == null) {
-      AppSnackBar.aviso(
-        context,
-        inicio
-            ? 'Informe primeiro a data do evento.'
-            : 'Informe primeiro a data de fim.',
-      );
-      return;
-    }
-    final hora = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(atual),
-    );
-    if (hora == null || !mounted) return;
-    final valor = DateTime(
-      atual.year,
-      atual.month,
-      atual.day,
-      hora.hour,
-      hora.minute,
-    );
-    setState(() {
-      if (inicio) {
-        _dataInicioSelecionada = valor;
-        _horaInicioController.text = DateFormat('HH:mm').format(valor);
-      } else {
-        _dataFimSelecionada = valor;
-        _horaFimController.text = DateFormat('HH:mm').format(valor);
-      }
-    });
   }
 
   Future<void> _selecionarImagem() async {
@@ -296,40 +204,15 @@ class _EventoFormPageState extends State<EventoFormPage> {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
 
-    if (_dataInicioSelecionada == null) {
-      AppSnackBar.aviso(context, 'Informe a data e hora de início.');
-      return;
-    }
-
-    if (!editando) {
-      final agora = DateTime.now();
-      final hoje = DateTime(agora.year, agora.month, agora.day);
-      final inicio = _dataInicioSelecionada!;
-      final diaInicio = DateTime(inicio.year, inicio.month, inicio.day);
-      if (diaInicio.isBefore(hoje)) {
-        AppSnackBar.aviso(
-          context,
-          'Não é permitido criar eventos em datas passadas.',
-        );
-        return;
-      }
-    }
-
-    if (_dataFimSelecionada != null &&
-        _dataFimSelecionada!.isBefore(_dataInicioSelecionada!)) {
-      AppSnackBar.aviso(
-        context,
-        'A data final não pode ser anterior à data inicial.',
-      );
-      return;
-    }
-
     setState(() => _salvando = true);
+    final preco =
+        double.tryParse(
+          _precoController.text.replaceAll('.', '').replaceAll(',', '.'),
+        ) ??
+        0;
+    final quantidade = int.tryParse(_quantidadeController.text.trim());
 
     try {
-      final inicio = _dataParaApi(_dataInicioSelecionada);
-      final fim = _dataParaApi(_dataFimSelecionada);
-
       if (editando) {
         await _repo.atualizar(
           eventoId: widget.evento!.eventoId,
@@ -338,11 +221,11 @@ class _EventoFormPageState extends State<EventoFormPage> {
           politicaCancelamento: _politicaCancelamentoController.text.trim(),
           politicaReembolso: _politicaReembolsoController.text.trim(),
           politicaCashback: _politicaCashbackController.text.trim(),
-          dataInicio: inicio,
-          dataFim: fim,
           local: _localController.text.trim(),
           endereco: _enderecoController.text.trim(),
           status: _statusSelecionado,
+          precoPadrao: preco,
+          quantidadePadrao: quantidade,
           imagem: _imagemSelecionada,
         );
       } else {
@@ -355,11 +238,11 @@ class _EventoFormPageState extends State<EventoFormPage> {
           politicaCancelamento: _politicaCancelamentoController.text.trim(),
           politicaReembolso: _politicaReembolsoController.text.trim(),
           politicaCashback: _politicaCashbackController.text.trim(),
-          dataInicio: inicio,
-          dataFim: fim,
           local: _localController.text.trim(),
           endereco: _enderecoController.text.trim(),
           status: _statusSelecionado,
+          precoPadrao: preco,
+          quantidadePadrao: quantidade,
           imagem: _imagemSelecionada,
         );
       }
@@ -430,7 +313,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
       child: Column(
         children: [
           const Text(
-            'Cadastre o evento e depois configure os lotes',
+            'Cadastre um evento padrão reutilizável',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 14),
@@ -544,58 +427,26 @@ class _EventoFormPageState extends State<EventoFormPage> {
             children: [
               Expanded(
                 child: TextFormField(
-                  controller: _dataInicioController,
-                  readOnly: true,
-                  onTap: () => _selecionarData(inicio: true),
-                  decoration: _decoracaoCampo(
-                    label: 'Data do Evento',
-                    icone: Icons.calendar_month_outlined,
-                    hint: 'dd/mm/aaaa',
+                  controller: _precoController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                  validator: (value) =>
-                      (value ?? '').trim().isEmpty ? 'Informe a data' : null,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  controller: _horaInicioController,
-                  readOnly: true,
-                  onTap: () => _selecionarHora(inicio: true),
                   decoration: _decoracaoCampo(
-                    label: 'Horário de Início',
-                    icone: Icons.schedule_rounded,
-                    hint: 'hh:mm',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _dataFimController,
-                  readOnly: true,
-                  onTap: () => _selecionarData(inicio: false),
-                  decoration: _decoracaoCampo(
-                    label: 'Data de Fim (opcional)',
-                    icone: Icons.event_available_outlined,
-                    hint: 'dd/mm/aaaa',
+                    label: 'Preço padrão',
+                    icone: Icons.attach_money_rounded,
+                    hint: '0,00',
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: TextFormField(
-                  controller: _horaFimController,
-                  readOnly: true,
-                  onTap: () => _selecionarHora(inicio: false),
+                  controller: _quantidadeController,
+                  keyboardType: TextInputType.number,
                   decoration: _decoracaoCampo(
-                    label: 'Horário de Fim (opcional)',
-                    icone: Icons.schedule_rounded,
-                    hint: 'hh:mm',
+                    label: 'Quantidade padrão',
+                    icone: Icons.confirmation_number_outlined,
+                    hint: 'Opcional',
                   ),
                 ),
               ),
@@ -698,8 +549,8 @@ class _EventoFormPageState extends State<EventoFormPage> {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Os preços, quantidades e períodos de venda são '
-              'configurados nos lotes do evento após o cadastro.',
+              'O preço e a quantidade padrão serão copiados para cada data '
+              'criada na agenda. Cada data terá estoque independente.',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.4,
@@ -734,7 +585,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
               ? 'Salvando...'
               : editando
               ? 'Salvar alterações'
-              : 'Cadastrar evento',
+              : 'Cadastrar evento padrão',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         style: ElevatedButton.styleFrom(
@@ -761,11 +612,11 @@ class _EventoFormPageState extends State<EventoFormPage> {
           children: [
             ClubbarPageHeader(
               titulo: editando
-                  ? 'Editar Evento - ${widget.nomeLoja}'
-                  : 'Novo Evento - ${widget.nomeLoja}',
+                  ? 'Editar evento padrão - ${widget.nomeLoja}'
+                  : 'Novo evento padrão - ${widget.nomeLoja}',
               subtitulo: editando
-                  ? 'Atualize os dados do evento'
-                  : 'Preencha os dados do novo evento',
+                  ? 'Atualize os dados reutilizados nas próximas datas'
+                  : 'Cadastre uma vez e reutilize na agenda',
             ),
             Expanded(
               child: Form(

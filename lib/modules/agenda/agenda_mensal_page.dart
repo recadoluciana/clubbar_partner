@@ -10,6 +10,7 @@ import '../../models/atracao.dart';
 import '../../models/loja.dart';
 import '../atracoes/atracao_list_page.dart';
 import '../eventos/evento_list_page.dart';
+import '../eventos/evento_lote_list_page.dart';
 
 class AgendaMensalPage extends StatefulWidget {
   final Loja loja;
@@ -630,6 +631,26 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                   ),
                 ),
                 if (!somenteConsulta) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(sheet);
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => EventoLoteListPage(
+                            eventoId: e.eventoId,
+                            eventoTitulo: e.titulo,
+                            organizacaoId: _loja.organizacaoId,
+                            lojaId: _loja.lojaId,
+                            eventoInicio: e.inicio.toIso8601String(),
+                          ),
+                        ),
+                      );
+                      if (mounted) await _carregar();
+                    },
+                    icon: const Icon(Icons.confirmation_number_rounded),
+                    label: const Text('Gerenciar ingressos e preços'),
+                  ),
                   const SizedBox(height: 8),
                   FilledButton.icon(
                     onPressed: () {

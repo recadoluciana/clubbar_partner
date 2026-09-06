@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/evento_repository.dart';
@@ -14,7 +13,6 @@ import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento.dart';
 import '../../models/loja.dart';
 import 'evento_form_page.dart';
-import 'evento_lote_list_page.dart';
 
 class EventoListPage extends StatefulWidget {
   final int organizacaoId;
@@ -36,8 +34,6 @@ class _EventoListPageState extends State<EventoListPage> {
   final EventoRepository _repository = EventoRepository();
   final LojaRepository _lojaRepository = LojaRepository();
   final TextEditingController _buscaController = TextEditingController();
-
-  final DateFormat _formatoData = DateFormat('dd/MM/yyyy HH:mm');
 
   bool _carregando = true;
   bool _carregandoLojas = true;
@@ -93,15 +89,6 @@ class _EventoListPageState extends State<EventoListPage> {
       if (loja.lojaId == lojaId) return loja.nmloja;
     }
     return '';
-  }
-
-  String _formatarData(String? valor) {
-    if (valor == null || valor.trim().isEmpty) return 'Não informada';
-    try {
-      return _formatoData.format(DateTime.parse(valor));
-    } catch (_) {
-      return valor;
-    }
   }
 
   String _montarUrlBanner(Evento evento) {
@@ -260,23 +247,104 @@ class _EventoListPageState extends State<EventoListPage> {
     if (resultado == true) await _carregarEventos();
   }
 
-  Future<void> _abrirLotes(Evento evento) async {
-    final lojaId = _lojaIdSelecionada;
-    if (lojaId == null) return;
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EventoLoteListPage(
-          eventoId: evento.eventoId,
-          eventoTitulo: evento.nmtituloevento,
-          organizacaoId: widget.organizacaoId,
-          lojaId: lojaId,
-          eventoInicio: evento.dtinicioevento,
+  Future<void> _agendarEvento(Evento evento) async {
+    final hoje = DateTime.now();
+    final data = await showDatePicker(
+      context: context,
+      initialDate: hoje,
+      firstDate: DateTime(hoje.year, hoje.month, hoje.day),
+      lastDate: DateTime(hoje.year + 5),
+    );
+    if (data == null || !mounted) return;
+    final hora = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 20, minute: 0),
+    );
+    if (hora == null || !mounted) return;
+    var recorrencia = 'UNICA';
+    var repeticoes = 1;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (_, setLocal) => AlertDialog(
+          title: const Text('Adicionar à agenda'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: recorrencia,
+                decoration: const InputDecoration(labelText: 'Repetição'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'UNICA',
+                    child: Text('Somente esta data'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'SEMANAL',
+                    child: Text('Toda semana'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'QUINZENAL',
+                    child: Text('A cada 15 dias'),
+                  ),
+                  DropdownMenuItem(value: 'MENSAL', child: Text('Todo mês')),
+                ],
+                onChanged: (v) => setLocal(() {
+                  recorrencia = v!;
+                  if (v == 'UNICA') repeticoes = 1;
+                }),
+              ),
+              if (recorrencia != 'UNICA') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: '$repeticoes',
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Quantidade de datas',
+                  ),
+                  onChanged: (v) => repeticoes = int.tryParse(v) ?? 1,
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Criar agenda'),
+            ),
+          ],
         ),
       ),
     );
-
-    await _carregarEventos();
+    if (confirmar != true) return;
+    try {
+      await _repository.agendar(
+        modeloId: evento.eventoId,
+        inicio: DateTime(
+          data.year,
+          data.month,
+          data.day,
+          hora.hour,
+          hora.minute,
+        ),
+        recorrencia: recorrencia,
+        repeticoes: repeticoes.clamp(1, 60),
+      );
+      if (mounted) {
+        AppSnackBar.sucesso(
+          context,
+          recorrencia == 'UNICA'
+              ? 'Evento adicionado à agenda.'
+              : '$repeticoes datas criadas na agenda.',
+        );
+      }
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
+    }
   }
 
   Future<bool> _confirmarExclusao(Evento evento) async {
@@ -583,7 +651,7 @@ class _EventoListPageState extends State<EventoListPage> {
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 1,
       padding: EdgeInsets.zero,
-      onTap: () => _abrirLotes(evento),
+      onTap: () => _abrirEdicao(evento),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -619,10 +687,6 @@ class _EventoListPageState extends State<EventoListPage> {
                     _chipStatus(evento),
                   ],
                 ),
-                _linhaInformacao(
-                  icone: Icons.calendar_month_outlined,
-                  texto: _formatarData(evento.dtinicioevento),
-                ),
                 if (local.isNotEmpty)
                   _linhaInformacao(
                     icone: Icons.location_on_outlined,
@@ -635,21 +699,13 @@ class _EventoListPageState extends State<EventoListPage> {
                 const SizedBox(height: 11),
                 SizedBox(
                   width: double.infinity,
-                  height: 48,
+                  height: 44,
                   child: ElevatedButton.icon(
-                    onPressed: () => _abrirLotes(evento),
-                    icon: const Icon(Icons.confirmation_number_rounded),
+                    onPressed: () => _agendarEvento(evento),
+                    icon: const Icon(Icons.calendar_month_rounded),
                     label: const Text(
-                      'Gerenciar lotes e preços',
+                      'Adicionar à agenda',
                       style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ClubbarColors.ambar,
-                      foregroundColor: ClubbarColors.preto,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
                     ),
                   ),
                 ),
@@ -852,9 +908,9 @@ class _EventoListPageState extends State<EventoListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Eventos',
+              titulo: 'Eventos padrão',
               subtitulo: _carregando
-                  ? 'Carregando eventos...'
+                  ? 'Carregando eventos padrão...'
                   : nomeLoja.isEmpty
                   ? 'Selecione um estabelecimento'
                   : '$nomeLoja • ${_eventos.length} '
