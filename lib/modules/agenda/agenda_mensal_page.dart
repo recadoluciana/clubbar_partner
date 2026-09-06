@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/repositories/atracao_repository.dart';
+import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -503,17 +504,12 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   }
 
   Future<void> _remover(AgendaEvento evento, EventoAtracao p) async {
-    final excluiEvento = evento.atracoes.length == 1;
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(
-          excluiEvento ? 'Excluir evento completo?' : 'Remover atração?',
-        ),
+        title: const Text('Remover atração?'),
         content: Text(
-          excluiEvento
-              ? 'Esta é a última atração do evento. Ao continuar, todos os lotes serão excluídos primeiro e depois o evento "${evento.titulo}" será excluído por completo. Esta operação não pode ser desfeita.'
-              : 'Deseja remover a atração "${p.atracao.nome}" deste evento?',
+          'Deseja remover a atração "${p.atracao.nome}" deste evento? A data do evento permanecerá na agenda.',
         ),
         actions: [
           TextButton(
@@ -521,11 +517,8 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            style: excluiEvento
-                ? FilledButton.styleFrom(backgroundColor: ClubbarColors.erro)
-                : null,
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(excluiEvento ? 'Excluir evento' : 'Remover'),
+            child: const Text('Remover'),
           ),
         ],
       ),
@@ -537,14 +530,42 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       Navigator.pop(context);
       await _carregar();
       if (!mounted) return;
-      AppSnackBar.sucesso(
-        context,
-        excluiEvento
-            ? 'Lotes e evento excluídos com sucesso.'
-            : 'Atração removida da agenda.',
-      );
+      AppSnackBar.sucesso(context, 'Atração removida da agenda.');
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, e.toString());
+    }
+  }
+
+  Future<void> _excluirOcorrencia(AgendaEvento evento) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Excluir esta data?'),
+        content: Text(
+          'O evento “${evento.titulo}” será removido somente de ${DateFormat('dd/MM/yyyy').format(evento.inicio)}. O evento padrão e as outras datas não serão alterados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: ClubbarColors.erro),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Excluir esta data'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+    try {
+      await EventoRepository().excluirOcorrencia(evento.eventoId);
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Data removida da agenda.');
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 
@@ -659,6 +680,18 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('Adicionar atração'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ClubbarColors.erro,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(sheet);
+                      _excluirOcorrencia(e);
+                    },
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    label: const Text('Excluir esta data'),
                   ),
                 ],
               ],

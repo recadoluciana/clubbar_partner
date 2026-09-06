@@ -8,10 +8,76 @@ import 'package:mime/mime.dart';
 
 import '../../core/config/api_config.dart';
 import '../../models/evento.dart';
+import '../../models/atracao.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 
 class EventoRepository {
+  Future<List<EventoModeloAtracao>> listarAtracoesPadrao(int modeloId) async {
+    final response = await ApiService.get(
+      '/eventos-modelos/$modeloId/atracoes',
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        _mensagemErro(
+          response.body,
+          'Não foi possível listar as atrações padrão.',
+        ),
+      );
+    }
+    return (jsonDecode(response.body) as List)
+        .map((e) => EventoModeloAtracao.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<void> salvarAtracaoPadrao({
+    required int modeloId,
+    EventoModeloAtracao? item,
+    required int atracaoId,
+    required int ordem,
+    required int minutoInicio,
+    required int minutoDuracao,
+  }) async {
+    final dados = {
+      'atracao_id': atracaoId,
+      'ordem': ordem,
+      'nrminutoinicio': minutoInicio,
+      'nrminutoduracao': minutoDuracao,
+    };
+    final response = item == null
+        ? await ApiService.post('/eventos-modelos/$modeloId/atracoes', dados)
+        : await ApiService.put('/eventos-modelos/atracoes/${item.id}', dados);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(
+          response.body,
+          'Não foi possível salvar a atração padrão.',
+        ),
+      );
+    }
+  }
+
+  Future<void> excluirAtracaoPadrao(int id) async {
+    final response = await ApiService.delete('/eventos-modelos/atracoes/$id');
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(
+          response.body,
+          'Não foi possível excluir a atração padrão.',
+        ),
+      );
+    }
+  }
+
+  Future<void> excluirOcorrencia(int eventoId) async {
+    final response = await ApiService.delete('/eventos/$eventoId');
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(response.body, 'Não foi possível excluir esta data.'),
+      );
+    }
+  }
+
   Future<void> agendar({
     required int modeloId,
     required DateTime inicio,

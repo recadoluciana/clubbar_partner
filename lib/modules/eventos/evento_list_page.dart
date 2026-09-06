@@ -13,6 +13,7 @@ import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento.dart';
 import '../../models/loja.dart';
 import 'evento_form_page.dart';
+import 'evento_modelo_atracoes_page.dart';
 
 class EventoListPage extends StatefulWidget {
   final int organizacaoId;
@@ -695,6 +696,26 @@ class _EventoListPageState extends State<EventoListPage> {
                 if (endereco.isNotEmpty)
                   _linhaInformacao(icone: Icons.map_outlined, texto: endereco),
                 const SizedBox(height: 15),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => EventoModeloAtracoesPage(
+                          modeloId: evento.eventoId,
+                          titulo: evento.nmtituloevento,
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.music_note_rounded),
+                    label: const Text(
+                      'Atrações padrão',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 const Divider(height: 1, color: ClubbarColors.divisor),
                 const SizedBox(height: 11),
                 SizedBox(
