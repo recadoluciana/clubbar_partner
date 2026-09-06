@@ -23,6 +23,7 @@ import '../auditoria/auditoria_page.dart';
 import '../cardapio/cardapio_loja_page.dart';
 import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
+import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -179,8 +180,14 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _abrirExtratoAsaas() async {
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const ExtratoAsaasPage()));
+  }
+
+  Future<void> _abrirAcompanhamentoVendas() async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const ExtratoAsaasPage()),
+      MaterialPageRoute(builder: (_) => const AcompanhamentoVendasPage()),
     );
   }
 
@@ -422,7 +429,8 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(height: 14),
                         _opcao(
                           titulo: 'Extrato Asaas',
-                          subtitulo: 'Consulte o saldo e as transações recebidas na sua subconta.',
+                          subtitulo:
+                              'Consulte o saldo e as transações recebidas na sua subconta.',
                           icone: Icons.receipt_long_rounded,
                           onTap: _podeVerGerencial ? _abrirExtratoAsaas : null,
                         ),
@@ -442,6 +450,16 @@ class _DashboardPageState extends State<DashboardPage> {
                               'Acompanhe suas vendas por estabelecimento, produtos e ingressos.',
                           icone: Icons.analytics_rounded,
                           onTap: _podeVerGerencial ? _abrirGerencial : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Acompanhamento de vendas',
+                          subtitulo:
+                              'Veja produtos ainda não retirados e acompanhe as vendas de ingressos por evento.',
+                          icone: Icons.monitor_heart_rounded,
+                          onTap: _podeVerGerencial
+                              ? _abrirAcompanhamentoVendas
+                              : null,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
