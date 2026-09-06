@@ -733,7 +733,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                 if (widget.lojas.length > 1)
                   PopupMenuButton<int>(
                     tooltip: 'Trocar estabelecimento',
-                    icon: const Icon(Icons.storefront_rounded),
+                    icon: const Icon(Icons.swap_horiz_rounded),
                     onSelected: _selecionarLoja,
                     itemBuilder: (_) => widget.lojas
                         .map(
@@ -747,7 +747,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                 FilledButton.icon(
                   onPressed: _loading ? null : _abrirGerenciarEventos,
                   icon: const Icon(Icons.event_note_rounded, size: 18),
-                  label: const Text('Gerenciar eventos'),
+                  label: const Text('Eventos padrão'),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     minimumSize: const Size(0, 38),
