@@ -661,7 +661,49 @@ class _EventoListPageState extends State<EventoListPage> {
             child: SizedBox(
               width: double.infinity,
               height: 180,
-              child: _bannerEvento(evento),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _bannerEvento(evento),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Color(0xB3000000)],
+                        stops: [0.45, 1],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 14,
+                    right: 14,
+                    bottom: 12,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            evento.nmtituloevento,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(color: Colors.black54, blurRadius: 4),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        _chipStatus(evento),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Padding(
@@ -669,25 +711,6 @@ class _EventoListPageState extends State<EventoListPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        evento.nmtituloevento,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w900,
-                          color: ClubbarColors.textoPrincipal,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    _chipStatus(evento),
-                  ],
-                ),
                 if (local.isNotEmpty)
                   _linhaInformacao(
                     icone: Icons.location_on_outlined,

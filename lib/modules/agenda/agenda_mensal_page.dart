@@ -769,7 +769,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 FilledButton.icon(
-                  onPressed: _loading ? null : _abrirGerenciarEventos,
+                  onPressed: _abrirGerenciarEventos,
                   icon: const Icon(Icons.event_note_rounded, size: 18),
                   label: const Text('Eventos padrão'),
                   style: FilledButton.styleFrom(
