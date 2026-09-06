@@ -39,17 +39,20 @@ class EstiloMusical {
   final int id;
   final String nome;
   final String situacao;
+  final String origem;
 
   const EstiloMusical({
     required this.id,
     required this.nome,
     this.situacao = 'ATIVO',
+    this.origem = 'PERSONALIZADO',
   });
 
   factory EstiloMusical.fromJson(Map<String, dynamic> json) => EstiloMusical(
     id: int.tryParse('${json['estilomusical_id'] ?? 0}') ?? 0,
     nome: '${json['nmestilomusical'] ?? ''}',
     situacao: '${json['sitestilomusical'] ?? 'ATIVO'}'.toUpperCase(),
+    origem: '${json['origem'] ?? 'CATALOGO'}'.toUpperCase(),
   );
 }
 

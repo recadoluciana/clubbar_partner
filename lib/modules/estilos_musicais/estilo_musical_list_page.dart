@@ -136,6 +136,73 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
     }
   }
 
+  Future<void> _importarDoCatalogo() async {
+    try {
+      final catalogo = await _repo.listarCatalogoEstilos();
+      if (!mounted) return;
+      final jaAdotados = _itens
+          .where((e) => e.origem == 'CATALOGO')
+          .map((e) => e.nome.toLowerCase())
+          .toSet();
+      final disponiveis = catalogo
+          .where((e) => !jaAdotados.contains(e.nome.toLowerCase()))
+          .toList();
+      final selecionados = <int>{};
+      final confirmar = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Adicionar do catálogo Clubbar'),
+            content: SizedBox(
+              width: 480,
+              child: disponiveis.isEmpty
+                  ? const Text(
+                      'Todos os estilos do catálogo já foram adicionados.',
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: disponiveis.length,
+                      itemBuilder: (_, i) {
+                        final estilo = disponiveis[i];
+                        return CheckboxListTile(
+                          value: selecionados.contains(estilo.id),
+                          title: Text(estilo.nome),
+                          onChanged: (valor) => setDialogState(() {
+                            valor == true
+                                ? selecionados.add(estilo.id)
+                                : selecionados.remove(estilo.id);
+                          }),
+                        );
+                      },
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: disponiveis.isEmpty
+                    ? null
+                    : () => Navigator.pop(dialogContext, true),
+                child: const Text('Adicionar'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (confirmar != true || selecionados.isEmpty) return;
+      await _repo.importarEstilos(selecionados.toList());
+      if (!mounted) return;
+      AppSnackBar.sucesso(context, 'Estilos adicionados à organização.');
+      await _carregar();
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
   Future<void> _excluir(EstiloMusical estilo) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -182,8 +249,14 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Estilos musicais',
-              subtitulo: '${_itens.length} estilos cadastrados',
+              titulo: 'Estilos da organização',
+              subtitulo:
+                  '${_itens.length} estilos disponíveis para as atrações',
+              trailing: IconButton(
+                tooltip: 'Adicionar do catálogo Clubbar',
+                onPressed: _importarDoCatalogo,
+                icon: const Icon(Icons.playlist_add_rounded),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
@@ -249,7 +322,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
                                 ),
                               ),
                               subtitle: Text(
-                                ativo ? 'Ativo' : 'Inativo',
+                                '${estilo.origem == 'CATALOGO' ? 'Catálogo Clubbar' : 'Personalizado'} • ${ativo ? 'Ativo' : 'Inativo'}',
                                 style: TextStyle(
                                   color: ativo
                                       ? Colors.green

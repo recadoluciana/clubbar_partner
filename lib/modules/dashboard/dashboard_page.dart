@@ -39,7 +39,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   bool get _podeEditarOrganizacao => _cargo == 'SUPERADMIN';
   bool get _podeGerenciarAtracoes =>
-      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN';
+      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'GERENTE';
   bool get _podeVerGerencial =>
       _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'GERENTE';
 

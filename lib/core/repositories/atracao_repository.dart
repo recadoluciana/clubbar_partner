@@ -24,6 +24,23 @@ class AtracaoRepository {
         .toList();
   }
 
+  Future<List<EstiloMusical>> listarCatalogoEstilos() async {
+    final r = await ApiService.get('/estilos-musicais/catalogo');
+    if (r.statusCode != 200) throw Exception(_erro(r.body));
+    return (jsonDecode(r.body) as List)
+        .map((e) => EstiloMusical.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<void> importarEstilos(List<int> ids) async {
+    final r = await ApiService.post('/estilos-musicais/importar', {
+      'estilos_ids': ids,
+    });
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception(_erro(r.body));
+    }
+  }
+
   Future<void> salvarEstilo({
     EstiloMusical? estilo,
     required String nome,
