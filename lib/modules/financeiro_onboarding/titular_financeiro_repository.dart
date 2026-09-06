@@ -53,4 +53,13 @@ class TitularFinanceiroRepository {
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
+
+  Future<Map<String, dynamic>> aprovarSandbox(int id) async {
+    final r = await ApiService.post(
+      '/titular-financeiro/organizacao/$id/aprovar-sandbox',
+      {},
+    );
+    if (r.statusCode == 200) return _decode(r.body);
+    throw Exception(_erro(r.body));
+  }
 }

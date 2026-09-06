@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/repositories/localidade_repository.dart';
+import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -43,6 +44,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   };
   int? _organizacaoId, _estadoId, _cidadeId;
   String _tipo = 'PJ', _status = 'NAO_INICIADO', _onboardingUrl = '';
+  bool _subcontaCriada = false;
   String _nomeOrganizacao = 'Empresa';
   bool _carregando = true, _processando = false, _consultandoCep = false;
   String? _ultimoCepConsultado;
@@ -68,6 +70,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
         ? 'NAO_INICIADO'
         : _texto(d['status_asaas']);
     _onboardingUrl = _texto(d['onboarding_url']);
+    _subcontaCriada = _texto(d['asaas_account_id']).isNotEmpty;
     _estadoId = d['estado_id'] as int?;
     _cidadeId = d['cidade_id'] as int?;
     final mapa = {
@@ -420,17 +423,38 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
         ),
       ),
       const SizedBox(height: 16),
-      ElevatedButton.icon(
-        onPressed: _processando
-            ? null
-            : () => _executar(
-                () => _repo.ativar(_organizacaoId!),
-                'Subconta criada. Continue o cadastro no Asaas.',
-              ),
-        icon: const Icon(Icons.account_balance_rounded),
-        label: const Text('Ativar recebimentos'),
-      ),
-      const SizedBox(height: 12),
+      if (!_subcontaCriada) ...[
+        ElevatedButton.icon(
+          onPressed: _processando
+              ? null
+              : () => _executar(
+                  () => _repo.ativar(_organizacaoId!),
+                  'Subconta criada. Aguarde alguns segundos e verifique a situação.',
+                ),
+          icon: const Icon(Icons.account_balance_rounded),
+          label: const Text('Ativar recebimentos'),
+        ),
+        const SizedBox(height: 12),
+      ] else if (_status != 'APROVADO' && _onboardingUrl.isEmpty) ...[
+        const Card(
+          color: Color(0xFFFFF8E1),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Icon(Icons.schedule_rounded, color: Colors.orange),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Subconta criada. Aguarde pelo menos 15 segundos e toque em Verificar situação no Asaas.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
       if (_onboardingUrl.isNotEmpty)
         ElevatedButton.icon(
           onPressed: () => launchUrl(
@@ -441,6 +465,22 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
           label: const Text('Enviar documentos e selfie'),
         ),
       if (_onboardingUrl.isNotEmpty) const SizedBox(height: 12),
+      if (_subcontaCriada &&
+          _status != 'APROVADO' &&
+          (ApiConfig.isDev ||
+              ApiConfig.baseUrl.contains('desenvolvimento'))) ...[
+        OutlinedButton.icon(
+          onPressed: _processando
+              ? null
+              : () => _executar(
+                  () => _repo.aprovarSandbox(_organizacaoId!),
+                  'Subconta de teste aprovada no Sandbox.',
+                ),
+          icon: const Icon(Icons.fact_check_rounded),
+          label: const Text('Aprovar subconta de teste'),
+        ),
+        const SizedBox(height: 12),
+      ],
       OutlinedButton.icon(
         onPressed: _processando
             ? null
