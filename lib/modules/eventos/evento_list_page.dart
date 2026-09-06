@@ -518,12 +518,16 @@ class _EventoListPageState extends State<EventoListPage> {
 
     if (url.isEmpty) return placeholder();
 
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: 180,
-      errorBuilder: (_, _, _) => placeholder(),
+    return ColoredBox(
+      color: ClubbarColors.fundo,
+      child: Image.network(
+        url,
+        fit: BoxFit.contain,
+        alignment: Alignment.center,
+        width: double.infinity,
+        height: 180,
+        errorBuilder: (_, _, _) => placeholder(),
+      ),
     );
   }
 

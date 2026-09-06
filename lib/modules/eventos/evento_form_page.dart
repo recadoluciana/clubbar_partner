@@ -399,14 +399,14 @@ class _EventoFormPageState extends State<EventoFormPage> {
       if (kIsWeb && _imagemBytes != null) {
         return Image.memory(
           _imagemBytes!,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           width: double.infinity,
         );
       }
 
       return Image.file(
         File(_imagemSelecionada!.path),
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         width: double.infinity,
         errorBuilder: (_, _, _) => placeholder(),
       );
@@ -415,7 +415,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
     if (editando && bannerAtual.isNotEmpty) {
       return Image.network(
         bannerAtual,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         width: double.infinity,
         errorBuilder: (_, _, _) => placeholder(),
       );

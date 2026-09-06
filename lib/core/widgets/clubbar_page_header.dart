@@ -8,6 +8,7 @@ class ClubbarPageHeader extends StatelessWidget {
   final Widget? subtituloWidget;
   final Widget? trailing;
   final TextStyle? tituloStyle;
+  final EdgeInsetsGeometry padding;
 
   const ClubbarPageHeader({
     super.key,
@@ -16,13 +17,14 @@ class ClubbarPageHeader extends StatelessWidget {
     this.subtituloWidget,
     this.trailing,
     this.tituloStyle,
+    this.padding = const EdgeInsets.fromLTRB(18, 14, 16, 16),
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 14, 16, 16),
+      padding: padding,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

@@ -47,6 +47,19 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     await _carregar();
   }
 
+  Future<void> _abrirGerenciarEventos() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EventoListPage(
+          organizacaoId: _loja.organizacaoId,
+          lojaIdInicial: _loja.lojaId,
+          fixarLoja: true,
+        ),
+      ),
+    );
+    if (mounted) await _carregar();
+  }
+
   Future<void> _carregar() async {
     setState(() {
       _loading = true;
@@ -646,74 +659,48 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
           onPressed: _compartilharAgenda,
           icon: const Icon(Icons.share),
         ),
-        PopupMenuButton<String>(
-          tooltip: 'Mais opções',
-          icon: const Icon(Icons.more_vert_rounded),
-          onSelected: (valor) async {
-            if (valor == 'eventos') {
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => EventoListPage(
-                    organizacaoId: _loja.organizacaoId,
-                    lojaIdInicial: _loja.lojaId,
-                    fixarLoja: true,
-                  ),
-                ),
-              );
-            } else if (valor == 'atracoes') {
-              await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AtracaoListPage()),
-              );
-            } else {
-              return;
-            }
-            if (mounted) await _carregar();
-          },
-          itemBuilder: (_) => const [
-            PopupMenuItem<String>(
-              value: 'atracoes',
-              child: ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.music_note_rounded),
-                title: Text('Gerenciar atrações'),
-              ),
-            ),
-            PopupMenuItem<String>(
-              value: 'eventos',
-              child: ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.event_note_rounded),
-                title: Text('Gerenciar eventos'),
-              ),
-            ),
-          ],
-        ),
       ],
     ),
     body: SafeArea(
       child: Column(
         children: [
           ClubbarPageHeader(
-            titulo: 'Agenda Mensal',
-            subtitulo: _loja.nmloja,
-            subtituloWidget: widget.lojas.length > 1
-                ? DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      value: _loja.lojaId,
-                      onChanged: _loading ? null : _selecionarLoja,
-                      items: widget.lojas
-                          .map(
-                            (loja) => DropdownMenuItem<int>(
-                              value: loja.lojaId,
-                              child: Text(loja.nmloja),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  )
-                : Text(_loja.nmloja),
+            titulo: _loja.nmloja,
+            subtitulo: 'Agenda Mensal',
+            tituloStyle: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              color: Colors.blue,
+            ),
+            padding: const EdgeInsets.fromLTRB(18, 9, 12, 10),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.lojas.length > 1)
+                  PopupMenuButton<int>(
+                    tooltip: 'Trocar estabelecimento',
+                    icon: const Icon(Icons.storefront_rounded),
+                    onSelected: _selecionarLoja,
+                    itemBuilder: (_) => widget.lojas
+                        .map(
+                          (loja) => PopupMenuItem<int>(
+                            value: loja.lojaId,
+                            child: Text(loja.nmloja),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                FilledButton.icon(
+                  onPressed: _loading ? null : _abrirGerenciarEventos,
+                  icon: const Icon(Icons.event_note_rounded, size: 18),
+                  label: const Text('Gerenciar eventos'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    minimumSize: const Size(0, 38),
+                  ),
+                ),
+              ],
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(10),

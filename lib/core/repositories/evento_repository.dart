@@ -116,7 +116,7 @@ class EventoRepository {
     final body = await response.stream.bytesToString();
 
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Erro ao criar evento: $body');
+      throw Exception(_mensagemErro(body, 'Não foi possível criar o evento.'));
     }
   }
 
@@ -182,7 +182,9 @@ class EventoRepository {
     final body = await response.stream.bytesToString();
 
     if (response.statusCode != 200) {
-      throw Exception('Erro ao atualizar evento: $body');
+      throw Exception(
+        _mensagemErro(body, 'Não foi possível atualizar o evento.'),
+      );
     }
   }
 
@@ -192,5 +194,15 @@ class EventoRepository {
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Erro ao excluir evento: ${response.body}');
     }
+  }
+
+  String _mensagemErro(String body, String padrao) {
+    try {
+      final data = jsonDecode(body);
+      if (data is Map && data['detail'] != null) {
+        return data['detail'].toString();
+      }
+    } catch (_) {}
+    return body.trim().isEmpty ? padrao : body;
   }
 }
