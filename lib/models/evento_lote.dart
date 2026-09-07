@@ -9,6 +9,9 @@ class EventoLote {
   final int numeroLote;
   final String tipoIngresso;
   final double vrprecolote;
+  final List<EventoLotePreco> precos;
+  final int cotaLegal;
+  final int quantidadeVendidaCotaLegal;
   final int qttotallote;
   final int qtvendidalote;
   final String? dtiniciovenda;
@@ -26,6 +29,9 @@ class EventoLote {
     this.numeroLote = 1,
     this.tipoIngresso = 'UNICO',
     required this.vrprecolote,
+    this.precos = const [],
+    this.cotaLegal = 0,
+    this.quantidadeVendidaCotaLegal = 0,
     required this.qttotallote,
     required this.qtvendidalote,
     this.dtiniciovenda,
@@ -34,6 +40,10 @@ class EventoLote {
   });
 
   factory EventoLote.fromJson(Map<String, dynamic> json) {
+    final precos = (json['precos'] as List? ?? const [])
+        .map((e) => EventoLotePreco.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+    final inteira = precos.where((e) => e.tipo == 'INTEIRA').firstOrNull;
     return EventoLote(
       loteId: json['lote_id'] ?? 0,
       organizacaoId: json['organizacao_id'],
@@ -43,8 +53,12 @@ class EventoLote {
       eventoSetorId: (json['eventosetor_id'] as num?)?.toInt(),
       nomeSetor: json['nmsetor']?.toString(),
       numeroLote: (json['nrlote'] as num?)?.toInt() ?? 1,
-      tipoIngresso: (json['tipoingresso'] ?? 'UNICO').toString(),
-      vrprecolote: (json['vrprecolote'] as num?)?.toDouble() ?? 0,
+      tipoIngresso: 'COMPARTILHADO',
+      vrprecolote: inteira?.valor ?? (precos.isEmpty ? 0 : precos.first.valor),
+      precos: precos,
+      cotaLegal: (json['cotalegal'] as num?)?.toInt() ?? 0,
+      quantidadeVendidaCotaLegal:
+          (json['qtvendidacotalegal'] as num?)?.toInt() ?? 0,
       qttotallote: (json['qttotallote'] as num?)?.toInt() ?? 0,
       qtvendidalote: (json['qtvendidalote'] as num?)?.toInt() ?? 0,
       dtiniciovenda: json['dtiniciovenda']?.toString(),
@@ -52,6 +66,31 @@ class EventoLote {
       statuslote: json['statuslote']?.toString(),
     );
   }
+}
+
+class EventoLotePreco {
+  final int id;
+  final String nome;
+  final String tipo;
+  final double valor;
+  final bool aplicaCotaLegal;
+  final bool exigeComprovante;
+  const EventoLotePreco({
+    required this.id,
+    required this.nome,
+    required this.tipo,
+    required this.valor,
+    required this.aplicaCotaLegal,
+    required this.exigeComprovante,
+  });
+  factory EventoLotePreco.fromJson(Map<String, dynamic> j) => EventoLotePreco(
+    id: (j['lotepreco_id'] as num?)?.toInt() ?? 0,
+    nome: '${j['nmpreco'] ?? ''}',
+    tipo: '${j['tipopreco'] ?? ''}',
+    valor: (j['vrpreco'] as num?)?.toDouble() ?? 0,
+    aplicaCotaLegal: j['aplicacotalegal'] == true,
+    exigeComprovante: j['exigecomprovante'] == true,
+  );
 }
 
 class EventoSetor {

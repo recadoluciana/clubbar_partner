@@ -264,6 +264,12 @@ class _EventoListPageState extends State<EventoListPage> {
     if (hora == null || !mounted) return;
     var recorrencia = 'UNICA';
     var repeticoes = 1;
+    final loja = _lojas
+        .where((x) => x.lojaId == _lojaIdSelecionada)
+        .firstOrNull;
+    final capacidadeController = TextEditingController(
+      text: loja?.capacidadeTotal?.toString() ?? '',
+    );
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -272,6 +278,14 @@ class _EventoListPageState extends State<EventoListPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              TextFormField(
+                controller: capacidadeController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Capacidade desta sessão',
+                ),
+              ),
+              const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: recorrencia,
                 decoration: const InputDecoration(labelText: 'Repetição'),
@@ -322,6 +336,13 @@ class _EventoListPageState extends State<EventoListPage> {
       ),
     );
     if (confirmar != true) return;
+    final capacidade = int.tryParse(capacidadeController.text.trim()) ?? 0;
+    capacidadeController.dispose();
+    if (capacidade <= 0) {
+      if (mounted)
+        AppSnackBar.aviso(context, 'Informe a capacidade desta sessão.');
+      return;
+    }
     try {
       await _repository.agendar(
         modeloId: evento.eventoId,
@@ -332,6 +353,7 @@ class _EventoListPageState extends State<EventoListPage> {
           hora.hour,
           hora.minute,
         ),
+        capacidade: capacidade,
         recorrencia: recorrencia,
         repeticoes: repeticoes.clamp(1, 60),
       );

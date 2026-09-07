@@ -36,10 +36,8 @@ class EventoLoteRepository {
       'nmlote': nome,
       'eventosetor_id': eventoSetorId,
       'nrlote': numeroLote,
-      'tipoingresso': tipoIngresso,
-      'vrprecolote': preco,
       'qttotallote': quantidadeTotal,
-      'qtvendidalote': quantidadeVendida,
+      'precos': _precosPadrao(preco),
       'dtiniciovenda': dtInicioVenda,
       'dtfimvenda': dtFimVenda,
       'statuslote': status,
@@ -67,16 +65,11 @@ class EventoLoteRepository {
     String? tipoIngresso,
   }) async {
     final response = await ApiService.put('/eventos/lotes/$loteId', {
-      'organizacao_id': organizacaoId,
-      'loja_id': lojaId,
-      'evento_id': eventoId,
       'nmlote': nome,
       'eventosetor_id': eventoSetorId,
       'nrlote': numeroLote,
-      'tipoingresso': tipoIngresso,
-      'vrprecolote': preco,
       'qttotallote': quantidadeTotal,
-      'qtvendidalote': quantidadeVendida,
+      if (preco != null) 'precos': _precosPadrao(preco),
       'dtiniciovenda': dtInicioVenda,
       'dtfimvenda': dtFimVenda,
       'statuslote': status,
@@ -86,6 +79,33 @@ class EventoLoteRepository {
       throw Exception('Erro ao atualizar lote: ${response.body}');
     }
   }
+
+  List<Map<String, dynamic>> _precosPadrao(double inteira) => [
+    {
+      'nmpreco': 'Inteira',
+      'tipopreco': 'INTEIRA',
+      'vrpreco': inteira,
+      'aplicacotalegal': false,
+      'exigecomprovante': false,
+      'nrordem': 1,
+    },
+    {
+      'nmpreco': 'Meia-entrada',
+      'tipopreco': 'MEIA_LEGAL',
+      'vrpreco': inteira / 2,
+      'aplicacotalegal': true,
+      'exigecomprovante': true,
+      'nrordem': 2,
+    },
+    {
+      'nmpreco': 'Pessoa idosa',
+      'tipopreco': 'MEIA_IDOSO',
+      'vrpreco': inteira / 2,
+      'aplicacotalegal': false,
+      'exigecomprovante': true,
+      'nrordem': 3,
+    },
+  ];
 
   Future<List<EventoSetor>> listarSetores(int eventoId) async {
     final response = await ApiService.get('/eventos/$eventoId/setores');

@@ -47,7 +47,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
   final _cepController = TextEditingController();
   final _enderecoController = TextEditingController();
   final _precoController = TextEditingController(text: '0,00');
-  final _quantidadeController = TextEditingController();
 
   XFile? _imagemSelecionada;
   Uint8List? _imagemBytes;
@@ -77,7 +76,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
       _precoController.text = evento.vrPrecoPadrao
           .toStringAsFixed(2)
           .replaceAll('.', ',');
-      _quantidadeController.text = evento.qtIngressosPadrao?.toString() ?? '';
     }
   }
 
@@ -92,7 +90,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
     _cepController.dispose();
     _enderecoController.dispose();
     _precoController.dispose();
-    _quantidadeController.dispose();
     super.dispose();
   }
 
@@ -210,7 +207,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
           _precoController.text.replaceAll('.', '').replaceAll(',', '.'),
         ) ??
         0;
-    final quantidade = int.tryParse(_quantidadeController.text.trim());
 
     try {
       if (editando) {
@@ -225,7 +221,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
           endereco: _enderecoController.text.trim(),
           status: _statusSelecionado,
           precoPadrao: preco,
-          quantidadePadrao: quantidade,
           imagem: _imagemSelecionada,
         );
       } else {
@@ -242,7 +237,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
           endereco: _enderecoController.text.trim(),
           status: _statusSelecionado,
           precoPadrao: preco,
-          quantidadePadrao: quantidade,
           imagem: _imagemSelecionada,
         );
       }
@@ -423,34 +417,14 @@ class _EventoFormPageState extends State<EventoFormPage> {
             ),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _precoController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: _decoracaoCampo(
-                    label: 'Preço padrão da inteira',
-                    icone: Icons.attach_money_rounded,
-                    hint: '0,00',
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  controller: _quantidadeController,
-                  keyboardType: TextInputType.number,
-                  decoration: _decoracaoCampo(
-                    label: 'Quantidade padrão',
-                    icone: Icons.confirmation_number_outlined,
-                    hint: 'Opcional',
-                  ),
-                ),
-              ),
-            ],
+          TextFormField(
+            controller: _precoController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: _decoracaoCampo(
+              label: 'Preço padrão da inteira',
+              icone: Icons.attach_money_rounded,
+              hint: '0,00',
+            ),
           ),
           const SizedBox(height: 14),
           TextFormField(

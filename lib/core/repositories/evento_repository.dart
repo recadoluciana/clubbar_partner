@@ -98,12 +98,14 @@ class EventoRepository {
   Future<void> agendar({
     required int modeloId,
     required DateTime inicio,
+    required int capacidade,
     required String recorrencia,
     required int repeticoes,
   }) async {
     final response =
         await ApiService.post('/eventos-modelos/$modeloId/agendar', {
           'dtinicio': inicio.toIso8601String(),
+          'capacidade': capacidade,
           'recorrencia': recorrencia,
           'repeticoes': repeticoes,
         });
@@ -172,7 +174,6 @@ class EventoRepository {
     String? endereco,
     String? status,
     double precoPadrao = 0,
-    int? quantidadePadrao,
     XFile? imagem,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/eventos-modelos');
@@ -211,9 +212,6 @@ class EventoRepository {
       request.fields['statusevento'] = status;
     }
     request.fields['vrprecolote'] = precoPadrao.toStringAsFixed(2);
-    if (quantidadePadrao != null) {
-      request.fields['qttotallote'] = '$quantidadePadrao';
-    }
 
     if (imagem != null) {
       request.files.add(await _montarArquivoImagem('urlbannerevento', imagem));
@@ -240,7 +238,6 @@ class EventoRepository {
     String? endereco,
     String? status,
     double? precoPadrao,
-    int? quantidadePadrao,
     XFile? imagem,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/eventos-modelos/$eventoId');
@@ -278,9 +275,6 @@ class EventoRepository {
     }
     if (precoPadrao != null) {
       request.fields['vrprecolote'] = precoPadrao.toStringAsFixed(2);
-    }
-    if (quantidadePadrao != null) {
-      request.fields['qttotallote'] = '$quantidadePadrao';
     }
 
     if (imagem != null) {
