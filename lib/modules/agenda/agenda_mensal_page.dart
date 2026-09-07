@@ -442,14 +442,14 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                       decimal: true,
                     ),
                     decoration: const InputDecoration(
-                      labelText: 'Preço do Lote Único',
+                      labelText: 'Preço da inteira',
                       prefixText: 'R\$ ',
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'O evento será criado como ativo e o lote ficará disponível para venda imediatamente.',
+                    'O evento será criado com Pista Inteira e Pista Meia Entrada. A meia entrada iniciará com 50% do preço informado.',
                     style: TextStyle(color: ClubbarColors.textoSecundario),
                   ),
                 ],

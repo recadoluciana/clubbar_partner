@@ -45,7 +45,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   String _status = 'ATIVO';
   DateTime? _dataInicioSelecionada;
   DateTime? _dataFimSelecionada;
-  bool _modoSimples = true;
+  bool _modoSimples = false;
   List<EventoSetor> _setores = [];
   int? _setorId;
   String _tipoIngresso = 'INTEIRA';
@@ -309,17 +309,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
         return;
       }
       if (_dataFimSelecionada == null) {
-        AppSnackBar.aviso(
-          context,
-          'Informe o fim das vendas, que deve ocorrer antes do evento.',
-        );
-        return;
-      }
-      if (!_dataFimSelecionada!.isBefore(inicioEvento)) {
-        AppSnackBar.aviso(
-          context,
-          'O fim das vendas deve acontecer antes do início do evento.',
-        );
+        AppSnackBar.aviso(context, 'Informe o fim das vendas.');
         return;
       }
     }
@@ -331,9 +321,12 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           : int.parse(_numeroLoteController.text);
       final tipoIngresso = _modoSimples ? 'UNICO' : _tipoIngresso;
       final setor = _setores.where((e) => e.id == _setorId).firstOrNull;
+      final nomeTipo = _nomeTipo(tipoIngresso) == 'Meia'
+          ? 'Meia Entrada'
+          : _nomeTipo(tipoIngresso);
       final nomeLote = _modoSimples
           ? 'Ingresso único'
-          : '$numeroLoteº lote - ${setor!.nome} - ${_nomeTipo(tipoIngresso)}';
+          : 'Lote $numeroLote - ${setor!.nome} $nomeTipo';
       if (editando) {
         await _repo.atualizar(
           loteId: widget.lote!.loteId,
@@ -440,25 +433,33 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     return ClubbarCard(
       child: Column(
         children: [
-          SegmentedButton<bool>(
-            segments: const [
-              ButtonSegment(
-                value: true,
-                label: Text('Ingresso único'),
-                icon: Icon(Icons.local_activity_outlined),
+          if (editando && _modoSimples) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ClubbarColors.ambarClaro,
+                borderRadius: BorderRadius.circular(14),
               ),
-              ButtonSegment(
-                value: false,
-                label: Text('Setores e lotes'),
-                icon: Icon(Icons.account_tree_outlined),
+              child: Column(
+                children: [
+                  const Text(
+                    'Este ingresso foi criado no formato antigo. Converta-o '
+                    'para informar setor e tipo de ingresso.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _quantidadeVendida > 0
+                        ? null
+                        : () => setState(() => _modoSimples = false),
+                    icon: const Icon(Icons.account_tree_outlined),
+                    label: const Text('Converter ingresso'),
+                  ),
+                ],
               ),
-            ],
-            selected: {_modoSimples},
-            onSelectionChanged: editando
-                ? null
-                : (v) => setState(() => _modoSimples = v.first),
-          ),
-          const SizedBox(height: 14),
+            ),
+            const SizedBox(height: 14),
+          ],
           if (!_modoSimples) ...[
             Row(
               children: [

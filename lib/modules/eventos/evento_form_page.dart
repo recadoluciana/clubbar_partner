@@ -432,7 +432,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
                     decimal: true,
                   ),
                   decoration: _decoracaoCampo(
-                    label: 'Preço padrão',
+                    label: 'Preço padrão da inteira',
                     icone: Icons.attach_money_rounded,
                     hint: '0,00',
                   ),
@@ -549,8 +549,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'O preço e a quantidade padrão serão copiados para cada data '
-              'criada na agenda. Cada data terá estoque independente.',
+              'Ao agendar uma data, o sistema criará o Lote 1 com Pista '
+              'Inteira e Pista Meia Entrada. A meia entrada inicia com 50% '
+              'do preço da inteira e poderá ser ajustada depois.',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.4,
