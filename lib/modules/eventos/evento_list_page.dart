@@ -560,12 +560,6 @@ class _EventoListPageState extends State<EventoListPage> {
           icone: Icons.refresh_rounded,
           onPressed: _carregando ? null : _carregarEventos,
         ),
-        const SizedBox(width: 8),
-        _botaoCircularHeader(
-          tooltip: 'Adicionar evento',
-          icone: Icons.add_rounded,
-          onPressed: _lojaIdSelecionada == null ? null : _abrirNovoEvento,
-        ),
       ],
     );
   }
@@ -948,6 +942,11 @@ class _EventoListPageState extends State<EventoListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _lojaIdSelecionada == null ? null : _abrirNovoEvento,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Adicionar evento padrão'),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -982,7 +981,7 @@ class _EventoListPageState extends State<EventoListPage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 90),
                   children: [_conteudoLista()],
                 ),
               ),

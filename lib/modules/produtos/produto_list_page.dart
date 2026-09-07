@@ -572,12 +572,6 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
           icone: Icons.refresh_rounded,
           onPressed: _carregando ? null : _carregarProdutos,
         ),
-        const SizedBox(width: 8),
-        _botaoCircularHeader(
-          tooltip: 'Adicionar produto',
-          icone: Icons.add_rounded,
-          onPressed: _lojaIdSelecionada == null ? null : _abrirCadastro,
-        ),
       ],
     );
   }
@@ -956,6 +950,11 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _lojaIdSelecionada == null ? null : _abrirCadastro,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Adicionar produto'),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -990,7 +989,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 90),
                   children: [_conteudoLista()],
                 ),
               ),

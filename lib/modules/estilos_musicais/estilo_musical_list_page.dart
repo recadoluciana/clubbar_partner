@@ -240,10 +240,24 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _editar(),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Novo estilo'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'adicionar_catalogo_estilos',
+            onPressed: _importarDoCatalogo,
+            icon: const Icon(Icons.playlist_add_rounded),
+            label: const Text('Adicionar do catálogo'),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton.extended(
+            heroTag: 'adicionar_estilo',
+            onPressed: () => _editar(),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Adicionar estilo'),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -252,11 +266,6 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
               titulo: 'Estilos da organização',
               subtitulo:
                   '${_itens.length} estilos disponíveis para as atrações',
-              trailing: IconButton(
-                tooltip: 'Adicionar do catálogo Clubbar',
-                onPressed: _importarDoCatalogo,
-                icon: const Icon(Icons.playlist_add_rounded),
-              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),

@@ -491,12 +491,6 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
           icone: Icons.refresh_rounded,
           onPressed: _carregando ? null : _carregarCategorias,
         ),
-        const SizedBox(width: 8),
-        _botaoCircularHeader(
-          tooltip: 'Adicionar categoria',
-          icone: Icons.add_rounded,
-          onPressed: _lojaIdSelecionada == null ? null : _abrirNovaCategoria,
-        ),
       ],
     );
   }
@@ -785,6 +779,11 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _lojaIdSelecionada == null ? null : _abrirNovaCategoria,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Adicionar categoria'),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -819,7 +818,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 90),
                   children: [_conteudoLista()],
                 ),
               ),

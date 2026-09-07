@@ -1089,7 +1089,7 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  Widget _acoesHeader() {
+  Widget _acoesHeader({bool mostrarAdicionar = false}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1104,12 +1104,14 @@ class _LojaListPageState extends State<LojaListPage> {
           icone: Icons.refresh_rounded,
           onPressed: _carregando ? null : _carregarLojas,
         ),
-        const SizedBox(width: 8),
-        _botaoCircularHeader(
-          tooltip: 'Adicionar estabelecimento',
-          icone: Icons.add_rounded,
-          onPressed: _abrirNovaLoja,
-        ),
+        if (mostrarAdicionar) ...[
+          const SizedBox(width: 8),
+          _botaoCircularHeader(
+            tooltip: 'Adicionar estabelecimento',
+            icone: Icons.add_rounded,
+            onPressed: _abrirNovaLoja,
+          ),
+        ],
       ],
     );
   }
@@ -1300,7 +1302,7 @@ class _LojaListPageState extends State<LojaListPage> {
                     ),
                   ),
                 ),
-                _acoesHeader(),
+                _acoesHeader(mostrarAdicionar: true),
               ],
             ),
           ),
@@ -1316,7 +1318,12 @@ class _LojaListPageState extends State<LojaListPage> {
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                0,
+                20,
+                widget.embedded ? 28 : 90,
+              ),
               children: [
                 Center(
                   child: ConstrainedBox(
@@ -1347,6 +1354,11 @@ class _LojaListPageState extends State<LojaListPage> {
         mostrarVoltar: true,
         centralizarLogo: true,
         alturaLogo: 54,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _abrirNovaLoja,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Adicionar estabelecimento'),
       ),
       body: SafeArea(
         child: Column(

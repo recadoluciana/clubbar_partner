@@ -217,14 +217,22 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
         ClubbarPageHeader(
           titulo: widget.titulo,
           subtitulo: 'Atrações padrão',
-          tituloStyle: const TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.w900,
-            color: Colors.blue,
-          ),
-          trailing: IconButton(
-            onPressed: _carregando ? null : () => _editar(),
-            icon: const Icon(Icons.add_circle),
+          tituloWidget: Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(
+                  text: 'Evento padrão: ',
+                  style: TextStyle(color: Colors.black),
+                ),
+                TextSpan(
+                  text: widget.titulo,
+                  style: const TextStyle(color: Colors.blue),
+                ),
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
           ),
         ),
         Expanded(
@@ -258,12 +266,26 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
                             'Início: ${_tempo(x.minutoInicio)} após o evento • Duração: ${_tempo(x.minutoDuracao)}',
                           ),
                           onTap: () => _editar(x),
-                          trailing: IconButton(
-                            onPressed: () => _excluir(x),
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: ClubbarColors.erro,
-                            ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: 'Editar atração',
+                                onPressed: () => _editar(x),
+                                icon: const Icon(
+                                  Icons.edit_rounded,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Excluir atração',
+                                onPressed: () => _excluir(x),
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: ClubbarColors.erro,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );

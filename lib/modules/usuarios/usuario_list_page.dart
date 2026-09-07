@@ -688,12 +688,6 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
           icone: Icons.refresh_rounded,
           onPressed: _carregando ? null : _carregarTudo,
         ),
-        const SizedBox(width: 8),
-        _botaoCircularHeader(
-          tooltip: 'Novo usuário',
-          icone: Icons.person_add_alt_1_rounded,
-          onPressed: _abrirNovoUsuario,
-        ),
       ],
     );
   }
@@ -704,6 +698,12 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       backgroundColor: ClubbarColors.fundo,
 
       appBar: const ClubbarAppBar(mostrarVoltar: true),
+
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _abrirNovoUsuario,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Adicionar usuário'),
+      ),
 
       body: SafeArea(
         child: Column(
@@ -734,7 +734,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                 color: ClubbarColors.ambar,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 90),
                   children: [_conteudo()],
                 ),
               ),

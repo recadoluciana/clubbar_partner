@@ -291,12 +291,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           icone: Icons.refresh_rounded,
           onPressed: _carregando ? null : _carregar,
         ),
-        const SizedBox(width: 8),
-        _botaoCircularHeader(
-          tooltip: 'Adicionar lote',
-          icone: Icons.add_rounded,
-          onPressed: _novoLote,
-        ),
       ],
     );
   }
@@ -616,6 +610,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _novoLote,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Adicionar lote'),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -643,7 +642,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 color: ClubbarColors.ambar,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 90),
                   children: [_conteudoLista()],
                 ),
               ),
