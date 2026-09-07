@@ -67,7 +67,10 @@ class _PorteiroHomePageState extends State<PorteiroHomePage> {
         foregroundColor: Colors.white,
         centerTitle: true,
 
-        title: Image.asset('assets/images/logo.png', height: 45),
+        title: Image.asset(
+          'assets/images/clubbar_partner_topbar.png',
+          height: 45,
+        ),
 
         actions: [
           IconButton(
