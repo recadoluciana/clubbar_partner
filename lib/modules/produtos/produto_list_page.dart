@@ -9,6 +9,7 @@ import '../../core/repositories/produto_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
@@ -950,10 +951,13 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _lojaIdSelecionada == null ? null : _abrirCadastro,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Adicionar produto'),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(
+            onPressed: _lojaIdSelecionada == null ? null : _abrirCadastro,
+            label: 'Adicionar produto',
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(

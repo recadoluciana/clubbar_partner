@@ -5,6 +5,7 @@ import '../../core/repositories/produto_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 import 'cardapio_digital_page.dart';
@@ -364,10 +365,10 @@ class _CardapiosPageState extends State<CardapiosPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _novo,
-        icon: const Icon(Icons.add),
-        label: const Text('Adicionar cardápio'),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(onPressed: _novo, label: 'Adicionar cardápio'),
+        ],
       ),
       body: Column(
         children: [

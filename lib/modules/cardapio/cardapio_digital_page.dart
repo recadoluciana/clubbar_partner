@@ -8,6 +8,7 @@ import '../../core/repositories/produto_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/categoria.dart';
 import '../../models/loja.dart';
@@ -237,10 +238,13 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
     backgroundColor: ClubbarColors.fundo,
     appBar: const ClubbarAppBar(mostrarVoltar: true),
 
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: () => _abrirProduto(),
-      icon: const Icon(Icons.add),
-      label: const Text('Produto'),
+    bottomNavigationBar: ClubbarActionBar(
+      actions: [
+        ClubbarAddButton(
+          onPressed: () => _abrirProduto(),
+          label: 'Adicionar produto',
+        ),
+      ],
     ),
     body: Column(
       children: [

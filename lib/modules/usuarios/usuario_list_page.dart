@@ -8,6 +8,7 @@ import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
@@ -699,10 +700,13 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
       appBar: const ClubbarAppBar(mostrarVoltar: true),
 
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _abrirNovoUsuario,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Adicionar usuário'),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(
+            onPressed: _abrirNovoUsuario,
+            label: 'Adicionar usuário',
+          ),
+        ],
       ),
 
       body: SafeArea(

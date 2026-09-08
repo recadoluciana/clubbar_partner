@@ -8,6 +8,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
@@ -1210,10 +1211,13 @@ class _LojaListPageState extends State<LojaListPage> {
         centralizarLogo: true,
         alturaLogo: 54,
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _abrirNovaLoja,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Adicionar estabelecimento'),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(
+            onPressed: _abrirNovaLoja,
+            label: 'Adicionar estabelecimento',
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(

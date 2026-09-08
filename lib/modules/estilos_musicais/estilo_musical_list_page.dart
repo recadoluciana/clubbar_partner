@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/repositories/atracao_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/atracao.dart';
@@ -268,22 +269,17 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: 'adicionar_catalogo_estilos',
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(
             onPressed: _importarDoCatalogo,
-            icon: const Icon(Icons.playlist_add_rounded),
-            label: const Text('Estilos do catálogo'),
+            icon: Icons.library_music_outlined,
+            label: 'Estilos do catálogo',
+            primary: false,
           ),
-          const SizedBox(height: 10),
-          FloatingActionButton.extended(
-            heroTag: 'adicionar_estilo',
+          ClubbarAddButton(
             onPressed: () => _editar(),
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Estilos personalizados'),
+            label: 'Estilos personalizados',
           ),
         ],
       ),
@@ -338,7 +334,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
                         ],
                       )
                     : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 90),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                         itemCount: itens.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (_, index) {

@@ -5,6 +5,7 @@ import '../../core/repositories/evento_lote_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento_lote.dart';
@@ -612,10 +613,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _novoLote,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Adicionar lote'),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(onPressed: _novoLote, label: 'Adicionar lote'),
+        ],
       ),
       body: SafeArea(
         child: Column(

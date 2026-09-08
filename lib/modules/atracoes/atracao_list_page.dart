@@ -4,6 +4,7 @@ import '../../core/repositories/atracao_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/atracao.dart';
 import 'atracao_form_page.dart';
@@ -183,10 +184,10 @@ class _AtracaoListPageState extends State<AtracaoListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _form(),
-        icon: const Icon(Icons.add),
-        label: const Text('Nova atração'),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(onPressed: () => _form(), label: 'Nova atração'),
+        ],
       ),
       body: SafeArea(
         child: Column(
