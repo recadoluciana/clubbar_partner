@@ -482,7 +482,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
-                  '${lote.qttotallote} ingressos • ${lote.qtvendidalote} vendidos • $disponiveis disponíveis',
+                  lote.usarCapacidadeRestante
+                      ? 'Capacidade restante • ${lote.qtvendidalote} vendidos neste lote'
+                      : '${lote.qttotallote} ingressos • ${lote.qtvendidalote} vendidos • $disponiveis disponíveis',
                   style: const TextStyle(
                     fontSize: 13,
                     color: ClubbarColors.textoSecundario,

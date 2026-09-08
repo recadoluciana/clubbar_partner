@@ -49,6 +49,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   List<EventoSetor> _setores = [];
   int? _setorId;
   String _tipoIngresso = 'INTEIRA';
+  bool _usarCapacidadeRestante = false;
 
   bool get editando => widget.lote != null;
   int get _quantidadeTotal => int.tryParse(_qtTotalController.text.trim()) ?? 0;
@@ -86,6 +87,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       _tipoIngresso = lote.tipoIngresso == 'UNICO'
           ? 'INTEIRA'
           : lote.tipoIngresso;
+      _usarCapacidadeRestante = lote.usarCapacidadeRestante;
       _preencherData(lote.dtiniciovenda, _dtInicioController, inicio: true);
       _preencherData(lote.dtfimvenda, _dtFimController, inicio: false);
     } else {
@@ -280,7 +282,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       return;
     }
 
-    if (_quantidadeVendida > _quantidadeTotal) {
+    if (!_usarCapacidadeRestante && _quantidadeVendida > _quantidadeTotal) {
       AppSnackBar.aviso(
         context,
         'A quantidade vendida não pode ser maior que a quantidade total.',
@@ -340,6 +342,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           preco: _preco,
           quantidadeTotal: _quantidadeTotal,
           quantidadeVendida: _quantidadeVendida,
+          usarCapacidadeRestante: _usarCapacidadeRestante,
           dtInicioVenda: _dataParaApi(_dataInicioSelecionada),
           dtFimVenda: _dataParaApi(_dataFimSelecionada),
           status: _status,
@@ -356,6 +359,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           preco: _preco,
           quantidadeTotal: _quantidadeTotal,
           quantidadeVendida: 0,
+          usarCapacidadeRestante: _usarCapacidadeRestante,
           dtInicioVenda: _dataParaApi(_dataInicioSelecionada),
           dtFimVenda: _dataParaApi(_dataFimSelecionada),
           status: _status,
@@ -539,8 +543,20 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
             validator: (value) => _preco < 0 ? 'Informe um preço válido' : null,
           ),
           const SizedBox(height: 14),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Usar a capacidade restante'),
+            subtitle: const Text(
+              'Recomendado para o último lote. O sistema calcula automaticamente os lugares restantes.',
+            ),
+            value: _usarCapacidadeRestante,
+            onChanged: (valor) =>
+                setState(() => _usarCapacidadeRestante = valor),
+          ),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _qtTotalController,
+            enabled: !_usarCapacidadeRestante,
             keyboardType: TextInputType.number,
             decoration: _decoracaoCampo(
               label: 'Quantidade total',
@@ -548,6 +564,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
               hint: 'Ex.: 500',
             ),
             validator: (value) {
+              if (_usarCapacidadeRestante) return null;
               final quantidade = int.tryParse(value?.trim() ?? '');
               if (quantidade == null || quantidade <= 0) {
                 return 'Informe uma quantidade maior que zero';

@@ -29,6 +29,7 @@ class EventoLoteRepository {
     int? eventoSetorId,
     int numeroLote = 1,
     String tipoIngresso = 'UNICO',
+    bool usarCapacidadeRestante = false,
   }) async {
     final response = await ApiService.post('/eventos/$eventoId/lotes', {
       'organizacao_id': organizacaoId,
@@ -36,7 +37,8 @@ class EventoLoteRepository {
       'nmlote': nome,
       'eventosetor_id': eventoSetorId,
       'nrlote': numeroLote,
-      'qttotallote': quantidadeTotal,
+      'qttotallote': usarCapacidadeRestante ? null : quantidadeTotal,
+      'usarcapacidaderestante': usarCapacidadeRestante,
       'precos': _precosPadrao(preco),
       'dtiniciovenda': dtInicioVenda,
       'dtfimvenda': dtFimVenda,
@@ -63,12 +65,14 @@ class EventoLoteRepository {
     int? eventoSetorId,
     int? numeroLote,
     String? tipoIngresso,
+    bool? usarCapacidadeRestante,
   }) async {
     final response = await ApiService.put('/eventos/lotes/$loteId', {
       'nmlote': nome,
       'eventosetor_id': eventoSetorId,
       'nrlote': numeroLote,
-      'qttotallote': quantidadeTotal,
+      'qttotallote': usarCapacidadeRestante == true ? null : quantidadeTotal,
+      'usarcapacidaderestante': usarCapacidadeRestante,
       if (preco != null) 'precos': _precosPadrao(preco),
       'dtiniciovenda': dtInicioVenda,
       'dtfimvenda': dtFimVenda,

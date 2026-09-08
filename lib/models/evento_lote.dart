@@ -13,6 +13,7 @@ class EventoLote {
   final int cotaLegal;
   final int quantidadeVendidaCotaLegal;
   final int qttotallote;
+  final bool usarCapacidadeRestante;
   final int qtvendidalote;
   final String? dtiniciovenda;
   final String? dtfimvenda;
@@ -33,6 +34,7 @@ class EventoLote {
     this.cotaLegal = 0,
     this.quantidadeVendidaCotaLegal = 0,
     required this.qttotallote,
+    this.usarCapacidadeRestante = false,
     required this.qtvendidalote,
     this.dtiniciovenda,
     this.dtfimvenda,
@@ -60,6 +62,7 @@ class EventoLote {
       quantidadeVendidaCotaLegal:
           (json['qtvendidacotalegal'] as num?)?.toInt() ?? 0,
       qttotallote: (json['qttotallote'] as num?)?.toInt() ?? 0,
+      usarCapacidadeRestante: json['usarcapacidaderestante'] == true,
       qtvendidalote: (json['qtvendidalote'] as num?)?.toInt() ?? 0,
       dtiniciovenda: json['dtiniciovenda']?.toString(),
       dtfimvenda: json['dtfimvenda']?.toString(),
