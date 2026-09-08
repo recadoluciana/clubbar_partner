@@ -1,3 +1,5 @@
+import 'atracao.dart';
+
 class Loja {
   final int lojaId;
   final int organizacaoId;
@@ -26,6 +28,7 @@ class Loja {
   final int? capacidadeTotal;
   final String usacashback;
   final double pccashback;
+  final List<EstiloMusical> estilos;
 
   Loja({
     required this.lojaId,
@@ -53,6 +56,7 @@ class Loja {
     this.capacidadeTotal,
     this.usacashback = 'N',
     this.pccashback = 0,
+    this.estilos = const [],
   });
 
   factory Loja.fromJson(Map<String, dynamic> json) {
@@ -85,6 +89,12 @@ class Loja {
       capacidadeTotal: _toNullableInt(json['qtcpdloja']),
       usacashback: _normalizarSimNao(json['usacashback']),
       pccashback: double.tryParse('${json['pccashback'] ?? 0}') ?? 0,
+      estilos: (json['estilos'] as List? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => EstiloMusical.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(growable: false),
     );
   }
 
@@ -115,6 +125,14 @@ class Loja {
       'qtcpdloja': capacidadeTotal,
       'usacashback': usacashback,
       'pccashback': pccashback,
+      'estilos': estilos
+          .map(
+            (estilo) => {
+              'estilomusical_id': estilo.id,
+              'nmestilomusical': estilo.nome,
+            },
+          )
+          .toList(growable: false),
     };
   }
 
@@ -144,6 +162,7 @@ class Loja {
     int? capacidadeTotal,
     String? usacashback,
     double? pccashback,
+    List<EstiloMusical>? estilos,
   }) {
     return Loja(
       lojaId: lojaId ?? this.lojaId,
@@ -171,6 +190,7 @@ class Loja {
       capacidadeTotal: capacidadeTotal ?? this.capacidadeTotal,
       usacashback: usacashback ?? this.usacashback,
       pccashback: pccashback ?? this.pccashback,
+      estilos: estilos ?? this.estilos,
     );
   }
 

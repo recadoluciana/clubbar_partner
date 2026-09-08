@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../core/repositories/loja_repository.dart';
-import '../../core/repositories/loja_horario_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/formatters.dart';
@@ -39,7 +38,6 @@ class LojaListPage extends StatefulWidget {
 class _LojaListPageState extends State<LojaListPage> {
   final TextEditingController _buscaController = TextEditingController();
   final LojaRepository _repository = LojaRepository();
-  final LojaHorarioRepository _horarioRepository = LojaHorarioRepository();
   final CardapioPadraoRepository _cardapioPadraoRepository =
       CardapioPadraoRepository();
 
@@ -56,7 +54,6 @@ class _LojaListPageState extends State<LojaListPage> {
 
   List<Loja> _lojas = [];
   List<Loja> _lojasFiltradas = [];
-  Set<int> _horariosDefinidos = {};
 
   @override
   void initState() {
@@ -161,28 +158,11 @@ class _LojaListPageState extends State<LojaListPage> {
 
     try {
       final lista = await _repository.listar(widget.organizacaoId);
-      final horariosDefinidos = <int>{};
-      await Future.wait(
-        lista.map((loja) async {
-          try {
-            final horarios = await _horarioRepository.buscarPorLoja(
-              loja.lojaId,
-            );
-            if (horarios.any((item) => item.lojaHorarioId != null)) {
-              horariosDefinidos.add(loja.lojaId);
-            }
-          } catch (_) {
-            // A listagem principal continua disponível mesmo se um horário falhar.
-          }
-        }),
-      );
-
       if (!mounted) return;
 
       setState(() {
         _lojas = lista;
         _lojasFiltradas = _aplicarFiltro(lista, _buscaController.text);
-        _horariosDefinidos = horariosDefinidos;
         _carregando = false;
       });
     } catch (e) {
@@ -583,157 +563,6 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  Widget _indicadorConfiguracao({
-    required IconData icone,
-    required String titulo,
-    required String subtitulo,
-    required bool definido,
-    Color? cor,
-    VoidCallback? onTap,
-  }) {
-    final destaque =
-        cor ??
-        (definido ? ClubbarColors.sucesso : ClubbarColors.textoSecundario);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: destaque.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: destaque.withValues(alpha: 0.28)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: destaque.withValues(alpha: 0.14),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icone, size: 20, color: destaque),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    titulo,
-                    style: TextStyle(
-                      color: destaque,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitulo,
-                    style: const TextStyle(
-                      color: ClubbarColors.textoSecundario,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              onTap != null
-                  ? Icons.chevron_right_rounded
-                  : definido
-                  ? Icons.check_circle_rounded
-                  : Icons.pending_outlined,
-              size: 18,
-              color: destaque,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _resumoConfiguracoes(Loja loja) {
-    final logoDefinida = (loja.urllogoloja ?? '').trim().isNotEmpty;
-    final fachadaDefinida = (loja.urlfachadaloja ?? '').trim().isNotEmpty;
-    final aberto24Horas = loja.aberto24x7 == 'S';
-    final horarioDefinido =
-        aberto24Horas || _horariosDefinidos.contains(loja.lojaId);
-    final usaCashback = loja.usacashback == 'S';
-    final itens = [
-      _indicadorConfiguracao(
-        icone: Icons.savings_outlined,
-        titulo: 'Usar cashback',
-        subtitulo: usaCashback ? 'Sim' : 'Não',
-        definido: usaCashback,
-        cor: usaCashback ? ClubbarColors.sucesso : ClubbarColors.erro,
-        onTap: () => _abrirConfiguracaoProdutos(loja),
-      ),
-      _indicadorConfiguracao(
-        icone: Icons.image_outlined,
-        titulo: logoDefinida ? 'Foto logo definida' : 'Foto logo pendente',
-        subtitulo: logoDefinida
-            ? 'Identidade visual pronta'
-            : 'Toque para adicionar',
-        definido: logoDefinida,
-        onTap: () => _abrirImagens(loja),
-      ),
-      _indicadorConfiguracao(
-        icone: Icons.storefront_outlined,
-        titulo: fachadaDefinida
-            ? 'Foto fachada definida'
-            : 'Foto fachada pendente',
-        subtitulo: fachadaDefinida
-            ? 'Imagem cadastrada'
-            : 'Toque para adicionar',
-        definido: fachadaDefinida,
-        onTap: () => _abrirImagens(loja),
-      ),
-      _indicadorConfiguracao(
-        icone: aberto24Horas
-            ? Icons.schedule_rounded
-            : Icons.access_time_rounded,
-        titulo: aberto24Horas
-            ? 'Horário definido: 24 horas'
-            : horarioDefinido
-            ? 'Horário definido'
-            : 'Horário pendente',
-        subtitulo: aberto24Horas
-            ? 'Atendimento contínuo'
-            : horarioDefinido
-            ? 'Atendimento configurado'
-            : 'Defina o atendimento',
-        definido: horarioDefinido,
-        cor: horarioDefinido ? ClubbarColors.info : null,
-        onTap: () => _abrirHorarios(loja),
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 680) {
-          return Column(
-            children: [
-              for (var i = 0; i < itens.length; i++) ...[
-                itens[i],
-                if (i < itens.length - 1) const SizedBox(height: 8),
-              ],
-            ],
-          );
-        }
-        return Row(
-          children: [
-            for (var i = 0; i < itens.length; i++) ...[
-              Expanded(child: itens[i]),
-              if (i < itens.length - 1) const SizedBox(width: 8),
-            ],
-          ],
-        );
-      },
-    );
-  }
-
   bool _lojaAtiva(Loja loja) {
     final status = (loja.sitloja ?? 'ATIVA').trim().toUpperCase();
     return status == 'ATIVA' || status == 'ATIVO';
@@ -839,6 +668,16 @@ class _LojaListPageState extends State<LojaListPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (acao) {
         switch (acao) {
+          case 'editar':
+            _abrirEdicao(loja);
+          case 'excluir':
+            _excluirLoja(loja);
+          case 'produtos':
+            _abrirConfiguracaoProdutos(loja);
+          case 'imagens':
+            _abrirImagens(loja);
+          case 'horarios':
+            _abrirHorarios(loja);
           case 'conteudo':
             _abrirConteudo(loja);
           case 'politica':
@@ -846,6 +685,42 @@ class _LojaListPageState extends State<LojaListPage> {
         }
       },
       itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'editar',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.edit_rounded, color: ClubbarColors.info),
+            title: Text('Editar estabelecimento'),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'produtos',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.inventory_2_outlined),
+            title: Text('Configuração de produtos'),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'imagens',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.photo_library_outlined),
+            title: Text('Logo e foto da fachada'),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'horarios',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.schedule_rounded),
+            title: Text('Horários de funcionamento'),
+          ),
+        ),
         const PopupMenuItem(
           value: 'conteudo',
           child: ListTile(
@@ -862,6 +737,22 @@ class _LojaListPageState extends State<LojaListPage> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.policy_outlined),
             title: Text('Política de ingressos'),
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'excluir',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.delete_outline_rounded,
+              color: ClubbarColors.erro,
+            ),
+            title: Text(
+              'Excluir estabelecimento',
+              style: TextStyle(color: ClubbarColors.erro),
+            ),
           ),
         ),
       ],
@@ -923,22 +814,6 @@ class _LojaListPageState extends State<LojaListPage> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        IconButton(
-                          tooltip: 'Editar estabelecimento',
-                          onPressed: () => _abrirEdicao(loja),
-                          icon: const Icon(Icons.edit_rounded),
-                          color: ClubbarColors.info,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        IconButton(
-                          tooltip: 'Excluir estabelecimento',
-                          onPressed: _excluindo
-                              ? null
-                              : () => _excluirLoja(loja),
-                          icon: const Icon(Icons.delete_outline_rounded),
-                          color: ClubbarColors.erro,
-                          visualDensity: VisualDensity.compact,
-                        ),
                         _menuAcoesLoja(loja),
                       ],
                     ),
@@ -991,8 +866,6 @@ class _LojaListPageState extends State<LojaListPage> {
 
           const SizedBox(height: 10),
           Align(alignment: Alignment.centerRight, child: _controleStatus(loja)),
-          const SizedBox(height: 10),
-          _resumoConfiguracoes(loja),
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,

@@ -338,26 +338,22 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
                                       : ClubbarColors.textoSecundario,
                                 ),
                               ),
-                              trailing: PopupMenuButton<String>(
-                                onSelected: (opcao) => opcao == 'editar'
-                                    ? _editar(estilo)
-                                    : _excluir(estilo),
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(
-                                    value: 'editar',
-                                    child: ListTile(
-                                      leading: Icon(Icons.edit_rounded),
-                                      title: Text('Editar'),
-                                    ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Editar estilo musical',
+                                    onPressed: () => _editar(estilo),
+                                    icon: const Icon(Icons.edit_rounded),
+                                    color: Colors.blue,
                                   ),
-                                  PopupMenuItem(
-                                    value: 'excluir',
-                                    child: ListTile(
-                                      leading: Icon(
-                                        Icons.delete_outline_rounded,
-                                      ),
-                                      title: Text('Excluir'),
+                                  IconButton(
+                                    tooltip: 'Excluir estilo musical',
+                                    onPressed: () => _excluir(estilo),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
                                     ),
+                                    color: ClubbarColors.erro,
                                   ),
                                 ],
                               ),

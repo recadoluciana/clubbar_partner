@@ -63,6 +63,7 @@ class LojaRepository {
     int? capacidadeTotal,
     String usacashback = 'N',
     double pccashback = 0,
+    List<int> estilosIds = const [],
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas');
 
@@ -91,6 +92,7 @@ class LojaRepository {
     }
     request.fields['usacashback'] = usacashback == 'S' ? 'S' : 'N';
     request.fields['pccashback'] = pccashback.toStringAsFixed(2);
+    request.fields['estilos_ids'] = jsonEncode(estilosIds);
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();
@@ -150,6 +152,7 @@ class LojaRepository {
     int? capacidadeTotal,
     String usacashback = 'N',
     double pccashback = 0,
+    List<int>? estilosIds,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas/$lojaId');
 
@@ -178,6 +181,9 @@ class LojaRepository {
     }
     request.fields['usacashback'] = usacashback == 'S' ? 'S' : 'N';
     request.fields['pccashback'] = pccashback.toStringAsFixed(2);
+    if (estilosIds != null) {
+      request.fields['estilos_ids'] = jsonEncode(estilosIds);
+    }
 
     if (diasValidade != null) {
       request.fields['nrdiavalidade'] = diasValidade.toString();

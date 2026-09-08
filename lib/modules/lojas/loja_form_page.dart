@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/repositories/localidade_repository.dart';
 import '../../core/repositories/loja_repository.dart';
+import '../../core/repositories/atracao_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/formatters.dart';
@@ -14,6 +15,7 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
+import '../../models/atracao.dart';
 import 'horario_funcionamento_screen.dart';
 
 class LojaFormPage extends StatefulWidget {
@@ -29,6 +31,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _repository = LojaRepository();
   final _localidadeRepository = LocalidadeRepository();
+  final _atracaoRepository = AtracaoRepository();
 
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _bairroController = TextEditingController();
@@ -52,6 +55,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
   int? _cidadeId;
   String _idValidadeProd = 'S';
   bool _usaCashback = false;
+  bool _carregandoEstilos = true;
+  List<EstiloMusical> _estilosDisponiveis = const [];
+  final Set<int> _estilosSelecionados = {};
 
   bool get editando => widget.loja != null;
   bool get _controlaValidadeProduto => _idValidadeProd == 'S';
@@ -170,12 +176,32 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _percentualCashbackController.text = widget.loja!.pccashback
           .toStringAsFixed(2)
           .replaceAll('.', ',');
+      _estilosSelecionados.addAll(widget.loja!.estilos.map((e) => e.id));
     } else {
       _diasValidadeController.text = '90';
       _percentualCashbackController.text = '5,00';
     }
 
     _carregarNomeOrganizacao();
+    _carregarEstilosMusicais();
+  }
+
+  Future<void> _carregarEstilosMusicais() async {
+    try {
+      final estilos = await _atracaoRepository.listarEstilos();
+      if (!mounted) return;
+      setState(() {
+        _estilosDisponiveis = estilos;
+        _carregandoEstilos = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _carregandoEstilos = false);
+      AppSnackBar.erro(
+        context,
+        'Não foi possível carregar os estilos musicais.',
+      );
+    }
   }
 
   Future<void> _carregarNomeOrganizacao() async {
@@ -336,6 +362,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           pccashback: double.parse(
             _percentualCashbackController.text.replaceAll(',', '.'),
           ),
+          estilosIds: _estilosSelecionados.toList(),
         );
 
         if (!mounted) return;
@@ -361,6 +388,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           pccashback: double.parse(
             _percentualCashbackController.text.replaceAll(',', '.'),
           ),
+          estilosIds: _estilosSelecionados.toList(),
         );
 
         if (!mounted) return;
@@ -533,6 +561,79 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     return null;
                                   },
                                 ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _tituloSecao(
+                                  'Estilos musicais do estabelecimento',
+                                  Icons.music_note_rounded,
+                                ),
+                                const Text(
+                                  'Selecione um ou mais estilos usados para identificar o estabelecimento no Clubbar.',
+                                  style: TextStyle(
+                                    color: ClubbarColors.textoSecundario,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                if (_carregandoEstilos)
+                                  const Center(
+                                    child: CircularProgressIndicator(
+                                      color: ClubbarColors.ambar,
+                                    ),
+                                  )
+                                else if (_estilosDisponiveis.isEmpty)
+                                  const Text(
+                                    'Cadastre primeiro os estilos musicais da organização.',
+                                    style: TextStyle(
+                                      color: ClubbarColors.textoSecundario,
+                                    ),
+                                  )
+                                else
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: _estilosDisponiveis
+                                        .map((estilo) {
+                                          final selecionado =
+                                              _estilosSelecionados.contains(
+                                                estilo.id,
+                                              );
+                                          return FilterChip(
+                                            label: Text(estilo.nome),
+                                            selected: selecionado,
+                                            onSelected: _salvando
+                                                ? null
+                                                : (valor) => setState(() {
+                                                    if (valor) {
+                                                      _estilosSelecionados.add(
+                                                        estilo.id,
+                                                      );
+                                                    } else {
+                                                      _estilosSelecionados
+                                                          .remove(estilo.id);
+                                                    }
+                                                  }),
+                                            selectedColor:
+                                                ClubbarColors.ambarClaro,
+                                            checkmarkColor: ClubbarColors.preto,
+                                          );
+                                        })
+                                        .toList(growable: false),
+                                  ),
                               ],
                             ),
                           ),
