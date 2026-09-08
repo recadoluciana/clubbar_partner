@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/config/api_config.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/repositories/localidade_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -32,9 +33,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
-  final _politicaCancelamentoController = TextEditingController();
-  final _politicaReembolsoController = TextEditingController();
-  final _politicaCashbackController = TextEditingController();
   final _localController = TextEditingController();
   final _cepController = TextEditingController();
   final _enderecoController = TextEditingController();
@@ -47,21 +45,22 @@ class _EventoFormPageState extends State<EventoFormPage> {
   bool _consultandoCep = false;
   String? _ultimoCepConsultado;
   String _statusSelecionado = 'ATIVO';
+  String _tipoLocalSelecionado = 'ESTABELECIMENTO';
+  String _nomeEmpresa = 'Empresa';
 
   bool get editando => widget.evento != null;
 
   @override
   void initState() {
     super.initState();
+    _carregarNomeEmpresa();
 
     final evento = widget.evento;
     if (evento != null) {
       _tituloController.text = evento.nmtituloevento;
       _descricaoController.text = evento.dsdescevento ?? '';
-      _politicaCancelamentoController.text =
-          evento.dspoliticacancelamento ?? '';
-      _politicaReembolsoController.text = evento.dspoliticareembolso ?? '';
-      _politicaCashbackController.text = evento.dspoliticacashback ?? '';
+      _tipoLocalSelecionado = evento.tipoLocalEvento;
+      _cepController.text = evento.nrCepLocalEvento ?? '';
       _localController.text = evento.nmlocalevento ?? '';
       _enderecoController.text = evento.dsendlocevento ?? '';
       _statusSelecionado = evento.statusevento ?? 'ATIVO';
@@ -71,13 +70,15 @@ class _EventoFormPageState extends State<EventoFormPage> {
     }
   }
 
+  Future<void> _carregarNomeEmpresa() async {
+    final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
+    if (mounted && nome.isNotEmpty) setState(() => _nomeEmpresa = nome);
+  }
+
   @override
   void dispose() {
     _tituloController.dispose();
     _descricaoController.dispose();
-    _politicaCancelamentoController.dispose();
-    _politicaReembolsoController.dispose();
-    _politicaCashbackController.dispose();
     _localController.dispose();
     _cepController.dispose();
     _enderecoController.dispose();
@@ -206,11 +207,16 @@ class _EventoFormPageState extends State<EventoFormPage> {
           eventoId: widget.evento!.eventoId,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
-          politicaCancelamento: _politicaCancelamentoController.text.trim(),
-          politicaReembolso: _politicaReembolsoController.text.trim(),
-          politicaCashback: _politicaCashbackController.text.trim(),
-          local: _localController.text.trim(),
-          endereco: _enderecoController.text.trim(),
+          tipoLocal: _tipoLocalSelecionado,
+          cep: _tipoLocalSelecionado == 'OUTRO'
+              ? _cepController.text.trim()
+              : null,
+          local: _tipoLocalSelecionado == 'OUTRO'
+              ? _localController.text.trim()
+              : '',
+          endereco: _tipoLocalSelecionado == 'OUTRO'
+              ? _enderecoController.text.trim()
+              : '',
           status: _statusSelecionado,
           precoPadrao: preco,
           imagem: _imagemSelecionada,
@@ -221,11 +227,16 @@ class _EventoFormPageState extends State<EventoFormPage> {
           produtoIdIngresso: 1,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
-          politicaCancelamento: _politicaCancelamentoController.text.trim(),
-          politicaReembolso: _politicaReembolsoController.text.trim(),
-          politicaCashback: _politicaCashbackController.text.trim(),
-          local: _localController.text.trim(),
-          endereco: _enderecoController.text.trim(),
+          tipoLocal: _tipoLocalSelecionado,
+          cep: _tipoLocalSelecionado == 'OUTRO'
+              ? _cepController.text.trim()
+              : null,
+          local: _tipoLocalSelecionado == 'OUTRO'
+              ? _localController.text.trim()
+              : null,
+          endereco: _tipoLocalSelecionado == 'OUTRO'
+              ? _enderecoController.text.trim()
+              : null,
           status: _statusSelecionado,
           precoPadrao: preco,
           imagem: _imagemSelecionada,
@@ -376,39 +387,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
           ),
           const SizedBox(height: 14),
           TextFormField(
-            controller: _politicaCancelamentoController,
-            maxLines: 3,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: _decoracaoCampo(
-              label: 'Política de cancelamento',
-              icone: Icons.event_busy_outlined,
-              hint: 'Informe prazos e condições para cancelamento',
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _politicaReembolsoController,
-            maxLines: 3,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: _decoracaoCampo(
-              label: 'Política de reembolso',
-              icone: Icons.currency_exchange_outlined,
-              hint: 'Explique como e quando o valor será devolvido',
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _politicaCashbackController,
-            maxLines: 3,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: _decoracaoCampo(
-              label: 'Política de cashback',
-              icone: Icons.savings_outlined,
-              hint: 'Informe as regras de geração e utilização',
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
             controller: _precoController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: _decoracaoCampo(
@@ -418,67 +396,106 @@ class _EventoFormPageState extends State<EventoFormPage> {
             ),
           ),
           const SizedBox(height: 14),
-          TextFormField(
-            controller: _localController,
-            textCapitalization: TextCapitalization.words,
+          DropdownButtonFormField<String>(
+            initialValue: _tipoLocalSelecionado,
             decoration: _decoracaoCampo(
-              label: 'Local',
+              label: 'Onde o evento será realizado?',
               icone: Icons.location_on_outlined,
-              hint: 'Ex.: Motor Rock',
             ),
+            items: const [
+              DropdownMenuItem(
+                value: 'ESTABELECIMENTO',
+                child: Text('No estabelecimento'),
+              ),
+              DropdownMenuItem(value: 'OUTRO', child: Text('Em outro local')),
+            ],
+            onChanged: _salvando
+                ? null
+                : (value) => setState(() {
+                    _tipoLocalSelecionado = value ?? 'ESTABELECIMENTO';
+                    if (_tipoLocalSelecionado == 'ESTABELECIMENTO') {
+                      _cepController.clear();
+                      _localController.clear();
+                      _enderecoController.clear();
+                    }
+                  }),
           ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _cepController,
-            keyboardType: TextInputType.number,
-            decoration:
-                _decoracaoCampo(
-                  label: 'CEP do evento',
-                  icone: Icons.markunread_mailbox_outlined,
-                  hint: '00000-000',
-                ).copyWith(
-                  suffixIcon: _consultandoCep
-                      ? const Padding(
-                          padding: EdgeInsets.all(14),
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : IconButton(
-                          tooltip: 'Buscar CEP',
-                          onPressed: _buscarCep,
-                          icon: const Icon(Icons.search_rounded),
-                        ),
-                ),
-            onChanged: (valor) {
-              final numeros = valor.replaceAll(RegExp(r'\D'), '');
-              final limitado = numeros.length > 8
-                  ? numeros.substring(0, 8)
-                  : numeros;
-              final formatado = limitado.length > 5
-                  ? '${limitado.substring(0, 5)}-${limitado.substring(5)}'
-                  : limitado;
-              if (formatado != valor) {
-                _cepController.value = TextEditingValue(
-                  text: formatado,
-                  selection: TextSelection.collapsed(offset: formatado.length),
-                );
-              }
-              if (limitado != _ultimoCepConsultado) {
-                _ultimoCepConsultado = null;
-              }
-              if (limitado.length == 8) _buscarCep();
-            },
-            onFieldSubmitted: (_) => _buscarCep(),
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _enderecoController,
-            textCapitalization: TextCapitalization.words,
-            decoration: _decoracaoCampo(
-              label: 'Endereço',
-              icone: Icons.map_outlined,
-              hint: 'Rua, número, bairro, cidade e UF',
+          if (_tipoLocalSelecionado == 'OUTRO') ...[
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _localController,
+              textCapitalization: TextCapitalization.words,
+              decoration: _decoracaoCampo(
+                label: 'Local',
+                icone: Icons.location_on_outlined,
+                hint: 'Ex.: Motor Rock',
+              ),
+              validator: (value) => (value ?? '').trim().isEmpty
+                  ? 'Informe o nome do local'
+                  : null,
             ),
-          ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _cepController,
+              keyboardType: TextInputType.number,
+              decoration:
+                  _decoracaoCampo(
+                    label: 'CEP do evento',
+                    icone: Icons.markunread_mailbox_outlined,
+                    hint: '00000-000',
+                  ).copyWith(
+                    suffixIcon: _consultandoCep
+                        ? const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : IconButton(
+                            tooltip: 'Buscar CEP',
+                            onPressed: _buscarCep,
+                            icon: const Icon(Icons.search_rounded),
+                          ),
+                  ),
+              onChanged: (valor) {
+                final numeros = valor.replaceAll(RegExp(r'\D'), '');
+                final limitado = numeros.length > 8
+                    ? numeros.substring(0, 8)
+                    : numeros;
+                final formatado = limitado.length > 5
+                    ? '${limitado.substring(0, 5)}-${limitado.substring(5)}'
+                    : limitado;
+                if (formatado != valor) {
+                  _cepController.value = TextEditingValue(
+                    text: formatado,
+                    selection: TextSelection.collapsed(
+                      offset: formatado.length,
+                    ),
+                  );
+                }
+                if (limitado != _ultimoCepConsultado) {
+                  _ultimoCepConsultado = null;
+                }
+                if (limitado.length == 8) _buscarCep();
+              },
+              onFieldSubmitted: (_) => _buscarCep(),
+              validator: (value) =>
+                  (value ?? '').replaceAll(RegExp(r'\D'), '').length != 8
+                  ? 'Informe um CEP válido'
+                  : null,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _enderecoController,
+              textCapitalization: TextCapitalization.words,
+              decoration: _decoracaoCampo(
+                label: 'Endereço',
+                icone: Icons.map_outlined,
+                hint: 'Rua, número, bairro, cidade e UF',
+              ),
+              validator: (value) => (value ?? '').trim().isEmpty
+                  ? 'Informe o endereço do local'
+                  : null,
+            ),
+          ],
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
             initialValue: _statusSelecionado,
@@ -577,10 +594,13 @@ class _EventoFormPageState extends State<EventoFormPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: editando ? 'Editar evento padrão' : 'Novo evento padrão',
-              subtitulo: editando
-                  ? 'Atualize o modelo reutilizado pela organização'
-                  : 'Cadastre uma vez e use em qualquer estabelecimento',
+              titulo: _nomeEmpresa,
+              subtitulo: 'Evento padrão',
+              tituloStyle: const TextStyle(
+                color: Colors.blue,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             Expanded(
               child: Form(

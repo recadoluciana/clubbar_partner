@@ -276,6 +276,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     required String titulo,
     required List<Widget> children,
     VoidCallback? onEditar,
+    Widget? trailing,
   }) {
     return Material(
       color: ClubbarColors.branco,
@@ -297,6 +298,10 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
                 Expanded(
                   child: _tituloSecao(icone: icone, titulo: titulo),
                 ),
+                if (trailing != null) ...[
+                  trailing,
+                  if (onEditar != null) const SizedBox(width: 8),
+                ],
                 if (onEditar != null)
                   IconButton(
                     tooltip: 'Editar $titulo',
@@ -323,6 +328,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
     return _cardSecao(
       icone: Icons.business_rounded,
       titulo: 'Dados da empresa',
+      trailing: _statusOrganizacao(organizacao),
       onEditar: _podeEditarOrganizacao
           ? () => _editarOrganizacao(OrganizacaoSecao.empresa)
           : null,
@@ -535,9 +541,6 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
                 fontWeight: FontWeight.w900,
                 color: Colors.blue,
               ),
-              trailing: _organizacao == null
-                  ? null
-                  : _statusOrganizacao(_organizacao!),
             ),
             _conteudo(),
           ],

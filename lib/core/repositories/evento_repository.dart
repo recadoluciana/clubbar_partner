@@ -173,9 +173,8 @@ class EventoRepository {
     required int produtoIdIngresso,
     required String titulo,
     String? descricao,
-    String? politicaCancelamento,
-    String? politicaReembolso,
-    String? politicaCashback,
+    String tipoLocal = 'ESTABELECIMENTO',
+    String? cep,
     String? dataInicio,
     String? dataFim,
     String? local,
@@ -200,15 +199,8 @@ class EventoRepository {
     if (descricao != null && descricao.isNotEmpty) {
       request.fields['dsdescevento'] = descricao;
     }
-    if (politicaCancelamento != null) {
-      request.fields['dspoliticacancelamento'] = politicaCancelamento;
-    }
-    if (politicaReembolso != null) {
-      request.fields['dspoliticareembolso'] = politicaReembolso;
-    }
-    if (politicaCashback != null) {
-      request.fields['dspoliticacashback'] = politicaCashback;
-    }
+    request.fields['tipolocalevento'] = tipoLocal;
+    if (cep != null && cep.isNotEmpty) request.fields['nrceplocalevento'] = cep;
     if (local != null && local.isNotEmpty) {
       request.fields['nmlocalevento'] = local;
     }
@@ -236,9 +228,8 @@ class EventoRepository {
     required int eventoId,
     String? titulo,
     String? descricao,
-    String? politicaCancelamento,
-    String? politicaReembolso,
-    String? politicaCashback,
+    String? tipoLocal,
+    String? cep,
     String? dataInicio,
     String? dataFim,
     String? local,
@@ -262,15 +253,8 @@ class EventoRepository {
     if (descricao != null) {
       request.fields['dsdescevento'] = descricao;
     }
-    if (politicaCancelamento != null) {
-      request.fields['dspoliticacancelamento'] = politicaCancelamento;
-    }
-    if (politicaReembolso != null) {
-      request.fields['dspoliticareembolso'] = politicaReembolso;
-    }
-    if (politicaCashback != null) {
-      request.fields['dspoliticacashback'] = politicaCashback;
-    }
+    if (tipoLocal != null) request.fields['tipolocalevento'] = tipoLocal;
+    if (cep != null) request.fields['nrceplocalevento'] = cep;
     if (local != null) {
       request.fields['nmlocalevento'] = local;
     }
