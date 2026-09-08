@@ -370,7 +370,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         _opcao(
                           titulo: 'Estilos musicais',
                           subtitulo: _podeGerenciarAtracoes
-                              ? 'Cadastre e organize os estilos usados nas atrações.'
+                              ? 'Gerencie os estilos usados nos establecimentos e nas atrações.'
                               : 'Disponível para administradores da empresa.',
                           icone: Icons.library_music_rounded,
                           onTap: _podeGerenciarAtracoes

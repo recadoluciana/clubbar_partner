@@ -64,27 +64,40 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
 
   Future<void> _editar([EstiloMusical? estilo]) async {
     final nome = TextEditingController(text: estilo?.nome ?? '');
+    final estiloDoCatalogo = estilo?.origem == 'CATALOGO';
     var ativo = estilo?.situacao != 'INATIVO';
     final salvar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Text(
-            estilo == null ? 'Novo estilo musical' : 'Editar estilo musical',
+            estilo == null
+                ? 'Novo estilo personalizado'
+                : estiloDoCatalogo
+                ? 'Ativar ou desativar estilo'
+                : 'Editar estilo personalizado',
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nome,
-                autofocus: true,
+                autofocus: !estiloDoCatalogo,
+                readOnly: estiloDoCatalogo,
                 maxLength: 120,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Nome do estilo'),
+                decoration: InputDecoration(
+                  labelText: 'Nome do estilo',
+                  helperText: estiloDoCatalogo
+                      ? 'Estilos do catálogo não podem ter seu nome alterado.'
+                      : null,
+                  helperMaxLines: 2,
+                ),
               ),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Estilo ativo'),
+                activeTrackColor: Colors.green,
                 value: ativo,
                 onChanged: (valor) => setDialogState(() => ativo = valor),
               ),
@@ -93,10 +106,15 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Cancelar'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Salvar'),
             ),
           ],
@@ -152,7 +170,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Adicionar do catálogo Clubbar'),
+            title: const Text('Estilos do catálogo'),
             content: SizedBox(
               width: 480,
               child: disponiveis.isEmpty
@@ -179,13 +197,18 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
                 child: const Text('Cancelar'),
               ),
               FilledButton(
                 onPressed: disponiveis.isEmpty
                     ? null
                     : () => Navigator.pop(dialogContext, true),
-                child: const Text('Adicionar'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Confirmar'),
               ),
             ],
           ),
@@ -194,7 +217,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
       if (confirmar != true || selecionados.isEmpty) return;
       await _repo.importarEstilos(selecionados.toList());
       if (!mounted) return;
-      AppSnackBar.sucesso(context, 'Estilos adicionados à organização.');
+      AppSnackBar.sucesso(context, 'Estilos adicionados à empresa.');
       await _carregar();
     } catch (e) {
       if (mounted) {
@@ -212,10 +235,15 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Excluir'),
           ),
         ],
@@ -248,14 +276,14 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
             heroTag: 'adicionar_catalogo_estilos',
             onPressed: _importarDoCatalogo,
             icon: const Icon(Icons.playlist_add_rounded),
-            label: const Text('Adicionar do catálogo'),
+            label: const Text('Estilos do catálogo'),
           ),
           const SizedBox(height: 10),
           FloatingActionButton.extended(
             heroTag: 'adicionar_estilo',
             onPressed: () => _editar(),
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Adicionar estilo'),
+            label: const Text('Estilos personalizados'),
           ),
         ],
       ),
@@ -263,7 +291,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Estilos da organização',
+              titulo: 'Estilos da empresa',
               subtitulo:
                   '${_itens.length} estilos disponíveis para as atrações',
             ),
@@ -330,13 +358,54 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
-                              subtitle: Text(
-                                '${estilo.origem == 'CATALOGO' ? 'Catálogo Clubbar' : 'Personalizado'} • ${ativo ? 'Ativo' : 'Inativo'}',
-                                style: TextStyle(
-                                  color: ativo
-                                      ? Colors.green
-                                      : ClubbarColors.textoSecundario,
-                                ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 5,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      Text(
+                                        estilo.origem == 'CATALOGO'
+                                            ? 'Catálogo Clubbar'
+                                            : 'Personalizado',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: ativo
+                                              ? Colors.green.shade50
+                                              : Colors.red.shade50,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                          border: Border.all(
+                                            color: ativo
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          ativo ? 'Ativo' : 'Inativo',
+                                          style: TextStyle(
+                                            color: ativo
+                                                ? Colors.green.shade800
+                                                : Colors.red.shade800,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
