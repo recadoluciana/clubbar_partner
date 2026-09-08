@@ -130,7 +130,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
   }
 
   Future<void> sair() async {
-    final tituloCargo = cargoUsuario == 'GARCOM' ? 'Waiter' : 'Barman';
+    final tituloCargo = cargoUsuario == 'WAITER' ? 'Waiter' : 'Barman';
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -462,7 +462,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final tituloCargo = cargoUsuario == 'GARCOM' ? 'Waiter' : 'Barman';
+    final tituloCargo = cargoUsuario == 'WAITER' ? 'Waiter' : 'Barman';
     final subtitulo = carregando
         ? 'Carregando dados do estabelecimento...'
         : nomeLoja.isEmpty

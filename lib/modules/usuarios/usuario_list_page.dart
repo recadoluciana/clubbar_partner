@@ -130,11 +130,11 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       case 'SUPERADMIN':
         return 'Super administrador';
 
-      case 'GERENTE':
-        return 'Gerente';
+      case 'MANAGER':
+        return 'Manager';
 
-      case 'CAIXA':
-        return 'Caixa';
+      case 'CASHIER':
+        return 'Cashier';
 
       case 'TOTEM':
         return 'Totem';
@@ -142,11 +142,11 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       case 'BARMAN':
         return 'Barman';
 
-      case 'GARCOM':
-        return 'Garçom';
+      case 'WAITER':
+        return 'Waiter';
 
-      case 'PORTEIRO':
-        return 'Porteiro';
+      case 'TICKETMAN':
+        return 'Ticketman';
 
       default:
         return cargo;

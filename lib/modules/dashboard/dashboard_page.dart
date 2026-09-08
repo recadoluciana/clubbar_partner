@@ -24,6 +24,7 @@ import '../cardapio/cardapio_loja_page.dart';
 import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
 import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
+import '../eventos/evento_list_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -43,9 +44,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
   bool get _podeEditarOrganizacao => _cargo == 'SUPERADMIN';
   bool get _podeGerenciarAtracoes =>
-      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'GERENTE';
+      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'MANAGER';
   bool get _podeVerGerencial =>
-      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'GERENTE';
+      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'MANAGER';
 
   @override
   void initState() {
@@ -120,6 +121,16 @@ class _DashboardPageState extends State<DashboardPage> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => AgendaLojaPage(organizacaoId: organizacaoId),
+      ),
+    );
+  }
+
+  Future<void> _abrirGerenciarEventos() async {
+    final organizacaoId = _organizacaoId;
+    if (organizacaoId == null || organizacaoId <= 0) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => EventoListPage(organizacaoId: organizacaoId),
       ),
     );
   }
@@ -240,7 +251,7 @@ class _DashboardPageState extends State<DashboardPage> {
   String _nomeCargo() {
     if (_cargo == 'SUPERADMIN') return 'Super administrador';
     if (_cargo == 'ADMIN') return 'Administrador';
-    if (_cargo == 'GERENTE') return 'Gerente';
+    if (_cargo == 'MANAGER') return 'Manager';
     return _cargo;
   }
 
@@ -378,7 +389,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(height: 14),
                         _opcao(
                           titulo: 'Meus estabelecimentos',
-                          subtitulo: _cargo == 'GERENTE'
+                          subtitulo: _cargo == 'MANAGER'
                               ? 'Consulte e edite os dados do seu estabelecimento.'
                               : 'Cadastre e administre os estabelecimentos da empresa.',
                           icone: Icons.storefront_rounded,
@@ -394,9 +405,19 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
+                          titulo: 'Gerenciar eventos',
+                          subtitulo:
+                              'Cadastre e configure os eventos padrão que serão usados na agenda.',
+                          icone: Icons.event_note_rounded,
+                          onTap: _podeGerenciarAtracoes
+                              ? _abrirGerenciarEventos
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
                           titulo: 'Agenda Mensal',
                           subtitulo:
-                              'Organize os eventos e atrações de cada estabelecimento.',
+                              'Associe eventos padrão às datas de cada estabelecimento.',
                           icone: Icons.calendar_month_rounded,
                           onTap: _abrirAgendaMensal,
                         ),
@@ -437,7 +458,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(height: 14),
                         _opcao(
                           titulo: 'Usuários e permissões',
-                          subtitulo: _cargo == 'GERENTE'
+                          subtitulo: _cargo == 'MANAGER'
                               ? 'Administre os usuários vinculados ao seu estabelecimento.'
                               : 'Liste, inclua, altere e exclua acessos.',
                           icone: Icons.manage_accounts_rounded,

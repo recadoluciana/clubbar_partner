@@ -82,7 +82,7 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   bool get _cargoGerencial =>
-      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'GERENTE';
+      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'MANAGER';
 
   bool get _podeIncluirLoja {
     return !_carregandoPermissoes && _cargoGerencial && _lojaUsuarioId == null;
@@ -248,7 +248,7 @@ class _LojaListPageState extends State<LojaListPage> {
         context,
         _lojaUsuarioId != null
             ? 'Seu usuário está vinculado a um estabelecimento e não pode cadastrar outro.'
-            : 'Somente administradores e gerentes podem cadastrar estabelecimentos.',
+            : 'Somente administradores e managers podem cadastrar estabelecimentos.',
       );
       return;
     }
@@ -347,17 +347,14 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  Future<void> _abrirConfiguracaoProdutos(
-    Loja loja,
-    LojaConfiguracaoTipo tipo,
-  ) async {
+  Future<void> _abrirConfiguracaoProdutos(Loja loja) async {
     if (!_podeAlterarLoja(loja)) {
       _avisarSomenteConsulta();
       return;
     }
     final alterado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => LojaConfiguracaoProdutosPage(loja: loja, tipo: tipo),
+        builder: (_) => LojaConfiguracaoProdutosPage(loja: loja),
       ),
     );
     if (alterado == true && mounted) await _carregarLojas();
@@ -671,8 +668,7 @@ class _LojaListPageState extends State<LojaListPage> {
         subtitulo: usaCashback ? 'Sim' : 'Não',
         definido: usaCashback,
         cor: usaCashback ? ClubbarColors.sucesso : ClubbarColors.erro,
-        onTap: () =>
-            _abrirConfiguracaoProdutos(loja, LojaConfiguracaoTipo.cashback),
+        onTap: () => _abrirConfiguracaoProdutos(loja),
       ),
       _indicadorConfiguracao(
         icone: Icons.image_outlined,
@@ -847,11 +843,6 @@ class _LojaListPageState extends State<LojaListPage> {
             _abrirConteudo(loja);
           case 'politica':
             _abrirPoliticaIngressos(loja);
-          case 'politica_produtos':
-            _abrirConfiguracaoProdutos(
-              loja,
-              LojaConfiguracaoTipo.politicaProdutos,
-            );
         }
       },
       itemBuilder: (context) => [
@@ -871,15 +862,6 @@ class _LojaListPageState extends State<LojaListPage> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.policy_outlined),
             title: Text('Política de ingressos'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'politica_produtos',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.inventory_2_outlined),
-            title: Text('Política de produtos'),
           ),
         ),
       ],

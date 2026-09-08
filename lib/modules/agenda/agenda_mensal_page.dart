@@ -352,6 +352,22 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       return;
     }
 
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EventoListPage(
+          organizacaoId: _loja.organizacaoId,
+          lojaIdInicial: _loja.lojaId,
+          fixarLoja: true,
+          dataInicialAgendamento: dia,
+        ),
+      ),
+    );
+    if (mounted) await _carregar();
+    return;
+
+    // Código legado mantido temporariamente durante a transição do cadastro
+    // rápido para ocorrências obrigatoriamente vinculadas a um evento padrão.
+    // ignore: dead_code
     final lojaId = _loja.lojaId;
     final atracoes = await _repo.listar();
     if (!mounted) return;

@@ -7,17 +7,10 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 
-enum LojaConfiguracaoTipo { politicaProdutos, cashback }
-
 class LojaConfiguracaoProdutosPage extends StatefulWidget {
   final Loja loja;
-  final LojaConfiguracaoTipo tipo;
 
-  const LojaConfiguracaoProdutosPage({
-    super.key,
-    required this.loja,
-    required this.tipo,
-  });
+  const LojaConfiguracaoProdutosPage({super.key, required this.loja});
 
   @override
   State<LojaConfiguracaoProdutosPage> createState() =>
@@ -38,18 +31,14 @@ class _LojaConfiguracaoProdutosPageState
   bool _carregando = false;
   bool _salvando = false;
 
-  bool get _cashback => widget.tipo == LojaConfiguracaoTipo.cashback;
-
   @override
   void initState() {
     super.initState();
-    _ativo = _cashback
-        ? widget.loja.usacashback == 'S'
-        : widget.loja.idvalidadeprod == 'S';
-    _valorController.text = _cashback
-        ? widget.loja.pccashback.toStringAsFixed(2).replaceAll('.', ',')
-        : '${widget.loja.nrdiavalidade ?? 90}';
-    if (_cashback) _carregarCashback();
+    _ativo = widget.loja.usacashback == 'S';
+    _valorController.text = widget.loja.pccashback
+        .toStringAsFixed(2)
+        .replaceAll('.', ',');
+    _carregarCashback();
   }
 
   Future<void> _carregarCashback() async {
@@ -95,72 +84,54 @@ class _LojaConfiguracaoProdutosPageState
 
   Future<void> _salvar() async {
     final valor = _numero(_valorController);
-    if (_ativo && (valor == null || valor <= 0 || (_cashback && valor > 100))) {
+    if (_ativo && (valor == null || valor <= 0 || valor > 100)) {
+      AppSnackBar.aviso(context, 'Informe um percentual entre 0,01% e 100%.');
+      return;
+    }
+
+    final minimo = _numero(_minimoCompraController);
+    final maximo = _maximoCashbackController.text.trim().isEmpty
+        ? null
+        : _numero(_maximoCashbackController);
+    final liberacao = int.tryParse(_diasLiberacaoController.text.trim());
+    final validade = int.tryParse(_diasValidadeController.text.trim());
+    final maximoUso = _numero(_maximoUsoController);
+    if (minimo == null || minimo < 0 || (maximo != null && maximo < 0)) {
+      AppSnackBar.aviso(context, 'Confira os valores mínimos e máximos.');
+      return;
+    }
+    if (liberacao == null ||
+        liberacao < 0 ||
+        validade == null ||
+        validade < 1) {
+      AppSnackBar.aviso(context, 'Confira os prazos de liberação e validade.');
+      return;
+    }
+    if (maximoUso == null || maximoUso <= 0 || maximoUso > 100) {
       AppSnackBar.aviso(
         context,
-        _cashback
-            ? 'Informe um percentual entre 0,01% e 100%.'
-            : 'Informe uma quantidade válida de dias.',
+        'O limite de uso deve estar entre 0,01% e 100%.',
       );
       return;
     }
 
-    if (_cashback) {
-      final minimo = _numero(_minimoCompraController);
-      final maximo = _maximoCashbackController.text.trim().isEmpty
-          ? null
-          : _numero(_maximoCashbackController);
-      final liberacao = int.tryParse(_diasLiberacaoController.text.trim());
-      final validade = int.tryParse(_diasValidadeController.text.trim());
-      final maximoUso = _numero(_maximoUsoController);
-      if (minimo == null || minimo < 0 || (maximo != null && maximo < 0)) {
-        AppSnackBar.aviso(context, 'Confira os valores mínimos e máximos.');
-        return;
-      }
-      if (liberacao == null ||
-          liberacao < 0 ||
-          validade == null ||
-          validade < 1) {
-        AppSnackBar.aviso(
-          context,
-          'Confira os prazos de liberação e validade.',
-        );
-        return;
-      }
-      if (maximoUso == null || maximoUso <= 0 || maximoUso > 100) {
-        AppSnackBar.aviso(
-          context,
-          'O limite de uso deve estar entre 0,01% e 100%.',
-        );
-        return;
-      }
-    }
-
     setState(() => _salvando = true);
     try {
-      if (_cashback) {
-        await _repository.salvarConfigCashback(
-          lojaId: widget.loja.lojaId,
-          configuracao: {
-            'sitcashback': _ativo ? 'ATIVO' : 'INATIVO',
-            'pccashback': valor ?? 0,
-            'vrmincompra': _numero(_minimoCompraController) ?? 0,
-            'vrmaxcashback': _maximoCashbackController.text.trim().isEmpty
-                ? null
-                : _numero(_maximoCashbackController),
-            'nrdiapliberacao': int.parse(_diasLiberacaoController.text.trim()),
-            'nrdiavalidade': int.parse(_diasValidadeController.text.trim()),
-            'permiteusoparcial': _permiteUsoParcial ? 'S' : 'N',
-            'pcmaxusocompra': _numero(_maximoUsoController) ?? 30,
-          },
-        );
-      } else {
-        await _repository.atualizarPoliticaProdutos(
-          loja: widget.loja,
-          controlaValidade: _ativo ? 'S' : 'N',
-          diasValidade: _ativo ? valor!.round() : widget.loja.nrdiavalidade,
-        );
-      }
+      await _repository.salvarConfigCashback(
+        lojaId: widget.loja.lojaId,
+        configuracao: {
+          'sitcashback': _ativo ? 'ATIVO' : 'INATIVO',
+          'pccashback': valor ?? 0,
+          'vrmincompra': _numero(_minimoCompraController) ?? 0,
+          'vrmaxcashback': _maximoCashbackController.text.trim().isEmpty
+              ? null
+              : _numero(_maximoCashbackController),
+          'nrdiapliberacao': int.parse(_diasLiberacaoController.text.trim()),
+          'nrdiavalidade': int.parse(_diasValidadeController.text.trim()),
+          'permiteusoparcial': _permiteUsoParcial ? 'S' : 'N',
+          'pcmaxusocompra': _numero(_maximoUsoController) ?? 30,
+        },
+      );
       if (!mounted) return;
       AppSnackBar.sucesso(context, 'Configuração salva com sucesso.');
       Navigator.pop(context, true);
@@ -173,22 +144,20 @@ class _LojaConfiguracaoProdutosPageState
 
   @override
   Widget build(BuildContext context) {
-    final titulo = _cashback ? 'Gerenciar cashback' : 'Política de produtos';
+    const titulo = 'Gerenciar cashback';
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: Column(
         children: [
           ClubbarPageHeader(
-            titulo: _cashback ? widget.loja.nmloja : titulo,
-            subtitulo: _cashback ? titulo : widget.loja.nmloja,
-            tituloStyle: _cashback
-                ? const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                    color: ClubbarColors.info,
-                  )
-                : null,
+            titulo: widget.loja.nmloja,
+            subtitulo: titulo,
+            tituloStyle: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              color: ClubbarColors.info,
+            ),
           ),
           Expanded(
             child: _carregando
@@ -208,9 +177,7 @@ class _LojaConfiguracaoProdutosPageState
                                     ? null
                                     : (valor) => setState(() => _ativo = valor),
                                 title: Text(
-                                  _cashback
-                                      ? 'Usar cashback neste estabelecimento'
-                                      : 'Controlar validade dos produtos',
+                                  'Usar cashback neste estabelecimento',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -225,75 +192,69 @@ class _LojaConfiguracaoProdutosPageState
                                       decimal: true,
                                     ),
                                 decoration: InputDecoration(
-                                  labelText: _cashback
-                                      ? 'Percentual de cashback'
-                                      : 'Prazo de validade em dias',
-                                  suffixText: _cashback ? '%' : 'dias',
+                                  labelText: 'Percentual de cashback',
+                                  suffixText: '%',
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
                               ),
-                              if (_cashback) ...[
-                                const Divider(height: 30),
-                                _campoNumero(
-                                  controller: _minimoCompraController,
-                                  label: 'Valor mínimo da compra',
-                                  prefixo: 'R\$',
-                                  ajuda: 'Compra mínima para gerar cashback.',
+                              const Divider(height: 30),
+                              _campoNumero(
+                                controller: _minimoCompraController,
+                                label: 'Valor mínimo da compra',
+                                prefixo: 'R\$',
+                                ajuda: 'Compra mínima para gerar cashback.',
+                              ),
+                              const SizedBox(height: 14),
+                              _campoNumero(
+                                controller: _maximoCashbackController,
+                                label: 'Valor máximo de cashback',
+                                prefixo: 'R\$',
+                                ajuda:
+                                    'Deixe vazio para não limitar o crédito.',
+                              ),
+                              const SizedBox(height: 14),
+                              _campoNumero(
+                                controller: _diasLiberacaoController,
+                                label: 'Dias para liberação',
+                                sufixo: 'dias',
+                                decimal: false,
+                                ajuda:
+                                    'Período em que o crédito ficará pendente.',
+                              ),
+                              const SizedBox(height: 14),
+                              _campoNumero(
+                                controller: _diasValidadeController,
+                                label: 'Validade do cashback',
+                                sufixo: 'dias',
+                                decimal: false,
+                              ),
+                              const SizedBox(height: 10),
+                              SwitchListTile.adaptive(
+                                contentPadding: EdgeInsets.zero,
+                                value: _permiteUsoParcial,
+                                onChanged: _salvando
+                                    ? null
+                                    : (valor) => setState(
+                                        () => _permiteUsoParcial = valor,
+                                      ),
+                                title: const Text(
+                                  'Permitir uso parcial do saldo',
+                                  style: TextStyle(fontWeight: FontWeight.w800),
                                 ),
-                                const SizedBox(height: 14),
-                                _campoNumero(
-                                  controller: _maximoCashbackController,
-                                  label: 'Valor máximo de cashback',
-                                  prefixo: 'R\$',
-                                  ajuda:
-                                      'Deixe vazio para não limitar o crédito.',
+                                subtitle: const Text(
+                                  'O cliente pode usar apenas parte do cashback disponível.',
                                 ),
-                                const SizedBox(height: 14),
-                                _campoNumero(
-                                  controller: _diasLiberacaoController,
-                                  label: 'Dias para liberação',
-                                  sufixo: 'dias',
-                                  decimal: false,
-                                  ajuda:
-                                      'Período em que o crédito ficará pendente.',
-                                ),
-                                const SizedBox(height: 14),
-                                _campoNumero(
-                                  controller: _diasValidadeController,
-                                  label: 'Validade do cashback',
-                                  sufixo: 'dias',
-                                  decimal: false,
-                                ),
-                                const SizedBox(height: 10),
-                                SwitchListTile.adaptive(
-                                  contentPadding: EdgeInsets.zero,
-                                  value: _permiteUsoParcial,
-                                  onChanged: _salvando
-                                      ? null
-                                      : (valor) => setState(
-                                          () => _permiteUsoParcial = valor,
-                                        ),
-                                  title: const Text(
-                                    'Permitir uso parcial do saldo',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  subtitle: const Text(
-                                    'O cliente pode usar apenas parte do cashback disponível.',
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                _campoNumero(
-                                  controller: _maximoUsoController,
-                                  label: 'Limite de uso por compra',
-                                  sufixo: '%',
-                                  ajuda:
-                                      'Percentual máximo da compra que pode ser pago com cashback.',
-                                ),
-                              ],
+                              ),
+                              const SizedBox(height: 10),
+                              _campoNumero(
+                                controller: _maximoUsoController,
+                                label: 'Limite de uso por compra',
+                                sufixo: '%',
+                                ajuda:
+                                    'Percentual máximo da compra que pode ser pago com cashback.',
+                              ),
                             ],
                           ),
                         ),

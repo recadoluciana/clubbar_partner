@@ -31,7 +31,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
   final _localidadeRepository = LocalidadeRepository();
 
   final TextEditingController _nomeController = TextEditingController();
-  final TextEditingController _estiloLojaController = TextEditingController();
   final TextEditingController _bairroController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
   final TextEditingController _diasValidadeController = TextEditingController();
@@ -59,7 +58,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
   String? _validarCamposLoja() {
     final nome = _nomeController.text.trim();
-    final estiloLoja = _estiloLojaController.text.trim();
     final bairro = _bairroController.text.trim();
     final endereco = _enderecoController.text.trim();
     final cep = Validators.somenteNumeros(_cepController.text);
@@ -78,9 +76,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
     }
     if (nome.length > 120) {
       return 'O nome do estabelecimento pode ter no máximo 120 caracteres.';
-    }
-    if (estiloLoja.length > 255) {
-      return 'O estilo musical pode ter no máximo 255 caracteres.';
     }
     if (_estadoId == null || _estadoId == 0) {
       return 'Selecione o estado do estabelecimento.';
@@ -155,7 +150,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
     if (widget.loja != null) {
       _nomeController.text = widget.loja!.nmloja;
-      _estiloLojaController.text = widget.loja!.dsestiloloja ?? '';
       _bairroController.text = widget.loja!.dsbairroloja ?? '';
       _telefoneController.text = Formatters.telefone(
         widget.loja!.nrtelloja ?? '',
@@ -206,7 +200,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
   @override
   void dispose() {
     _nomeController.dispose();
-    _estiloLojaController.dispose();
     _bairroController.dispose();
     _telefoneController.dispose();
     _diasValidadeController.dispose();
@@ -329,7 +322,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
           estadoId: _estadoId!,
           cidadeId: _cidadeId!,
           nome: _nomeController.text.trim(),
-          estiloLoja: _estiloLojaController.text.trim(),
           bairro: _bairroController.text.trim(),
           telefone: telefoneSemMascara,
           diasValidade: diasValidade,
@@ -356,7 +348,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
           estadoId: _estadoId!,
           cidadeId: _cidadeId!,
           nome: nomeLoja,
-          estiloLoja: _estiloLojaController.text.trim(),
           bairro: _bairroController.text.trim(),
           telefone: telefoneSemMascara,
           diasValidade: diasValidade,
@@ -382,7 +373,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
           estadoId: _estadoId,
           cidadeId: _cidadeId,
           nmloja: nomeLoja,
-          dsestiloloja: _estiloLojaController.text.trim(),
           dsbairroloja: _bairroController.text.trim(),
           nrtelloja: telefoneSemMascara,
           nrdiavalidade: diasValidade,
@@ -482,12 +472,19 @@ class _LojaFormPageState extends State<LojaFormPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: editando
-                  ? 'Editar estabelecimento - ${widget.loja!.nmloja}'
-                  : 'Novo estabelecimento',
-              subtitulo: _carregandoNomeOrganizacao
+              titulo: editando ? widget.loja!.nmloja : 'Novo estabelecimento',
+              subtitulo: editando
+                  ? 'Editar estabelecimento'
+                  : _carregandoNomeOrganizacao
                   ? 'Carregando empresa...'
                   : _nomeOrganizacao,
+              tituloStyle: editando
+                  ? const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: ClubbarColors.info,
+                    )
+                  : null,
             ),
             Expanded(
               child: Center(
@@ -536,22 +533,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 14),
-                                TextFormField(
-                                  controller: _estiloLojaController,
-                                  textCapitalization:
-                                      TextCapitalization.sentences,
-                                  maxLength: 255,
-                                  inputFormatters: [
-                                    LengthLimitingTextInputFormatter(255),
-                                  ],
-                                  decoration: _decoracaoCampo(
-                                    label: 'Estilo musical do estabelecimento',
-                                    icone: Icons.music_note_outlined,
-                                    hint:
-                                        'Ex.: Sertanejo, rock, música ao vivo',
-                                  ).copyWith(counterText: ''),
-                                ),
                               ],
                             ),
                           ),
@@ -594,8 +575,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     label: 'CEP',
                                     icone: Icons.location_searching_rounded,
                                     hint: '00000-000',
-                                    helperText:
-                                        'Ao completar o CEP, o endereço será preenchido automaticamente.',
                                   ),
                                   validator: (value) {
                                     final cep = Validators.somenteNumeros(
@@ -624,8 +603,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   decoration: _decoracaoCampo(
                                     label: 'Endereço do estabelecimento',
                                     icone: Icons.home_work_outlined,
-                                    helperText:
-                                        'Preenchido automaticamente pelo CEP.',
                                   ).copyWith(counterText: ''),
                                 ),
                                 const SizedBox(height: 14),
@@ -662,8 +639,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   decoration: _decoracaoCampo(
                                     label: 'Bairro',
                                     icone: Icons.map_outlined,
-                                    helperText:
-                                        'Preenchido automaticamente pelo CEP.',
                                   ).copyWith(counterText: ''),
                                 ),
                                 const SizedBox(height: 14),

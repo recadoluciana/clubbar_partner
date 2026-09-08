@@ -5,7 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'modules/auth/login_page.dart';
 import 'modules/dashboard/dashboard_page.dart';
 import 'modules/leitor_qr/barman_home_page.dart';
-import 'modules/leitor_qr/porteiro_home_page.dart';
+import 'modules/leitor_qr/ticketman_home_page.dart';
 import 'modules/caixa/caixa_page.dart';
 
 class ClubbarPartnerApp extends StatelessWidget {
@@ -65,19 +65,19 @@ class _SplashDeciderPageState extends State<SplashDeciderPage> {
     if (_temToken) {
       final cargoUpper = (_cargo ?? '').trim().toUpperCase();
 
-      if (cargoUpper == 'PORTEIRO') {
-        return const PorteiroHomePage();
+      if (cargoUpper == 'TICKETMAN') {
+        return const TicketmanHomePage();
       }
 
-      if (cargoUpper == 'BARMAN' || cargoUpper == 'GARCOM') {
+      if (cargoUpper == 'BARMAN' || cargoUpper == 'WAITER') {
         return const BarmanHomePage();
       }
 
-      if (cargoUpper == 'CAIXA') return const CaixaPage();
+      if (cargoUpper == 'CASHIER') return const CaixaPage();
 
       if (cargoUpper == 'SUPERADMIN' ||
           cargoUpper == 'ADMIN' ||
-          cargoUpper == 'GERENTE') {
+          cargoUpper == 'MANAGER') {
         return const DashboardPage();
       }
       return const LoginPage();

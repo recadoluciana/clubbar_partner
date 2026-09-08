@@ -52,8 +52,17 @@ class _CardapiosPageState extends State<CardapiosPage> {
   }
 
   Future<void> _novo() async {
+    List<Map<String, dynamic>> padroes;
+    try {
+      padroes = await _repo.listarPadroes(_loja.organizacaoId);
+    } catch (e) {
+      if (mounted)
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      return;
+    }
     final nome = TextEditingController();
     String tipo = 'PRINCIPAL';
+    int? padraoId;
     final confirmou = await showDialog<bool>(
       context: context,
       builder: (c) => StatefulBuilder(
@@ -62,36 +71,61 @@ class _CardapiosPageState extends State<CardapiosPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nome,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  border: OutlineInputBorder(),
+              if (padroes.isNotEmpty) ...[
+                DropdownButtonFormField<int?>(
+                  initialValue: padraoId,
+                  decoration: const InputDecoration(
+                    labelText: 'Cardápio padrão da organização',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('Criar um novo padrão'),
+                    ),
+                    ...padroes.map(
+                      (e) => DropdownMenuItem<int?>(
+                        value: int.parse('${e['cardapiomodelo_id']}'),
+                        child: Text('${e['nmcardapio']}'),
+                      ),
+                    ),
+                  ],
+                  onChanged: (v) => setModal(() => padraoId = v),
                 ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: tipo,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+              ],
+              if (padraoId == null) ...[
+                TextField(
+                  controller: nome,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                items:
-                    const {
-                          'PRINCIPAL': 'Principal',
-                          'ESPECIAL': 'Especial',
-                          'SAZONAL': 'Sazonal',
-                          'EVENTO': 'Evento',
-                        }.entries
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e.key,
-                            child: Text(e.value),
-                          ),
-                        )
-                        .toList(),
-                onChanged: (v) => setModal(() => tipo = v ?? tipo),
-              ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: tipo,
+                  decoration: const InputDecoration(
+                    labelText: 'Tipo',
+                    border: OutlineInputBorder(),
+                  ),
+                  items:
+                      const {
+                            'PRINCIPAL': 'Principal',
+                            'ESPECIAL': 'Especial',
+                            'SAZONAL': 'Sazonal',
+                            'EVENTO': 'Evento',
+                          }.entries
+                          .map(
+                            (e) => DropdownMenuItem(
+                              value: e.key,
+                              child: Text(e.value),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (v) => setModal(() => tipo = v ?? tipo),
+                ),
+              ],
             ],
           ),
           actions: [
@@ -107,9 +141,15 @@ class _CardapiosPageState extends State<CardapiosPage> {
         ),
       ),
     );
-    if (confirmou != true || nome.text.trim().length < 2) return;
+    if (confirmou != true || (padraoId == null && nome.text.trim().length < 2))
+      return;
     try {
-      await _repo.criar(_loja.lojaId, nome.text.trim(), tipo);
+      final id =
+          padraoId ??
+          int.parse(
+            '${(await _repo.criarPadrao(_loja.organizacaoId, nome.text.trim(), tipo))['cardapiomodelo_id']}',
+          );
+      await _repo.associar(_loja.lojaId, id);
       await _carregar();
     } catch (e) {
       if (mounted)
@@ -327,7 +367,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _novo,
         icon: const Icon(Icons.add),
-        label: const Text('Cardápio'),
+        label: const Text('Adicionar cardápio'),
       ),
       body: Column(
         children: [

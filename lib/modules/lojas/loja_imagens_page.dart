@@ -88,7 +88,10 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
         fachada: _fachada,
       );
       if (!mounted) return;
-      AppSnackBar.sucesso(context, 'Imagens do estabelecimento atualizadas com sucesso.');
+      AppSnackBar.sucesso(
+        context,
+        'Imagens do estabelecimento atualizadas com sucesso.',
+      );
       Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, 'Erro ao salvar imagens: $e');
@@ -168,14 +171,6 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                if ((widget.loja.dsestiloloja ?? '').trim().isNotEmpty)
-                  Text(
-                    widget.loja.dsestiloloja!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: ClubbarColors.textoSecundario,
-                    ),
-                  ),
               ],
             ),
           ),

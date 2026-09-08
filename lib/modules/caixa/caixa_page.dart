@@ -43,7 +43,7 @@ class _CaixaPageState extends State<CaixaPage> {
   final _buscaController = TextEditingController();
   String _busca = '';
   String _nomeUsuario = 'Usuário';
-  String _cargo = 'Caixa';
+  String _cargo = 'Cashier';
   DateTime _agora = DateTime.now();
   Timer? _relogioCabecalho;
 
@@ -84,7 +84,7 @@ class _CaixaPageState extends State<CaixaPage> {
       _nomeUsuario = dados[0]?.trim().isNotEmpty == true
           ? dados[0]!.trim()
           : 'Usuário';
-      _cargo = _formatarCargo(dados[1] ?? 'Caixa');
+      _cargo = _formatarCargo(dados[1] ?? 'Cashier');
     });
   }
 
@@ -604,7 +604,7 @@ class _CaixaPageState extends State<CaixaPage> {
                 style: const pw.TextStyle(fontSize: 8),
               ),
               pw.Text(
-                'Apresente este QR Code ao Barman ou Garçom.',
+                'Apresente este QR Code ao Barman ou Waiter.',
                 textAlign: pw.TextAlign.center,
                 style: const pw.TextStyle(fontSize: 9),
               ),

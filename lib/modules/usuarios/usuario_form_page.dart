@@ -56,24 +56,24 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
   static const List<String> _cargos = [
     'ADMIN',
-    'GERENTE',
-    'CAIXA',
+    'MANAGER',
+    'CASHIER',
     'TOTEM',
     'BARMAN',
-    'GARCOM',
-    'PORTEIRO',
+    'WAITER',
+    'TICKETMAN',
   ];
 
   bool get _cargoSemLoja => _cargoSelecionado == 'ADMIN';
-  bool get _usuarioLogadoGerente => _cargoLogado == 'GERENTE';
+  bool get _usuarioLogadoManager => _cargoLogado == 'MANAGER';
 
   bool get _cargoExigeLoja => const {
-    'GERENTE',
-    'CAIXA',
+    'MANAGER',
+    'CASHIER',
     'TOTEM',
     'BARMAN',
-    'GARCOM',
-    'PORTEIRO',
+    'WAITER',
+    'TICKETMAN',
   }.contains(_cargoSelecionado);
 
   @override
@@ -129,11 +129,11 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       case 'ADMIN':
         return 'Administrador';
 
-      case 'GERENTE':
-        return 'Gerente';
+      case 'MANAGER':
+        return 'Manager';
 
-      case 'CAIXA':
-        return 'Caixa';
+      case 'CASHIER':
+        return 'Cashier';
 
       case 'TOTEM':
         return 'Totem';
@@ -141,11 +141,11 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       case 'BARMAN':
         return 'Barman';
 
-      case 'GARCOM':
-        return 'Garçom';
+      case 'WAITER':
+        return 'Waiter';
 
-      case 'PORTEIRO':
-        return 'Porteiro';
+      case 'TICKETMAN':
+        return 'Ticketman';
 
       default:
         return cargo;
@@ -177,7 +177,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
         _cargoLogado = cargoLogado;
         _lojaIdSelecionada =
             lojaSelecionada ??
-            (_usuarioLogadoGerente && lista.isNotEmpty
+            (_usuarioLogadoManager && lista.isNotEmpty
                 ? lista.first.lojaId
                 : null);
         _carregandoLojas = false;
@@ -189,7 +189,10 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
         _carregandoLojas = false;
       });
 
-      AppSnackBar.erro(context, 'Não foi possível carregar os estabelecimentos.');
+      AppSnackBar.erro(
+        context,
+        'Não foi possível carregar os estabelecimentos.',
+      );
     }
   }
 
@@ -327,7 +330,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       if (_cargoExigeLoja && _lojaIdSelecionada == null) {
         AppSnackBar.aviso(
           context,
-          'Caixa, Barman, Garçom e Porteiro devem estar vinculados a um estabelecimento.',
+          'Cashier, Barman, Waiter e Ticketman devem estar vinculados a um estabelecimento.',
         );
         setState(() => _salvando = false);
         return;
@@ -455,7 +458,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
   Widget _campoCargo() {
     final cargosDisponiveis = usuarioSuperadmin
         ? const ['SUPERADMIN', ..._cargos]
-        : _usuarioLogadoGerente
+        : _usuarioLogadoManager
         ? _cargos.where((cargo) => cargo != 'ADMIN').toList()
         : _cargos;
     return DropdownButtonFormField<String>(
@@ -689,7 +692,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                                     if (!_cargoExigeLoja)
                                       const DropdownMenuItem<int?>(
                                         value: null,
-                                        child: Text('Sem estabelecimento vinculado'),
+                                        child: Text(
+                                          'Sem estabelecimento vinculado',
+                                        ),
                                       ),
                                     ..._lojas.map(
                                       (loja) => DropdownMenuItem<int?>(
@@ -701,7 +706,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                                   onChanged:
                                       _salvando ||
                                           _cargoSemLoja ||
-                                          _usuarioLogadoGerente
+                                          _usuarioLogadoManager
                                       ? null
                                       : (value) {
                                           setState(() {

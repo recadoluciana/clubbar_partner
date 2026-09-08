@@ -38,6 +38,47 @@ class CardapioRepository {
     return Map<String, dynamic>.from(_json(response));
   }
 
+  Future<List<Map<String, dynamic>>> listarPadroes(int organizacaoId) async {
+    final response = await ApiService.get(
+      '/organizacoes/$organizacaoId/cardapios-padrao',
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível carregar os cardápios padrão.');
+    }
+    return (_json(response) as List)
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> criarPadrao(
+    int organizacaoId,
+    String nome,
+    String tipo,
+  ) async {
+    final response = await ApiService.post(
+      '/organizacoes/$organizacaoId/cardapios-padrao',
+      {'nmcardapio': nome, 'tipocardapio': tipo, 'prioridade': 0},
+    );
+    if (response.statusCode != 201) {
+      throw _erro(response, 'Não foi possível criar o cardápio padrão.');
+    }
+    return Map<String, dynamic>.from(_json(response));
+  }
+
+  Future<Map<String, dynamic>> associar(
+    int lojaId,
+    int cardapioModeloId,
+  ) async {
+    final response = await ApiService.post(
+      '/lojas/$lojaId/cardapios/associar',
+      {'cardapiomodelo_id': cardapioModeloId, 'prioridade': 10},
+    );
+    if (response.statusCode != 201) {
+      throw _erro(response, 'Não foi possível usar o cardápio nesta loja.');
+    }
+    return Map<String, dynamic>.from(_json(response));
+  }
+
   Future<Map<String, dynamic>> novaVersao(int cardapioId) async {
     final response = await ApiService.post(
       '/cardapios/$cardapioId/nova-versao',

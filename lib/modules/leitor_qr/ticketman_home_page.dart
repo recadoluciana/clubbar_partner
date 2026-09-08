@@ -6,14 +6,14 @@ import '../leitor_qr/leitor_qr_retirada_ingresso.dart';
 import '../auth/login_page.dart';
 import '../../core/services/storage_service.dart';
 
-class PorteiroHomePage extends StatefulWidget {
-  const PorteiroHomePage({super.key});
+class TicketmanHomePage extends StatefulWidget {
+  const TicketmanHomePage({super.key});
 
   @override
-  State<PorteiroHomePage> createState() => _PorteiroHomePageState();
+  State<TicketmanHomePage> createState() => _TicketmanHomePageState();
 }
 
-class _PorteiroHomePageState extends State<PorteiroHomePage> {
+class _TicketmanHomePageState extends State<TicketmanHomePage> {
   String nomeUsuario = '';
   String dataHoraAtual = '';
 
@@ -33,7 +33,7 @@ class _PorteiroHomePageState extends State<PorteiroHomePage> {
     if (!mounted) return;
 
     setState(() {
-      nomeUsuario = nome ?? 'Porteiro';
+      nomeUsuario = nome ?? 'Ticketman';
     });
   }
 

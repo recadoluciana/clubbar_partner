@@ -16,17 +16,9 @@ import '../../models/evento.dart';
 
 class EventoFormPage extends StatefulWidget {
   final int organizacaoId;
-  final int lojaId;
-  final String nomeLoja;
   final Evento? evento;
 
-  const EventoFormPage({
-    super.key,
-    required this.organizacaoId,
-    required this.lojaId,
-    required this.nomeLoja,
-    this.evento,
-  });
+  const EventoFormPage({super.key, required this.organizacaoId, this.evento});
 
   @override
   State<EventoFormPage> createState() => _EventoFormPageState();
@@ -226,7 +218,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
       } else {
         await _repo.criar(
           organizacaoId: widget.organizacaoId,
-          lojaId: widget.lojaId,
           produtoIdIngresso: 1,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
@@ -586,12 +577,10 @@ class _EventoFormPageState extends State<EventoFormPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: editando
-                  ? 'Editar evento padrão - ${widget.nomeLoja}'
-                  : 'Novo evento padrão - ${widget.nomeLoja}',
+              titulo: editando ? 'Editar evento padrão' : 'Novo evento padrão',
               subtitulo: editando
-                  ? 'Atualize os dados reutilizados nas próximas datas'
-                  : 'Cadastre uma vez e reutilize na agenda',
+                  ? 'Atualize o modelo reutilizado pela organização'
+                  : 'Cadastre uma vez e use em qualquer estabelecimento',
             ),
             Expanded(
               child: Form(

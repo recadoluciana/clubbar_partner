@@ -97,15 +97,24 @@ class EventoRepository {
 
   Future<void> agendar({
     required int modeloId,
+    required int lojaId,
     required DateTime inicio,
     required int capacidade,
+    required double precoInteira,
     required String recorrencia,
     required int repeticoes,
+    String? local,
+    String? endereco,
   }) async {
     final response =
         await ApiService.post('/eventos-modelos/$modeloId/agendar', {
           'dtinicio': inicio.toIso8601String(),
+          'loja_id': lojaId,
           'capacidade': capacidade,
+          'preco_inteira': precoInteira,
+          if (local != null && local.trim().isNotEmpty) 'local': local.trim(),
+          if (endereco != null && endereco.trim().isNotEmpty)
+            'endereco': endereco.trim(),
           'recorrencia': recorrencia,
           'repeticoes': repeticoes,
         });
@@ -119,8 +128,8 @@ class EventoRepository {
     }
   }
 
-  Future<List<Evento>> listar(int lojaId) async {
-    final response = await ApiService.get('/eventos-modelos?loja_id=$lojaId');
+  Future<List<Evento>> listar() async {
+    final response = await ApiService.get('/eventos-modelos');
 
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);
@@ -161,7 +170,6 @@ class EventoRepository {
 
   Future<void> criar({
     required int organizacaoId,
-    required int lojaId,
     required int produtoIdIngresso,
     required String titulo,
     String? descricao,
@@ -186,7 +194,6 @@ class EventoRepository {
     }
 
     request.fields['organizacao_id'] = organizacaoId.toString();
-    request.fields['loja_id'] = lojaId.toString();
     request.fields['produto_id_ingresso'] = produtoIdIngresso.toString();
     request.fields['nmtituloevento'] = titulo;
 

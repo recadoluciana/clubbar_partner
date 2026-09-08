@@ -12,7 +12,7 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../caixa/caixa_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../leitor_qr/barman_home_page.dart';
-import '../leitor_qr/porteiro_home_page.dart';
+import '../leitor_qr/ticketman_home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -77,15 +77,15 @@ class _LoginPageState extends State<LoginPage> {
           .toUpperCase();
       if (!mounted) return;
       Widget? destino;
-      if (cargo == 'CAIXA') {
+      if (cargo == 'CASHIER') {
         destino = const CaixaPage();
-      } else if (cargo == 'GARCOM' || cargo == 'BARMAN') {
+      } else if (cargo == 'WAITER' || cargo == 'BARMAN') {
         destino = const BarmanHomePage();
-      } else if (cargo == 'PORTEIRO') {
-        destino = const PorteiroHomePage();
+      } else if (cargo == 'TICKETMAN') {
+        destino = const TicketmanHomePage();
       } else if (cargo == 'SUPERADMIN' ||
           cargo == 'ADMIN' ||
-          cargo == 'GERENTE') {
+          cargo == 'MANAGER') {
         destino = const DashboardPage();
       }
       if (destino == null) {

@@ -21,7 +21,6 @@ class Loja {
 
   final double vrtaxaprod;
   final double vrtaxaing;
-  final String? dsestiloloja;
   final String aberto24x7;
   final String idvalidadeprod;
   final int? capacidadeTotal;
@@ -49,7 +48,6 @@ class Loja {
     this.dsinstaloja,
     this.vrtaxaprod = 5.0,
     this.vrtaxaing = 5.0,
-    this.dsestiloloja,
     this.aberto24x7 = 'N',
     this.idvalidadeprod = 'S',
     this.capacidadeTotal,
@@ -79,7 +77,6 @@ class Loja {
       dsinstaloja: json['dsinstaloja']?.toString(),
       vrtaxaprod: (json['vrtaxaprod'] ?? 5).toDouble(),
       vrtaxaing: (json['vrtaxaing'] ?? 5).toDouble(),
-      dsestiloloja: json['dsestiloloja']?.toString(),
       aberto24x7: _normalizarSimNao(json['aberto24x7']),
       idvalidadeprod: _normalizarSimNao(
         json['idvalidadeprod'],
@@ -113,7 +110,6 @@ class Loja {
       'dsinstaloja': dsinstaloja,
       'vrtaxaprod': vrtaxaprod,
       'vrtaxaing': vrtaxaing,
-      'dsestiloloja': dsestiloloja,
       'aberto24x7': aberto24x7,
       'idvalidadeprod': idvalidadeprod,
       'qtcpdloja': capacidadeTotal,
@@ -143,7 +139,6 @@ class Loja {
     String? dsinstaloja,
     double? vrtaxaprod,
     double? vrtaxaing,
-    String? dsestiloloja,
     String? aberto24x7,
     String? idvalidadeprod,
     int? capacidadeTotal,
@@ -171,7 +166,6 @@ class Loja {
       dsinstaloja: dsinstaloja ?? this.dsinstaloja,
       vrtaxaprod: vrtaxaprod ?? this.vrtaxaprod,
       vrtaxaing: vrtaxaing ?? this.vrtaxaing,
-      dsestiloloja: dsestiloloja ?? this.dsestiloloja,
       aberto24x7: aberto24x7 ?? this.aberto24x7,
       idvalidadeprod: idvalidadeprod ?? this.idvalidadeprod,
       capacidadeTotal: capacidadeTotal ?? this.capacidadeTotal,
@@ -221,7 +215,6 @@ class Loja {
             other.dsinstaloja == dsinstaloja &&
             other.vrtaxaprod == vrtaxaprod &&
             other.vrtaxaing == vrtaxaing &&
-            other.dsestiloloja == dsestiloloja &&
             other.aberto24x7 == aberto24x7 &&
             other.idvalidadeprod == idvalidadeprod &&
             other.capacidadeTotal == capacidadeTotal &&
@@ -251,7 +244,6 @@ class Loja {
     dsinstaloja,
     vrtaxaprod,
     vrtaxaing,
-    dsestiloloja,
     aberto24x7,
     idvalidadeprod,
     capacidadeTotal,

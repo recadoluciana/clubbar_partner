@@ -19,12 +19,14 @@ class EventoListPage extends StatefulWidget {
   final int organizacaoId;
   final int? lojaIdInicial;
   final bool fixarLoja;
+  final DateTime? dataInicialAgendamento;
 
   const EventoListPage({
     super.key,
     required this.organizacaoId,
     this.lojaIdInicial,
     this.fixarLoja = false,
+    this.dataInicialAgendamento,
   });
 
   @override
@@ -37,7 +39,6 @@ class _EventoListPageState extends State<EventoListPage> {
   final TextEditingController _buscaController = TextEditingController();
 
   bool _carregando = true;
-  bool _carregandoLojas = true;
   bool _excluindo = false;
   String? _erro;
 
@@ -105,7 +106,6 @@ class _EventoListPageState extends State<EventoListPage> {
 
   Future<void> _carregarLojas() async {
     setState(() {
-      _carregandoLojas = true;
       _carregando = true;
       _erro = null;
     });
@@ -114,8 +114,10 @@ class _EventoListPageState extends State<EventoListPage> {
       final lojas = await _lojaRepository.listar(widget.organizacaoId);
       if (!mounted) return;
 
-      int? selecionada = widget.lojaIdInicial ?? _lojaIdSelecionada;
-      if (lojas.isNotEmpty) {
+      int? selecionada = widget.fixarLoja
+          ? widget.lojaIdInicial ?? _lojaIdSelecionada
+          : null;
+      if (widget.fixarLoja && lojas.isNotEmpty) {
         if (!lojas.any((loja) => loja.lojaId == selecionada)) {
           selecionada = lojas.first.lojaId;
         }
@@ -126,23 +128,13 @@ class _EventoListPageState extends State<EventoListPage> {
       setState(() {
         _lojas = lojas;
         _lojaIdSelecionada = selecionada;
-        _carregandoLojas = false;
       });
 
-      if (_lojaIdSelecionada != null) {
-        await _carregarEventos();
-      } else {
-        setState(() {
-          _eventos = [];
-          _eventosFiltrados = [];
-          _carregando = false;
-        });
-      }
+      await _carregarEventos();
     } catch (e) {
       if (!mounted) return;
       final mensagem = _extrairMensagemErro(e);
       setState(() {
-        _carregandoLojas = false;
         _carregando = false;
         _erro = mensagem;
       });
@@ -151,23 +143,13 @@ class _EventoListPageState extends State<EventoListPage> {
   }
 
   Future<void> _carregarEventos() async {
-    final lojaId = _lojaIdSelecionada;
-    if (lojaId == null) {
-      setState(() {
-        _eventos = [];
-        _eventosFiltrados = [];
-        _carregando = false;
-      });
-      return;
-    }
-
     setState(() {
       _carregando = true;
       _erro = null;
     });
 
     try {
-      final lista = await _repository.listar(lojaId);
+      final lista = await _repository.listar();
       if (!mounted) return;
       setState(() {
         _eventos = lista;
@@ -211,19 +193,9 @@ class _EventoListPageState extends State<EventoListPage> {
   }
 
   Future<void> _abrirNovoEvento() async {
-    final lojaId = _lojaIdSelecionada;
-    if (lojaId == null) {
-      AppSnackBar.aviso(context, 'Selecione um estabelecimento.');
-      return;
-    }
-
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EventoFormPage(
-          organizacaoId: widget.organizacaoId,
-          lojaId: lojaId,
-          nomeLoja: _nomeLojaSelecionada(),
-        ),
+        builder: (_) => EventoFormPage(organizacaoId: widget.organizacaoId),
       ),
     );
 
@@ -231,17 +203,10 @@ class _EventoListPageState extends State<EventoListPage> {
   }
 
   Future<void> _abrirEdicao(Evento evento) async {
-    final lojaId = _lojaIdSelecionada;
-    if (lojaId == null) return;
-
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EventoFormPage(
-          organizacaoId: widget.organizacaoId,
-          lojaId: lojaId,
-          nomeLoja: _nomeLojaSelecionada(),
-          evento: evento,
-        ),
+        builder: (_) =>
+            EventoFormPage(organizacaoId: widget.organizacaoId, evento: evento),
       ),
     );
 
@@ -249,11 +214,17 @@ class _EventoListPageState extends State<EventoListPage> {
   }
 
   Future<void> _agendarEvento(Evento evento) async {
+    int? lojaId = widget.fixarLoja ? _lojaIdSelecionada : null;
     final hoje = DateTime.now();
+    final hojeSemHora = DateTime(hoje.year, hoje.month, hoje.day);
+    final sugestao = widget.dataInicialAgendamento;
+    final dataSugerida = sugestao != null && !sugestao.isBefore(hojeSemHora)
+        ? DateTime(sugestao.year, sugestao.month, sugestao.day)
+        : hojeSemHora;
     final data = await showDatePicker(
       context: context,
-      initialDate: hoje,
-      firstDate: DateTime(hoje.year, hoje.month, hoje.day),
+      initialDate: dataSugerida,
+      firstDate: hojeSemHora,
       lastDate: DateTime(hoje.year + 5),
     );
     if (data == null || !mounted) return;
@@ -264,63 +235,125 @@ class _EventoListPageState extends State<EventoListPage> {
     if (hora == null || !mounted) return;
     var recorrencia = 'UNICA';
     var repeticoes = 1;
-    final loja = _lojas
-        .where((x) => x.lojaId == _lojaIdSelecionada)
-        .firstOrNull;
+    final loja = _lojas.where((x) => x.lojaId == lojaId).firstOrNull;
     final capacidadeController = TextEditingController(
       text: loja?.capacidadeTotal?.toString() ?? '',
+    );
+    final precoController = TextEditingController(
+      text: evento.vrPrecoPadrao.toStringAsFixed(2).replaceAll('.', ','),
+    );
+    final localController = TextEditingController(text: evento.nmlocalevento);
+    final enderecoController = TextEditingController(
+      text: evento.dsendlocevento,
     );
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (_, setLocal) => AlertDialog(
-          title: const Text('Adicionar à agenda'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: capacidadeController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Capacidade desta sessão',
+          title: const Text('Programar ocorrência'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<int>(
+                  initialValue: lojaId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Estabelecimento',
+                    prefixIcon: Icon(Icons.storefront_rounded),
+                  ),
+                  items: _lojas
+                      .map(
+                        (loja) => DropdownMenuItem<int>(
+                          value: loja.lojaId,
+                          child: Text(
+                            loja.nmloja,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: widget.fixarLoja
+                      ? null
+                      : (valor) => setLocal(() {
+                          lojaId = valor;
+                          final selecionada = _lojas
+                              .where((x) => x.lojaId == valor)
+                              .firstOrNull;
+                          capacidadeController.text =
+                              selecionada?.capacidadeTotal?.toString() ?? '';
+                        }),
                 ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: recorrencia,
-                decoration: const InputDecoration(labelText: 'Repetição'),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'UNICA',
-                    child: Text('Somente esta data'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'SEMANAL',
-                    child: Text('Toda semana'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'QUINZENAL',
-                    child: Text('A cada 15 dias'),
-                  ),
-                  DropdownMenuItem(value: 'MENSAL', child: Text('Todo mês')),
-                ],
-                onChanged: (v) => setLocal(() {
-                  recorrencia = v!;
-                  if (v == 'UNICA') repeticoes = 1;
-                }),
-              ),
-              if (recorrencia != 'UNICA') ...[
                 const SizedBox(height: 12),
                 TextFormField(
-                  initialValue: '$repeticoes',
+                  controller: capacidadeController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Quantidade de datas',
+                    labelText: 'Capacidade desta sessão',
                   ),
-                  onChanged: (v) => repeticoes = int.tryParse(v) ?? 1,
                 ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: precoController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Preço da inteira nesta data',
+                    prefixText: 'R\$ ',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: localController,
+                  decoration: const InputDecoration(
+                    labelText: 'Local (opcional)',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: enderecoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Endereço (opcional)',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: recorrencia,
+                  decoration: const InputDecoration(labelText: 'Repetição'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'UNICA',
+                      child: Text('Somente esta data'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'SEMANAL',
+                      child: Text('Toda semana'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'QUINZENAL',
+                      child: Text('A cada 15 dias'),
+                    ),
+                    DropdownMenuItem(value: 'MENSAL', child: Text('Todo mês')),
+                  ],
+                  onChanged: (v) => setLocal(() {
+                    recorrencia = v!;
+                    if (v == 'UNICA') repeticoes = 1;
+                  }),
+                ),
+                if (recorrencia != 'UNICA') ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: '$repeticoes',
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantidade de datas',
+                    ),
+                    onChanged: (v) => repeticoes = int.tryParse(v) ?? 1,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
           actions: [
             TextButton(
@@ -329,23 +362,48 @@ class _EventoListPageState extends State<EventoListPage> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Criar agenda'),
+              child: const Text('Adicionar à agenda'),
             ),
           ],
         ),
       ),
     );
     if (confirmar != true) return;
+    if (lojaId == null) {
+      capacidadeController.dispose();
+      precoController.dispose();
+      localController.dispose();
+      enderecoController.dispose();
+      if (mounted) {
+        AppSnackBar.aviso(
+          context,
+          'Selecione o estabelecimento da ocorrência.',
+        );
+      }
+      return;
+    }
     final capacidade = int.tryParse(capacidadeController.text.trim()) ?? 0;
+    final preco =
+        double.tryParse(precoController.text.trim().replaceAll(',', '.')) ?? -1;
+    final local = localController.text;
+    final endereco = enderecoController.text;
     capacidadeController.dispose();
+    precoController.dispose();
+    localController.dispose();
+    enderecoController.dispose();
     if (capacidade <= 0) {
       if (mounted)
         AppSnackBar.aviso(context, 'Informe a capacidade desta sessão.');
       return;
     }
+    if (preco < 0) {
+      if (mounted) AppSnackBar.aviso(context, 'Informe um preço válido.');
+      return;
+    }
     try {
       await _repository.agendar(
         modeloId: evento.eventoId,
+        lojaId: lojaId!,
         inicio: DateTime(
           data.year,
           data.month,
@@ -354,8 +412,11 @@ class _EventoListPageState extends State<EventoListPage> {
           hora.minute,
         ),
         capacidade: capacidade,
+        precoInteira: preco,
         recorrencia: recorrencia,
         repeticoes: repeticoes.clamp(1, 60),
+        local: local,
+        endereco: endereco,
       );
       if (mounted) {
         AppSnackBar.sucesso(
@@ -458,60 +519,6 @@ class _EventoListPageState extends State<EventoListPage> {
     } finally {
       if (mounted) setState(() => _excluindo = false);
     }
-  }
-
-  Widget _campoLoja() {
-    if (_carregandoLojas) {
-      return const SizedBox(
-        height: 56,
-        child: Center(
-          child: CircularProgressIndicator(color: ClubbarColors.ambar),
-        ),
-      );
-    }
-
-    return DropdownButtonFormField<int>(
-      initialValue: _lojaIdSelecionada,
-      isExpanded: true,
-      decoration: _decoracaoFiltro(
-        label: 'Estabelecimento',
-        icone: Icons.storefront_rounded,
-      ),
-      items: _lojas.map((loja) {
-        return DropdownMenuItem<int>(
-          value: loja.lojaId,
-          child: Text(loja.nmloja, overflow: TextOverflow.ellipsis),
-        );
-      }).toList(),
-      onChanged: (value) async {
-        setState(() => _lojaIdSelecionada = value);
-        await _carregarEventos();
-      },
-    );
-  }
-
-  InputDecoration _decoracaoFiltro({
-    required String label,
-    required IconData icone,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icone, color: ClubbarColors.textoSecundario),
-      filled: true,
-      fillColor: ClubbarColors.branco,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: ClubbarColors.borda),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: ClubbarColors.borda),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
-      ),
-    );
   }
 
   Widget _campoBusca() {
@@ -827,7 +834,6 @@ class _EventoListPageState extends State<EventoListPage> {
 
   Widget _estadoVazio() {
     final temBusca = _buscaController.text.trim().isNotEmpty;
-    final temLoja = _lojaIdSelecionada != null;
 
     return ClubbarCard(
       elevation: 0,
@@ -843,20 +849,14 @@ class _EventoListPageState extends State<EventoListPage> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                !temLoja
-                    ? Icons.storefront_rounded
-                    : temBusca
-                    ? Icons.search_off_rounded
-                    : Icons.event_rounded,
+                temBusca ? Icons.search_off_rounded : Icons.event_rounded,
                 size: 39,
                 color: ClubbarColors.preto,
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              !temLoja
-                  ? 'Nenhum estabelecimento disponível'
-                  : temBusca
+              temBusca
                   ? 'Nenhum evento encontrado'
                   : 'Nenhum evento cadastrado',
               textAlign: TextAlign.center,
@@ -864,11 +864,9 @@ class _EventoListPageState extends State<EventoListPage> {
             ),
             const SizedBox(height: 7),
             Text(
-              !temLoja
-                  ? 'Cadastre um estabelecimento antes de criar eventos.'
-                  : temBusca
+              temBusca
                   ? 'Tente pesquisar por outro título, local ou situação.'
-                  : 'Cadastre o primeiro evento deste estabelecimento.',
+                  : 'Cadastre o primeiro evento padrão da organização.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -876,7 +874,7 @@ class _EventoListPageState extends State<EventoListPage> {
                 color: ClubbarColors.textoSecundario,
               ),
             ),
-            if (temLoja && !temBusca) ...[
+            if (!temBusca) ...[
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 onPressed: _abrirNovoEvento,
@@ -965,7 +963,7 @@ class _EventoListPageState extends State<EventoListPage> {
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _lojaIdSelecionada == null ? null : _abrirNovoEvento,
+        onPressed: _abrirNovoEvento,
         icon: const Icon(Icons.add_rounded),
         label: const Text('Adicionar evento padrão'),
       ),
@@ -976,23 +974,13 @@ class _EventoListPageState extends State<EventoListPage> {
               titulo: 'Eventos padrão',
               subtitulo: _carregando
                   ? 'Carregando eventos padrão...'
-                  : nomeLoja.isEmpty
-                  ? 'Selecione um estabelecimento'
-                  : '$nomeLoja • ${_eventos.length} '
+                  : '${widget.fixarLoja && nomeLoja.isNotEmpty ? '$nomeLoja • ' : ''}${_eventos.length} '
                         '${_eventos.length == 1 ? 'evento' : 'eventos'}',
               trailing: _acoesHeader(),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-              child: Column(
-                children: [
-                  if (!widget.fixarLoja) ...[
-                    _campoLoja(),
-                    const SizedBox(height: 12),
-                  ],
-                  _campoBusca(),
-                ],
-              ),
+              child: Column(children: [_campoBusca()]),
             ),
             const SizedBox(height: 14),
             Expanded(

@@ -49,7 +49,6 @@ class LojaRepository {
     required int estadoId,
     required int cidadeId,
     required String nome,
-    String? estiloLoja,
     String? bairro,
     String? telefone,
     int? diasValidade,
@@ -78,7 +77,6 @@ class LojaRepository {
     request.fields['estado_id'] = estadoId.toString();
     request.fields['cidade_id'] = cidadeId.toString();
     request.fields['nmloja'] = nome;
-    request.fields['dsestiloloja'] = estiloLoja ?? '';
     request.fields['dsbairroloja'] = bairro ?? '';
     request.fields['nrtelloja'] = telefone ?? '';
 
@@ -138,7 +136,6 @@ class LojaRepository {
     required int estadoId,
     required int cidadeId,
     required String nome,
-    String? estiloLoja,
     String? bairro,
     String? telefone,
     int? diasValidade,
@@ -167,7 +164,6 @@ class LojaRepository {
     request.fields['estado_id'] = estadoId.toString();
     request.fields['cidade_id'] = cidadeId.toString();
     request.fields['nmloja'] = nome;
-    request.fields['dsestiloloja'] = estiloLoja ?? '';
     request.fields['dsbairroloja'] = bairro ?? '';
     request.fields['nrtelloja'] = telefone ?? '';
 
@@ -208,7 +204,9 @@ class LojaRepository {
     final estadoId = loja.estadoId;
     final cidadeId = loja.cidadeId;
     if (estadoId == null || cidadeId == null) {
-      throw Exception('Estado e cidade do estabelecimento não foram identificados.');
+      throw Exception(
+        'Estado e cidade do estabelecimento não foram identificados.',
+      );
     }
 
     await atualizar(
@@ -217,7 +215,6 @@ class LojaRepository {
       estadoId: estadoId,
       cidadeId: cidadeId,
       nome: loja.nmloja,
-      estiloLoja: loja.dsestiloloja,
       bairro: loja.dsbairroloja,
       telefone: loja.nrtelloja,
       diasValidade: loja.nrdiavalidade,
@@ -230,18 +227,6 @@ class LojaRepository {
       capacidadeTotal: loja.capacidadeTotal,
       usacashback: loja.usacashback,
       pccashback: loja.pccashback,
-    );
-  }
-
-  Future<void> atualizarPoliticaProdutos({
-    required Loja loja,
-    required String controlaValidade,
-    int? diasValidade,
-  }) async {
-    await _atualizarConfiguracoes(
-      loja: loja,
-      idvalidadeprod: controlaValidade,
-      diasValidade: diasValidade,
     );
   }
 
@@ -272,41 +257,6 @@ class LojaRepository {
     }
   }
 
-  Future<void> _atualizarConfiguracoes({
-    required Loja loja,
-    String? idvalidadeprod,
-    int? diasValidade,
-    String? usacashback,
-    double? pccashback,
-  }) async {
-    final estadoId = loja.estadoId;
-    final cidadeId = loja.cidadeId;
-    if (estadoId == null || cidadeId == null) {
-      throw Exception('Estado e cidade do estabelecimento não foram identificados.');
-    }
-
-    await atualizar(
-      lojaId: loja.lojaId,
-      organizacaoId: loja.organizacaoId,
-      estadoId: estadoId,
-      cidadeId: cidadeId,
-      nome: loja.nmloja,
-      estiloLoja: loja.dsestiloloja,
-      bairro: loja.dsbairroloja,
-      telefone: loja.nrtelloja,
-      diasValidade: diasValidade ?? loja.nrdiavalidade,
-      endereco: loja.endloja,
-      cep: loja.nrceploja,
-      numeroEndereco: loja.nrendeloja,
-      instagram: loja.dsinstaloja,
-      aberto24x7: loja.aberto24x7,
-      idvalidadeprod: idvalidadeprod ?? loja.idvalidadeprod,
-      capacidadeTotal: loja.capacidadeTotal,
-      usacashback: usacashback ?? loja.usacashback,
-      pccashback: pccashback ?? loja.pccashback,
-    );
-  }
-
   Future<void> atualizarImagens({
     required Loja loja,
     XFile? logo,
@@ -315,7 +265,9 @@ class LojaRepository {
     final estadoId = loja.estadoId;
     final cidadeId = loja.cidadeId;
     if (estadoId == null || cidadeId == null) {
-      throw Exception('Estado e cidade do estabelecimento não foram identificados.');
+      throw Exception(
+        'Estado e cidade do estabelecimento não foram identificados.',
+      );
     }
 
     await atualizar(
@@ -324,7 +276,6 @@ class LojaRepository {
       estadoId: estadoId,
       cidadeId: cidadeId,
       nome: loja.nmloja,
-      estiloLoja: loja.dsestiloloja,
       bairro: loja.dsbairroloja,
       telefone: loja.nrtelloja,
       diasValidade: loja.nrdiavalidade,
