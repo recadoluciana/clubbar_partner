@@ -163,6 +163,44 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
     }
   }
 
+  Future<void> _apagar(Map<String, dynamic> categoria) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Apagar categoria?'),
+        content: Text(
+          'Deseja apagar "${categoria['nmcategoria']}" da sua empresa? '
+          'Esta ação não pode ser desfeita. O catálogo padrão do Clubbar não será alterado.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Apagar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _ocupado = true);
+    try {
+      _resposta(await ApiService.delete('$_rota/${categoria['categoria_id']}'));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Categoria apagada com sucesso.')),
+      );
+      await _carregar();
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, e.toString());
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
   Future<void> _criar() async {
     final form = GlobalKey<FormState>();
     String nome = '', icone = 'category';
@@ -307,10 +345,25 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                                             ? 'Categoria própria'
                                             : 'Importada das padrão',
                                       ),
-                                      trailing: Text(
-                                        e['sitcategoria'] == 'ATIVA'
-                                            ? 'Ativa'
-                                            : 'Inativa',
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            e['sitcategoria'] == 'ATIVA'
+                                                ? 'Ativa'
+                                                : 'Inativa',
+                                          ),
+                                          IconButton(
+                                            tooltip: 'Apagar categoria',
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: _ocupado
+                                                ? null
+                                                : () => _apagar(e),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
