@@ -388,20 +388,20 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
+                          titulo: 'Cardápio Digital',
+                          subtitulo:
+                              'Gerencie produtos, categorias e preços por estabelecimento.',
+                          icone: Icons.restaurant_menu_rounded,
+                          onTap: _abrirCardapioDigital,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
                           titulo: 'Meus estabelecimentos',
                           subtitulo: _cargo == 'MANAGER'
                               ? 'Consulte e edite os dados do seu estabelecimento.'
                               : 'Cadastre e administre os estabelecimentos da empresa.',
                           icone: Icons.storefront_rounded,
                           onTap: _abrirLojas,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Cardápio Digital',
-                          subtitulo:
-                              'Gerencie produtos, categorias e preços por estabelecimento.',
-                          icone: Icons.restaurant_menu_rounded,
-                          onTap: _abrirCardapioDigital,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
