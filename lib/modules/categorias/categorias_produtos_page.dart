@@ -67,6 +67,20 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
     _carregar();
   }
 
+  void _mostrarErro(Object erro) {
+    if (!mounted) return;
+    final mensagem = erro.toString().replaceFirst(
+      RegExp(r'^Exception:\s*'),
+      '',
+    );
+    AppSnackBar.erro(
+      context,
+      mensagem,
+      duration: const Duration(seconds: 20),
+      mostrarFechar: true,
+    );
+  }
+
   Future<void> _carregar() async {
     setState(() {
       _ocupado = true;
@@ -92,7 +106,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
       _resposta(await ApiService.post(rota, dados));
       await _carregar();
     } catch (e) {
-      if (mounted) AppSnackBar.erro(context, e.toString());
+      _mostrarErro(e);
     } finally {
       if (mounted) setState(() => _ocupado = false);
     }
@@ -157,7 +171,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
         });
       }
     } catch (e) {
-      if (mounted) AppSnackBar.erro(context, e.toString());
+      _mostrarErro(e);
     } finally {
       if (mounted) setState(() => _ocupado = false);
     }
@@ -195,7 +209,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
       );
       await _carregar();
     } catch (e) {
-      if (mounted) AppSnackBar.erro(context, e.toString());
+      _mostrarErro(e);
     } finally {
       if (mounted) setState(() => _ocupado = false);
     }

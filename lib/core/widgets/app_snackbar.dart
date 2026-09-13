@@ -13,13 +13,20 @@ class AppSnackBar {
     );
   }
 
-  static void erro(BuildContext context, String mensagem) {
+  static void erro(
+    BuildContext context,
+    String mensagem, {
+    Duration duration = const Duration(seconds: 4),
+    bool mostrarFechar = false,
+  }) {
     _mostrar(
       context,
       mensagem,
       Colors.red.shade700,
       Colors.white,
       Icons.error_rounded,
+      duration: duration,
+      mostrarFechar: mostrarFechar,
     );
   }
 
@@ -48,8 +55,10 @@ class AppSnackBar {
     String mensagem,
     Color cor,
     Color corTexto,
-    IconData icone,
-  ) {
+    IconData icone, {
+    Duration duration = const Duration(seconds: 4),
+    bool mostrarFechar = false,
+  }) {
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -58,7 +67,9 @@ class AppSnackBar {
       SnackBar(
         behavior: SnackBarBehavior.fixed,
         elevation: 6,
-        duration: const Duration(seconds: 4),
+        duration: duration,
+        showCloseIcon: mostrarFechar,
+        closeIconColor: corTexto,
         backgroundColor: cor,
         content: Row(
           children: [
