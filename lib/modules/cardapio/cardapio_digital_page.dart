@@ -140,48 +140,45 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
   }
 
   Future<void> _novaCategoria() async {
-    final controller = TextEditingController();
-    final nome = await showDialog<String>(
+    await _carregar();
+    if (!mounted) return;
+    final id = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nova categoria'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Nome da categoria',
-            border: OutlineInputBorder(),
-          ),
+        title: const Text('Selecionar categoria'),
+        content: SizedBox(
+          width: 420,
+          child: _categorias.isEmpty
+              ? const Text(
+                  'Nenhuma categoria ativa. Cadastre ou importe categorias em “Categorias dos produtos”, no painel inicial.',
+                )
+              : ListView(
+                  shrinkWrap: true,
+                  children: _categorias
+                      .map(
+                        (categoria) => ListTile(
+                          title: Text(categoria.nmcategoria),
+                          selected: categoria.categoriaId == _categoriaId,
+                          trailing: categoria.categoriaId == _categoriaId
+                              ? const Icon(Icons.check)
+                              : null,
+                          onTap: () =>
+                              Navigator.pop(context, categoria.categoriaId),
+                        ),
+                      )
+                      .toList(),
+                ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancelar'),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Criar'),
-          ),
         ],
       ),
     );
-    if (nome == null || nome.isEmpty) return;
-    try {
-      final id = await _categoriasRepo.criar(
-        _loja.lojaId,
-        nome,
-        'ATIVA',
-        _categorias.length + 1,
-      );
-      await _carregar();
-      if (mounted && id != null) {
-        setState(() => _categoriaId = id);
-      }
-    } catch (e) {
-      if (mounted) {
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
-      }
+    if (mounted && id != null) {
+      setState(() => _categoriaId = id);
     }
   }
 
@@ -365,7 +362,7 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
                                     ),
                                     ActionChip(
                                       avatar: const Icon(Icons.add, size: 18),
-                                      label: const Text('Nova categoria'),
+                                      label: const Text('Selecionar categoria'),
                                       onPressed: _novaCategoria,
                                     ),
                                   ],
