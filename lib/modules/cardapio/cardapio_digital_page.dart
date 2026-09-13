@@ -77,6 +77,11 @@ class _CardapioDigitalPageState extends State<CardapioDigitalPage> {
           .whereType<Map>()
           .map((p) => Map<String, dynamic>.from(p))
           .where(
+            (p) => categorias.any(
+              (c) => c.categoriaId == int.tryParse('${p['categoria_id']}'),
+            ),
+          )
+          .where(
             (p) =>
                 (p['sitproduto'] ?? 'ATIVO').toString().toUpperCase() ==
                 'ATIVO',

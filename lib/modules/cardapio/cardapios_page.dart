@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/repositories/cardapio_repository.dart';
+import '../../core/repositories/categoria_repository.dart';
 import '../../core/repositories/produto_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -176,6 +177,11 @@ class _CardapiosPageState extends State<CardapiosPage> {
   Future<void> _sincronizar(Map<String, dynamic> c) async {
     try {
       final versao = await _garantirRascunho(c);
+      final categoriasAtivas =
+          (await CategoriaRepository().listar(_loja.lojaId))
+              .where((c) => (c.sitcategoria ?? 'ATIVA') == 'ATIVA')
+              .map((c) => c.categoriaId)
+              .toSet();
       final produtos = (await _produtosRepo.listar(_loja.lojaId))
           .whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e))
@@ -184,7 +190,9 @@ class _CardapiosPageState extends State<CardapiosPage> {
       final agrupados = <int, List<Map<String, dynamic>>>{};
       for (final p in produtos) {
         final id = int.tryParse('${p['categoria_id']}');
-        if (id != null) (agrupados[id] ??= []).add(p);
+        if (id != null && categoriasAtivas.contains(id)) {
+          (agrupados[id] ??= []).add(p);
+        }
       }
       var ordem = 0;
       final categorias = agrupados.entries
