@@ -101,10 +101,10 @@ class CardapioRepository {
       throw _erro(response, 'Não foi possível atualizar o cardápio.');
   }
 
-  Future<String> publicar(int versaoId, {bool aposAsaas = true}) async {
+  Future<String> publicar(int versaoId) async {
     final response = await ApiService.post(
       '/cardapios/versoes/$versaoId/publicar',
-      {'publicar_apos_aprovacao': aposAsaas},
+      {},
     );
     if (response.statusCode != 200)
       throw _erro(response, 'Não foi possível publicar o cardápio.');
