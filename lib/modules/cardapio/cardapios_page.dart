@@ -313,9 +313,15 @@ class _CardapiosPageState extends State<CardapiosPage> {
         ),
       ..._itens.map((cardapio) {
         final versoes = cardapio['versoes'] as List? ?? const [];
-        final ultima = versoes.isEmpty
-            ? null
-            : Map<String, dynamic>.from(versoes.first as Map);
+        final publicadas = versoes
+            .where((v) => v['statusversao'] == 'PUBLICADA')
+            .toList();
+        final rascunhos = versoes
+            .where((v) => v['statusversao'] == 'RASCUNHO')
+            .toList();
+        final programadas = versoes
+            .where((v) => v['statusversao'] == 'PROGRAMADA')
+            .toList();
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -337,10 +343,47 @@ class _CardapiosPageState extends State<CardapiosPage> {
                     Chip(label: Text('${cardapio['tipocardapio']}')),
                   ],
                 ),
-                Text(
-                  ultima == null
-                      ? 'Sem versão'
-                      : 'Versão ${ultima['nrversao']} • ${ultima['statusversao']}',
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (publicadas.isEmpty)
+                      const Chip(
+                        avatar: Icon(Icons.visibility_off_outlined, size: 18),
+                        label: Text('Não publicado'),
+                      ),
+                    for (final versao in publicadas)
+                      Chip(
+                        backgroundColor: Colors.green.shade50,
+                        avatar: Icon(
+                          Icons.check_circle,
+                          color: Colors.green.shade800,
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Publicado — versão ${versao['nrversao']}',
+                          style: TextStyle(
+                            color: Colors.green.shade800,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    for (final versao in rascunhos)
+                      Chip(
+                        backgroundColor: Colors.amber.shade100,
+                        avatar: const Icon(Icons.edit_note, size: 18),
+                        label: Text(
+                          'Alterações em rascunho — versão ${versao['nrversao']}',
+                        ),
+                      ),
+                    for (final versao in programadas)
+                      Chip(
+                        avatar: const Icon(Icons.schedule, size: 18),
+                        label: Text(
+                          'Publicação programada — versão ${versao['nrversao']}',
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 Wrap(

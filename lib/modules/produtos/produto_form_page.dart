@@ -703,32 +703,21 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: SizedBox(
-              width: double.infinity,
-              height: 210,
-              child: _imagemSelecionadaWidget(),
-            ),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: _salvando ? null : _selecionarImagem,
-              icon: const Icon(Icons.photo_library_rounded),
-              label: Text(
-                _imagemSelecionada != null || editando
-                    ? 'Alterar imagem'
-                    : 'Selecionar imagem',
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ClubbarColors.textoPrincipal,
-                side: const BorderSide(color: ClubbarColors.borda),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
+          Tooltip(
+            message: 'Clique para selecionar ou alterar a imagem',
+            child: Semantics(
+              button: true,
+              label: 'Selecionar ou alterar imagem do produto',
+              child: InkWell(
+                onTap: _salvando ? null : _selecionarImagem,
+                borderRadius: BorderRadius.circular(20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 210,
+                    child: _imagemSelecionadaWidget(),
+                  ),
                 ),
               ),
             ),
