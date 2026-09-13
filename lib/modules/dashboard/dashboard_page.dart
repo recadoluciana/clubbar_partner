@@ -21,6 +21,7 @@ import '../atracoes/atracao_list_page.dart';
 import '../estilos_musicais/estilo_musical_list_page.dart';
 import '../auditoria/auditoria_page.dart';
 import '../cardapio/cardapio_loja_page.dart';
+import '../categorias/categoria_padrao_consulta_page.dart';
 import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
 import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
@@ -393,6 +394,18 @@ class _DashboardPageState extends State<DashboardPage> {
                               'Gerencie produtos, categorias e preços por estabelecimento.',
                           icone: Icons.restaurant_menu_rounded,
                           onTap: _abrirCardapioDigital,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Categorias padrão dos produtos',
+                          subtitulo: 'Consulte as categorias e seus ícones.',
+                          icone: Icons.category_rounded,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const CategoriaPadraoConsultaPage(),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 14),
                         _opcao(
