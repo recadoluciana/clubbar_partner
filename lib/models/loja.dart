@@ -9,6 +9,9 @@ class Loja {
   final String? sgestado;
   final String? nmcidade;
   final String nmloja;
+  final String? tipoloja;
+  final String vendaprodutos;
+  final String vendaingressos;
   final String? dsbairroloja;
   final String? nrtelloja;
   final int? nrdiavalidade;
@@ -39,6 +42,9 @@ class Loja {
     this.sgestado,
     this.nmcidade,
     required this.nmloja,
+    this.tipoloja,
+    this.vendaprodutos = 'N',
+    this.vendaingressos = 'N',
     this.dsbairroloja,
     this.nrtelloja,
     this.nrdiavalidade,
@@ -69,6 +75,9 @@ class Loja {
       sgestado: json['sgestado']?.toString(),
       nmcidade: json['nmcidade']?.toString(),
       nmloja: (json['nmloja'] ?? '').toString(),
+      tipoloja: json['tipoloja']?.toString(),
+      vendaprodutos: _normalizarSimNao(json['vendaprodutos']),
+      vendaingressos: _normalizarSimNao(json['vendaingressos']),
       dsbairroloja: json['dsbairroloja']?.toString(),
       nrtelloja: json['nrtelloja']?.toString(),
       nrdiavalidade: json['nrdiavalidade'],
@@ -108,6 +117,9 @@ class Loja {
       'sgestado': sgestado,
       'nmcidade': nmcidade,
       'nmloja': nmloja,
+      'tipoloja': tipoloja,
+      'vendaprodutos': vendaprodutos,
+      'vendaingressos': vendaingressos,
       'dsbairroloja': dsbairroloja,
       'nrtelloja': nrtelloja,
       'nrdiavalidade': nrdiavalidade,
@@ -145,6 +157,9 @@ class Loja {
     String? sgestado,
     String? nmcidade,
     String? nmloja,
+    String? tipoloja,
+    String? vendaprodutos,
+    String? vendaingressos,
     String? dsbairroloja,
     String? nrtelloja,
     int? nrdiavalidade,
@@ -173,6 +188,9 @@ class Loja {
       sgestado: sgestado ?? this.sgestado,
       nmcidade: nmcidade ?? this.nmcidade,
       nmloja: nmloja ?? this.nmloja,
+      tipoloja: tipoloja ?? this.tipoloja,
+      vendaprodutos: vendaprodutos ?? this.vendaprodutos,
+      vendaingressos: vendaingressos ?? this.vendaingressos,
       dsbairroloja: dsbairroloja ?? this.dsbairroloja,
       nrtelloja: nrtelloja ?? this.nrtelloja,
       nrdiavalidade: nrdiavalidade ?? this.nrdiavalidade,

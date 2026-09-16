@@ -8,7 +8,6 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
-import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
@@ -221,26 +220,6 @@ class _LojaListPageState extends State<LojaListPage> {
     _buscaController.clear();
     _filtrar('');
     FocusScope.of(context).unfocus();
-  }
-
-  Future<void> _abrirNovaLoja() async {
-    if (!_podeIncluirLoja) {
-      AppSnackBar.aviso(
-        context,
-        _lojaUsuarioId != null
-            ? 'Seu usuário está vinculado a um estabelecimento e não pode cadastrar outro.'
-            : 'Somente administradores e managers podem cadastrar estabelecimentos.',
-      );
-      return;
-    }
-
-    final resultado = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => const LojaFormPage()));
-
-    if (resultado == true) {
-      await _carregarLojas();
-    }
   }
 
   Future<void> _abrirEdicao(Loja loja) async {
@@ -722,6 +701,38 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
+  String _tipoLojaTexto(String? tipo) => switch (tipo?.toUpperCase()) {
+    'BAR' => 'Bar',
+    'CASA_NOTURNA' => 'Casa noturna',
+    'PRODUTOR_EVENTOS' => 'Produtor de eventos',
+    'CASA_EVENTOS' => 'Casa de eventos',
+    _ => tipo?.trim().isNotEmpty == true ? tipo!.trim() : 'Tipo não informado',
+  };
+
+  Widget _badgeCaracteristica(String texto, IconData icone, Color cor) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: cor.withValues(alpha: 0.11),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icone, size: 15, color: cor),
+            const SizedBox(width: 5),
+            Text(
+              texto,
+              style: TextStyle(
+                color: cor,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+
   Widget _menuAcoesLoja(Loja loja) {
     return PopupMenuButton<String>(
       tooltip: 'Ações do estabelecimento',
@@ -880,6 +891,40 @@ class _LojaListPageState extends State<LojaListPage> {
                       ],
                     ),
 
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Wrap(
+                        spacing: 7,
+                        runSpacing: 7,
+                        children: [
+                          _badgeCaracteristica(
+                            _tipoLojaTexto(loja.tipoloja),
+                            Icons.category_outlined,
+                            ClubbarColors.info,
+                          ),
+                          if (loja.vendaprodutos == 'S')
+                            _badgeCaracteristica(
+                              'Vende produtos',
+                              Icons.shopping_bag_outlined,
+                              ClubbarColors.sucesso,
+                            ),
+                          if (loja.vendaingressos == 'S')
+                            _badgeCaracteristica(
+                              'Vende ingressos',
+                              Icons.confirmation_number_outlined,
+                              ClubbarColors.ambarEscuro,
+                            ),
+                          if (loja.vendaprodutos != 'S' &&
+                              loja.vendaingressos != 'S')
+                            _badgeCaracteristica(
+                              'Vendas não habilitadas',
+                              Icons.info_outline_rounded,
+                              ClubbarColors.textoSecundario,
+                            ),
+                        ],
+                      ),
+                    ),
+
                     if (enderecoCompleto.isNotEmpty)
                       _linhaInformacao(
                         icone: Icons.location_on_outlined,
@@ -1006,7 +1051,7 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  Widget _acoesHeader({bool mostrarAdicionar = false}) {
+  Widget _acoesHeader() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1021,14 +1066,6 @@ class _LojaListPageState extends State<LojaListPage> {
           icone: Icons.refresh_rounded,
           onPressed: _carregando ? null : _carregarLojas,
         ),
-        if (mostrarAdicionar) ...[
-          const SizedBox(width: 8),
-          _botaoCircularHeader(
-            tooltip: 'Adicionar estabelecimento',
-            icone: Icons.add_rounded,
-            onPressed: _abrirNovaLoja,
-          ),
-        ],
       ],
     );
   }
@@ -1080,7 +1117,7 @@ class _LojaListPageState extends State<LojaListPage> {
             Text(
               temBusca
                   ? 'Tente pesquisar usando outro nome, bairro ou endereço.'
-                  : 'Cadastre o primeiro estabelecimento da sua empresa.',
+                  : 'Novos estabelecimentos são cadastrados após a aprovação e o aceite do contrato.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -1088,23 +1125,6 @@ class _LojaListPageState extends State<LojaListPage> {
                 height: 1.4,
               ),
             ),
-
-            if (!temBusca) ...[
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _abrirNovaLoja,
-                icon: const Icon(Icons.add_rounded),
-                label: const Text(
-                  'Adicionar estabelecimento',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ClubbarColors.ambar,
-                  foregroundColor: ClubbarColors.preto,
-                  elevation: 0,
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -1219,7 +1239,7 @@ class _LojaListPageState extends State<LojaListPage> {
                     ),
                   ),
                 ),
-                _acoesHeader(mostrarAdicionar: true),
+                _acoesHeader(),
               ],
             ),
           ),
@@ -1271,14 +1291,6 @@ class _LojaListPageState extends State<LojaListPage> {
         mostrarVoltar: true,
         centralizarLogo: true,
         alturaLogo: 54,
-      ),
-      bottomNavigationBar: ClubbarActionBar(
-        actions: [
-          ClubbarAddButton(
-            onPressed: _abrirNovaLoja,
-            label: 'Adicionar estabelecimento',
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(

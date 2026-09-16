@@ -141,7 +141,7 @@ class _LoginPageState extends State<LoginPage> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     labelText: 'E-mail',
-                    prefixIcon: Icon(Icons.alternate_email_rounded),
+                    prefixIcon: Icon(Icons.mail_outline_rounded),
                     border: OutlineInputBorder(),
                   ),
                   validator: (valor) {
@@ -354,7 +354,7 @@ class _LoginPageState extends State<LoginPage> {
             autofillHints: const [AutofillHints.username, AutofillHints.email],
             decoration: const InputDecoration(
               labelText: 'E-mail',
-              prefixIcon: Icon(Icons.alternate_email_rounded),
+              prefixIcon: Icon(Icons.mail_outline_rounded),
               border: OutlineInputBorder(),
             ),
           ),
