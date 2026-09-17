@@ -6,6 +6,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../categorias/categorias_produtos_page.dart';
 import 'produto_padrao_form_page.dart';
 
 class CardapioPadraoEmpresaPage extends StatefulWidget {
@@ -206,8 +207,34 @@ class _ItensPadraoPage extends StatefulWidget {
 }
 
 class _ItensPadraoPageState extends State<_ItensPadraoPage> {
+  static const _iconesCategoria = <String, IconData>{
+    'water_drop': Icons.water_drop_rounded,
+    'local_drink': Icons.local_drink_rounded,
+    'local_cafe': Icons.local_cafe_rounded,
+    'sports_bar': Icons.sports_bar_rounded,
+    'local_bar': Icons.local_bar_rounded,
+    'liquor': Icons.liquor_rounded,
+    'wine_bar': Icons.wine_bar_rounded,
+    'coffee': Icons.coffee_rounded,
+    'soup_kitchen': Icons.soup_kitchen_rounded,
+    'tapas': Icons.tapas_rounded,
+    'restaurant': Icons.restaurant_rounded,
+    'lunch_dining': Icons.lunch_dining_rounded,
+    'outdoor_grill': Icons.outdoor_grill_rounded,
+    'fastfood': Icons.fastfood_rounded,
+    'local_pizza': Icons.local_pizza_rounded,
+    'dinner_dining': Icons.dinner_dining_rounded,
+    'eco': Icons.eco_rounded,
+    'cake': Icons.cake_rounded,
+    'icecream': Icons.icecream_rounded,
+    'inventory_2': Icons.inventory_2_rounded,
+    'celebration': Icons.celebration_rounded,
+  };
   final _repo = CardapioRepository();
   List<Map<String, dynamic>> _itens = [];
+  List<Map<String, dynamic>> _categorias = [];
+  int? _categoriaSelecionada;
+  String _busca = '';
   bool _carregando = true;
 
   @override
@@ -219,11 +246,21 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
   Future<void> _carregar() async {
     setState(() => _carregando = true);
     try {
-      final itens = await _repo.listarItensPadrao(
-        widget.organizacaoId,
-        widget.modeloId,
-      );
-      if (mounted) setState(() => _itens = itens);
+      final resultados = await Future.wait([
+        _repo.listarItensPadrao(widget.organizacaoId, widget.modeloId),
+        _repo.listarCategoriasOrganizacao(widget.organizacaoId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _itens = resultados[0];
+        _categorias = resultados[1];
+        if (_categoriaSelecionada != null &&
+            !_categorias.any(
+              (categoria) => categoria['categoria_id'] == _categoriaSelecionada,
+            )) {
+          _categoriaSelecionada = null;
+        }
+      });
     } catch (e) {
       if (mounted)
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -244,6 +281,219 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
       ),
     );
     if (alterou == true && mounted) await _carregar();
+  }
+
+  Future<void> _gerenciarCategorias() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            CategoriasProdutosPage(organizacaoId: widget.organizacaoId),
+      ),
+    );
+    if (mounted) await _carregar();
+  }
+
+  String _moeda(Object? valor) {
+    final numero = double.tryParse('$valor') ?? 0;
+    return 'R\$ ${numero.toStringAsFixed(2).replaceAll('.', ',')}';
+  }
+
+  double _precoFinal(Map<String, dynamic> item) {
+    final preco = double.tryParse('${item['vrprecoprod']}') ?? 0;
+    final desconto = double.tryParse('${item['vrdesconto']}') ?? 0;
+    final agora = DateTime.now();
+    final inicio = DateTime.tryParse('${item['dtinidesconto'] ?? ''}');
+    final fim = DateTime.tryParse('${item['dtfimdesconto'] ?? ''}');
+    if (desconto <= 0 ||
+        (inicio != null && agora.isBefore(inicio)) ||
+        (fim != null && agora.isAfter(fim))) {
+      return preco;
+    }
+    return switch (item['tipodesconto']) {
+      'PERCENTUAL' => preco * (1 - desconto / 100),
+      'VALOR' => preco - desconto,
+      _ => preco,
+    };
+  }
+
+  Widget _chipCategoria(int? id, String nome, IconData icone) {
+    final selecionada = _categoriaSelecionada == id;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
+        onTap: () => setState(() => _categoriaSelecionada = id),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 82,
+          height: 64,
+          decoration: BoxDecoration(
+            color: selecionada ? Colors.amber : Colors.white,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(
+              color: selecionada ? Colors.amber : Colors.grey.shade300,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icone, size: 20),
+              const SizedBox(height: 3),
+              Text(
+                nome,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cardProduto(Map<String, dynamic> item) {
+    final foto = '${item['urlfotoproduto'] ?? ''}'.trim();
+    final preco = double.tryParse('${item['vrprecoprod']}') ?? 0;
+    final precoFinal = _precoFinal(item);
+    final temDesconto = precoFinal < preco;
+    final inativo = item['sitproduto'] == 'INATIVO';
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      elevation: 2,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _abrirFormulario(item),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 112,
+                  child: foto.isEmpty
+                      ? ColoredBox(
+                          color: Colors.grey.shade200,
+                          child: const Icon(Icons.fastfood_outlined, size: 36),
+                        )
+                      : Image.network(
+                          foto.startsWith('http')
+                              ? foto
+                              : ApiConfig.buildUrl(foto),
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => const ColoredBox(
+                            color: Color(0xFFEEEEEE),
+                            child: Icon(Icons.image_not_supported_outlined),
+                          ),
+                        ),
+                ),
+                if (temDesconto)
+                  Positioned(
+                    left: 7,
+                    top: 7,
+                    child: Chip(
+                      label: Text(
+                        item['tipodesconto'] == 'PERCENTUAL'
+                            ? '${item['vrdesconto']}% OFF'
+                            : '${_moeda(item['vrdesconto'])} OFF',
+                      ),
+                      backgroundColor: Colors.red.shade100,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                if (inativo)
+                  Positioned(
+                    right: 7,
+                    top: 7,
+                    child: Chip(
+                      label: const Text('Inativo'),
+                      backgroundColor: Colors.grey.shade200,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+              ],
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${item['nmproduto']}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    if (temDesconto)
+                      Text(
+                        _moeda(preco),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          decoration: TextDecoration.lineThrough,
+                          fontSize: 11,
+                        ),
+                      ),
+                    Text(
+                      _moeda(precoFinal),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: temDesconto
+                            ? Colors.green.shade700
+                            : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${item['dsproduto'] ?? ''}'.trim().isEmpty
+                          ? 'Sem descrição'
+                          : '${item['dsproduto']}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _abrirFormulario(item),
+                            child: const Text('Editar'),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => _remover(item),
+                          tooltip: 'Remover produto',
+                          icon: const Icon(Icons.delete_outline_rounded),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _remover(Map<String, dynamic> item) async {
@@ -281,97 +531,132 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
-    body: Column(
-      children: [
-        ClubbarPageHeader(
-          titulo: widget.nome,
-          subtitulo: 'Cardápio padrão da empresa',
-        ),
-        Expanded(
-          child: _carregando
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _carregar,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      if (_itens.isEmpty)
-                        const Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text(
-                              'Adicione produtos para poder utilizar este cardápio nos estabelecimentos.',
-                            ),
-                          ),
-                        ),
-                      for (final item in _itens)
-                        Card(
-                          child: ListTile(
-                            leading: SizedBox.square(
-                              dimension: 44,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child:
-                                    (item['urlfotoproduto'] ?? '')
-                                        .toString()
-                                        .trim()
-                                        .isEmpty
-                                    ? const Icon(Icons.inventory_2_outlined)
-                                    : Image.network(
-                                        (item['urlfotoproduto'] as String)
-                                                .startsWith('http')
-                                            ? item['urlfotoproduto'] as String
-                                            : ApiConfig.buildUrl(
-                                                item['urlfotoproduto']
-                                                    as String,
-                                              ),
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, _, _) => const Icon(
-                                          Icons.broken_image_outlined,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            title: Text('${item['nmproduto']}'),
-                            subtitle: Text(
-                              '${item['nmcategoria']}${item['skuproduto'] == null ? '' : ' • SKU ${item['skuproduto']}'} • ${item['sitproduto']}',
-                            ),
-                            onTap: () => _abrirFormulario(item),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'R\$ ${double.parse('${item['vrpreco']}').toStringAsFixed(2).replaceAll('.', ',')}',
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit_outlined),
-                                  tooltip: 'Editar produto',
-                                  onPressed: () => _abrirFormulario(item),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_outline_rounded,
-                                  ),
-                                  tooltip: 'Remover',
-                                  onPressed: () => _remover(item),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
+  Widget build(BuildContext context) {
+    final busca = _busca.trim().toLowerCase();
+    final filtrados = _itens.where((item) {
+      final categoriaId = (item['categoria_id'] as num?)?.toInt();
+      if (_categoriaSelecionada != null &&
+          categoriaId != _categoriaSelecionada) {
+        return false;
+      }
+      return busca.isEmpty ||
+          '${item['nmproduto']} ${item['dsproduto'] ?? ''} ${item['nmcategoria']}'
+              .toLowerCase()
+              .contains(busca);
+    }).toList();
+    return Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      body: Column(
+        children: [
+          ClubbarPageHeader(
+            titulo: widget.nome,
+            subtitulo: 'Cardápio padrão da empresa',
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: TextField(
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: 'Buscar produto',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onChanged: (valor) => setState(() => _busca = valor),
+            ),
+          ),
+          if (!_carregando)
+            SizedBox(
+              height: 70,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  _chipCategoria(null, 'Todos', Icons.restaurant_menu_rounded),
+                  for (final categoria in _categorias)
+                    _chipCategoria(
+                      (categoria['categoria_id'] as num).toInt(),
+                      '${categoria['nmcategoria']}',
+                      _iconesCategoria['${categoria['dsicone']}'] ??
+                          Icons.category_outlined,
+                    ),
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${filtrados.length} ${filtrados.length == 1 ? 'produto' : 'produtos'}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-        ),
-      ],
-    ),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: () => _abrirFormulario(),
-      icon: const Icon(Icons.add),
-      label: const Text('Adicionar produto'),
-    ),
-  );
+                TextButton.icon(
+                  onPressed: _gerenciarCategorias,
+                  icon: const Icon(Icons.category_outlined),
+                  label: const Text('Categorias'),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _carregando
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _carregar,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final largura = constraints.maxWidth;
+                        final colunas = largura < 600
+                            ? 2
+                            : largura < 900
+                            ? 3
+                            : largura < 1200
+                            ? 4
+                            : 5;
+                        return GridView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                          itemCount: filtrados.isEmpty ? 1 : filtrados.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: colunas,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                                mainAxisExtent: 315,
+                              ),
+                          itemBuilder: (context, index) => filtrados.isEmpty
+                              ? Card(
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Text(
+                                        _itens.isEmpty
+                                            ? 'Nenhum produto cadastrado. Adicione o primeiro produto ao cardápio.'
+                                            : 'Nenhum produto nesta categoria.',
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : _cardProduto(filtrados[index]),
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _abrirFormulario(),
+        icon: const Icon(Icons.add),
+        label: const Text('Adicionar produto'),
+      ),
+    );
+  }
 }
