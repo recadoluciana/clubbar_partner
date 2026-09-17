@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../core/config/api_config.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import 'produto_padrao_form_page.dart';
 
 class CardapioPadraoEmpresaPage extends StatefulWidget {
   final int organizacaoId;
@@ -230,90 +232,18 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
     }
   }
 
-  Future<void> _adicionar() async {
-    final categoria = TextEditingController();
-    final produto = TextEditingController();
-    final descricao = TextEditingController();
-    final preco = TextEditingController();
-    final dados = await showDialog<(String, String, String, double)>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Adicionar produto ao padrão'),
-        content: SizedBox(
-          width: 440,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: categoria,
-                  decoration: const InputDecoration(labelText: 'Categoria'),
-                ),
-                TextField(
-                  controller: produto,
-                  decoration: const InputDecoration(labelText: 'Produto'),
-                ),
-                TextField(
-                  controller: descricao,
-                  decoration: const InputDecoration(
-                    labelText: 'Descrição (opcional)',
-                  ),
-                ),
-                TextField(
-                  controller: preco,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(labelText: 'Preço (R\$)'),
-                ),
-              ],
-            ),
-          ),
+  Future<void> _abrirFormulario([Map<String, dynamic>? item]) async {
+    final alterou = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProdutoPadraoFormPage(
+          organizacaoId: widget.organizacaoId,
+          modeloId: widget.modeloId,
+          item: item,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final valor = double.tryParse(preco.text.replaceAll(',', '.'));
-              if (categoria.text.trim().length >= 2 &&
-                  produto.text.trim().length >= 2 &&
-                  valor != null &&
-                  valor >= 0) {
-                Navigator.pop(dialogContext, (
-                  categoria.text.trim(),
-                  produto.text.trim(),
-                  descricao.text.trim(),
-                  valor,
-                ));
-              }
-            },
-            child: const Text('Adicionar'),
-          ),
-        ],
       ),
     );
-    categoria.dispose();
-    produto.dispose();
-    descricao.dispose();
-    preco.dispose();
-    if (dados == null || !mounted) return;
-    try {
-      await _repo.adicionarItemPadrao(
-        widget.organizacaoId,
-        widget.modeloId,
-        dados.$1,
-        dados.$2,
-        dados.$3,
-        dados.$4,
-      );
-      await _carregar();
-    } catch (e) {
-      if (mounted)
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
-    }
+    if (alterou == true && mounted) await _carregar();
   }
 
   Future<void> _remover(Map<String, dynamic> item) async {
@@ -342,51 +272,6 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
         widget.organizacaoId,
         widget.modeloId,
         int.parse('${item['cardapiomodeloitem_id']}'),
-      );
-      await _carregar();
-    } catch (e) {
-      if (mounted)
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
-    }
-  }
-
-  Future<void> _alterarPreco(Map<String, dynamic> item) async {
-    final preco = TextEditingController(
-      text: '${item['vrpreco']}'.replaceAll('.', ','),
-    );
-    final valor = await showDialog<double>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Preço de ${item['nmproduto']}'),
-        content: TextField(
-          controller: preco,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'Preço (R\$)'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final novo = double.tryParse(preco.text.replaceAll(',', '.'));
-              if (novo != null && novo >= 0) Navigator.pop(dialogContext, novo);
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
-      ),
-    );
-    preco.dispose();
-    if (valor == null || !mounted) return;
-    try {
-      await _repo.alterarPrecoPadrao(
-        widget.organizacaoId,
-        widget.modeloId,
-        int.parse('${item['cardapiomodeloitem_id']}'),
-        valor,
       );
       await _carregar();
     } catch (e) {
@@ -425,9 +310,36 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
                       for (final item in _itens)
                         Card(
                           child: ListTile(
+                            leading: SizedBox.square(
+                              dimension: 44,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child:
+                                    (item['urlfotoproduto'] ?? '')
+                                        .toString()
+                                        .trim()
+                                        .isEmpty
+                                    ? const Icon(Icons.inventory_2_outlined)
+                                    : Image.network(
+                                        (item['urlfotoproduto'] as String)
+                                                .startsWith('http')
+                                            ? item['urlfotoproduto'] as String
+                                            : ApiConfig.buildUrl(
+                                                item['urlfotoproduto']
+                                                    as String,
+                                              ),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) => const Icon(
+                                          Icons.broken_image_outlined,
+                                        ),
+                                      ),
+                              ),
+                            ),
                             title: Text('${item['nmproduto']}'),
-                            subtitle: Text('${item['nmcategoria']}'),
-                            onTap: () => _alterarPreco(item),
+                            subtitle: Text(
+                              '${item['nmcategoria']}${item['skuproduto'] == null ? '' : ' • SKU ${item['skuproduto']}'} • ${item['sitproduto']}',
+                            ),
+                            onTap: () => _abrirFormulario(item),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -436,8 +348,8 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.edit_outlined),
-                                  tooltip: 'Alterar preço',
-                                  onPressed: () => _alterarPreco(item),
+                                  tooltip: 'Editar produto',
+                                  onPressed: () => _abrirFormulario(item),
                                 ),
                                 IconButton(
                                   icon: const Icon(
@@ -457,7 +369,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
       ],
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: _adicionar,
+      onPressed: () => _abrirFormulario(),
       icon: const Icon(Icons.add),
       label: const Text('Adicionar produto'),
     ),

@@ -82,22 +82,32 @@ class CardapioRepository {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> listarCategoriasOrganizacao(
+    int organizacaoId,
+  ) async {
+    final response = await ApiService.get(
+      '/organizacoes/$organizacaoId/categorias',
+    );
+    if (response.statusCode != 200) {
+      throw _erro(
+        response,
+        'Não foi possível carregar as categorias da empresa.',
+      );
+    }
+    return (_json(response) as List)
+        .map((e) => Map<String, dynamic>.from(e))
+        .where((e) => e['sitcategoria'] == 'ATIVA')
+        .toList();
+  }
+
   Future<void> adicionarItemPadrao(
     int organizacaoId,
     int modeloId,
-    String categoria,
-    String produto,
-    String descricao,
-    double preco,
+    Map<String, dynamic> dados,
   ) async {
     final response = await ApiService.post(
       '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens',
-      {
-        'nmcategoria': categoria,
-        'nmproduto': produto,
-        'dsproduto': descricao,
-        'vrpreco': preco,
-      },
+      dados,
     );
     if (response.statusCode != 201)
       throw _erro(response, 'Não foi possível adicionar o produto.');
@@ -115,18 +125,18 @@ class CardapioRepository {
       throw _erro(response, 'Não foi possível remover o produto.');
   }
 
-  Future<void> alterarPrecoPadrao(
+  Future<void> alterarProdutoPadrao(
     int organizacaoId,
     int modeloId,
     int itemId,
-    double preco,
+    Map<String, dynamic> dados,
   ) async {
     final response = await ApiService.put(
       '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens/$itemId',
-      {'vrpreco': preco},
+      dados,
     );
     if (response.statusCode != 200)
-      throw _erro(response, 'Não foi possível alterar o preço.');
+      throw _erro(response, 'Não foi possível alterar o produto.');
   }
 
   Future<Map<String, dynamic>> associar(
