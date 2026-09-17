@@ -65,6 +65,70 @@ class CardapioRepository {
     return Map<String, dynamic>.from(_json(response));
   }
 
+  Future<List<Map<String, dynamic>>> listarItensPadrao(
+    int organizacaoId,
+    int modeloId,
+  ) async {
+    final response = await ApiService.get(
+      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens',
+    );
+    if (response.statusCode != 200)
+      throw _erro(
+        response,
+        'Não foi possível carregar os produtos do cardápio.',
+      );
+    return (_json(response) as List)
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  Future<void> adicionarItemPadrao(
+    int organizacaoId,
+    int modeloId,
+    String categoria,
+    String produto,
+    String descricao,
+    double preco,
+  ) async {
+    final response = await ApiService.post(
+      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens',
+      {
+        'nmcategoria': categoria,
+        'nmproduto': produto,
+        'dsproduto': descricao,
+        'vrpreco': preco,
+      },
+    );
+    if (response.statusCode != 201)
+      throw _erro(response, 'Não foi possível adicionar o produto.');
+  }
+
+  Future<void> removerItemPadrao(
+    int organizacaoId,
+    int modeloId,
+    int itemId,
+  ) async {
+    final response = await ApiService.delete(
+      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens/$itemId',
+    );
+    if (response.statusCode != 204)
+      throw _erro(response, 'Não foi possível remover o produto.');
+  }
+
+  Future<void> alterarPrecoPadrao(
+    int organizacaoId,
+    int modeloId,
+    int itemId,
+    double preco,
+  ) async {
+    final response = await ApiService.put(
+      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens/$itemId',
+      {'vrpreco': preco},
+    );
+    if (response.statusCode != 200)
+      throw _erro(response, 'Não foi possível alterar o preço.');
+  }
+
   Future<Map<String, dynamic>> associar(
     int lojaId,
     int cardapioModeloId,

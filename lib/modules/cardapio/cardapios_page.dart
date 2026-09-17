@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../core/repositories/cardapio_repository.dart';
-import '../../core/repositories/categoria_repository.dart';
-import '../../core/repositories/produto_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
-import 'cardapio_digital_page.dart';
 
 class CardapiosPage extends StatefulWidget {
   final Loja loja;
@@ -22,7 +19,6 @@ class CardapiosPage extends StatefulWidget {
 
 class _CardapiosPageState extends State<CardapiosPage> {
   final _repo = CardapioRepository();
-  final _produtosRepo = ProdutoRepository();
   late Loja _loja;
   List<Map<String, dynamic>> _itens = [];
   bool _loading = true;
@@ -62,96 +58,44 @@ class _CardapiosPageState extends State<CardapiosPage> {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
       return;
     }
-    final nome = TextEditingController();
-    String tipo = 'PRINCIPAL';
-    int? padraoId;
-    final confirmou = await showDialog<bool>(
+    if (!mounted) return;
+    padroes = padroes
+        .where(
+          (item) =>
+              item['sitcardapio'] == 'ATIVO' &&
+              (item['quantidade_produtos'] as num? ?? 0) > 0,
+        )
+        .toList();
+    if (padroes.isEmpty) {
+      if (mounted)
+        AppSnackBar.aviso(
+          context,
+          'Crie um cardápio padrão com produtos no menu da empresa antes de utilizá-lo nesta loja.',
+        );
+      return;
+    }
+    final selecionado = await showDialog<int>(
       context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (c, setModal) => AlertDialog(
-          title: const Text('Novo cardápio'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (padroes.isNotEmpty) ...[
-                DropdownButtonFormField<int?>(
-                  initialValue: padraoId,
-                  decoration: const InputDecoration(
-                    labelText: 'Cardápio padrão da organização',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    const DropdownMenuItem<int?>(
-                      value: null,
-                      child: Text('Criar um novo padrão'),
-                    ),
-                    ...padroes.map(
-                      (e) => DropdownMenuItem<int?>(
-                        value: int.parse('${e['cardapiomodelo_id']}'),
-                        child: Text('${e['nmcardapio']}'),
-                      ),
-                    ),
-                  ],
-                  onChanged: (v) => setModal(() => padraoId = v),
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Escolher cardápio padrão da empresa'),
+        children: padroes
+            .map(
+              (padrao) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(
+                  dialogContext,
+                  int.parse('${padrao['cardapiomodelo_id']}'),
                 ),
-                const SizedBox(height: 12),
-              ],
-              if (padraoId == null) ...[
-                TextField(
-                  controller: nome,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome',
-                    border: OutlineInputBorder(),
-                  ),
+                child: Text(
+                  '${padrao['nmcardapio']} • ${padrao['quantidade_produtos']} produtos',
                 ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: tipo,
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo',
-                    border: OutlineInputBorder(),
-                  ),
-                  items:
-                      const {
-                            'PRINCIPAL': 'Principal',
-                            'ESPECIAL': 'Especial',
-                            'SAZONAL': 'Sazonal',
-                            'EVENTO': 'Evento',
-                          }.entries
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e.key,
-                              child: Text(e.value),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (v) => setModal(() => tipo = v ?? tipo),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('Criar'),
-            ),
-          ],
-        ),
+              ),
+            )
+            .toList(),
       ),
     );
-    if (confirmou != true || (padraoId == null && nome.text.trim().length < 2))
-      return;
+    if (selecionado == null) return;
     try {
-      final id =
-          padraoId ??
-          int.parse(
-            '${(await _repo.criarPadrao(_loja.organizacaoId, nome.text.trim(), tipo))['cardapiomodelo_id']}',
-          );
-      await _repo.associar(_loja.lojaId, id);
+      await _repo.associar(_loja.lojaId, selecionado);
       await _carregar();
     } catch (e) {
       if (mounted)
@@ -172,61 +116,6 @@ class _CardapiosPageState extends State<CardapiosPage> {
     if (atual != null) return int.parse('${atual['cardapioversao_id']}');
     final nova = await _repo.novaVersao(int.parse('${c['cardapio_id']}'));
     return int.parse('${nova['cardapioversao_id']}');
-  }
-
-  Future<void> _sincronizar(Map<String, dynamic> c) async {
-    try {
-      final versao = await _garantirRascunho(c);
-      final categoriasAtivas =
-          (await CategoriaRepository().listar(_loja.lojaId))
-              .where((c) => (c.sitcategoria ?? 'ATIVA') == 'ATIVA')
-              .map((c) => c.categoriaId)
-              .toSet();
-      final produtos = (await _produtosRepo.listar(_loja.lojaId))
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .where((e) => (e['sitproduto'] ?? 'ATIVO').toString() == 'ATIVO')
-          .toList();
-      final agrupados = <int, List<Map<String, dynamic>>>{};
-      for (final p in produtos) {
-        final id = int.tryParse('${p['categoria_id']}');
-        if (id != null && categoriasAtivas.contains(id)) {
-          (agrupados[id] ??= []).add(p);
-        }
-      }
-      var ordem = 0;
-      final categorias = agrupados.entries
-          .map(
-            (e) => {
-              'categoria_id': e.key,
-              'idordcategoria': ++ordem,
-              'itens': e.value.indexed
-                  .map(
-                    (x) => {
-                      'produto_id': int.parse('${x.$2['produto_id']}'),
-                      'vrpreco':
-                          double.tryParse(
-                            '${x.$2['vrprecofinal'] ?? x.$2['vrprecoprod']}',
-                          ) ??
-                          0,
-                      'idorditem': x.$1 + 1,
-                    },
-                  )
-                  .toList(),
-            },
-          )
-          .toList();
-      await _repo.salvarConteudo(versao, categorias);
-      await _carregar();
-      if (mounted)
-        AppSnackBar.sucesso(
-          context,
-          'Rascunho atualizado com os produtos atuais.',
-        );
-    } catch (e) {
-      if (mounted)
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
-    }
   }
 
   Future<void> _publicar(Map<String, dynamic> c) async {
@@ -289,23 +178,6 @@ class _CardapiosPageState extends State<CardapiosPage> {
   @override
   Widget build(BuildContext context) {
     final cards = <Widget>[
-      Card(
-        child: ListTile(
-          leading: const Icon(Icons.inventory_2_outlined, color: Colors.blue),
-          title: const Text(
-            'Catálogo de produtos',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
-          subtitle: const Text(
-            'Cadastre categorias, produtos e imagens usados nas versões.',
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => CardapioDigitalPage(loja: _loja)),
-          ),
-        ),
-      ),
       if (_itens.isEmpty)
         const Padding(
           padding: EdgeInsets.all(36),
@@ -391,11 +263,6 @@ class _CardapiosPageState extends State<CardapiosPage> {
                   runSpacing: 8,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () => _sincronizar(cardapio),
-                      icon: const Icon(Icons.sync),
-                      label: const Text('Atualizar rascunho'),
-                    ),
-                    OutlinedButton.icon(
                       onPressed: () => _reajustar(cardapio),
                       icon: const Icon(Icons.price_change_outlined),
                       label: const Text('Reajustar'),
@@ -418,7 +285,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
       appBar: const ClubbarAppBar(mostrarVoltar: true),
       bottomNavigationBar: ClubbarActionBar(
         actions: [
-          ClubbarAddButton(onPressed: _novo, label: 'Adicionar cardápio'),
+          ClubbarAddButton(onPressed: _novo, label: 'Usar cardápio padrão'),
         ],
       ),
       body: Column(

@@ -21,6 +21,7 @@ import '../atracoes/atracao_list_page.dart';
 import '../estilos_musicais/estilo_musical_list_page.dart';
 import '../auditoria/auditoria_page.dart';
 import '../cardapio/cardapio_loja_page.dart';
+import '../cardapio/cardapio_padrao_empresa_page.dart';
 import '../categorias/categorias_produtos_page.dart';
 import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
@@ -112,6 +113,19 @@ class _DashboardPageState extends State<DashboardPage> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => CardapioLojaPage(organizacaoId: organizacaoId),
+      ),
+    );
+  }
+
+  Future<void> _abrirCardapioPadraoEmpresa() async {
+    final organizacaoId = _organizacaoId;
+    if (organizacaoId == null || organizacaoId <= 0) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => CardapioPadraoEmpresaPage(
+          organizacaoId: organizacaoId,
+          nomeOrganizacao: _nomeOrganizacao,
+        ),
       ),
     );
   }
@@ -405,7 +419,17 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Cardápio Digital',
+                          titulo: 'Cardápio padrão empresa',
+                          subtitulo:
+                              'Crie os cardápios da empresa para uso em uma ou mais lojas.',
+                          icone: Icons.menu_book_rounded,
+                          onTap: _cargo == 'SUPERADMIN' || _cargo == 'ADMIN'
+                              ? _abrirCardapioPadraoEmpresa
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Cardápio digital estabelecimento',
                           subtitulo:
                               'Gerencie produtos, categorias e preços por estabelecimento.',
                           icone: Icons.restaurant_menu_rounded,

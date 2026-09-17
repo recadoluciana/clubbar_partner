@@ -11,9 +11,8 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
-import '../cardapio/cardapio_digital_page.dart';
-import '../cardapio/cardapio_padrao_page.dart';
-import '../../core/repositories/cardapio_padrao_repository.dart';
+import '../cardapio/cardapios_page.dart';
+import '../../core/repositories/cardapio_repository.dart';
 import 'horario_funcionamento_screen.dart';
 import 'loja_form_page.dart';
 import 'loja_imagens_page.dart';
@@ -38,8 +37,7 @@ class LojaListPage extends StatefulWidget {
 class _LojaListPageState extends State<LojaListPage> {
   final TextEditingController _buscaController = TextEditingController();
   final LojaRepository _repository = LojaRepository();
-  final CardapioPadraoRepository _cardapioPadraoRepository =
-      CardapioPadraoRepository();
+  final CardapioRepository _cardapioRepository = CardapioRepository();
 
   bool _carregando = true;
   bool _excluindo = false;
@@ -80,10 +78,6 @@ class _LojaListPageState extends State<LojaListPage> {
 
   bool get _cargoGerencial =>
       _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'MANAGER';
-
-  bool get _podeIncluirLoja {
-    return !_carregandoPermissoes && _cargoGerencial && _lojaUsuarioId == null;
-  }
 
   bool _podeAlterarLoja(Loja loja) {
     if (_carregandoPermissoes) return false;
@@ -322,18 +316,8 @@ class _LojaListPageState extends State<LojaListPage> {
 
   Future<void> _abrirCardapio(Loja loja) async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => CardapioDigitalPage(loja: loja)),
-    );
-  }
-
-  Future<void> _abrirCardapioPadrao() async {
-    await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => CardapioPadraoPage(
-          organizacaoId: widget.organizacaoId,
-          nomeOrganizacao: _nomeOrganizacao,
-          lojas: _lojas,
-        ),
+        builder: (_) => CardapiosPage(loja: loja, lojas: _lojas),
       ),
     );
   }
@@ -345,21 +329,23 @@ class _LojaListPageState extends State<LojaListPage> {
     }
     List<Map<String, dynamic>> cardapios;
     try {
-      cardapios = await _cardapioPadraoRepository.listarCardapios(
-        loja.organizacaoId,
-      );
+      cardapios = await _cardapioRepository.listarPadroes(loja.organizacaoId);
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
       return;
     }
     if (!mounted) return;
     cardapios = cardapios
-        .where((item) => item['sitcardapio']?.toString() == 'ATIVO')
+        .where(
+          (item) =>
+              item['sitcardapio']?.toString() == 'ATIVO' &&
+              (item['quantidade_produtos'] as num? ?? 0) > 0,
+        )
         .toList();
     if (cardapios.isEmpty) {
       AppSnackBar.aviso(
         context,
-        'Cadastre pelo menos um Cardápio Digital da empresa antes de importar.',
+        'Adicione produtos ao cardápio padrão da empresa antes de importar.',
       );
       return;
     }
@@ -429,7 +415,7 @@ class _LojaListPageState extends State<LojaListPage> {
       final cardapio = cardapios.firstWhere(
         (item) => item['cardapiomodelo_id'] == selecionado,
       );
-      await _cardapioPadraoRepository.importar(loja.lojaId, selecionado);
+      await _cardapioRepository.associar(loja.lojaId, selecionado);
       if (!mounted) return;
       AppSnackBar.sucesso(
         context,
@@ -1055,12 +1041,6 @@ class _LojaListPageState extends State<LojaListPage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _botaoCircularHeader(
-          tooltip: 'Cardápio padrão da empresa',
-          icone: Icons.menu_book_rounded,
-          onPressed: _podeIncluirLoja ? _abrirCardapioPadrao : null,
-        ),
-        const SizedBox(width: 8),
         _botaoCircularHeader(
           tooltip: 'Atualizar',
           icone: Icons.refresh_rounded,

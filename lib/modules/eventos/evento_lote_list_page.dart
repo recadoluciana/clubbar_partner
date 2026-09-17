@@ -62,12 +62,49 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
   }
 
-  int get _totalIngressos =>
-      _lotes.fold(0, (total, lote) => total + lote.qttotallote);
+  Map<int, List<EventoLote>> get _lotesPorSetor {
+    final grupos = <int, List<EventoLote>>{};
+    for (final lote in _lotes) {
+      (grupos[lote.eventoSetorId ?? -lote.loteId] ??= []).add(lote);
+    }
+    return grupos;
+  }
+
+  int get _totalIngressos {
+    var total = 0;
+    for (final lotes in _lotesPorSetor.values) {
+      final dinamico = lotes
+          .where((lote) => lote.usarCapacidadeRestante)
+          .firstOrNull;
+      total +=
+          dinamico?.qtCapacidadeSetor ??
+          lotes.fold(0, (soma, lote) => soma + lote.qttotallote);
+    }
+    return total;
+  }
+
   int get _totalVendidos =>
       _lotes.fold(0, (total, lote) => total + lote.qtvendidalote);
-  int get _totalDisponiveis =>
-      (_totalIngressos - _totalVendidos).clamp(0, _totalIngressos);
+  int get _totalDisponiveis {
+    var total = 0;
+    for (final lotes in _lotesPorSetor.values) {
+      final dinamico = lotes
+          .where((lote) => lote.usarCapacidadeRestante)
+          .firstOrNull;
+      if (dinamico?.qtCapacidadeRestante != null) {
+        total += dinamico!.qtCapacidadeRestante!;
+      } else {
+        total += lotes.fold(
+          0,
+          (soma, lote) =>
+              soma +
+              (lote.qttotallote - lote.qtvendidalote - lote.qtReservadaLote)
+                  .clamp(0, lote.qttotallote),
+        );
+      }
+    }
+    return total;
+  }
 
   double get _menorPreco {
     if (_lotes.isEmpty) return 0;
@@ -133,6 +170,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     } catch (_) {
       return valor;
     }
+  }
+
+  String get _dataHoraEvento {
+    final inicio = DateTime.tryParse(widget.eventoInicio ?? '');
+    if (inicio == null) return 'Data e hora não informadas';
+    return '${DateFormat('dd/MM/yyyy').format(inicio)} às ${DateFormat('HH:mm').format(inicio)}';
   }
 
   Future<void> _novoLote() async {
@@ -298,7 +341,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   Widget _itemResumo(String titulo, String valor, IconData icone) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
       decoration: BoxDecoration(
         color: ClubbarColors.branco,
         borderRadius: BorderRadius.circular(15),
@@ -306,8 +349,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
       child: Row(
         children: [
-          Icon(icone, size: 21, color: ClubbarColors.ambarEscuro),
-          const SizedBox(width: 9),
+          Icon(icone, size: 18, color: ClubbarColors.ambarEscuro),
+          const SizedBox(width: 6),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,14 +358,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 Text(
                   titulo,
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     color: ClubbarColors.textoSecundario,
                   ),
                 ),
                 Text(
                   valor,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -339,65 +382,34 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       elevation: 1,
       backgroundColor: ClubbarColors.avisoClaro,
       borderColor: ClubbarColors.ambar,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            widget.eventoTitulo,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _itemResumo(
-                  'Lotes',
-                  '${_lotes.length}',
-                  Icons.confirmation_number_rounded,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _itemResumo(
-                  'Ingressos',
-                  '$_totalIngressos',
-                  Icons.groups_rounded,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _itemResumo(
-                  'Vendidos',
-                  '$_totalVendidos',
-                  Icons.check_circle_rounded,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _itemResumo(
-                  'Disponíveis',
-                  '$_totalDisponiveis',
-                  Icons.inventory_2_rounded,
-                ),
-              ),
-            ],
-          ),
-          if (_lotes.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: _itemResumo(
-                'A partir de',
-                _moeda.format(_menorPreco),
-                Icons.sell_rounded,
-              ),
+      padding: const EdgeInsets.all(10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final colunas = constraints.maxWidth >= 390 ? 3 : 2;
+          final largura = (constraints.maxWidth - (colunas - 1) * 8) / colunas;
+          final itens = [
+            ('Lotes', '${_lotes.length}', Icons.confirmation_number_rounded),
+            ('Ingressos', '$_totalIngressos', Icons.groups_rounded),
+            ('Vendidos', '$_totalVendidos', Icons.check_circle_rounded),
+            ('Disponíveis', '$_totalDisponiveis', Icons.inventory_2_rounded),
+            (
+              'A partir de',
+              _lotes.isEmpty ? '—' : _moeda.format(_menorPreco),
+              Icons.sell_rounded,
             ),
-          ],
-        ],
+          ];
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final item in itens)
+                SizedBox(
+                  width: largura,
+                  child: _itemResumo(item.$1, item.$2, item.$3),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -422,10 +434,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   }
 
   Widget _cardLote(EventoLote lote) {
-    final disponiveis = (lote.qttotallote - lote.qtvendidalote).clamp(
-      0,
-      lote.qttotallote,
-    );
+    final disponiveis =
+        (lote.qttotallote - lote.qtvendidalote - lote.qtReservadaLote).clamp(
+          0,
+          lote.qttotallote,
+        );
 
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
@@ -484,7 +497,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               Expanded(
                 child: Text(
                   lote.usarCapacidadeRestante
-                      ? 'Capacidade restante • ${lote.qtvendidalote} vendidos neste lote'
+                      ? 'Capacidade restante: ${lote.qtCapacidadeRestante?.toString() ?? '—'} disponíveis • ${lote.qtvendidalote} vendidos neste lote'
                       : '${lote.qttotallote} ingressos • ${lote.qtvendidalote} vendidos • $disponiveis disponíveis',
                   style: const TextStyle(
                     fontSize: 13,
@@ -622,23 +635,38 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Lotes - ${widget.eventoTitulo}',
-              subtitulo: _carregando
-                  ? 'Carregando lotes...'
-                  : '${_lotes.length} ${_lotes.length == 1 ? 'lote cadastrado' : 'lotes cadastrados'}',
+              titulo: 'Evento - ${widget.eventoTitulo}',
+              tituloWidget: Text(
+                'Evento - ${widget.eventoTitulo}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              subtitulo: _dataHoraEvento,
+              subtituloWidget: Text(
+                _dataHoraEvento,
+                style: const TextStyle(
+                  color: ClubbarColors.info,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               trailing: _acoesHeader(),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Column(
                 children: [
                   _cardResumo(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _campoBusca(),
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _carregar,

@@ -15,6 +15,9 @@ class EventoLote {
   final int qttotallote;
   final bool usarCapacidadeRestante;
   final int qtvendidalote;
+  final int qtReservadaLote;
+  final int? qtCapacidadeSetor;
+  final int? qtCapacidadeRestante;
   final String? dtiniciovenda;
   final String? dtfimvenda;
   final String? statuslote;
@@ -36,6 +39,9 @@ class EventoLote {
     required this.qttotallote,
     this.usarCapacidadeRestante = false,
     required this.qtvendidalote,
+    this.qtReservadaLote = 0,
+    this.qtCapacidadeSetor,
+    this.qtCapacidadeRestante,
     this.dtiniciovenda,
     this.dtfimvenda,
     this.statuslote,
@@ -64,6 +70,9 @@ class EventoLote {
       qttotallote: (json['qttotallote'] as num?)?.toInt() ?? 0,
       usarCapacidadeRestante: json['usarcapacidaderestante'] == true,
       qtvendidalote: (json['qtvendidalote'] as num?)?.toInt() ?? 0,
+      qtReservadaLote: (json['qtreservadalote'] as num?)?.toInt() ?? 0,
+      qtCapacidadeSetor: (json['qtcapacidade_setor'] as num?)?.toInt(),
+      qtCapacidadeRestante: (json['qtcapacidaderestante'] as num?)?.toInt(),
       dtiniciovenda: json['dtiniciovenda']?.toString(),
       dtfimvenda: json['dtfimvenda']?.toString(),
       statuslote: json['statuslote']?.toString(),
