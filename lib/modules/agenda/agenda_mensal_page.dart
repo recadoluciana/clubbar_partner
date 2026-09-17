@@ -107,8 +107,9 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, mensagem);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 

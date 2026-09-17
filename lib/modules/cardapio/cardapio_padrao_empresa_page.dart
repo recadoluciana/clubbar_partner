@@ -41,8 +41,9 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
       final itens = await _repo.listarPadroes(widget.organizacaoId);
       if (mounted) setState(() => _padroes = itens);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -90,8 +91,9 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
             ),
             FilledButton(
               onPressed: () {
-                if (nome.text.trim().length >= 2)
+                if (nome.text.trim().length >= 2) {
                   Navigator.pop(context, (nome.text.trim(), tipo));
+                }
               },
               child: const Text('Criar'),
             ),
@@ -106,8 +108,9 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, 'Cardápio padrão criado.');
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 
@@ -262,8 +265,9 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
         }
       });
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -525,8 +529,9 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
       );
       await _carregar();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 

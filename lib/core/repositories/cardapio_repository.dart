@@ -16,8 +16,9 @@ class CardapioRepository {
 
   Future<List<Map<String, dynamic>>> listar(int lojaId) async {
     final response = await ApiService.get('/lojas/$lojaId/cardapios');
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível carregar os cardápios.');
+    }
     return (_json(response) as List)
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
@@ -33,8 +34,9 @@ class CardapioRepository {
       'tipocardapio': tipo,
       'prioridade': tipo == 'PRINCIPAL' ? 100 : 10,
     });
-    if (response.statusCode != 201)
+    if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível criar o cardápio.');
+    }
     return Map<String, dynamic>.from(_json(response));
   }
 
@@ -72,11 +74,12 @@ class CardapioRepository {
     final response = await ApiService.get(
       '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens',
     );
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw _erro(
         response,
         'Não foi possível carregar os produtos do cardápio.',
       );
+    }
     return (_json(response) as List)
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
@@ -109,8 +112,9 @@ class CardapioRepository {
       '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens',
       dados,
     );
-    if (response.statusCode != 201)
+    if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível adicionar o produto.');
+    }
   }
 
   Future<void> removerItemPadrao(
@@ -121,8 +125,9 @@ class CardapioRepository {
     final response = await ApiService.delete(
       '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens/$itemId',
     );
-    if (response.statusCode != 204)
+    if (response.statusCode != 204) {
       throw _erro(response, 'Não foi possível remover o produto.');
+    }
   }
 
   Future<void> alterarProdutoPadrao(
@@ -135,8 +140,9 @@ class CardapioRepository {
       '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens/$itemId',
       dados,
     );
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível alterar o produto.');
+    }
   }
 
   Future<Map<String, dynamic>> associar(
@@ -158,8 +164,9 @@ class CardapioRepository {
       '/cardapios/$cardapioId/nova-versao',
       const {},
     );
-    if (response.statusCode != 201)
+    if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível criar a versão.');
+    }
     return Map<String, dynamic>.from(_json(response));
   }
 
@@ -171,8 +178,9 @@ class CardapioRepository {
       '/cardapios/versoes/$versaoId/conteudo',
       {'categorias': categorias},
     );
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível atualizar o cardápio.');
+    }
   }
 
   Future<String> publicar(int versaoId) async {
@@ -180,8 +188,9 @@ class CardapioRepository {
       '/cardapios/versoes/$versaoId/publicar',
       {},
     );
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível publicar o cardápio.');
+    }
     return (Map<String, dynamic>.from(_json(response))['mensagem'] ??
             'Cardápio publicado.')
         .toString();
@@ -200,8 +209,9 @@ class CardapioRepository {
           'valorajuste': percentual.abs(),
           'arredondamento': 2,
         });
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível reajustar os preços.');
+    }
     return int.tryParse(
           '${Map<String, dynamic>.from(_json(response))['itens_alterados']}',
         ) ??

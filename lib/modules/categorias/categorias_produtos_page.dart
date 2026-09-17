@@ -51,6 +51,21 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
     'more_horiz': Icons.more_horiz_rounded,
   };
   IconData _icone(dynamic nome) => _icones[nome] ?? Icons.category_rounded;
+  static const _coresCategoria = <Color>[
+    Color(0xFFE65100),
+    Color(0xFF1565C0),
+    Color(0xFF7B1FA2),
+    Color(0xFF2E7D32),
+    Color(0xFFC62828),
+    Color(0xFF00838F),
+    Color(0xFFAD1457),
+  ];
+
+  Color _corCategoria(Map<String, dynamic> categoria) {
+    final id = (categoria['categoria_id'] as num?)?.toInt() ?? 0;
+    return _coresCategoria[id.abs() % _coresCategoria.length];
+  }
+
   dynamic _resposta(dynamic r) {
     final dados = jsonDecode(r.body);
     if (r.statusCode < 200 || r.statusCode >= 300) {
@@ -88,11 +103,12 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
     });
     try {
       final dados = _resposta(await ApiService.get(_rota)) as List;
-      if (mounted)
+      if (mounted) {
         setState(
           () =>
               _itens = dados.map((e) => Map<String, dynamic>.from(e)).toList(),
         );
+      }
     } catch (e) {
       if (mounted) setState(() => _erro = e.toString());
     } finally {
@@ -215,6 +231,30 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
     }
   }
 
+  Future<void> _alterarSituacao(Map<String, dynamic> categoria) async {
+    final ativar = categoria['sitcategoria'] != 'ATIVA';
+    setState(() => _ocupado = true);
+    try {
+      _resposta(
+        await ApiService.patch(
+          '$_rota/${categoria['categoria_id']}/situacao',
+          body: {'sitcategoria': ativar ? 'ATIVA' : 'INATIVA'},
+        ),
+      );
+      await _carregar();
+      if (mounted) {
+        AppSnackBar.sucesso(
+          context,
+          ativar ? 'Categoria ativada.' : 'Categoria inativada.',
+        );
+      }
+    } catch (e) {
+      _mostrarErro(e);
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
   Future<void> _criar() async {
     final form = GlobalKey<FormState>();
     String nome = '', icone = 'category';
@@ -271,8 +311,9 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
         ],
       ),
     );
-    if (confirmar == true && mounted)
+    if (confirmar == true && mounted) {
       await _salvar(_rota, {'nmcategoria': nome, 'dsicone': icone});
+    }
   }
 
   @override
@@ -351,21 +392,30 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                                   (e) => Card(
                                     child: ListTile(
                                       leading: CircleAvatar(
-                                        child: Icon(_icone(e['dsicone'])),
+                                        backgroundColor: _corCategoria(
+                                          e,
+                                        ).withValues(alpha: 0.14),
+                                        child: Icon(
+                                          _icone(e['dsicone']),
+                                          color: _corCategoria(e),
+                                        ),
                                       ),
                                       title: Text(e['nmcategoria']),
                                       subtitle: Text(
-                                        e['categoriapadrao_id'] == null
-                                            ? 'Categoria própria'
-                                            : 'Importada das padrão',
+                                        '${e['categoriapadrao_id'] == null ? 'Categoria própria' : 'Importada das padrão'} • ${e['sitcategoria'] == 'ATIVA' ? 'Ativa' : 'Inativa'}',
                                       ),
                                       trailing: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text(
-                                            e['sitcategoria'] == 'ATIVA'
-                                                ? 'Ativa'
-                                                : 'Inativa',
+                                          OutlinedButton(
+                                            onPressed: _ocupado
+                                                ? null
+                                                : () => _alterarSituacao(e),
+                                            child: Text(
+                                              e['sitcategoria'] == 'ATIVA'
+                                                  ? 'Inativar'
+                                                  : 'Ativar',
+                                            ),
                                           ),
                                           IconButton(
                                             tooltip: 'Apagar categoria',

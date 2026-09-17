@@ -36,8 +36,9 @@ class _CardapiosPageState extends State<CardapiosPage> {
       final itens = await _repo.listar(_loja.lojaId);
       if (mounted) setState(() => _itens = itens);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -54,8 +55,9 @@ class _CardapiosPageState extends State<CardapiosPage> {
     try {
       padroes = await _repo.listarPadroes(_loja.organizacaoId);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
       return;
     }
     if (!mounted) return;
@@ -67,11 +69,12 @@ class _CardapiosPageState extends State<CardapiosPage> {
         )
         .toList();
     if (padroes.isEmpty) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.aviso(
           context,
           'Crie um cardápio padrão com produtos no menu da empresa antes de utilizá-lo nesta loja.',
         );
+      }
       return;
     }
     final selecionado = await showDialog<int>(
@@ -98,8 +101,9 @@ class _CardapiosPageState extends State<CardapiosPage> {
       await _repo.associar(_loja.lojaId, selecionado);
       await _carregar();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 
@@ -125,8 +129,9 @@ class _CardapiosPageState extends State<CardapiosPage> {
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, msg);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 
@@ -167,11 +172,13 @@ class _CardapiosPageState extends State<CardapiosPage> {
     try {
       final id = await _garantirRascunho(c);
       final qtd = await _repo.reajustar(id, valor);
-      if (mounted)
+      if (mounted) {
         AppSnackBar.sucesso(context, '$qtd preços reajustados no rascunho.');
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 

@@ -393,8 +393,9 @@ class _EventoListPageState extends State<EventoListPage> {
     localController.dispose();
     enderecoController.dispose();
     if (capacidade <= 0) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.aviso(context, 'Informe a capacidade desta sessão.');
+      }
       return;
     }
     if (preco < 0) {
