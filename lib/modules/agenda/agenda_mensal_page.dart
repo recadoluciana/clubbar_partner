@@ -801,7 +801,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
             tituloStyle: const TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.w900,
-              color: Colors.blue,
+              color: ClubbarColors.primariaEscuro,
             ),
             padding: const EdgeInsets.fromLTRB(18, 9, 12, 10),
             trailing: Row(

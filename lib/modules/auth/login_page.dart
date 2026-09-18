@@ -391,8 +391,8 @@ class _LoginPageState extends State<LoginPage> {
             child: FilledButton.icon(
               onPressed: _carregando ? null : _fazerLogin,
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.amber,
-                foregroundColor: Colors.black,
+                backgroundColor: ClubbarColors.primaria,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -402,7 +402,7 @@ class _LoginPageState extends State<LoginPage> {
                       dimension: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.black,
+                        color: Colors.white,
                       ),
                     )
                   : const Icon(Icons.login_rounded),
@@ -473,7 +473,7 @@ class _LoginPageState extends State<LoginPage> {
             const Text(
               'Acompanhe vendas, agenda, cardápio e financeiro em um só lugar.',
               style: TextStyle(
-                color: Color(0xFF3F3300),
+                color: ClubbarColors.primariaEscuro,
                 fontSize: 17,
                 height: 1.5,
               ),
@@ -506,7 +506,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.amber,
+      backgroundColor: ClubbarColors.primaria,
       appBar: ClubbarAppBar(
         actions: [
           IconButton(
@@ -527,10 +527,10 @@ class _LoginPageState extends State<LoginPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFFFC107),
-              Color(0xFFFFD95A),
-              Color(0xFFFFECB3),
-              Color(0xFFFFFBF0),
+              Color(0xFF1F8A4C),
+              Color(0xFF63B77D),
+              Color(0xFFDDF4E5),
+              Color(0xFFF4FBF6),
             ],
             stops: [0, .32, .68, 1],
           ),

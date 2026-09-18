@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/config/api_config.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../auth/login_page.dart';
@@ -213,7 +214,11 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFD54F), Color(0xFFFFECB3), Color(0xFFF6F6F6)],
+          colors: [
+            Color(0xFF8FD3A8),
+            ClubbarColors.primariaClaro,
+            ClubbarColors.fundo,
+          ],
         ),
         borderRadius: BorderRadius.circular(26),
         boxShadow: const [
@@ -232,7 +237,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.amber.shade300, width: 3),
+              border: Border.all(color: ClubbarColors.primariaClaro, width: 3),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black12,
@@ -339,7 +344,9 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
   Widget _conteudo() {
     if (carregando) {
       return const Expanded(
-        child: Center(child: CircularProgressIndicator(color: Colors.amber)),
+        child: Center(
+          child: CircularProgressIndicator(color: ClubbarColors.primaria),
+        ),
       );
     }
 
@@ -382,8 +389,8 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Tentar novamente'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
+                  backgroundColor: ClubbarColors.primaria,
+                  foregroundColor: Colors.white,
                 ),
               ),
             ],
@@ -429,8 +436,8 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber,
-                          foregroundColor: Colors.black,
+                          backgroundColor: ClubbarColors.primaria,
+                          foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(18),

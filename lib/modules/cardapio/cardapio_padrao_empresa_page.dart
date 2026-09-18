@@ -304,10 +304,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
           .map((item) => item['produto_id'])
           .toSet();
       final disponiveis = produtos
-          .where(
-            (produto) =>
-                !vinculados.contains(produto['produto_id']),
-          )
+          .where((produto) => !vinculados.contains(produto['produto_id']))
           .toList();
       if (!mounted) return;
       if (disponiveis.isEmpty) {
@@ -483,10 +480,12 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
           width: 94,
           height: 64,
           decoration: BoxDecoration(
-            color: selecionada ? Colors.amber : Colors.white,
+            color: selecionada ? ClubbarColors.primaria : Colors.white,
             borderRadius: BorderRadius.circular(13),
             border: Border.all(
-              color: selecionada ? Colors.amber : Colors.grey.shade300,
+              color: selecionada
+                  ? ClubbarColors.primaria
+                  : Colors.grey.shade300,
             ),
             boxShadow: [
               BoxShadow(

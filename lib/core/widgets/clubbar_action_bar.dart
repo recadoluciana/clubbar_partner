@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/clubbar_colors.dart';
+
 class ClubbarActionBar extends StatelessWidget {
   final List<Widget> actions;
 
@@ -44,8 +46,8 @@ class ClubbarAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = primary ? Colors.amber.shade600 : Colors.white;
-    final foreground = Colors.black87;
+    final background = primary ? ClubbarColors.primaria : Colors.white;
+    final foreground = primary ? Colors.white : ClubbarColors.primariaEscuro;
     return FilledButton.icon(
       onPressed: onPressed,
       icon: Icon(icon),
@@ -54,7 +56,7 @@ class ClubbarAddButton extends StatelessWidget {
         minimumSize: const Size(0, 46),
         backgroundColor: background,
         foregroundColor: foreground,
-        side: primary ? null : BorderSide(color: Colors.amber.shade700),
+        side: primary ? null : const BorderSide(color: ClubbarColors.primaria),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );

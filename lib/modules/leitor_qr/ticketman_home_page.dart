@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../leitor_qr/leitor_qr_retirada_ingresso.dart';
 import '../auth/login_page.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/theme/clubbar_colors.dart';
 
 class TicketmanHomePage extends StatefulWidget {
   const TicketmanHomePage({super.key});
@@ -109,7 +110,11 @@ class _TicketmanHomePageState extends State<TicketmanHomePage> {
 
                 const SizedBox(height: 20),
 
-                const Icon(Icons.security, size: 90, color: Colors.amber),
+                const Icon(
+                  Icons.security,
+                  size: 90,
+                  color: ClubbarColors.primaria,
+                ),
 
                 const SizedBox(height: 24),
 

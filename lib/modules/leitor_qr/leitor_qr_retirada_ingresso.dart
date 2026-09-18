@@ -5,6 +5,7 @@ import 'package:vibration/vibration.dart';
 
 import '../../core/services/api_service.dart';
 import '../../core/config/api_config.dart';
+import '../../core/theme/clubbar_colors.dart';
 
 class LeitorQrRetiradaIngressoScreen extends StatefulWidget {
   const LeitorQrRetiradaIngressoScreen({super.key});
@@ -168,7 +169,7 @@ class _LeitorQrRetiradaIngressoScreenState
                 const Icon(
                   Icons.confirmation_number_outlined,
                   size: 80,
-                  color: Colors.amber,
+                  color: ClubbarColors.primaria,
                 ),
 
               const SizedBox(height: 14),
@@ -358,7 +359,7 @@ class _LeitorQrRetiradaIngressoScreenState
                     height: 260,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: const Color(0xFFFFC107),
+                        color: ClubbarColors.primaria,
                         width: 4,
                       ),
                       borderRadius: BorderRadius.circular(24),

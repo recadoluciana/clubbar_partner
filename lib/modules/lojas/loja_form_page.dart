@@ -468,7 +468,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.amber, width: 2),
+        borderSide: const BorderSide(color: ClubbarColors.primaria, width: 2),
       ),
       filled: true,
       fillColor: Colors.white,
@@ -480,7 +480,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       padding: const EdgeInsets.only(top: 8, bottom: 12),
       child: Row(
         children: [
-          Icon(icone, size: 21, color: Colors.amber.shade800),
+          Icon(icone, size: 21, color: ClubbarColors.primariaEscuro),
           const SizedBox(width: 8),
           Text(
             titulo,
@@ -942,9 +942,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   : 'Salvar estabelecimento',
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber,
-                              foregroundColor: Colors.black,
-                              disabledBackgroundColor: Colors.amber.shade200,
+                              backgroundColor: ClubbarColors.primaria,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor:
+                                  ClubbarColors.primariaClaro,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),

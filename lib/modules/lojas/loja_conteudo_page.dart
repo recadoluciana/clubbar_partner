@@ -265,7 +265,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
             titulo: widget.loja.nmloja,
             subtitulo: 'Conteúdo do estabelecimento',
             tituloStyle: const TextStyle(
-              color: Colors.blue,
+              color: ClubbarColors.primariaEscuro,
               fontSize: 23,
               fontWeight: FontWeight.w900,
             ),

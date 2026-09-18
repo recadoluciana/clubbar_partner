@@ -539,7 +539,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
               tituloStyle: const TextStyle(
                 fontSize: 23,
                 fontWeight: FontWeight.w900,
-                color: Colors.blue,
+                color: ClubbarColors.primariaEscuro,
               ),
             ),
             _conteudo(),

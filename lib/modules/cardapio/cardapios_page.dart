@@ -249,7 +249,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
                       ),
                     for (final versao in rascunhos)
                       Chip(
-                        backgroundColor: Colors.amber.shade100,
+                        backgroundColor: ClubbarColors.primariaClaro,
                         avatar: const Icon(Icons.edit_note, size: 18),
                         label: Text(
                           'Alterações em rascunho — versão ${versao['nrversao']}',
@@ -301,7 +301,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
             titulo: _loja.nmloja,
             subtitulo: 'Cardápios digitais',
             tituloStyle: const TextStyle(
-              color: Colors.blue,
+              color: ClubbarColors.primariaEscuro,
               fontSize: 19,
               fontWeight: FontWeight.w900,
             ),

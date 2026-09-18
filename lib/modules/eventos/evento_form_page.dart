@@ -597,7 +597,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
               titulo: _nomeEmpresa,
               subtitulo: 'Evento padrão',
               tituloStyle: const TextStyle(
-                color: Colors.blue,
+                color: ClubbarColors.primariaEscuro,
                 fontSize: 19,
                 fontWeight: FontWeight.w900,
               ),

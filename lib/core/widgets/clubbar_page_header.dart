@@ -31,7 +31,11 @@ class ClubbarPageHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFD54F), Color(0xFFFFECB3), ClubbarColors.fundo],
+          colors: [
+            Color(0xFF8FD3A8),
+            ClubbarColors.primariaClaro,
+            ClubbarColors.fundo,
+          ],
         ),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(22),
@@ -60,7 +64,7 @@ class ClubbarPageHeader extends StatelessWidget {
                         const TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w900,
-                          color: ClubbarColors.textoPrincipal,
+                          color: ClubbarColors.primariaEscuro,
                         ),
                   ),
               const SizedBox(height: 4),

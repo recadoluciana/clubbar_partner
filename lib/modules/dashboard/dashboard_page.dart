@@ -356,7 +356,7 @@ class _DashboardPageState extends State<DashboardPage> {
               tituloStyle: const TextStyle(
                 fontSize: 23,
                 fontWeight: FontWeight.w900,
-                color: Colors.blue,
+                color: ClubbarColors.primariaEscuro,
               ),
             ),
             Expanded(

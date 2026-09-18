@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'clubbar_colors.dart';
+
 class AppTheme {
   static ThemeData get light {
     return ThemeData(
@@ -8,7 +10,7 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.white,
 
       colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.amber,
+        seedColor: ClubbarColors.primaria,
         brightness: Brightness.light,
       ),
 
@@ -25,13 +27,40 @@ class AppTheme {
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: ClubbarColors.primaria, width: 2),
+        ),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.amber,
-          foregroundColor: Colors.black,
+          backgroundColor: ClubbarColors.primaria,
+          foregroundColor: Colors.white,
           textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: ClubbarColors.primaria,
+          foregroundColor: Colors.white,
+        ),
+      ),
+
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: ClubbarColors.primaria,
+        foregroundColor: Colors.white,
+      ),
+
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: ClubbarColors.primaria,
+      ),
+
+      navigationBarTheme: const NavigationBarThemeData(
+        indicatorColor: ClubbarColors.primariaClaro,
+        iconTheme: WidgetStatePropertyAll(
+          IconThemeData(color: ClubbarColors.primariaEscuro),
         ),
       ),
     );

@@ -720,7 +720,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
               tituloStyle: const TextStyle(
                 fontSize: 23,
                 fontWeight: FontWeight.w900,
-                color: Colors.blue,
+                color: ClubbarColors.primariaEscuro,
               ),
               trailing: _acoesHeader(),
             ),

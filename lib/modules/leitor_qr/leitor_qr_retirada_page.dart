@@ -10,6 +10,7 @@ import '../../../core/services/api_service.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/theme/clubbar_colors.dart';
 
 class LeitorQrRetiradaScreen extends StatefulWidget {
   const LeitorQrRetiradaScreen({super.key});
@@ -87,7 +88,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
             children: [
               const Icon(
                 Icons.warning_amber_rounded,
-                color: Colors.amber,
+                color: ClubbarColors.primaria,
                 size: 90,
               ),
               const SizedBox(width: 15),
@@ -129,7 +130,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                 Navigator.pop(dialogContext);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
+                backgroundColor: ClubbarColors.primaria,
                 foregroundColor: Colors.black,
               ),
               child: const Text('Fechar'),
@@ -737,13 +738,13 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
       width: 150,
       height: 150,
       decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.16),
+        color: ClubbarColors.primaria.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Icon(
         Icons.local_bar_rounded,
         size: 72,
-        color: Colors.amber.shade800,
+        color: ClubbarColors.primariaEscuro,
       ),
     );
   }
@@ -767,7 +768,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
             width: 39,
             height: 39,
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.14),
+              color: ClubbarColors.primaria.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icone, color: Colors.black87, size: 21),
@@ -837,7 +838,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
             width: 270,
             height: 270,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.amber, width: 4),
+              border: Border.all(color: ClubbarColors.primaria, width: 4),
               borderRadius: BorderRadius.circular(24),
             ),
           ),
@@ -871,7 +872,9 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
           Container(
             color: Colors.black.withValues(alpha: 0.28),
             alignment: Alignment.center,
-            child: const CircularProgressIndicator(color: Colors.amber),
+            child: const CircularProgressIndicator(
+              color: ClubbarColors.primaria,
+            ),
           ),
       ],
     );
@@ -903,7 +906,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                   width: 92,
                   height: 92,
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.16),
+                    color: ClubbarColors.primaria.withValues(alpha: 0.16),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -950,7 +953,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
+                      backgroundColor: ClubbarColors.primaria,
                       foregroundColor: Colors.black,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
