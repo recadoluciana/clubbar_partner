@@ -7,6 +7,7 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
+import 'cardapio_loja_editor_page.dart';
 
 class CardapiosPage extends StatefulWidget {
   final Loja loja;
@@ -128,6 +129,28 @@ class _CardapiosPageState extends State<CardapiosPage> {
       final msg = await _repo.publicar(id);
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, msg);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  Future<void> _editar(Map<String, dynamic> cardapio) async {
+    try {
+      final versaoId = await _garantirRascunho(cardapio);
+      if (!mounted) return;
+      await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CardapioLojaEditorPage(
+            loja: _loja,
+            versaoId: versaoId,
+            nomeCardapio: '${cardapio['nmcardapio']}',
+          ),
+        ),
+      );
+      await _carregar();
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -269,6 +292,11 @@ class _CardapiosPageState extends State<CardapiosPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
+                    FilledButton.icon(
+                      onPressed: () => _editar(cardapio),
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Editar cardápio'),
+                    ),
                     OutlinedButton.icon(
                       onPressed: () => _reajustar(cardapio),
                       icon: const Icon(Icons.price_change_outlined),

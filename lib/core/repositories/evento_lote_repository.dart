@@ -4,6 +4,17 @@ import '../../models/evento_lote.dart';
 import '../services/api_service.dart';
 
 class EventoLoteRepository {
+  Exception _erro(dynamic response, String mensagemPadrao) {
+    try {
+      final conteudo = jsonDecode(response.body);
+      if (conteudo is Map && conteudo['detail'] != null) {
+        final detalhe = conteudo['detail'].toString().trim();
+        if (detalhe.isNotEmpty) return Exception(detalhe);
+      }
+    } catch (_) {}
+    return Exception(mensagemPadrao);
+  }
+
   Future<List<EventoLote>> listar(int eventoId) async {
     final response = await ApiService.get('/eventos/$eventoId/lotes_todos');
 
@@ -12,7 +23,7 @@ class EventoLoteRepository {
       return data.map((e) => EventoLote.fromJson(e)).toList();
     }
 
-    throw Exception('Erro ao listar lotes: ${response.body}');
+    throw _erro(response, 'Não foi possível carregar os lotes do evento.');
   }
 
   Future<void> criar({
@@ -46,7 +57,7 @@ class EventoLoteRepository {
     });
 
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Erro ao criar lote: ${response.body}');
+      throw _erro(response, 'Não foi possível criar o lote.');
     }
   }
 
@@ -80,7 +91,7 @@ class EventoLoteRepository {
     });
 
     if (response.statusCode != 200) {
-      throw Exception('Erro ao atualizar lote: ${response.body}');
+      throw _erro(response, 'Não foi possível atualizar o lote.');
     }
   }
 
@@ -113,7 +124,9 @@ class EventoLoteRepository {
 
   Future<List<EventoSetor>> listarSetores(int eventoId) async {
     final response = await ApiService.get('/eventos/$eventoId/setores');
-    if (response.statusCode != 200) throw Exception(response.body);
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível carregar os setores.');
+    }
     return (jsonDecode(response.body) as List)
         .map((e) => EventoSetor.fromJson(Map<String, dynamic>.from(e)))
         .toList();
@@ -132,7 +145,9 @@ class EventoLoteRepository {
       'nrordem': 1,
       'sitsetor': 'ATIVO',
     });
-    if (response.statusCode != 201) throw Exception(response.body);
+    if (response.statusCode != 201) {
+      throw _erro(response, 'Não foi possível criar o setor.');
+    }
     return EventoSetor.fromJson(
       Map<String, dynamic>.from(jsonDecode(response.body)),
     );
@@ -142,7 +157,7 @@ class EventoLoteRepository {
     final response = await ApiService.delete('/eventos/lotes/$loteId');
 
     if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception('Erro ao excluir lote: ${response.body}');
+      throw _erro(response, 'Não foi possível excluir o lote.');
     }
   }
 }

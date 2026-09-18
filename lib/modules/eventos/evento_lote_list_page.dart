@@ -108,7 +108,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   double get _menorPreco {
     if (_lotes.isEmpty) return 0;
-    final precos = _lotes.map((lote) => lote.vrprecolote).toList()..sort();
+    final precos = _lotes
+        .expand(
+          (lote) => lote.precos
+              .where((preco) => preco.situacao == 'ATIVO')
+              .map((preco) => preco.valor),
+        )
+        .toList();
+    if (precos.isEmpty) {
+      precos.addAll(_lotes.map((lote) => lote.vrprecolote));
+    }
+    precos.sort();
     return precos.first;
   }
 
@@ -472,11 +482,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      _moeda.format(lote.vrprecolote),
+                      '${lote.precos.where((preco) => preco.situacao == 'ATIVO').length} modalidades de preço',
                       style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                        color: ClubbarColors.sucesso,
+                        fontSize: 13,
+                        color: ClubbarColors.textoSecundario,
                       ),
                     ),
                   ],
@@ -485,6 +494,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               _chipStatus(lote),
             ],
           ),
+          const SizedBox(height: 12),
+          ..._precosVisiveis(lote).map(_linhaPreco),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -559,6 +570,85 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<EventoLotePreco> _precosVisiveis(EventoLote lote) {
+    final precos =
+        lote.precos.where((preco) => preco.situacao == 'ATIVO').toList()
+          ..sort((a, b) => a.ordem.compareTo(b.ordem));
+    if (precos.isNotEmpty) return precos;
+    return [
+      EventoLotePreco(
+        id: 0,
+        nome: 'Inteira',
+        tipo: 'INTEIRA',
+        valor: lote.vrprecolote,
+        aplicaCotaLegal: false,
+        exigeComprovante: false,
+      ),
+    ];
+  }
+
+  String _nomeModalidade(EventoLotePreco preco) {
+    switch (preco.tipo) {
+      case 'INTEIRA':
+        return 'Inteira';
+      case 'MEIA_LEGAL':
+        return 'Meia-entrada';
+      case 'MEIA_IDOSO':
+        return 'Pessoa idosa';
+      default:
+        return preco.nome.trim().isEmpty ? 'Ingresso' : preco.nome;
+    }
+  }
+
+  Widget _linhaPreco(EventoLotePreco preco) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: ClubbarColors.fundo,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ClubbarColors.borda),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.sell_outlined,
+            size: 18,
+            color: ClubbarColors.sucesso,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _nomeModalidade(preco),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                if (preco.exigeComprovante)
+                  const Text(
+                    'Comprovante obrigatório',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: ClubbarColors.textoSecundario,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            _moeda.format(preco.valor),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: ClubbarColors.sucesso,
+            ),
           ),
         ],
       ),

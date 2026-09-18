@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/repositories/evento_lote_repository.dart';
@@ -40,6 +41,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   final _dtInicioController = TextEditingController();
   final _dtFimController = TextEditingController();
   final _numeroLoteController = TextEditingController(text: '1');
+  final _precoFocusNode = FocusNode();
 
   bool _salvando = false;
   String _status = 'ATIVO';
@@ -58,26 +60,29 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   int get _quantidadeDisponivel =>
       (_quantidadeTotal - _quantidadeVendida).clamp(0, _quantidadeTotal);
   double get _preco =>
-      double.tryParse(
-        _precoController.text
-            .replaceAll('R\$', '')
-            .replaceAll(' ', '')
-            .replaceAll('.', '')
-            .replaceAll(',', '.')
-            .trim(),
-      ) ??
-      0;
+      double.tryParse(_normalizarNumero(_precoController.text)) ?? 0;
+
+  String _normalizarNumero(String texto) {
+    final limpo = texto.replaceAll('R\$', '').replaceAll(' ', '').trim();
+    if (limpo.contains(',')) {
+      return limpo.replaceAll('.', '').replaceAll(',', '.');
+    }
+    return limpo;
+  }
 
   @override
   void initState() {
     super.initState();
     _precoController.addListener(_atualizarResumo);
     _qtTotalController.addListener(_atualizarResumo);
+    _precoFocusNode.addListener(() {
+      if (!_precoFocusNode.hasFocus) _formatarPreco();
+    });
 
     final lote = widget.lote;
     if (lote != null) {
       _nomeController.text = lote.nmlote;
-      _precoController.text = lote.vrprecolote.toString();
+      _precoController.text = _precoBrasil(lote.vrprecolote);
       _qtTotalController.text = lote.qttotallote.toString();
       _qtVendidaController.text = lote.qtvendidalote.toString();
       _status = lote.statuslote ?? 'ATIVO';
@@ -107,7 +112,22 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     _dtInicioController.dispose();
     _dtFimController.dispose();
     _numeroLoteController.dispose();
+    _precoFocusNode.dispose();
     super.dispose();
+  }
+
+  String _precoBrasil(double valor) =>
+      NumberFormat('0.00', 'pt_BR').format(valor);
+
+  void _formatarPreco() {
+    if (_precoController.text.trim().isEmpty) return;
+    final texto = _precoBrasil(_preco);
+    if (_precoController.text != texto) {
+      _precoController.value = TextEditingValue(
+        text: texto,
+        selection: TextSelection.collapsed(offset: texto.length),
+      );
+    }
   }
 
   Future<void> _carregarSetores() async {
@@ -204,6 +224,11 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
 
   String _mensagemErro(Object erro) {
     final texto = erro.toString().replaceFirst('Exception: ', '').trim();
+    if (texto.toLowerCase().contains(
+      'os preços de um lote com vendas não podem ser substituídos',
+    )) {
+      return 'Este lote já possui ingressos vendidos. Para preservar as vendas realizadas, mantenha o preço atual ou crie um novo lote para utilizar outro valor.';
+    }
     return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
   }
 
@@ -257,11 +282,13 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     required String label,
     required IconData icone,
     String? hint,
+    String? prefixText,
     Widget? suffixIcon,
   }) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
+      prefixText: prefixText,
       prefixIcon: Icon(icone, color: ClubbarColors.textoSecundario),
       suffixIcon: suffixIcon,
       filled: true,
@@ -330,6 +357,8 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           ? 'Ingresso único'
           : 'Lote $numeroLote - ${setor!.nome} $nomeTipo';
       if (editando) {
+        final precoFoiAlterado =
+            (_preco - widget.lote!.vrprecolote).abs() >= 0.005;
         await _repo.atualizar(
           loteId: widget.lote!.loteId,
           organizacaoId: widget.organizacaoId,
@@ -339,7 +368,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           eventoSetorId: _modoSimples ? null : _setorId,
           numeroLote: numeroLote,
           tipoIngresso: tipoIngresso,
-          preco: _preco,
+          preco: precoFoiAlterado ? _preco : null,
           quantidadeTotal: _quantidadeTotal,
           quantidadeVendida: _quantidadeVendida,
           usarCapacidadeRestante: _usarCapacidadeRestante,
@@ -374,7 +403,12 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      AppSnackBar.erro(context, _mensagemErro(e));
+      AppSnackBar.erro(
+        context,
+        _mensagemErro(e),
+        duration: const Duration(seconds: 7),
+        mostrarFechar: true,
+      );
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
@@ -389,49 +423,6 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
         'OUTRO': 'Outro',
       }[tipo] ??
       tipo;
-
-  Widget _cardCabecalho() {
-    return ClubbarCard(
-      child: Row(
-        children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: const BoxDecoration(
-              color: ClubbarColors.ambarClaro,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.confirmation_number_rounded, size: 30),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  editando ? 'Dados do lote' : 'Novo lote',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  editando
-                      ? 'Atualize preço, quantidade e período de vendas.'
-                      : 'Defina o preço e a quantidade de ingressos.',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: ClubbarColors.textoSecundario,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _cardFormulario() {
     return ClubbarCard(
@@ -534,11 +525,16 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           ],
           TextFormField(
             controller: _precoController,
+            focusNode: _precoFocusNode,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            ],
             decoration: _decoracaoCampo(
-              label: 'Preço',
-              icone: Icons.attach_money_rounded,
+              label: 'Preço do ingresso',
+              icone: Icons.payments_outlined,
               hint: '0,00',
+              prefixText: 'R\$ ',
             ),
             validator: (value) => _preco < 0 ? 'Informe um preço válido' : null,
           ),
@@ -695,8 +691,6 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
                   children: [
-                    _cardCabecalho(),
-                    const SizedBox(height: 16),
                     _cardFormulario(),
                     const SizedBox(height: 16),
                     _cardResumo(),

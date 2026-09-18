@@ -87,6 +87,8 @@ class EventoLotePreco {
   final double valor;
   final bool aplicaCotaLegal;
   final bool exigeComprovante;
+  final String situacao;
+  final int ordem;
   const EventoLotePreco({
     required this.id,
     required this.nome,
@@ -94,6 +96,8 @@ class EventoLotePreco {
     required this.valor,
     required this.aplicaCotaLegal,
     required this.exigeComprovante,
+    this.situacao = 'ATIVO',
+    this.ordem = 0,
   });
   factory EventoLotePreco.fromJson(Map<String, dynamic> j) => EventoLotePreco(
     id: (j['lotepreco_id'] as num?)?.toInt() ?? 0,
@@ -102,6 +106,8 @@ class EventoLotePreco {
     valor: (j['vrpreco'] as num?)?.toDouble() ?? 0,
     aplicaCotaLegal: j['aplicacotalegal'] == true,
     exigeComprovante: j['exigecomprovante'] == true,
+    situacao: '${j['situacao'] ?? 'ATIVO'}',
+    ordem: (j['nrordem'] as num?)?.toInt() ?? 0,
   );
 }
 

@@ -278,6 +278,17 @@ class CardapioRepository {
     return Map<String, dynamic>.from(_json(response));
   }
 
+  Future<Map<String, dynamic>> consultarVersao(int versaoId) async {
+    final response = await ApiService.get('/cardapios/versoes/$versaoId');
+    if (response.statusCode != 200) {
+      throw _erro(
+        response,
+        'Não foi possível carregar o conteúdo do cardápio.',
+      );
+    }
+    return Map<String, dynamic>.from(_json(response));
+  }
+
   Future<void> salvarConteudo(
     int versaoId,
     List<Map<String, dynamic>> categorias,
