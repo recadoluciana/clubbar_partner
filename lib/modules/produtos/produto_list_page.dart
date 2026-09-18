@@ -9,11 +9,9 @@ import '../../core/repositories/produto_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
-import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
-import 'produto_form_page.dart';
 
 class ProdutoListPage extends StatefulWidget {
   final int organizacaoId;
@@ -38,7 +36,6 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
 
   bool _carregando = true;
   bool _carregandoLojas = true;
-  bool _excluindo = false;
 
   String? _erro;
 
@@ -281,175 +278,6 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     FocusScope.of(context).unfocus();
   }
 
-  Future<void> _abrirCadastro() async {
-    final lojaId = _lojaIdSelecionada;
-
-    if (lojaId == null) {
-      AppSnackBar.aviso(context, 'Selecione um estabelecimento.');
-      return;
-    }
-
-    final resultado = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ProdutoFormPage(
-          lojaId: lojaId,
-          organizacaoId: widget.organizacaoId,
-        ),
-      ),
-    );
-
-    if (resultado == true) {
-      await _carregarProdutos();
-    }
-  }
-
-  Future<void> _abrirEdicao(dynamic produto) async {
-    final lojaId = _lojaIdSelecionada;
-
-    if (lojaId == null) return;
-
-    try {
-      final produtoMap = Map<String, dynamic>.from(produto as Map);
-
-      final resultado = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          builder: (_) => ProdutoFormPage(
-            lojaId: lojaId,
-            organizacaoId: widget.organizacaoId,
-            produto: produtoMap,
-          ),
-        ),
-      );
-
-      if (resultado == true) {
-        await _carregarProdutos();
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      AppSnackBar.erro(
-        context,
-        'Não foi possível abrir o produto para edição.',
-      );
-    }
-  }
-
-  Future<bool> _confirmarExclusao(dynamic produto) async {
-    final nome = (produto['nmproduto'] ?? 'Produto').toString();
-
-    final confirmar = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: ClubbarColors.fundo,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-          title: const Row(
-            children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                color: ClubbarColors.erro,
-                size: 30,
-              ),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Excluir produto',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            'Deseja realmente excluir "$nome"?\n\n'
-            'Essa ação não poderá ser desfeita.',
-            style: const TextStyle(height: 1.4),
-          ),
-          actions: [
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pop(dialogContext, false);
-              },
-              icon: const Icon(Icons.close_rounded),
-              label: const Text(
-                'Cancelar',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ClubbarColors.textoPrincipal,
-                side: const BorderSide(color: ClubbarColors.borda),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(dialogContext, true);
-              },
-              icon: const Icon(Icons.delete_rounded),
-              label: const Text(
-                'Excluir',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ClubbarColors.erro,
-                foregroundColor: ClubbarColors.branco,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    return confirmar == true;
-  }
-
-  Future<void> _excluirProduto(dynamic produto) async {
-    if (_excluindo) return;
-
-    final confirmou = await _confirmarExclusao(produto);
-
-    if (!confirmou || !mounted) return;
-
-    final produtoId = int.tryParse((produto['produto_id'] ?? '').toString());
-
-    if (produtoId == null) {
-      AppSnackBar.erro(context, 'Produto não identificado.');
-      return;
-    }
-
-    setState(() {
-      _excluindo = true;
-    });
-
-    try {
-      await _repository.excluir(produtoId);
-
-      if (!mounted) return;
-
-      AppSnackBar.sucesso(context, 'Produto excluído com sucesso.');
-
-      await _carregarProdutos();
-    } catch (e) {
-      if (!mounted) return;
-
-      AppSnackBar.erro(context, _extrairMensagemErro(e));
-    } finally {
-      if (mounted) {
-        setState(() {
-          _excluindo = false;
-        });
-      }
-    }
-  }
-
   Widget _campoLoja() {
     if (_carregandoLojas) {
       return const SizedBox(
@@ -664,7 +492,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
       margin: const EdgeInsets.only(bottom: 14),
       elevation: 1,
       padding: const EdgeInsets.all(15),
-      onTap: () => _abrirEdicao(produto),
+      onTap: null,
       child: Column(
         children: [
           Row(
@@ -756,49 +584,6 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          const Divider(height: 1, color: ClubbarColors.divisor),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _excluindo ? null : () => _abrirEdicao(produto),
-                  icon: const Icon(Icons.edit_rounded, size: 18),
-                  label: const Text(
-                    'Editar',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ClubbarColors.textoPrincipal,
-                    side: const BorderSide(color: ClubbarColors.borda),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _excluindo ? null : () => _excluirProduto(produto),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                  label: const Text(
-                    'Excluir',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ClubbarColors.erroClaro,
-                    foregroundColor: ClubbarColors.erro,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -837,17 +622,17 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                   ? 'Nenhum estabelecimento disponível'
                   : temBusca
                   ? 'Nenhum produto encontrado'
-                  : 'Nenhum produto cadastrado',
+                  : 'Nenhum produto no cardápio da loja',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 7),
             Text(
               !temLoja
-                  ? 'Cadastre um estabelecimento antes de criar produtos.'
+                  ? 'Selecione um estabelecimento para consultar o cardápio.'
                   : temBusca
                   ? 'Tente pesquisar por outro nome, categoria ou situação.'
-                  : 'Cadastre o primeiro produto deste estabelecimento.',
+                  : 'Cadastre o produto no cardápio padrão da empresa e utilize esse cardápio na loja.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -855,22 +640,6 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                 color: ClubbarColors.textoSecundario,
               ),
             ),
-            if (temLoja && !temBusca) ...[
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _abrirCadastro,
-                icon: const Icon(Icons.add_rounded),
-                label: const Text(
-                  'Cadastrar produto',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ClubbarColors.ambar,
-                  foregroundColor: ClubbarColors.preto,
-                  elevation: 0,
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -951,14 +720,6 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-      bottomNavigationBar: ClubbarActionBar(
-        actions: [
-          ClubbarAddButton(
-            onPressed: _lojaIdSelecionada == null ? null : _abrirCadastro,
-            label: 'Adicionar produto',
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Column(
           children: [

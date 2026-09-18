@@ -118,6 +118,7 @@ class ProdutoRepository {
 
   Future<void> atualizar({
     required int produtoId,
+    bool atualizarPrecoLojas = false,
     int? categoriaId,
     String? nome,
     String? descricao,
@@ -154,6 +155,7 @@ class ProdutoRepository {
     if (preco != null) {
       request.fields['vrprecoprod'] = preco.toString();
     }
+    request.fields['atualizar_preco_lojas'] = atualizarPrecoLojas.toString();
     if (status != null) {
       request.fields['sitproduto'] = status;
     }

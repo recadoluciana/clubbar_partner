@@ -595,6 +595,29 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
         }
       }
 
+      var atualizarPrecoLojas = false;
+      final precoAnterior = double.tryParse('${widget.produto?['vrprecoprod']}');
+      if (editando &&
+          precoAnterior != null &&
+          preco.toStringAsFixed(2) != precoAnterior.toStringAsFixed(2)) {
+        final escolha = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Alterar preço nas lojas?'),
+            content: const Text(
+              'Deseja atualizar o preço deste produto nos cardápios de todas as lojas que o utilizam, inclusive os publicados?',
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
+              TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Manter preços das lojas')),
+              FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Atualizar lojas')),
+            ],
+          ),
+        );
+        if (escolha == null || !mounted) return;
+        atualizarPrecoLojas = escolha;
+      }
+
       if (editando) {
         await _produtoRepository.atualizar(
           produtoId: widget.produto!['produto_id'],
@@ -602,6 +625,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
           nome: _nomeController.text.trim(),
           descricao: _descricaoController.text.trim(),
           preco: preco,
+          atualizarPrecoLojas: atualizarPrecoLojas,
           status: _statusSelecionado,
           imagem: _imagemSelecionada,
           tipodesconto: _tipoDescontoSelecionado,

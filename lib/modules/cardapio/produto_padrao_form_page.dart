@@ -207,6 +207,37 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
       );
       return;
     }
+    var atualizarPrecoLojas = false;
+    final precoAnterior = double.tryParse('${widget.item?['vrprecoprod']}');
+    if (widget.item != null &&
+        precoAnterior != null &&
+        preco.toStringAsFixed(2) != precoAnterior.toStringAsFixed(2)) {
+      final escolha = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Alterar preço nas lojas?'),
+          content: const Text(
+            'Este produto pode estar em cardápios de várias lojas. Deseja atualizar também o preço desses cardápios, inclusive os publicados?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Manter preços das lojas'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Atualizar lojas'),
+            ),
+          ],
+        ),
+      );
+      if (escolha == null || !mounted) return;
+      atualizarPrecoLojas = escolha;
+    }
     setState(() => _salvando = true);
     try {
       if (_fotoSelecionada != null) {
@@ -225,6 +256,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
             ? null
             : _descricao.text.trim(),
         'vrprecoprod': preco,
+        'atualizar_preco_lojas': atualizarPrecoLojas,
         'sitproduto': _situacao,
         'skuproduto': _sku.text.trim().isEmpty ? null : _sku.text.trim(),
         'urlfotoproduto': _fotoUrl,
