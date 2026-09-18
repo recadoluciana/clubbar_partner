@@ -18,47 +18,43 @@ class TitularFinanceiroRepository {
     }
   }
 
-  Future<Map<String, dynamic>> consultar(int id) async {
-    final r = await ApiService.get('/titular-financeiro/organizacao/$id');
+  String _rota(int id, int? lojaId, [String sufixo = '']) =>
+      '/titular-financeiro/organizacao/$id$sufixo'
+      '${lojaId == null ? '' : '?loja_id=$lojaId'}';
+
+  Future<Map<String, dynamic>> consultar(int id, {int? lojaId}) async {
+    final r = await ApiService.get(_rota(id, lojaId));
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
 
   Future<Map<String, dynamic>> salvar(
     int id,
-    Map<String, dynamic> dados,
-  ) async {
-    final r = await ApiService.put(
-      '/titular-financeiro/organizacao/$id',
-      dados,
-    );
+    Map<String, dynamic> dados, {
+    int? lojaId,
+  }) async {
+    final r = await ApiService.put(_rota(id, lojaId), dados);
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
 
-  Future<Map<String, dynamic>> ativar(int id) async {
+  Future<Map<String, dynamic>> ativar(int id, {int? lojaId}) async {
     final r = await ApiService.post(
-      '/titular-financeiro/organizacao/$id/ativar-recebimentos',
+      _rota(id, lojaId, '/ativar-recebimentos'),
       {},
     );
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
 
-  Future<Map<String, dynamic>> verificar(int id) async {
-    final r = await ApiService.post(
-      '/titular-financeiro/organizacao/$id/verificar-asaas',
-      {},
-    );
+  Future<Map<String, dynamic>> verificar(int id, {int? lojaId}) async {
+    final r = await ApiService.post(_rota(id, lojaId, '/verificar-asaas'), {});
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
 
-  Future<Map<String, dynamic>> aprovarSandbox(int id) async {
-    final r = await ApiService.post(
-      '/titular-financeiro/organizacao/$id/aprovar-sandbox',
-      {},
-    );
+  Future<Map<String, dynamic>> aprovarSandbox(int id, {int? lojaId}) async {
+    final r = await ApiService.post(_rota(id, lojaId, '/aprovar-sandbox'), {});
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }

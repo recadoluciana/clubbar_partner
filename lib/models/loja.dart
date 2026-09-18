@@ -9,6 +9,11 @@ class Loja {
   final String? sgestado;
   final String? nmcidade;
   final String nmloja;
+  final String? cpfCnpjLoja;
+  final String? cnpjRaiz;
+  final String? tipoEstabelecimento;
+  final String? razaoSocial;
+  final int? titularFinanceiroId;
   final String? tipoloja;
   final String vendaprodutos;
   final String vendaingressos;
@@ -42,6 +47,11 @@ class Loja {
     this.sgestado,
     this.nmcidade,
     required this.nmloja,
+    this.cpfCnpjLoja,
+    this.cnpjRaiz,
+    this.tipoEstabelecimento,
+    this.razaoSocial,
+    this.titularFinanceiroId,
     this.tipoloja,
     this.vendaprodutos = 'N',
     this.vendaingressos = 'N',
@@ -75,6 +85,11 @@ class Loja {
       sgestado: json['sgestado']?.toString(),
       nmcidade: json['nmcidade']?.toString(),
       nmloja: (json['nmloja'] ?? '').toString(),
+      cpfCnpjLoja: json['cpfcnpjloja']?.toString(),
+      cnpjRaiz: json['cnpjraiz']?.toString(),
+      tipoEstabelecimento: json['tipoestabelecimento']?.toString(),
+      razaoSocial: json['nmrazaosocial']?.toString(),
+      titularFinanceiroId: _toNullableInt(json['titularfinanceiro_id']),
       tipoloja: json['tipoloja']?.toString(),
       vendaprodutos: _normalizarSimNao(json['vendaprodutos']),
       vendaingressos: _normalizarSimNao(json['vendaingressos']),
@@ -117,6 +132,11 @@ class Loja {
       'sgestado': sgestado,
       'nmcidade': nmcidade,
       'nmloja': nmloja,
+      'cpfcnpjloja': cpfCnpjLoja,
+      'cnpjraiz': cnpjRaiz,
+      'tipoestabelecimento': tipoEstabelecimento,
+      'nmrazaosocial': razaoSocial,
+      'titularfinanceiro_id': titularFinanceiroId,
       'tipoloja': tipoloja,
       'vendaprodutos': vendaprodutos,
       'vendaingressos': vendaingressos,
@@ -157,6 +177,11 @@ class Loja {
     String? sgestado,
     String? nmcidade,
     String? nmloja,
+    String? cpfCnpjLoja,
+    String? cnpjRaiz,
+    String? tipoEstabelecimento,
+    String? razaoSocial,
+    int? titularFinanceiroId,
     String? tipoloja,
     String? vendaprodutos,
     String? vendaingressos,
@@ -188,6 +213,11 @@ class Loja {
       sgestado: sgestado ?? this.sgestado,
       nmcidade: nmcidade ?? this.nmcidade,
       nmloja: nmloja ?? this.nmloja,
+      cpfCnpjLoja: cpfCnpjLoja ?? this.cpfCnpjLoja,
+      cnpjRaiz: cnpjRaiz ?? this.cnpjRaiz,
+      tipoEstabelecimento: tipoEstabelecimento ?? this.tipoEstabelecimento,
+      razaoSocial: razaoSocial ?? this.razaoSocial,
+      titularFinanceiroId: titularFinanceiroId ?? this.titularFinanceiroId,
       tipoloja: tipoloja ?? this.tipoloja,
       vendaprodutos: vendaprodutos ?? this.vendaprodutos,
       vendaingressos: vendaingressos ?? this.vendaingressos,
@@ -241,6 +271,9 @@ class Loja {
             other.sgestado == sgestado &&
             other.nmcidade == nmcidade &&
             other.nmloja == nmloja &&
+            other.cpfCnpjLoja == cpfCnpjLoja &&
+            other.tipoEstabelecimento == tipoEstabelecimento &&
+            other.titularFinanceiroId == titularFinanceiroId &&
             other.dsbairroloja == dsbairroloja &&
             other.nrtelloja == nrtelloja &&
             other.nrdiavalidade == nrdiavalidade &&
@@ -270,6 +303,9 @@ class Loja {
     sgestado,
     nmcidade,
     nmloja,
+    cpfCnpjLoja,
+    tipoEstabelecimento,
+    titularFinanceiroId,
     dsbairroloja,
     nrtelloja,
     nrdiavalidade,

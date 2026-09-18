@@ -34,6 +34,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
   final _atracaoRepository = AtracaoRepository();
 
   final TextEditingController _nomeController = TextEditingController();
+  final TextEditingController _documentoFiscalController =
+      TextEditingController();
+  final TextEditingController _razaoSocialController = TextEditingController();
   final TextEditingController _bairroController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
   final TextEditingController _diasValidadeController = TextEditingController();
@@ -54,6 +57,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   int? _estadoId;
   int? _cidadeId;
   String _idValidadeProd = 'S';
+  String? _tipoEstabelecimento;
   bool _usaCashback = false;
   bool _carregandoEstilos = true;
   List<EstiloMusical> _estilosDisponiveis = const [];
@@ -64,6 +68,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
   String? _validarCamposLoja() {
     final nome = _nomeController.text.trim();
+    final documentoFiscal = _documentoFiscalController.text
+        .replaceAll(RegExp(r'[^0-9A-Za-z]'), '')
+        .toUpperCase();
+    final razaoSocial = _razaoSocialController.text.trim();
     final bairro = _bairroController.text.trim();
     final endereco = _enderecoController.text.trim();
     final cep = Validators.somenteNumeros(_cepController.text);
@@ -82,6 +90,23 @@ class _LojaFormPageState extends State<LojaFormPage> {
     }
     if (nome.length > 120) {
       return 'O nome do estabelecimento pode ter no máximo 120 caracteres.';
+    }
+    if (editando) {
+      final cpfValido =
+          documentoFiscal.length == 11 &&
+          RegExp(r'^\d{11}$').hasMatch(documentoFiscal);
+      final cnpjValido =
+          documentoFiscal.length == 14 &&
+          RegExp(r'^[0-9A-Z]{12}\d{2}$').hasMatch(documentoFiscal);
+      if (!cpfValido && !cnpjValido) {
+        return 'Informe um CPF ou CNPJ válido.';
+      }
+      if (razaoSocial.length < 2) {
+        return 'Informe a razão social ou nome completo.';
+      }
+      if (cnpjValido && _tipoEstabelecimento == null) {
+        return 'Informe se o estabelecimento é matriz ou filial.';
+      }
     }
     if (_estadoId == null || _estadoId == 0) {
       return 'Selecione o estado do estabelecimento.';
@@ -156,6 +181,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
     if (widget.loja != null) {
       _nomeController.text = widget.loja!.nmloja;
+      _documentoFiscalController.text = widget.loja!.cpfCnpjLoja ?? '';
+      _razaoSocialController.text = widget.loja!.razaoSocial ?? '';
+      _tipoEstabelecimento = widget.loja!.tipoEstabelecimento;
       _bairroController.text = widget.loja!.dsbairroloja ?? '';
       _telefoneController.text = Formatters.telefone(
         widget.loja!.nrtelloja ?? '',
@@ -226,6 +254,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
   @override
   void dispose() {
     _nomeController.dispose();
+    _documentoFiscalController.dispose();
+    _razaoSocialController.dispose();
     _bairroController.dispose();
     _telefoneController.dispose();
     _diasValidadeController.dispose();
@@ -348,6 +378,11 @@ class _LojaFormPageState extends State<LojaFormPage> {
           estadoId: _estadoId!,
           cidadeId: _cidadeId!,
           nome: _nomeController.text.trim(),
+          cpfCnpjLoja: _documentoFiscalController.text
+              .replaceAll(RegExp(r'[^0-9A-Za-z]'), '')
+              .toUpperCase(),
+          tipoEstabelecimento: _tipoEstabelecimento,
+          razaoSocial: _razaoSocialController.text.trim(),
           bairro: _bairroController.text.trim(),
           telefone: telefoneSemMascara,
           diasValidade: diasValidade,
@@ -561,6 +596,61 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     return null;
                                   },
                                 ),
+                                if (editando) ...[
+                                  const SizedBox(height: 14),
+                                  TextFormField(
+                                    controller: _razaoSocialController,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    decoration: _decoracaoCampo(
+                                      label: 'Razão social ou nome completo',
+                                      icone: Icons.business_rounded,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  TextFormField(
+                                    controller: _documentoFiscalController,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    maxLength: 18,
+                                    onChanged: (_) => setState(() {}),
+                                    decoration: _decoracaoCampo(
+                                      label: 'CPF/CNPJ do estabelecimento',
+                                      icone: Icons.badge_outlined,
+                                      helperText:
+                                          'Aceita o novo formato alfanumérico do CNPJ.',
+                                    ).copyWith(counterText: ''),
+                                  ),
+                                  if (_documentoFiscalController.text
+                                          .replaceAll(
+                                            RegExp(r'[^0-9A-Za-z]'),
+                                            '',
+                                          )
+                                          .length ==
+                                      14) ...[
+                                    const SizedBox(height: 14),
+                                    DropdownButtonFormField<String>(
+                                      initialValue: _tipoEstabelecimento,
+                                      decoration: _decoracaoCampo(
+                                        label: 'Tipo de estabelecimento',
+                                        icone: Icons.account_tree_outlined,
+                                      ),
+                                      items: const [
+                                        DropdownMenuItem(
+                                          value: 'MATRIZ',
+                                          child: Text('Matriz'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'FILIAL',
+                                          child: Text('Filial'),
+                                        ),
+                                      ],
+                                      onChanged: (valor) => setState(
+                                        () => _tipoEstabelecimento = valor,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ],
                             ),
                           ),

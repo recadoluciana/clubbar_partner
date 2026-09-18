@@ -138,6 +138,9 @@ class LojaRepository {
     required int estadoId,
     required int cidadeId,
     required String nome,
+    String? cpfCnpjLoja,
+    String? tipoEstabelecimento,
+    String? razaoSocial,
     String? bairro,
     String? telefone,
     int? diasValidade,
@@ -167,6 +170,11 @@ class LojaRepository {
     request.fields['estado_id'] = estadoId.toString();
     request.fields['cidade_id'] = cidadeId.toString();
     request.fields['nmloja'] = nome;
+    if (cpfCnpjLoja != null) request.fields['cpfcnpjloja'] = cpfCnpjLoja;
+    if (tipoEstabelecimento != null) {
+      request.fields['tipoestabelecimento'] = tipoEstabelecimento;
+    }
+    if (razaoSocial != null) request.fields['nmrazaosocial'] = razaoSocial;
     request.fields['dsbairroloja'] = bairro ?? '';
     request.fields['nrtelloja'] = telefone ?? '';
 

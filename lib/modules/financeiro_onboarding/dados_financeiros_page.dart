@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/repositories/localidade_repository.dart';
+import '../../core/repositories/loja_repository.dart';
 import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
@@ -11,6 +12,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../models/loja.dart';
 import 'titular_financeiro_repository.dart';
 
 class DadosFinanceirosPage extends StatefulWidget {
@@ -23,6 +25,7 @@ class DadosFinanceirosPage extends StatefulWidget {
 
 class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   final _repo = TitularFinanceiroRepository();
+  final _lojaRepository = LojaRepository();
   final _localidadeRepository = LocalidadeRepository();
   final _form = GlobalKey<FormState>();
   final Map<String, TextEditingController> _c = {
@@ -43,6 +46,8 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       nome: TextEditingController(),
   };
   int? _organizacaoId, _estadoId, _cidadeId;
+  int? _lojaId;
+  List<Loja> _lojas = const [];
   String _tipo = 'PJ', _status = 'NAO_INICIADO', _onboardingUrl = '';
   bool _subcontaCriada = false;
   String _nomeOrganizacao = 'Empresa';
@@ -100,10 +105,17 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       if (id == null) throw Exception('Empresa não identificada.');
       final nomeOrganizacao = (await StorageService.getNomeOrganizacao() ?? '')
           .trim();
-      final dados = await _repo.consultar(id);
+      final lojas = await _lojaRepository.listar(id);
+      final lojaSalva = await StorageService.getLojaId();
+      final lojaId = lojas.any((item) => item.lojaId == lojaSalva)
+          ? lojaSalva
+          : lojas.firstOrNull?.lojaId;
+      final dados = await _repo.consultar(id, lojaId: lojaId);
       if (!mounted) return;
       setState(() {
         _organizacaoId = id;
+        _lojas = lojas;
+        _lojaId = lojaId;
         _nomeOrganizacao = nomeOrganizacao.isEmpty
             ? 'Empresa'
             : nomeOrganizacao;
@@ -114,6 +126,25 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       if (!mounted) return;
       setState(() => _carregando = false);
       AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _trocarLoja(int lojaId) async {
+    if (_processando || lojaId == _lojaId || _organizacaoId == null) return;
+    setState(() {
+      _lojaId = lojaId;
+      _carregando = true;
+    });
+    try {
+      final dados = await _repo.consultar(_organizacaoId!, lojaId: lojaId);
+      if (!mounted) return;
+      setState(() => _preencher(dados));
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _carregando = false);
     }
   }
 
@@ -375,7 +406,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       return;
     }
     await _executar(
-      () => _repo.salvar(_organizacaoId!, _dados()),
+      () => _repo.salvar(_organizacaoId!, _dados(), lojaId: _lojaId),
       'Dados financeiros salvos.',
     );
   }
@@ -428,7 +459,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
           onPressed: _processando
               ? null
               : () => _executar(
-                  () => _repo.ativar(_organizacaoId!),
+                  () => _repo.ativar(_organizacaoId!, lojaId: _lojaId),
                   'Subconta criada. Aguarde alguns segundos e verifique a situação.',
                 ),
           icon: const Icon(Icons.account_balance_rounded),
@@ -473,7 +504,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
           onPressed: _processando
               ? null
               : () => _executar(
-                  () => _repo.aprovarSandbox(_organizacaoId!),
+                  () => _repo.aprovarSandbox(_organizacaoId!, lojaId: _lojaId),
                   'Subconta de teste aprovada no Sandbox.',
                 ),
           icon: const Icon(Icons.fact_check_rounded),
@@ -485,7 +516,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
         onPressed: _processando
             ? null
             : () => _executar(
-                () => _repo.verificar(_organizacaoId!),
+                () => _repo.verificar(_organizacaoId!, lojaId: _lojaId),
                 'Situação atualizada.',
               ),
         icon: const Icon(Icons.refresh_rounded),
@@ -561,7 +592,9 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
             _campo(
               'cpfcnpj',
               _tipo == 'PF' ? 'CPF' : 'CNPJ',
-              teclado: TextInputType.number,
+              teclado: _tipo == 'PF'
+                  ? TextInputType.number
+                  : TextInputType.text,
             ),
             _campo('nome', _tipo == 'PF' ? 'Nome completo' : 'Razão social'),
             _campo('fantasia', 'Nome fantasia', opcional: true),
@@ -622,6 +655,30 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
                   color: ClubbarColors.info,
                 ),
         ),
+        if (_lojas.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: DropdownButtonFormField<int>(
+              key: ValueKey(_lojaId),
+              initialValue: _lojaId,
+              decoration: const InputDecoration(
+                labelText: 'Estabelecimento',
+                prefixIcon: Icon(Icons.storefront_rounded),
+                border: OutlineInputBorder(),
+              ),
+              items: _lojas
+                  .map(
+                    (loja) => DropdownMenuItem<int>(
+                      value: loja.lojaId,
+                      child: Text(loja.nmloja),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (valor) {
+                if (valor != null) _trocarLoja(valor);
+              },
+            ),
+          ),
         Expanded(
           child: _carregando
               ? const Center(child: CircularProgressIndicator())

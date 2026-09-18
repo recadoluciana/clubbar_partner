@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/services/storage_service.dart';
+import '../../core/repositories/loja_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'extrato_asaas_repository.dart';
+import '../../models/loja.dart';
 
 class ExtratoAsaasPage extends StatefulWidget {
   const ExtratoAsaasPage({super.key});
@@ -17,12 +19,15 @@ class ExtratoAsaasPage extends StatefulWidget {
 
 class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
   final _repo = ExtratoAsaasRepository();
+  final _lojaRepository = LojaRepository();
   final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _data = DateFormat('dd/MM/yyyy');
   DateTime _inicio = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime _fim = DateTime.now();
   Map<String, dynamic> _dados = {};
   String _empresa = 'Empresa';
+  List<Loja> _lojas = const [];
+  int? _lojaId;
   bool _carregando = true;
 
   @override
@@ -38,7 +43,19 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
       if (id == null) {
         throw Exception('Organização não identificada.');
       }
-      final resultado = await _repo.consultar(id, inicio: _inicio, fim: _fim);
+      if (_lojas.isEmpty) {
+        _lojas = await _lojaRepository.listar(id);
+        final lojaSalva = await StorageService.getLojaId();
+        _lojaId = _lojas.any((item) => item.lojaId == lojaSalva)
+            ? lojaSalva
+            : _lojas.firstOrNull?.lojaId;
+      }
+      final resultado = await _repo.consultar(
+        id,
+        lojaId: _lojaId,
+        inicio: _inicio,
+        fim: _fim,
+      );
       final empresa = (await StorageService.getNomeOrganizacao() ?? '').trim();
       if (mounted) {
         setState(() {
@@ -135,6 +152,31 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
                     child: ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
+                        if (_lojas.isNotEmpty) ...[
+                          DropdownButtonFormField<int>(
+                            key: ValueKey(_lojaId),
+                            initialValue: _lojaId,
+                            decoration: const InputDecoration(
+                              labelText: 'Estabelecimento',
+                              prefixIcon: Icon(Icons.storefront_rounded),
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _lojas
+                                .map(
+                                  (loja) => DropdownMenuItem<int>(
+                                    value: loja.lojaId,
+                                    child: Text(loja.nmloja),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: (valor) {
+                              if (valor == null || valor == _lojaId) return;
+                              setState(() => _lojaId = valor);
+                              _carregar();
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                        ],
                         Card(
                           color: ClubbarColors.infoClaro,
                           child: Padding(
