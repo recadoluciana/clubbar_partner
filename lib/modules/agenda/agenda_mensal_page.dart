@@ -629,7 +629,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                           Text(
                             e.titulo,
                             style: const TextStyle(
-                              fontSize: 20,
+                              fontSize: 18,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -799,7 +799,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
               ],
             ),
             tituloStyle: const TextStyle(
-              fontSize: 19,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
               color: ClubbarColors.primariaEscuro,
             ),

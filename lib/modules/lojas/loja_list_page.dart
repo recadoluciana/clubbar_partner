@@ -1213,7 +1213,7 @@ class _LojaListPageState extends State<LojaListPage> {
                   child: Text(
                     'Estabelecimentos',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 19,
                       fontWeight: FontWeight.w900,
                       color: ClubbarColors.textoPrincipal,
                     ),
@@ -1281,7 +1281,7 @@ class _LojaListPageState extends State<LojaListPage> {
                   : _nomeOrganizacao,
               subtitulo: _subtituloHeader(),
               tituloStyle: const TextStyle(
-                fontSize: 23,
+                fontSize: 17,
                 fontWeight: FontWeight.w900,
                 color: ClubbarColors.primariaEscuro,
               ),

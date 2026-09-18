@@ -65,7 +65,7 @@ class _LeitorQrRetiradaIngressoScreenState
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -146,7 +146,7 @@ class _LeitorQrRetiradaIngressoScreenState
                 produto.toString(),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),

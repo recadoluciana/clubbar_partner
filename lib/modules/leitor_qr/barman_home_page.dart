@@ -255,7 +255,7 @@ class _BarmanHomePageState extends State<BarmanHomePage> {
             nomeLoja,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 27,
+              fontSize: 22,
               fontWeight: FontWeight.w900,
               color: Colors.black,
             ),

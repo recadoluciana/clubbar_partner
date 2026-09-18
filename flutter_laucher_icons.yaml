@@ -2,17 +2,17 @@ flutter_launcher_icons:
   android: true
   ios: false
 
-  image_path_android: "assets/icons/admin_prod.png"
+  image_path_android: "assets/icons/partner_prod.png"
 
-  adaptive_icon_background: "#FFD54F"
-  adaptive_icon_foreground: "assets/icons/admin_prod.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/icons/partner_prod.png"
 
   android_flavors:
 
     dev:
-      image_path: "assets/icons/admin_dev.png"
-      adaptive_icon_foreground: "assets/icons/admin_dev.png"
+      image_path: "assets/icons/partner_dev.png"
+      adaptive_icon_foreground: "assets/icons/partner_dev.png"
 
     prod:
-      image_path: "assets/icons/admin_prod.png"
-      adaptive_icon_foreground: "assets/icons/admin_prod.png"
+      image_path: "assets/icons/partner_prod.png"
+      adaptive_icon_foreground: "assets/icons/partner_prod.png"

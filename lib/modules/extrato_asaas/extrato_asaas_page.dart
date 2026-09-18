@@ -108,7 +108,7 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
             subtitulo: 'Extrato de transações Asaas',
             tituloStyle: const TextStyle(
               color: ClubbarColors.info,
-              fontSize: 19,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
             ),
             trailing: Row(
@@ -158,7 +158,7 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
                                       Text(
                                         _moeda.format(_numero(_dados['saldo'])),
                                         style: const TextStyle(
-                                          fontSize: 24,
+                                          fontSize: 20,
                                           fontWeight: FontWeight.w900,
                                           color: ClubbarColors.info,
                                         ),
@@ -205,7 +205,7 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
                                             _numero(_dados['total_pendente']),
                                           ),
                                           style: TextStyle(
-                                            fontSize: 22,
+                                            fontSize: 19,
                                             fontWeight: FontWeight.w900,
                                             color: Colors.orange.shade900,
                                           ),

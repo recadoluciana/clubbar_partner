@@ -9,6 +9,8 @@ class AppTheme {
 
       scaffoldBackgroundColor: Colors.white,
 
+      textTheme: ThemeData.light().textTheme.apply(fontSizeFactor: 0.92),
+
       colorScheme: ColorScheme.fromSeed(
         seedColor: ClubbarColors.primaria,
         brightness: Brightness.light,
@@ -37,7 +39,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: ClubbarColors.primaria,
           foregroundColor: Colors.white,
-          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
         ),
       ),
 
@@ -45,6 +47,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: ClubbarColors.primaria,
           foregroundColor: Colors.white,
+          textStyle: const TextStyle(fontSize: 13),
         ),
       ),
 

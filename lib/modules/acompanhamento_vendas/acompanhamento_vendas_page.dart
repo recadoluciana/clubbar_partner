@@ -81,7 +81,7 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
               Text(
                 detalhe.nome,
                 style: const TextStyle(
-                  fontSize: 21,
+                  fontSize: 18,
                   fontWeight: FontWeight.w900,
                   color: Colors.blue,
                 ),
@@ -198,7 +198,7 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
             Text(
               valor,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.w900,
                 color: cor,
               ),

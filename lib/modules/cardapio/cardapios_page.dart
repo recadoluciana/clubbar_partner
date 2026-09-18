@@ -302,7 +302,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
             subtitulo: 'Cardápios digitais',
             tituloStyle: const TextStyle(
               color: ClubbarColors.primariaEscuro,
-              fontSize: 19,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
             ),
             trailing: widget.lojas.length < 2

@@ -416,7 +416,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                                 ? '?'
                                 : usuario.nmusuario.trim()[0].toUpperCase(),
                             style: const TextStyle(
-                              fontSize: 24,
+                              fontSize: 20,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -718,7 +718,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                   ? 'Carregando usuários...'
                   : '${_usuarios.length} usuário(s) cadastrado(s)',
               tituloStyle: const TextStyle(
-                fontSize: 23,
+                fontSize: 17,
                 fontWeight: FontWeight.w900,
                 color: ClubbarColors.primariaEscuro,
               ),

@@ -283,7 +283,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 23,
+                  fontSize: 19,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -481,7 +481,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                         nomeProduto,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 19,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -921,7 +921,7 @@ class _LeitorQrRetiradaScreenState extends State<LeitorQrRetiradaScreen> {
                 const Text(
                   'Leitor de retirada',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
                 ),
 
                 const SizedBox(height: 8),

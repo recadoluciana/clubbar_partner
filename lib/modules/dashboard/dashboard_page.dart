@@ -311,7 +311,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 Text(
                   titulo,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w900,
                     color: habilitado
                         ? ClubbarColors.textoPrincipal
@@ -354,7 +354,7 @@ class _DashboardPageState extends State<DashboardPage> {
               titulo: _nomeOrganizacao,
               subtitulo: _subtitulo(),
               tituloStyle: const TextStyle(
-                fontSize: 23,
+                fontSize: 17,
                 fontWeight: FontWeight.w900,
                 color: ClubbarColors.primariaEscuro,
               ),

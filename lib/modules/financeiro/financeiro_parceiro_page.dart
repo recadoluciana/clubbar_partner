@@ -304,7 +304,7 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
                 Text(
                   _moeda.format(_numero(valor)),
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -365,7 +365,7 @@ class _FinanceiroParceiroPageState extends State<FinanceiroParceiroPage> {
             titulo: _nomeOrganizacao,
             subtitulo: '',
             tituloStyle: const TextStyle(
-              fontSize: 19,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
               color: ClubbarColors.info,
             ),

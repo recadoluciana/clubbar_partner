@@ -572,7 +572,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                     Text(
                       _moeda(precoFinal),
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.w900,
                         color: temDesconto
                             ? ClubbarColors.sucesso

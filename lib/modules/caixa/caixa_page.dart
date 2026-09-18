@@ -203,7 +203,7 @@ class _CaixaPageState extends State<CaixaPage> {
                 children: [
                   const Text(
                     'Carrinho do Caixa',
-                    style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -274,7 +274,7 @@ class _CaixaPageState extends State<CaixaPage> {
                     'Total: ${_moeda.format(_total)}',
                     textAlign: TextAlign.right,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -914,7 +914,7 @@ class _ProdutoCashierPageState extends State<_ProdutoCashierPage> {
                 Text(
                   widget.moeda.format(preco),
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -950,7 +950,7 @@ class _ProdutoCashierPageState extends State<_ProdutoCashierPage> {
                     '$_quantidade',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 19,
                       fontWeight: FontWeight.w900,
                     ),
                   ),

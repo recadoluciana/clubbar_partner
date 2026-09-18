@@ -203,7 +203,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                   child: Text(
                     valor,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
                   ),

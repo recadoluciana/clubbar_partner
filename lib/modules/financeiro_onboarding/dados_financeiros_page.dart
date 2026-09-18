@@ -402,7 +402,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
               const SizedBox(height: 10),
               const Text(
                 'Recebimentos pelo Asaas',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               Chip(
@@ -617,7 +617,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
           tituloStyle: widget.mostrarIntegracao
               ? null
               : const TextStyle(
-                  fontSize: 19,
+                  fontSize: 17,
                   fontWeight: FontWeight.w900,
                   color: ClubbarColors.info,
                 ),

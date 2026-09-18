@@ -266,7 +266,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
             subtitulo: 'Conteúdo do estabelecimento',
             tituloStyle: const TextStyle(
               color: ClubbarColors.primariaEscuro,
-              fontSize: 23,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
             ),
             trailing: _saving

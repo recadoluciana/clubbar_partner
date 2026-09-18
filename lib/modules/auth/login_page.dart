@@ -336,7 +336,7 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           const Text(
             'Bem-vindo de volta',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -464,7 +464,7 @@ class _LoginPageState extends State<LoginPage> {
               'Sua operação,\nsempre sob controle.',
               style: TextStyle(
                 color: Colors.black,
-                fontSize: 38,
+                fontSize: 32,
                 height: 1.12,
                 fontWeight: FontWeight.w900,
               ),

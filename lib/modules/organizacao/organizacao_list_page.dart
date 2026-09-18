@@ -537,7 +537,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
                         : 'Empresa não identificada'),
               subtitulo: 'Gerencie os dados da sua empresa',
               tituloStyle: const TextStyle(
-                fontSize: 23,
+                fontSize: 17,
                 fontWeight: FontWeight.w900,
                 color: ClubbarColors.primariaEscuro,
               ),

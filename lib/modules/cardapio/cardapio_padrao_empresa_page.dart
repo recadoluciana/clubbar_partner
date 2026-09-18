@@ -124,7 +124,7 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
           subtitulo: 'Cardápio padrão empresa',
           tituloStyle: const TextStyle(
             color: ClubbarColors.info,
-            fontSize: 23,
+            fontSize: 17,
             fontWeight: FontWeight.w900,
           ),
         ),

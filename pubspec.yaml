@@ -40,15 +40,16 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-
   ios: true
-
+  remove_alpha_ios: true
   image_path: "assets/images/icone_partner.png"
-
   adaptive_icon_background: "#000000"
-
-  adaptive_icon_foreground:
-    "assets/images/icone_partner.png"
+  adaptive_icon_foreground: "assets/images/icone_partner.png"
+  web:
+    generate: true
+    image_path: "assets/images/icone_partner.png"
+    background_color: "#000000"
+    theme_color: "#008C45"
 
 
 flutter:

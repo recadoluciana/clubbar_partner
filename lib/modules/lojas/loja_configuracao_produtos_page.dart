@@ -154,7 +154,7 @@ class _LojaConfiguracaoProdutosPageState
             titulo: widget.loja.nmloja,
             subtitulo: titulo,
             tituloStyle: const TextStyle(
-              fontSize: 19,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
               color: ClubbarColors.info,
             ),

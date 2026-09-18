@@ -72,7 +72,7 @@ class DashboardMenuCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: amplo ? 18 : 15,
+                            fontSize: amplo ? 16 : 14,
                             height: 1.15,
                             fontWeight: FontWeight.w900,
                             color: ClubbarColors.textoPrincipal,
@@ -87,7 +87,7 @@ class DashboardMenuCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: amplo ? 13.5 : 11.5,
+                              fontSize: amplo ? 12 : 11,
                               height: 1.25,
                               color: ClubbarColors.textoSecundario,
                               fontWeight: FontWeight.w600,

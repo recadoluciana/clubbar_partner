@@ -102,7 +102,7 @@ class _TicketmanHomePageState extends State<TicketmanHomePage> {
                 const Text(
                   'Ticketman',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
@@ -121,7 +121,7 @@ class _TicketmanHomePageState extends State<TicketmanHomePage> {
                 Text(
                   'Olá, $nomeUsuario',
                   style: const TextStyle(
-                    fontSize: 28,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),

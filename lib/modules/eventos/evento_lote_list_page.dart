@@ -474,7 +474,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     Text(
                       _moeda.format(lote.vrprecolote),
                       style: const TextStyle(
-                        fontSize: 22,
+                        fontSize: 19,
                         fontWeight: FontWeight.w900,
                         color: ClubbarColors.sucesso,
                       ),

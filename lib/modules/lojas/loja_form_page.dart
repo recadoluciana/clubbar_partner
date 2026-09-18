@@ -508,7 +508,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                   : _nomeOrganizacao,
               tituloStyle: editando
                   ? const TextStyle(
-                      fontSize: 20,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
                       color: ClubbarColors.info,
                     )

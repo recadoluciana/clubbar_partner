@@ -167,7 +167,7 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
                   widget.loja.nmloja,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
