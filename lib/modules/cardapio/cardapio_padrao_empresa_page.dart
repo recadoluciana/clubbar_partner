@@ -6,7 +6,6 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
-import '../categorias/categorias_produtos_page.dart';
 import 'produto_padrao_form_page.dart';
 
 class CardapioPadraoEmpresaPage extends StatefulWidget {
@@ -251,7 +250,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
     try {
       final resultados = await Future.wait([
         _repo.listarItensPadrao(widget.organizacaoId, widget.modeloId),
-        _repo.listarCategoriasOrganizacao(widget.organizacaoId),
+        _repo.listarCategoriasPadrao(widget.organizacaoId, widget.modeloId),
       ]);
       if (!mounted) return;
       setState(() {
@@ -259,7 +258,9 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
         _categorias = resultados[1];
         if (_categoriaSelecionada != null &&
             !_categorias.any(
-              (categoria) => categoria['categoria_id'] == _categoriaSelecionada,
+              (categoria) =>
+                  categoria['cardapiomodelocategoria_id'] ==
+                  _categoriaSelecionada,
             )) {
           _categoriaSelecionada = null;
         }
@@ -280,6 +281,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
         builder: (_) => ProdutoPadraoFormPage(
           organizacaoId: widget.organizacaoId,
           modeloId: widget.modeloId,
+          categoriaPadraoIdInicial: _categoriaSelecionada,
           item: item,
         ),
       ),
@@ -287,15 +289,159 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
     if (alterou == true && mounted) await _carregar();
   }
 
-  Future<void> _gerenciarCategorias() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            CategoriasProdutosPage(organizacaoId: widget.organizacaoId),
+  Future<void> _vincularProdutoExistente() async {
+    final categoriaId = _categoriaSelecionada;
+    if (categoriaId == null) {
+      AppSnackBar.aviso(context, 'Escolha primeiro a categoria do cardápio.');
+      return;
+    }
+    try {
+      final produtos = await _repo.listarProdutosPadraoOrganizacao(
+        widget.organizacaoId,
+      );
+      final vinculados = _itens
+          .where((item) => item['cardapiomodelocategoria_id'] == categoriaId)
+          .map((item) => item['produto_id'])
+          .toSet();
+      final disponiveis = produtos
+          .where(
+            (produto) =>
+                !vinculados.contains(produto['produto_id']),
+          )
+          .toList();
+      if (!mounted) return;
+      if (disponiveis.isEmpty) {
+        AppSnackBar.aviso(context, 'Não há produtos existentes disponíveis.');
+        return;
+      }
+      final escolhido = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (dialogContext) => SimpleDialog(
+          title: const Text('Usar produto existente'),
+          children: [
+            for (final produto in disponiveis)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(dialogContext, produto),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text('${produto['nmproduto']}'),
+                ),
+              ),
+          ],
+        ),
+      );
+      if (escolhido == null) return;
+      await _repo.adicionarItemPadrao(widget.organizacaoId, widget.modeloId, {
+        ...escolhido,
+        'cardapiomodelocategoria_id': categoriaId,
+      });
+      await _carregar();
+      if (mounted) {
+        AppSnackBar.sucesso(context, 'Produto incluído no cardápio.');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  Future<void> _adicionarCategoria() async {
+    try {
+      final ativas = await _repo.listarCategoriasOrganizacao(
+        widget.organizacaoId,
+      );
+      final idsIncluidos = _categorias
+          .map((categoria) => categoria['categoria_id'])
+          .toSet();
+      final disponiveis = ativas
+          .where(
+            (categoria) => !idsIncluidos.contains(categoria['categoria_id']),
+          )
+          .toList();
+      if (!mounted) return;
+      if (disponiveis.isEmpty) {
+        AppSnackBar.aviso(
+          context,
+          'Não há categorias ativas disponíveis para incluir.',
+        );
+        return;
+      }
+      final selecionada = await showDialog<int>(
+        context: context,
+        builder: (dialogContext) => SimpleDialog(
+          title: const Text('Adicionar categoria ao cardápio'),
+          children: [
+            for (final categoria in disponiveis)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(
+                  dialogContext,
+                  (categoria['categoria_id'] as num).toInt(),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text('${categoria['nmcategoria']}'),
+                ),
+              ),
+          ],
+        ),
+      );
+      if (selecionada == null) return;
+      await _repo.adicionarCategoriaPadrao(
+        widget.organizacaoId,
+        widget.modeloId,
+        selecionada,
+      );
+      await _carregar();
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  Future<void> _removerCategoria(Map<String, dynamic> categoria) async {
+    final quantidade = (categoria['quantidade_produtos'] as num?)?.toInt() ?? 0;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Excluir ${categoria['nmcategoria']} do cardápio?'),
+        content: Text(
+          quantidade == 0
+              ? 'A categoria será removida apenas deste cardápio padrão.'
+              : 'Esta categoria tem $quantidade ${quantidade == 1 ? 'produto' : 'produtos'} neste cardápio. ${quantidade == 1 ? 'O vínculo será removido' : 'Os vínculos serão removidos'}; os produtos continuarão cadastrados na organização.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Excluir'),
+          ),
+        ],
       ),
     );
-    if (mounted) await _carregar();
+    if (confirmar != true || !mounted) return;
+    try {
+      final excluidos = await _repo.removerCategoriaPadrao(
+        widget.organizacaoId,
+        widget.modeloId,
+        (categoria['cardapiomodelocategoria_id'] as num).toInt(),
+      );
+      await _carregar();
+      if (mounted) {
+        AppSnackBar.sucesso(
+          context,
+          'Categoria removida. ${excluidos['vinculos_excluidos']} vínculos removidos; os produtos da organização foram mantidos.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
   }
 
   String _moeda(Object? valor) {
@@ -321,7 +467,11 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
     };
   }
 
-  Widget _chipCategoria(int? id, String nome, IconData icone) {
+  Widget _chipCategoria(Map<String, dynamic> categoria) {
+    final id = (categoria['cardapiomodelocategoria_id'] as num).toInt();
+    final nome = '${categoria['nmcategoria']}';
+    final icone =
+        _iconesCategoria['${categoria['dsicone']}'] ?? Icons.category_outlined;
     final selecionada = _categoriaSelecionada == id;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -330,7 +480,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
         onTap: () => setState(() => _categoriaSelecionada = id),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          width: 82,
+          width: 94,
           height: 64,
           decoration: BoxDecoration(
             color: selecionada ? Colors.amber : Colors.white,
@@ -346,19 +496,43 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
               ),
             ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
             children: [
-              Icon(icone, size: 20),
-              const SizedBox(height: 3),
-              Text(
-                nome,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icone, size: 20),
+                    const SizedBox(height: 3),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 7),
+                      child: Text(
+                        nome,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: IconButton(
+                  constraints: const BoxConstraints.tightFor(
+                    width: 26,
+                    height: 26,
+                  ),
+                  padding: EdgeInsets.zero,
+                  iconSize: 16,
+                  tooltip: 'Excluir categoria do cardápio',
+                  onPressed: () => _removerCategoria(categoria),
+                  icon: const Icon(Icons.close_rounded),
                 ),
               ),
             ],
@@ -506,7 +680,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
       builder: (context) => AlertDialog(
         title: const Text('Remover do cardápio padrão?'),
         content: Text(
-          'O produto ${item['nmproduto']} será removido do padrão. Cardápios já associados às lojas não serão alterados.',
+          'O produto ${item['nmproduto']} será removido deste cardápio padrão. O cadastro do produto e os cardápios já associados às lojas serão mantidos.',
         ),
         actions: [
           TextButton(
@@ -525,7 +699,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
       await _repo.removerItemPadrao(
         widget.organizacaoId,
         widget.modeloId,
-        int.parse('${item['cardapiomodeloitem_id']}'),
+        int.parse('${item['cardapiomodeloproduto_id']}'),
       );
       await _carregar();
     } catch (e) {
@@ -539,7 +713,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
   Widget build(BuildContext context) {
     final busca = _busca.trim().toLowerCase();
     final filtrados = _itens.where((item) {
-      final categoriaId = (item['categoria_id'] as num?)?.toInt();
+      final categoriaId = (item['cardapiomodelocategoria_id'] as num?)?.toInt();
       if (_categoriaSelecionada != null &&
           categoriaId != _categoriaSelecionada) {
         return false;
@@ -558,21 +732,22 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
             titulo: widget.nome,
             subtitulo: 'Cardápio padrão da empresa',
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: TextField(
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: 'Buscar produto',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
+          if (_categorias.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: TextField(
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Buscar produto',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
+                onChanged: (valor) => setState(() => _busca = valor),
               ),
-              onChanged: (valor) => setState(() => _busca = valor),
             ),
-          ),
           if (!_carregando)
             SizedBox(
               height: 70,
@@ -580,38 +755,40 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
-                  _chipCategoria(null, 'Todos', Icons.restaurant_menu_rounded),
                   for (final categoria in _categorias)
-                    _chipCategoria(
-                      (categoria['categoria_id'] as num).toInt(),
-                      '${categoria['nmcategoria']}',
-                      _iconesCategoria['${categoria['dsicone']}'] ??
-                          Icons.category_outlined,
-                    ),
+                    _chipCategoria(categoria),
+                  ActionChip(
+                    avatar: const Icon(Icons.add_rounded),
+                    label: const Text('Categoria'),
+                    onPressed: _adicionarCategoria,
+                  ),
                 ],
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${filtrados.length} ${filtrados.length == 1 ? 'produto' : 'produtos'}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+          if (_categorias.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${filtrados.length} ${filtrados.length == 1 ? 'produto' : 'produtos'}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
-                ),
-                TextButton.icon(
-                  onPressed: _gerenciarCategorias,
-                  icon: const Icon(Icons.category_outlined),
-                  label: const Text('Categorias'),
-                ),
-              ],
+                  TextButton.icon(
+                    onPressed: _vincularProdutoExistente,
+                    icon: const Icon(Icons.link_rounded),
+                    label: const Text('Usar existente'),
+                  ),
+                ],
+              ),
             ),
-          ),
           Expanded(
             child: _carregando
                 ? const Center(child: CircularProgressIndicator())
+                : _categorias.isEmpty
+                ? const SizedBox.shrink()
                 : RefreshIndicator(
                     onRefresh: _carregar,
                     child: LayoutBuilder(
@@ -657,11 +834,13 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _abrirFormulario(),
-        icon: const Icon(Icons.add),
-        label: const Text('Adicionar produto'),
-      ),
+      floatingActionButton: _categorias.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _abrirFormulario(),
+              icon: const Icon(Icons.add),
+              label: const Text('Adicionar produto'),
+            ),
     );
   }
 }

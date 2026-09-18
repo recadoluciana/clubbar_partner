@@ -1,6 +1,13 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
 
+import '../config/api_config.dart';
 import '../services/api_service.dart';
+import '../services/storage_service.dart';
 
 class CardapioRepository {
   dynamic _json(dynamic response) => response.body.trim().isEmpty
@@ -101,6 +108,107 @@ class CardapioRepository {
         .map((e) => Map<String, dynamic>.from(e))
         .where((e) => e['sitcategoria'] == 'ATIVA')
         .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> listarCategoriasPadrao(
+    int organizacaoId,
+    int modeloId,
+  ) async {
+    final response = await ApiService.get(
+      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/categorias',
+    );
+    if (response.statusCode != 200) {
+      throw _erro(
+        response,
+        'Não foi possível carregar as categorias do cardápio.',
+      );
+    }
+    return (_json(response) as List)
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  Future<void> adicionarCategoriaPadrao(
+    int organizacaoId,
+    int modeloId,
+    int categoriaId,
+  ) async {
+    final response = await ApiService.post(
+      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/categorias',
+      {'categoria_id': categoriaId},
+    );
+    if (response.statusCode != 201) {
+      throw _erro(response, 'Não foi possível adicionar a categoria.');
+    }
+  }
+
+  Future<Map<String, dynamic>> removerCategoriaPadrao(
+    int organizacaoId,
+    int modeloId,
+    int categoriaPadraoId,
+  ) async {
+    final response = await ApiService.delete(
+      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/categorias/$categoriaPadraoId',
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível excluir a categoria.');
+    }
+    return Map<String, dynamic>.from(_json(response));
+  }
+
+  Future<List<Map<String, dynamic>>> listarProdutosPadraoOrganizacao(
+    int organizacaoId,
+  ) async {
+    final response = await ApiService.get(
+      '/organizacoes/$organizacaoId/produtos',
+    );
+    if (response.statusCode != 200) {
+      throw _erro(
+        response,
+        'Não foi possível carregar os produtos da empresa.',
+      );
+    }
+    return (_json(response) as List)
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  Future<String> enviarFotoProdutoPadrao(
+    int organizacaoId,
+    int modeloId,
+    XFile imagem,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse(
+        '${ApiConfig.baseUrl}/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/foto',
+      ),
+    );
+    final token = await StorageService.getToken();
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    final mime = lookupMimeType(imagem.name) ?? 'image/jpeg';
+    final partes = mime.split('/');
+    request.files.add(
+      kIsWeb
+          ? http.MultipartFile.fromBytes(
+              'foto',
+              await imagem.readAsBytes(),
+              filename: imagem.name,
+              contentType: MediaType(partes[0], partes[1]),
+            )
+          : await http.MultipartFile.fromPath(
+              'foto',
+              imagem.path,
+              contentType: MediaType(partes[0], partes[1]),
+            ),
+    );
+    final response = await http.Response.fromStream(await request.send());
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível enviar a foto.');
+    }
+    return '${_json(response)['urlfotoproduto']}';
   }
 
   Future<void> adicionarItemPadrao(

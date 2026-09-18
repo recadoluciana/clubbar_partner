@@ -1,22 +1,26 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../core/config/api_config.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
-import '../categorias/categorias_produtos_page.dart';
 
 class ProdutoPadraoFormPage extends StatefulWidget {
   final int organizacaoId;
   final int modeloId;
+  final int? categoriaPadraoIdInicial;
   final Map<String, dynamic>? item;
 
   const ProdutoPadraoFormPage({
     super.key,
     required this.organizacaoId,
     required this.modeloId,
+    this.categoriaPadraoIdInicial,
     this.item,
   });
 
@@ -31,7 +35,9 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
   late final TextEditingController _descricao;
   late final TextEditingController _preco;
   late final TextEditingController _sku;
-  late final TextEditingController _foto;
+  String? _fotoUrl;
+  XFile? _fotoSelecionada;
+  Uint8List? _fotoBytes;
   late final TextEditingController _desconto;
   late final TextEditingController _cashback;
   List<Map<String, dynamic>> _categorias = [];
@@ -53,14 +59,16 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
       text: '${item['vrprecoprod'] ?? ''}'.replaceAll('.', ','),
     );
     _sku = TextEditingController(text: '${item['skuproduto'] ?? ''}');
-    _foto = TextEditingController(text: '${item['urlfotoproduto'] ?? ''}');
+    _fotoUrl = item['urlfotoproduto']?.toString();
     _desconto = TextEditingController(
       text: '${item['vrdesconto'] ?? ''}'.replaceAll('.', ','),
     );
     _cashback = TextEditingController(
       text: '${item['pccashback'] ?? ''}'.replaceAll('.', ','),
     );
-    _categoriaId = (item['categoria_id'] as num?)?.toInt();
+    _categoriaId =
+        (item['cardapiomodelocategoria_id'] as num?)?.toInt() ??
+        widget.categoriaPadraoIdInicial;
     _situacao = '${item['sitproduto'] ?? 'ATIVO'}';
     _tipoDesconto = '${item['tipodesconto'] ?? 'NENHUM'}';
     _inicioDesconto = DateTime.tryParse('${item['dtinidesconto'] ?? ''}');
@@ -75,7 +83,6 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
       _descricao,
       _preco,
       _sku,
-      _foto,
       _desconto,
       _cashback,
     ]) {
@@ -87,14 +94,19 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
   Future<void> _carregarCategorias() async {
     setState(() => _carregando = true);
     try {
-      final categorias = await _repo.listarCategoriasOrganizacao(
+      final categorias = await _repo.listarCategoriasPadrao(
         widget.organizacaoId,
+        widget.modeloId,
       );
       if (!mounted) return;
       setState(() {
         _categorias = categorias;
-        if (!_categorias.any((c) => c['categoria_id'] == _categoriaId)) {
-          _categoriaId = null;
+        if (!_categorias.any(
+          (c) => c['cardapiomodelocategoria_id'] == _categoriaId,
+        )) {
+          _categoriaId = _categorias.length == 1
+              ? (_categorias.first['cardapiomodelocategoria_id'] as num).toInt()
+              : null;
         }
       });
     } catch (e) {
@@ -106,15 +118,19 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     }
   }
 
-  Future<void> _gerenciarCategorias() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            CategoriasProdutosPage(organizacaoId: widget.organizacaoId),
-      ),
-    );
-    if (mounted) await _carregarCategorias();
+  Future<void> _selecionarFoto() async {
+    try {
+      final foto = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (foto == null) return;
+      final bytes = await foto.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _fotoSelecionada = foto;
+        _fotoBytes = bytes;
+      });
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, 'Não foi possível abrir a foto.');
+    }
   }
 
   Future<void> _selecionarData(bool inicio) async {
@@ -191,30 +207,39 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
       );
       return;
     }
-    final dados = <String, dynamic>{
-      'categoria_id': _categoriaId,
-      'nmproduto': _nome.text.trim(),
-      'dsproduto': _descricao.text.trim().isEmpty
-          ? null
-          : _descricao.text.trim(),
-      'vrprecoprod': preco,
-      'sitproduto': _situacao,
-      'skuproduto': _sku.text.trim().isEmpty ? null : _sku.text.trim(),
-      'urlfotoproduto': _foto.text.trim().isEmpty ? null : _foto.text.trim(),
-      'tipodesconto': _tipoDesconto,
-      'vrdesconto': desconto ?? 0,
-      'pccashback': _cashback.text.trim().isEmpty
-          ? null
-          : _numero(_cashback.text),
-      'dtinidesconto': _tipoDesconto == 'NENHUM'
-          ? null
-          : _inicioDesconto?.toIso8601String(),
-      'dtfimdesconto': _tipoDesconto == 'NENHUM'
-          ? null
-          : _fimDesconto?.toIso8601String(),
-    };
     setState(() => _salvando = true);
     try {
+      if (_fotoSelecionada != null) {
+        _fotoUrl = await _repo.enviarFotoProdutoPadrao(
+          widget.organizacaoId,
+          widget.modeloId,
+          _fotoSelecionada!,
+        );
+      }
+      final dados = <String, dynamic>{
+        'cardapiomodelocategoria_id': _categoriaId,
+        if (widget.item != null)
+          'produto_id': widget.item!['produto_id'],
+        'nmproduto': _nome.text.trim(),
+        'dsproduto': _descricao.text.trim().isEmpty
+            ? null
+            : _descricao.text.trim(),
+        'vrprecoprod': preco,
+        'sitproduto': _situacao,
+        'skuproduto': _sku.text.trim().isEmpty ? null : _sku.text.trim(),
+        'urlfotoproduto': _fotoUrl,
+        'tipodesconto': _tipoDesconto,
+        'vrdesconto': desconto ?? 0,
+        'pccashback': _cashback.text.trim().isEmpty
+            ? null
+            : _numero(_cashback.text),
+        'dtinidesconto': _tipoDesconto == 'NENHUM'
+            ? null
+            : _inicioDesconto?.toIso8601String(),
+        'dtfimdesconto': _tipoDesconto == 'NENHUM'
+            ? null
+            : _fimDesconto?.toIso8601String(),
+      };
       if (widget.item == null) {
         await _repo.adicionarItemPadrao(
           widget.organizacaoId,
@@ -225,7 +250,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
         await _repo.alterarProdutoPadrao(
           widget.organizacaoId,
           widget.modeloId,
-          int.parse('${widget.item!['cardapiomodeloitem_id']}'),
+          int.parse('${widget.item!['cardapiomodeloproduto_id']}'),
           dados,
         );
       }
@@ -282,6 +307,13 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
           titulo: widget.item == null ? 'Novo produto' : 'Editar produto',
           subtitulo: 'Cardápio padrão da empresa',
         ),
+        if (widget.item != null)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Text(
+              'Este produto pode ser usado em outros cardápios. Alterações nos dados do produto também aparecerão neles.',
+            ),
+          ),
         Expanded(
           child: _carregando
               ? const Center(child: CircularProgressIndicator())
@@ -301,7 +333,8 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                         items: _categorias
                             .map(
                               (c) => DropdownMenuItem<int>(
-                                value: (c['categoria_id'] as num).toInt(),
+                                value: (c['cardapiomodelocategoria_id'] as num)
+                                    .toInt(),
                                 child: Text('${c['nmcategoria']}'),
                               ),
                             )
@@ -310,17 +343,9 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                         validator: (id) =>
                             id == null ? 'Selecione uma categoria.' : null,
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: _gerenciarCategorias,
-                          icon: const Icon(Icons.category_outlined),
-                          label: const Text('Gerenciar categorias'),
-                        ),
-                      ),
                       if (_categorias.isEmpty)
                         const Text(
-                          'Nenhuma categoria ativa. Cadastre uma categoria da empresa antes do produto.',
+                          'Inclua uma categoria neste cardápio antes de cadastrar produtos.',
                         ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -386,14 +411,41 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _foto,
-                        maxLength: 255,
-                        decoration: const InputDecoration(
-                          labelText: 'URL da foto (opcional)',
-                          helperText:
-                              'Link da imagem ou caminho /uploads/produtos/...',
-                          border: OutlineInputBorder(),
+                      InkWell(
+                        onTap: _selecionarFoto,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          height: 180,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(
+                              color: ClubbarColors.textoSecundario,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: _fotoBytes != null
+                              ? Image.memory(_fotoBytes!, fit: BoxFit.contain)
+                              : (_fotoUrl ?? '').isNotEmpty
+                              ? Image.network(
+                                  _fotoUrl!.startsWith('http')
+                                      ? _fotoUrl!
+                                      : ApiConfig.buildUrl(_fotoUrl!),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, _, _) => const Icon(
+                                    Icons.image_not_supported_outlined,
+                                  ),
+                                )
+                              : const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo_outlined, size: 44),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Toque para escolher a foto do produto',
+                                    ),
+                                  ],
+                                ),
                         ),
                       ),
                       const SizedBox(height: 8),
