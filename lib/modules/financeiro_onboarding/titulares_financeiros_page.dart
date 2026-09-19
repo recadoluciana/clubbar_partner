@@ -22,6 +22,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
   int? _organizacaoId;
   bool _carregando = true;
   int? _processandoId;
+  String? _erroCarregamento;
 
   @override
   void initState() {
@@ -43,6 +44,12 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
   }
 
   Future<void> _carregar() async {
+    if (mounted) {
+      setState(() {
+        _carregando = true;
+        _erroCarregamento = null;
+      });
+    }
     try {
       final id = await StorageService.getOrganizacaoId();
       if (id == null) throw Exception('Empresa não identificada.');
@@ -52,11 +59,14 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
         _organizacaoId = id;
         _titulares = titulares;
         _carregando = false;
+        _erroCarregamento = null;
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _carregando = false);
-      AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      setState(() {
+        _carregando = false;
+        _erroCarregamento = e.toString().replaceFirst('Exception: ', '');
+      });
     }
   }
 
@@ -271,11 +281,49 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
         children: [
           ClubbarPageHeader(
             titulo: 'Titular financeiro',
-            subtitulo: '${_titulares.length} titular(es) da organização',
+            subtitulo: _erroCarregamento == null
+                ? '${_titulares.length} titular(es) da organização'
+                : 'Consulta indisponível no momento',
           ),
           Expanded(
             child: _carregando
                 ? const Center(child: CircularProgressIndicator())
+                : _erroCarregamento != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.cloud_off_rounded,
+                            size: 42,
+                            color: ClubbarColors.aviso,
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Não foi possível carregar os titulares financeiros.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _erroCarregamento!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: ClubbarColors.textoSecundario,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          OutlinedButton.icon(
+                            onPressed: _carregar,
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Tentar novamente'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                 : _titulares.isEmpty
                 ? const Center(
                     child: Text('Nenhum titular financeiro cadastrado.'),
