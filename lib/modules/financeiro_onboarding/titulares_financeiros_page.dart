@@ -212,6 +212,12 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                         : 'Sem subconta Asaas',
                   ),
                 ),
+                if (possuiAsaas)
+                  Chip(
+                    label: Text(
+                      'Asaas: ${_texto(titular['status_asaas']).replaceAll('_', ' ')}',
+                    ),
+                  ),
               ],
             ),
             if (possuiAsaas)
@@ -264,7 +270,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
       body: Column(
         children: [
           ClubbarPageHeader(
-            titulo: 'Titulares financeiros',
+            titulo: 'Titular financeiro',
             subtitulo: '${_titulares.length} titular(es) da organização',
           ),
           Expanded(
