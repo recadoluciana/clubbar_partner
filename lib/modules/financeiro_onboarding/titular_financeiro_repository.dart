@@ -96,4 +96,28 @@ class TitularFinanceiroRepository {
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
+
+  Future<Map<String, dynamic>> inativar(
+    int id, {
+    required int titularFinanceiroId,
+  }) async {
+    final r = await ApiService.patch(
+      '/titular-financeiro/organizacao/$id/titular/$titularFinanceiroId/inativar',
+      body: {},
+    );
+    if (r.statusCode == 200) return _decode(r.body);
+    throw Exception(_erro(r.body));
+  }
+
+  Future<Map<String, dynamic>> reativar(
+    int id, {
+    required int titularFinanceiroId,
+  }) async {
+    final r = await ApiService.patch(
+      '/titular-financeiro/organizacao/$id/titular/$titularFinanceiroId/reativar',
+      body: {},
+    );
+    if (r.statusCode == 200) return _decode(r.body);
+    throw Exception(_erro(r.body));
+  }
 }

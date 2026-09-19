@@ -15,7 +15,14 @@ import 'titular_financeiro_repository.dart';
 
 class DadosFinanceirosPage extends StatefulWidget {
   final bool mostrarIntegracao;
-  const DadosFinanceirosPage({super.key, this.mostrarIntegracao = false});
+  final int? titularFinanceiroInicialId;
+  final bool novoTitular;
+  const DadosFinanceirosPage({
+    super.key,
+    this.mostrarIntegracao = false,
+    this.titularFinanceiroInicialId,
+    this.novoTitular = false,
+  });
 
   @override
   State<DadosFinanceirosPage> createState() => _DadosFinanceirosPageState();
@@ -117,7 +124,19 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       final nomeOrganizacao = (await StorageService.getNomeOrganizacao() ?? '')
           .trim();
       final titulares = await _repo.listar(id);
-      final dados = titulares.firstOrNull ?? <String, dynamic>{};
+      final selecionado = widget.novoTitular
+          ? null
+          : titulares.where((item) {
+              final id = item['titularfinanceiro_id'];
+              return widget.titularFinanceiroInicialId == null ||
+                  id == widget.titularFinanceiroInicialId;
+            }).firstOrNull;
+      final dados =
+          selecionado ??
+          (widget.titularFinanceiroInicialId == null && !widget.novoTitular
+              ? titulares.firstOrNull
+              : null) ??
+          <String, dynamic>{};
       if (!mounted) return;
       setState(() {
         _organizacaoId = id;

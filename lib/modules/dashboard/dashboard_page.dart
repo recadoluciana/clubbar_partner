@@ -16,6 +16,7 @@ import '../organizacao/organizacao_list_page.dart';
 import '../painel_gerencial/painel_gerencial_page.dart';
 import '../usuarios/usuario_list_page.dart';
 import '../financeiro_onboarding/dados_financeiros_page.dart';
+import '../financeiro_onboarding/titulares_financeiros_page.dart';
 import '../financeiro/financeiro_parceiro_page.dart';
 import '../atracoes/atracao_list_page.dart';
 import '../estilos_musicais/estilo_musical_list_page.dart';
@@ -194,7 +195,9 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _abrirFinanceiro({bool integracao = false}) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => DadosFinanceirosPage(mostrarIntegracao: integracao),
+        builder: (_) => integracao
+            ? const DadosFinanceirosPage(mostrarIntegracao: true)
+            : const TitularesFinanceirosPage(),
       ),
     );
   }
@@ -466,7 +469,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         _opcao(
                           titulo: 'Titular financeiro',
                           subtitulo:
-                              'Informe o titular e os dados cadastrais dos recebimentos.',
+                              'Pessoa física ou jurídica responsável pelos recebimentos.',
                           icone: Icons.account_balance_wallet_rounded,
                           onTap: () => _abrirFinanceiro(),
                         ),
