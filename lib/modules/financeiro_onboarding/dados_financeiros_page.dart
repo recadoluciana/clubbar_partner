@@ -7,6 +7,7 @@ import '../../core/repositories/localidade_repository.dart';
 import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
@@ -113,6 +114,16 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     for (final e in mapa.entries) {
       _c[e.key]!.text = _texto(d[e.value]);
     }
+    final documento = _c['cpfcnpj']!.text;
+    final formatador = _tipo == 'PF'
+        ? CpfInputFormatter()
+        : CnpjInputFormatter();
+    _c['cpfcnpj']!.text = formatador
+        .formatEditUpdate(
+          const TextEditingValue(),
+          TextEditingValue(text: documento),
+        )
+        .text;
     _c['nascimento']!.text = _formatarDataExibicao(d['dtnascimento']);
     _c['faturamento']!.text = _formatarMoeda(d['vrfaturamentomensal']);
   }
@@ -183,14 +194,6 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
-  }
-
-  void _novoTitular() {
-    if (_processando) return;
-    setState(() {
-      _titularFinanceiroId = null;
-      _limparFormulario();
-    });
   }
 
   String? _obrigatorio(String? v) =>
@@ -348,14 +351,21 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     String label, {
     TextInputType? teclado,
     bool opcional = false,
+    bool habilitado = true,
+    List<TextInputFormatter>? formatadores,
+    String? helperText,
+    String? Function(String?)? validator,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: TextFormField(
       controller: _c[nome],
       keyboardType: teclado,
-      validator: opcional ? null : _obrigatorio,
+      enabled: habilitado,
+      inputFormatters: formatadores,
+      validator: validator ?? (opcional ? null : _obrigatorio),
       decoration: InputDecoration(
         labelText: label,
+        helperText: helperText,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
@@ -368,7 +378,8 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     child: TextFormField(
       controller: _c['nascimento'],
       readOnly: true,
-      onTap: _selecionarNascimento,
+      enabled: !_subcontaCriada,
+      onTap: _subcontaCriada ? null : _selecionarNascimento,
       validator: _obrigatorio,
       decoration: InputDecoration(
         labelText: 'Data de nascimento',
@@ -661,15 +672,31 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
                 DropdownMenuItem(value: 'PF', child: Text('Pessoa física')),
                 DropdownMenuItem(value: 'PJ', child: Text('Pessoa jurídica')),
               ],
-              onChanged: (v) => setState(() => _tipo = v!),
+              onChanged: _subcontaCriada
+                  ? null
+                  : (v) => setState(() => _tipo = v!),
             ),
             const SizedBox(height: 12),
             _campo(
               'cpfcnpj',
               _tipo == 'PF' ? 'CPF' : 'CNPJ',
-              teclado: _tipo == 'PF'
-                  ? TextInputType.number
-                  : TextInputType.text,
+              teclado: TextInputType.number,
+              habilitado: !_subcontaCriada,
+              formatadores: [
+                FilteringTextInputFormatter.digitsOnly,
+                _tipo == 'PF' ? CpfInputFormatter() : CnpjInputFormatter(),
+              ],
+              helperText: _subcontaCriada
+                  ? 'O documento não pode ser alterado após a criação da subconta Asaas.'
+                  : null,
+              validator: (valor) {
+                final documento = (valor ?? '').replaceAll(RegExp(r'\D'), '');
+                final tamanho = _tipo == 'PF' ? 11 : 14;
+                if (documento.isEmpty) return 'Campo obrigatório.';
+                return documento.length == tamanho
+                    ? null
+                    : 'Informe um ${_tipo == 'PF' ? 'CPF' : 'CNPJ'} com $tamanho dígitos.';
+              },
             ),
             _campo('nome', _tipo == 'PF' ? 'Nome completo' : 'Razão social'),
             _campo('fantasia', 'Nome fantasia', opcional: true),
@@ -717,46 +744,31 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
 
   Widget _seletorTitular() => Padding(
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: DropdownButtonFormField<int>(
-            key: ValueKey(_titularFinanceiroId),
-            initialValue: _titularFinanceiroId,
-            decoration: const InputDecoration(
-              labelText: 'Titular financeiro da organização',
-              prefixIcon: Icon(Icons.account_balance_wallet_rounded),
-              border: OutlineInputBorder(),
+    child: DropdownButtonFormField<int>(
+      key: ValueKey(_titularFinanceiroId),
+      initialValue: _titularFinanceiroId,
+      decoration: const InputDecoration(
+        labelText: 'Titular financeiro da organização',
+        prefixIcon: Icon(Icons.account_balance_wallet_rounded),
+        border: OutlineInputBorder(),
+      ),
+      hint: const Text('Selecione um titular financeiro'),
+      items: _titulares
+          .map(
+            (titular) => DropdownMenuItem<int>(
+              value: titular['titularfinanceiro_id'] as int,
+              child: Text(
+                _nomeTitular(titular),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            hint: const Text('Selecione um titular financeiro'),
-            items: _titulares
-                .map(
-                  (titular) => DropdownMenuItem<int>(
-                    value: titular['titularfinanceiro_id'] as int,
-                    child: Text(
-                      _nomeTitular(titular),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: _processando
-                ? null
-                : (valor) {
-                    if (valor != null) _trocarTitular(valor);
-                  },
-          ),
-        ),
-        if (!widget.mostrarIntegracao) ...[
-          const SizedBox(width: 8),
-          IconButton.filled(
-            onPressed: _processando ? null : _novoTitular,
-            tooltip: 'Cadastrar novo titular financeiro',
-            icon: const Icon(Icons.add_rounded),
-          ),
-        ],
-      ],
+          )
+          .toList(growable: false),
+      onChanged: _processando
+          ? null
+          : (valor) {
+              if (valor != null) _trocarTitular(valor);
+            },
     ),
   );
 
@@ -769,10 +781,12 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
         ClubbarPageHeader(
           titulo: widget.mostrarIntegracao
               ? 'Integração Asaas'
-              : _nomeOrganizacao,
+              : widget.novoTitular
+              ? 'Adicionar titular financeiro'
+              : 'Editar titular financeiro',
           subtitulo: widget.mostrarIntegracao
               ? 'Ative e acompanhe seus recebimentos'
-              : 'Dados do titular dos recebimentos',
+              : _nomeOrganizacao,
           tituloStyle: widget.mostrarIntegracao
               ? null
               : const TextStyle(
@@ -781,7 +795,8 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
                   color: ClubbarColors.info,
                 ),
         ),
-        if (_titulares.isNotEmpty) _seletorTitular(),
+        if (widget.mostrarIntegracao && _titulares.isNotEmpty)
+          _seletorTitular(),
         if (_titulares.isEmpty && widget.mostrarIntegracao && !_carregando)
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 12, 16, 0),

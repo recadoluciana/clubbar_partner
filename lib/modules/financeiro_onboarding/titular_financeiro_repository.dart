@@ -10,9 +10,20 @@ class TitularFinanceiroRepository {
   String _erro(String body) {
     try {
       final data = jsonDecode(body);
-      return data is Map && data['detail'] != null
-          ? data['detail'].toString()
-          : body;
+      if (data is! Map || data['detail'] == null) return body;
+      final detalhe = data['detail'];
+      if (detalhe is List && detalhe.isNotEmpty) {
+        final primeiro = detalhe.first;
+        if (primeiro is Map) {
+          final mensagem = (primeiro['msg'] ?? primeiro['message'])?.toString();
+          if (mensagem != null && mensagem.trim().isNotEmpty) {
+            return mensagem
+                .replaceFirst(RegExp(r'^Value error,\s*'), '')
+                .trim();
+          }
+        }
+      }
+      return detalhe.toString();
     } catch (_) {
       return body;
     }
