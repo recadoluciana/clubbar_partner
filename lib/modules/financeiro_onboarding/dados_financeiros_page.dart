@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/repositories/localidade_repository.dart';
-import '../../core/repositories/loja_repository.dart';
 import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
@@ -12,7 +11,6 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
-import '../../models/loja.dart';
 import 'titular_financeiro_repository.dart';
 
 class DadosFinanceirosPage extends StatefulWidget {
@@ -25,7 +23,6 @@ class DadosFinanceirosPage extends StatefulWidget {
 
 class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   final _repo = TitularFinanceiroRepository();
-  final _lojaRepository = LojaRepository();
   final _localidadeRepository = LocalidadeRepository();
   final _form = GlobalKey<FormState>();
   final Map<String, TextEditingController> _c = {
@@ -46,8 +43,8 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       nome: TextEditingController(),
   };
   int? _organizacaoId, _estadoId, _cidadeId;
-  int? _lojaId;
-  List<Loja> _lojas = const [];
+  int? _titularFinanceiroId;
+  List<Map<String, dynamic>> _titulares = const [];
   String _tipo = 'PJ', _status = 'NAO_INICIADO', _onboardingUrl = '';
   bool _subcontaCriada = false;
   String _nomeOrganizacao = 'Empresa';
@@ -69,6 +66,20 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   }
 
   String _texto(dynamic v) => v?.toString() ?? '';
+
+  void _limparFormulario() {
+    for (final controller in _c.values) {
+      controller.clear();
+    }
+    _tipo = 'PJ';
+    _status = 'NAO_INICIADO';
+    _onboardingUrl = '';
+    _subcontaCriada = false;
+    _estadoId = null;
+    _cidadeId = null;
+    _ultimoCepConsultado = null;
+  }
+
   void _preencher(Map<String, dynamic> d) {
     _tipo = _texto(d['tipotitular']).isEmpty ? 'PJ' : _texto(d['tipotitular']);
     _status = _texto(d['status_asaas']).isEmpty
@@ -105,21 +116,21 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       if (id == null) throw Exception('Empresa não identificada.');
       final nomeOrganizacao = (await StorageService.getNomeOrganizacao() ?? '')
           .trim();
-      final lojas = await _lojaRepository.listar(id);
-      final lojaSalva = await StorageService.getLojaId();
-      final lojaId = lojas.any((item) => item.lojaId == lojaSalva)
-          ? lojaSalva
-          : lojas.firstOrNull?.lojaId;
-      final dados = await _repo.consultar(id, lojaId: lojaId);
+      final titulares = await _repo.listar(id);
+      final dados = titulares.firstOrNull ?? <String, dynamic>{};
       if (!mounted) return;
       setState(() {
         _organizacaoId = id;
-        _lojas = lojas;
-        _lojaId = lojaId;
+        _titulares = titulares;
+        _titularFinanceiroId = dados['titularfinanceiro_id'] as int?;
         _nomeOrganizacao = nomeOrganizacao.isEmpty
             ? 'Empresa'
             : nomeOrganizacao;
-        _preencher(dados);
+        if (dados.isEmpty) {
+          _limparFormulario();
+        } else {
+          _preencher(dados);
+        }
         _carregando = false;
       });
     } catch (e) {
@@ -129,14 +140,21 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     }
   }
 
-  Future<void> _trocarLoja(int lojaId) async {
-    if (_processando || lojaId == _lojaId || _organizacaoId == null) return;
+  Future<void> _trocarTitular(int titularFinanceiroId) async {
+    if (_processando ||
+        titularFinanceiroId == _titularFinanceiroId ||
+        _organizacaoId == null) {
+      return;
+    }
     setState(() {
-      _lojaId = lojaId;
+      _titularFinanceiroId = titularFinanceiroId;
       _carregando = true;
     });
     try {
-      final dados = await _repo.consultar(_organizacaoId!, lojaId: lojaId);
+      final dados = await _repo.consultar(
+        _organizacaoId!,
+        titularFinanceiroId: titularFinanceiroId,
+      );
       if (!mounted) return;
       setState(() => _preencher(dados));
     } catch (e) {
@@ -146,6 +164,14 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
+  }
+
+  void _novoTitular() {
+    if (_processando) return;
+    setState(() {
+      _titularFinanceiroId = null;
+      _limparFormulario();
+    });
   }
 
   String? _obrigatorio(String? v) =>
@@ -405,10 +431,31 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       AppSnackBar.aviso(context, 'Preencha todos os dados obrigatórios.');
       return;
     }
-    await _executar(
-      () => _repo.salvar(_organizacaoId!, _dados(), lojaId: _lojaId),
-      'Dados financeiros salvos.',
-    );
+    if (_processando) return;
+    setState(() => _processando = true);
+    try {
+      final dados = _titularFinanceiroId == null
+          ? await _repo.criar(_organizacaoId!, _dados())
+          : await _repo.salvar(
+              _organizacaoId!,
+              _dados(),
+              titularFinanceiroId: _titularFinanceiroId,
+            );
+      final titulares = await _repo.listar(_organizacaoId!);
+      if (!mounted) return;
+      setState(() {
+        _titulares = titulares;
+        _titularFinanceiroId = dados['titularfinanceiro_id'] as int?;
+        _preencher(dados);
+      });
+      AppSnackBar.sucesso(context, 'Dados financeiros salvos.');
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _processando = false);
+    }
   }
 
   Color get _corStatus => _status == 'APROVADO'
@@ -456,10 +503,13 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       const SizedBox(height: 16),
       if (!_subcontaCriada) ...[
         ElevatedButton.icon(
-          onPressed: _processando
+          onPressed: _processando || _titularFinanceiroId == null
               ? null
               : () => _executar(
-                  () => _repo.ativar(_organizacaoId!, lojaId: _lojaId),
+                  () => _repo.ativar(
+                    _organizacaoId!,
+                    titularFinanceiroId: _titularFinanceiroId!,
+                  ),
                   'Subconta criada. Aguarde alguns segundos e verifique a situação.',
                 ),
           icon: const Icon(Icons.account_balance_rounded),
@@ -501,10 +551,13 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
           (ApiConfig.isDev ||
               ApiConfig.baseUrl.contains('desenvolvimento'))) ...[
         OutlinedButton.icon(
-          onPressed: _processando
+          onPressed: _processando || _titularFinanceiroId == null
               ? null
               : () => _executar(
-                  () => _repo.aprovarSandbox(_organizacaoId!, lojaId: _lojaId),
+                  () => _repo.aprovarSandbox(
+                    _organizacaoId!,
+                    titularFinanceiroId: _titularFinanceiroId!,
+                  ),
                   'Subconta de teste aprovada no Sandbox.',
                 ),
           icon: const Icon(Icons.fact_check_rounded),
@@ -513,10 +566,13 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
         const SizedBox(height: 12),
       ],
       OutlinedButton.icon(
-        onPressed: _processando
+        onPressed: _processando || _titularFinanceiroId == null
             ? null
             : () => _executar(
-                () => _repo.verificar(_organizacaoId!, lojaId: _lojaId),
+                () => _repo.verificar(
+                  _organizacaoId!,
+                  titularFinanceiroId: _titularFinanceiroId!,
+                ),
                 'Situação atualizada.',
               ),
         icon: const Icon(Icons.refresh_rounded),
@@ -634,6 +690,57 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     ),
   );
 
+  String _nomeTitular(Map<String, dynamic> titular) {
+    final nome = _texto(titular['nmrazaosocial']).trim();
+    final documento = _texto(titular['cpfcnpj']).trim();
+    return documento.isEmpty ? nome : '$nome — $documento';
+  }
+
+  Widget _seletorTitular() => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            key: ValueKey(_titularFinanceiroId),
+            initialValue: _titularFinanceiroId,
+            decoration: const InputDecoration(
+              labelText: 'Titular financeiro da organização',
+              prefixIcon: Icon(Icons.account_balance_wallet_rounded),
+              border: OutlineInputBorder(),
+            ),
+            hint: const Text('Selecione um titular financeiro'),
+            items: _titulares
+                .map(
+                  (titular) => DropdownMenuItem<int>(
+                    value: titular['titularfinanceiro_id'] as int,
+                    child: Text(
+                      _nomeTitular(titular),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: _processando
+                ? null
+                : (valor) {
+                    if (valor != null) _trocarTitular(valor);
+                  },
+          ),
+        ),
+        if (!widget.mostrarIntegracao) ...[
+          const SizedBox(width: 8),
+          IconButton.filled(
+            onPressed: _processando ? null : _novoTitular,
+            tooltip: 'Cadastrar novo titular financeiro',
+            icon: const Icon(Icons.add_rounded),
+          ),
+        ],
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
@@ -655,28 +762,19 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
                   color: ClubbarColors.info,
                 ),
         ),
-        if (_lojas.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: DropdownButtonFormField<int>(
-              key: ValueKey(_lojaId),
-              initialValue: _lojaId,
-              decoration: const InputDecoration(
-                labelText: 'Estabelecimento',
-                prefixIcon: Icon(Icons.storefront_rounded),
-                border: OutlineInputBorder(),
+        if (_titulares.isNotEmpty) _seletorTitular(),
+        if (_titulares.isEmpty && widget.mostrarIntegracao && !_carregando)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Card(
+              color: ClubbarColors.avisoClaro,
+              child: Padding(
+                padding: EdgeInsets.all(14),
+                child: Text(
+                  'Cadastre um titular financeiro antes de ativar os recebimentos no Asaas.',
+                  textAlign: TextAlign.center,
+                ),
               ),
-              items: _lojas
-                  .map(
-                    (loja) => DropdownMenuItem<int>(
-                      value: loja.lojaId,
-                      child: Text(loja.nmloja),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (valor) {
-                if (valor != null) _trocarLoja(valor);
-              },
             ),
           ),
         Expanded(

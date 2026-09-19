@@ -18,43 +18,81 @@ class TitularFinanceiroRepository {
     }
   }
 
-  String _rota(int id, int? lojaId, [String sufixo = '']) =>
+  String _rota(int id, int? titularFinanceiroId, [String sufixo = '']) =>
       '/titular-financeiro/organizacao/$id$sufixo'
-      '${lojaId == null ? '' : '?loja_id=$lojaId'}';
+      '${titularFinanceiroId == null ? '' : '?titularfinanceiro_id=$titularFinanceiroId'}';
 
-  Future<Map<String, dynamic>> consultar(int id, {int? lojaId}) async {
-    final r = await ApiService.get(_rota(id, lojaId));
+  Future<List<Map<String, dynamic>>> listar(int id) async {
+    final r = await ApiService.get('/titular-financeiro/organizacao/$id/todos');
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body);
+      return (data as List)
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+    }
+    throw Exception(_erro(r.body));
+  }
+
+  Future<Map<String, dynamic>> consultar(
+    int id, {
+    int? titularFinanceiroId,
+  }) async {
+    final r = await ApiService.get(_rota(id, titularFinanceiroId));
     if (r.statusCode == 200) return _decode(r.body);
+    throw Exception(_erro(r.body));
+  }
+
+  Future<Map<String, dynamic>> criar(int id, Map<String, dynamic> dados) async {
+    final r = await ApiService.post(
+      '/titular-financeiro/organizacao/$id',
+      dados,
+    );
+    if (r.statusCode == 200 || r.statusCode == 201) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
 
   Future<Map<String, dynamic>> salvar(
     int id,
     Map<String, dynamic> dados, {
-    int? lojaId,
+    int? titularFinanceiroId,
   }) async {
-    final r = await ApiService.put(_rota(id, lojaId), dados);
+    final r = await ApiService.put(_rota(id, titularFinanceiroId), dados);
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
 
-  Future<Map<String, dynamic>> ativar(int id, {int? lojaId}) async {
+  Future<Map<String, dynamic>> ativar(
+    int id, {
+    required int titularFinanceiroId,
+  }) async {
     final r = await ApiService.post(
-      _rota(id, lojaId, '/ativar-recebimentos'),
+      _rota(id, titularFinanceiroId, '/ativar-recebimentos'),
       {},
     );
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
 
-  Future<Map<String, dynamic>> verificar(int id, {int? lojaId}) async {
-    final r = await ApiService.post(_rota(id, lojaId, '/verificar-asaas'), {});
+  Future<Map<String, dynamic>> verificar(
+    int id, {
+    required int titularFinanceiroId,
+  }) async {
+    final r = await ApiService.post(
+      _rota(id, titularFinanceiroId, '/verificar-asaas'),
+      {},
+    );
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }
 
-  Future<Map<String, dynamic>> aprovarSandbox(int id, {int? lojaId}) async {
-    final r = await ApiService.post(_rota(id, lojaId, '/aprovar-sandbox'), {});
+  Future<Map<String, dynamic>> aprovarSandbox(
+    int id, {
+    required int titularFinanceiroId,
+  }) async {
+    final r = await ApiService.post(
+      _rota(id, titularFinanceiroId, '/aprovar-sandbox'),
+      {},
+    );
     if (r.statusCode == 200) return _decode(r.body);
     throw Exception(_erro(r.body));
   }

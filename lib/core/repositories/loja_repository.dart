@@ -141,6 +141,7 @@ class LojaRepository {
     String? cpfCnpjLoja,
     String? tipoEstabelecimento,
     String? razaoSocial,
+    int? titularFinanceiroId,
     String? bairro,
     String? telefone,
     int? diasValidade,
@@ -175,6 +176,9 @@ class LojaRepository {
       request.fields['tipoestabelecimento'] = tipoEstabelecimento;
     }
     if (razaoSocial != null) request.fields['nmrazaosocial'] = razaoSocial;
+    if (titularFinanceiroId != null) {
+      request.fields['titularfinanceiro_id'] = titularFinanceiroId.toString();
+    }
     request.fields['dsbairroloja'] = bairro ?? '';
     request.fields['nrtelloja'] = telefone ?? '';
 

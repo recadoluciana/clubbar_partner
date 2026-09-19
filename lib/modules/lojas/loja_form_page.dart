@@ -16,6 +16,7 @@ import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 import '../../models/atracao.dart';
+import '../financeiro_onboarding/titular_financeiro_repository.dart';
 import 'horario_funcionamento_screen.dart';
 
 class LojaFormPage extends StatefulWidget {
@@ -32,6 +33,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   final _repository = LojaRepository();
   final _localidadeRepository = LocalidadeRepository();
   final _atracaoRepository = AtracaoRepository();
+  final _titularFinanceiroRepository = TitularFinanceiroRepository();
 
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _documentoFiscalController =
@@ -60,7 +62,10 @@ class _LojaFormPageState extends State<LojaFormPage> {
   String? _tipoEstabelecimento;
   bool _usaCashback = false;
   bool _carregandoEstilos = true;
+  bool _carregandoTitulares = true;
   List<EstiloMusical> _estilosDisponiveis = const [];
+  List<Map<String, dynamic>> _titularesFinanceiros = const [];
+  int? _titularFinanceiroId;
   final Set<int> _estilosSelecionados = {};
 
   bool get editando => widget.loja != null;
@@ -171,6 +176,9 @@ class _LojaFormPageState extends State<LojaFormPage> {
             percentualCashback > 100)) {
       return 'Informe um percentual de cashback entre 0,01% e 100%.';
     }
+    if (editando && _titularFinanceiroId == null) {
+      return 'Selecione o titular financeiro deste estabelecimento.';
+    }
 
     return null;
   }
@@ -205,6 +213,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           .toStringAsFixed(2)
           .replaceAll('.', ',');
       _estilosSelecionados.addAll(widget.loja!.estilos.map((e) => e.id));
+      _titularFinanceiroId = widget.loja!.titularFinanceiroId;
     } else {
       _diasValidadeController.text = '90';
       _percentualCashbackController.text = '5,00';
@@ -212,6 +221,36 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
     _carregarNomeOrganizacao();
     _carregarEstilosMusicais();
+    _carregarTitularesFinanceiros();
+  }
+
+  Future<void> _carregarTitularesFinanceiros() async {
+    try {
+      final organizacaoId = await StorageService.getOrganizacaoId();
+      if (organizacaoId == null) {
+        throw Exception('Empresa não encontrada no login.');
+      }
+      final titulares = await _titularFinanceiroRepository.listar(
+        organizacaoId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _titularesFinanceiros = titulares;
+        if (!titulares.any(
+          (item) => item['titularfinanceiro_id'] == _titularFinanceiroId,
+        )) {
+          _titularFinanceiroId = null;
+        }
+        _carregandoTitulares = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _carregandoTitulares = false);
+      AppSnackBar.erro(
+        context,
+        e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''),
+      );
+    }
   }
 
   Future<void> _carregarEstilosMusicais() async {
@@ -383,6 +422,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
               .toUpperCase(),
           tipoEstabelecimento: _tipoEstabelecimento,
           razaoSocial: _razaoSocialController.text.trim(),
+          titularFinanceiroId: _titularFinanceiroId,
           bairro: _bairroController.text.trim(),
           telefone: telefoneSemMascara,
           diasValidade: diasValidade,
@@ -650,6 +690,52 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                       ),
                                     ),
                                   ],
+                                  const SizedBox(height: 14),
+                                  if (_carregandoTitulares)
+                                    const Center(
+                                      child: CircularProgressIndicator(),
+                                    )
+                                  else if (_titularesFinanceiros.isEmpty)
+                                    const Text(
+                                      'Cadastre um titular financeiro na área financeira antes de concluir este estabelecimento.',
+                                      style: TextStyle(
+                                        color: ClubbarColors.aviso,
+                                      ),
+                                    )
+                                  else
+                                    DropdownButtonFormField<int>(
+                                      key: ValueKey(_titularFinanceiroId),
+                                      initialValue: _titularFinanceiroId,
+                                      decoration: _decoracaoCampo(
+                                        label: 'Titular financeiro',
+                                        icone: Icons
+                                            .account_balance_wallet_rounded,
+                                        helperText:
+                                            'O mesmo titular pode ser usado em vários estabelecimentos.',
+                                      ),
+                                      items: _titularesFinanceiros
+                                          .map(
+                                            (titular) => DropdownMenuItem<int>(
+                                              value:
+                                                  titular['titularfinanceiro_id']
+                                                      as int,
+                                              child: Text(
+                                                '${titular['nmrazaosocial']} — ${titular['cpfcnpj']}',
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          )
+                                          .toList(growable: false),
+                                      validator: (valor) => valor == null
+                                          ? 'Selecione o titular financeiro.'
+                                          : null,
+                                      onChanged: _salvando
+                                          ? null
+                                          : (valor) => setState(
+                                              () =>
+                                                  _titularFinanceiroId = valor,
+                                            ),
+                                    ),
                                 ],
                               ],
                             ),
