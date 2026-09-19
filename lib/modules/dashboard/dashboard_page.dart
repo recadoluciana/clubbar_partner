@@ -17,7 +17,6 @@ import '../painel_gerencial/painel_gerencial_page.dart';
 import '../usuarios/usuario_list_page.dart';
 import '../financeiro_onboarding/dados_financeiros_page.dart';
 import '../financeiro_onboarding/titulares_financeiros_page.dart';
-import '../financeiro/financeiro_parceiro_page.dart';
 import '../atracoes/atracao_list_page.dart';
 import '../estilos_musicais/estilo_musical_list_page.dart';
 import '../auditoria/auditoria_page.dart';
@@ -199,12 +198,6 @@ class _DashboardPageState extends State<DashboardPage> {
             ? const DadosFinanceirosPage(mostrarIntegracao: true)
             : const TitularesFinanceirosPage(),
       ),
-    );
-  }
-
-  Future<void> _abrirPainelFinanceiro() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const FinanceiroParceiroPage()),
     );
   }
 
@@ -472,16 +465,6 @@ class _DashboardPageState extends State<DashboardPage> {
                               'Pessoa física ou jurídica responsável pelos recebimentos.',
                           icone: Icons.account_balance_wallet_rounded,
                           onTap: () => _abrirFinanceiro(),
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Painel Financeiro',
-                          subtitulo:
-                              'Acompanhe os repasses e recebimentos por estabelecimento.',
-                          icone: Icons.payments_rounded,
-                          onTap: _podeVerGerencial
-                              ? _abrirPainelFinanceiro
-                              : null,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
