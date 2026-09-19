@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -146,6 +148,165 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     }
   }
 
+  Future<void> _executarAsaas(
+    Map<String, dynamic> titular,
+    Future<Map<String, dynamic>> Function(int organizacaoId, int titularId)
+    acao,
+    String mensagem,
+  ) async {
+    final organizacaoId = _organizacaoId;
+    final id = titular['titularfinanceiro_id'] as int?;
+    if (organizacaoId == null || id == null || _processandoId != null) return;
+    setState(() => _processandoId = id);
+    try {
+      final atualizado = await acao(organizacaoId, id);
+      if (!mounted) return;
+      setState(() {
+        _titulares = _titulares
+            .map(
+              (item) => item['titularfinanceiro_id'] == id ? atualizado : item,
+            )
+            .toList(growable: false);
+      });
+      AppSnackBar.sucesso(context, mensagem);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _processandoId = null);
+    }
+  }
+
+  Future<void> _abrirOnboarding(Map<String, dynamic> titular) async {
+    final url = _texto(titular['onboarding_url']).trim();
+    if (url.isEmpty) return;
+    final abriu = await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!abriu && mounted) {
+      AppSnackBar.erro(context, 'Não foi possível abrir o ambiente do Asaas.');
+    }
+  }
+
+  String _statusAsaas(Map<String, dynamic> titular) {
+    final status = _texto(titular['status_asaas']).trim().toUpperCase();
+    return const {
+          'APROVADO': 'Aprovado',
+          'EM_ONBOARDING': 'Cadastro iniciado',
+          'EM_ANALISE': 'Em análise',
+          'PENDENTE_DOCUMENTOS': 'Documentos pendentes',
+          'REJEITADO': 'Rejeitado',
+          'NAO_INICIADO': 'Não iniciado',
+        }[status] ??
+        (status.isEmpty ? 'Não iniciado' : status.replaceAll('_', ' '));
+  }
+
+  Widget _acoesAsaas(
+    Map<String, dynamic> titular, {
+    required bool possuiAsaas,
+    required bool inativo,
+  }) {
+    final id = titular['titularfinanceiro_id'] as int?;
+    final processando = _processandoId == id;
+    final status = _texto(titular['status_asaas']).toUpperCase();
+    final aprovado = status == 'APROVADO';
+    final onboardingUrl = _texto(titular['onboarding_url']).trim();
+
+    if (!possuiAsaas) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: processando || inativo
+              ? null
+              : () => _executarAsaas(
+                  titular,
+                  (organizacaoId, titularId) => _repo.ativar(
+                    organizacaoId,
+                    titularFinanceiroId: titularId,
+                  ),
+                  'Subconta criada. Verifique a situação para continuar.',
+                ),
+          icon: const Icon(Icons.account_balance_rounded),
+          label: Text(
+            inativo
+                ? 'Reative o titular para integrar ao Asaas'
+                : 'Ativar recebimentos',
+          ),
+        ),
+      );
+    }
+
+    if (aprovado) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: ClubbarColors.sucessoClaro,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: ClubbarColors.sucesso),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.verified_rounded, color: ClubbarColors.sucesso),
+            SizedBox(width: 8),
+            Text(
+              'Recebimentos ativos',
+              style: TextStyle(
+                color: ClubbarColors.sucesso,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        if (onboardingUrl.isNotEmpty)
+          ElevatedButton.icon(
+            onPressed: processando ? null : () => _abrirOnboarding(titular),
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('Enviar documentos'),
+          ),
+        OutlinedButton.icon(
+          onPressed: processando
+              ? null
+              : () => _executarAsaas(
+                  titular,
+                  (organizacaoId, titularId) => _repo.verificar(
+                    organizacaoId,
+                    titularFinanceiroId: titularId,
+                  ),
+                  'Situação atualizada com o Asaas.',
+                ),
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Verificar situação'),
+        ),
+        if (ApiConfig.isDev)
+          TextButton.icon(
+            onPressed: processando
+                ? null
+                : () => _executarAsaas(
+                    titular,
+                    (organizacaoId, titularId) => _repo.aprovarSandbox(
+                      organizacaoId,
+                      titularFinanceiroId: titularId,
+                    ),
+                    'Subconta aprovada no Sandbox.',
+                  ),
+            icon: const Icon(Icons.science_rounded),
+            label: const Text('Aprovar no Sandbox'),
+          ),
+      ],
+    );
+  }
+
   Widget _card(Map<String, dynamic> titular) {
     final id = titular['titularfinanceiro_id'] as int?;
     final possuiAsaas = _texto(titular['asaas_account_id']).isNotEmpty;
@@ -223,13 +384,11 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                   ),
                 ),
                 if (possuiAsaas)
-                  Chip(
-                    label: Text(
-                      'Asaas: ${_texto(titular['status_asaas']).replaceAll('_', ' ')}',
-                    ),
-                  ),
+                  Chip(label: Text('Asaas: ${_statusAsaas(titular)}')),
               ],
             ),
+            const SizedBox(height: 10),
+            _acoesAsaas(titular, possuiAsaas: possuiAsaas, inativo: inativo),
             if (possuiAsaas)
               const Padding(
                 padding: EdgeInsets.only(top: 4),

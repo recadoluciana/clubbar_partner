@@ -15,7 +15,6 @@ import '../lojas/loja_list_page.dart';
 import '../organizacao/organizacao_list_page.dart';
 import '../painel_gerencial/painel_gerencial_page.dart';
 import '../usuarios/usuario_list_page.dart';
-import '../financeiro_onboarding/dados_financeiros_page.dart';
 import '../financeiro_onboarding/titulares_financeiros_page.dart';
 import '../atracoes/atracao_list_page.dart';
 import '../estilos_musicais/estilo_musical_list_page.dart';
@@ -191,13 +190,9 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Future<void> _abrirFinanceiro({bool integracao = false}) async {
+  Future<void> _abrirFinanceiro() async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => integracao
-            ? const DadosFinanceirosPage(mostrarIntegracao: true)
-            : const TitularesFinanceirosPage(),
-      ),
+      MaterialPageRoute(builder: (_) => const TitularesFinanceirosPage()),
     );
   }
 
@@ -465,14 +460,6 @@ class _DashboardPageState extends State<DashboardPage> {
                               'Pessoa física ou jurídica responsável pelos recebimentos.',
                           icone: Icons.account_balance_wallet_rounded,
                           onTap: () => _abrirFinanceiro(),
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Integração Asaas',
-                          subtitulo:
-                              'Envie documentos e acompanhe a liberação das vendas.',
-                          icone: Icons.verified_user_rounded,
-                          onTap: () => _abrirFinanceiro(integracao: true),
                         ),
                         const SizedBox(height: 14),
                         _opcao(
