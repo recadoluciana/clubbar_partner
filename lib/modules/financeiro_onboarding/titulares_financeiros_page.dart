@@ -288,7 +288,8 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
           icon: const Icon(Icons.refresh_rounded),
           label: const Text('Verificar situação'),
         ),
-        if (ApiConfig.isDev)
+        if (ApiConfig.isDev ||
+            ApiConfig.baseUrl.toLowerCase().contains('desenvolvimento'))
           TextButton.icon(
             onPressed: processando
                 ? null
@@ -311,6 +312,8 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     final id = titular['titularfinanceiro_id'] as int?;
     final possuiAsaas = _texto(titular['asaas_account_id']).isNotEmpty;
     final inativo = _texto(titular['sittitular']).toUpperCase() == 'INATIVO';
+    final asaasAprovado =
+        _texto(titular['status_asaas']).toUpperCase() == 'APROVADO';
     final statusCor = inativo
         ? ClubbarColors.textoSecundario
         : ClubbarColors.sucesso;
@@ -390,11 +393,13 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
             const SizedBox(height: 10),
             _acoesAsaas(titular, possuiAsaas: possuiAsaas, inativo: inativo),
             if (possuiAsaas)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  'A subconta Asaas já foi criada; este titular não pode ser inativado.',
-                  style: TextStyle(
+                  asaasAprovado
+                      ? 'Subconta aprovada pelo Asaas. Este titular não pode ser inativado.'
+                      : 'Subconta criada, mas os recebimentos serão liberados somente após a aprovação do Asaas. Este titular não pode ser inativado.',
+                  style: const TextStyle(
                     color: ClubbarColors.textoSecundario,
                     fontSize: 12,
                   ),
