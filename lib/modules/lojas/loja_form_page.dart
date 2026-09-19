@@ -714,6 +714,18 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                             'O mesmo titular pode ser usado em vários estabelecimentos.',
                                       ),
                                       items: _titularesFinanceiros
+                                          .where((titular) {
+                                            final id =
+                                                titular['titularfinanceiro_id'];
+                                            final ativo =
+                                                (titular['sittitular'] ??
+                                                        'ATIVO')
+                                                    .toString()
+                                                    .toUpperCase() ==
+                                                'ATIVO';
+                                            return ativo ||
+                                                id == _titularFinanceiroId;
+                                          })
                                           .map(
                                             (titular) => DropdownMenuItem<int>(
                                               value:
