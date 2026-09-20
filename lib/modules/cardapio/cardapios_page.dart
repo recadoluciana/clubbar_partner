@@ -4,8 +4,8 @@ import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
-import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/services/storage_service.dart';
 import '../../models/loja.dart';
 import 'cardapio_loja_editor_page.dart';
 
@@ -20,22 +20,35 @@ class CardapiosPage extends StatefulWidget {
 
 class _CardapiosPageState extends State<CardapiosPage> {
   final _repo = CardapioRepository();
-  late Loja _loja;
-  List<Map<String, dynamic>> _itens = [];
+  late List<Loja> _lojas;
+  final Map<int, List<Map<String, dynamic>>> _itensPorLoja = {};
+  String _nomeOrganizacao = 'Organização';
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loja = widget.loja;
+    _lojas = widget.lojas.isEmpty ? [widget.loja] : widget.lojas;
     _carregar();
   }
 
   Future<void> _carregar() async {
     setState(() => _loading = true);
     try {
-      final itens = await _repo.listar(_loja.lojaId);
-      if (mounted) setState(() => _itens = itens);
+      final resultados = await Future.wait(
+        _lojas.map((loja) => _repo.listar(loja.lojaId)),
+      );
+      final nomeOrganizacao = await StorageService.getNomeOrganizacao();
+      if (mounted) {
+        setState(() {
+          _nomeOrganizacao = nomeOrganizacao?.trim().isNotEmpty == true
+              ? nomeOrganizacao!.trim()
+              : 'Organização';
+          for (var i = 0; i < _lojas.length; i++) {
+            _itensPorLoja[_lojas[i].lojaId] = resultados[i];
+          }
+        });
+      }
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -45,16 +58,10 @@ class _CardapiosPageState extends State<CardapiosPage> {
     }
   }
 
-  Future<void> _trocar(int? id) async {
-    if (id == null || id == _loja.lojaId) return;
-    setState(() => _loja = widget.lojas.firstWhere((e) => e.lojaId == id));
-    await _carregar();
-  }
-
-  Future<void> _novo() async {
+  Future<void> _novo(Loja loja) async {
     List<Map<String, dynamic>> padroes;
     try {
-      padroes = await _repo.listarPadroes(_loja.organizacaoId);
+      padroes = await _repo.listarPadroes(loja.organizacaoId);
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -99,7 +106,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
     );
     if (selecionado == null) return;
     try {
-      await _repo.associar(_loja.lojaId, selecionado);
+      await _repo.associar(loja.lojaId, selecionado);
       await _carregar();
     } catch (e) {
       if (mounted) {
@@ -136,7 +143,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
     }
   }
 
-  Future<void> _editar(Map<String, dynamic> cardapio) async {
+  Future<void> _editar(Loja loja, Map<String, dynamic> cardapio) async {
     try {
       final versaoId = await _garantirRascunho(cardapio);
       if (!mounted) return;
@@ -144,7 +151,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
         context,
         MaterialPageRoute(
           builder: (_) => CardapioLojaEditorPage(
-            loja: _loja,
+            loja: loja,
             versaoId: versaoId,
             nomeCardapio: '${cardapio['nmcardapio']}',
           ),
@@ -207,150 +214,19 @@ class _CardapiosPageState extends State<CardapiosPage> {
 
   @override
   Widget build(BuildContext context) {
-    final cards = <Widget>[
-      if (_itens.isEmpty)
-        const Padding(
-          padding: EdgeInsets.all(36),
-          child: Center(child: Text('Nenhum cardápio criado.')),
-        ),
-      ..._itens.map((cardapio) {
-        final versoes = cardapio['versoes'] as List? ?? const [];
-        final publicadas = versoes
-            .where((v) => v['statusversao'] == 'PUBLICADA')
-            .toList();
-        final rascunhos = versoes
-            .where((v) => v['statusversao'] == 'RASCUNHO')
-            .toList();
-        final programadas = versoes
-            .where((v) => v['statusversao'] == 'PROGRAMADA')
-            .toList();
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${cardapio['nmcardapio']}',
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                    Chip(label: Text('${cardapio['tipocardapio']}')),
-                  ],
-                ),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (publicadas.isEmpty)
-                      const Chip(
-                        avatar: Icon(Icons.visibility_off_outlined, size: 18),
-                        label: Text('Não publicado'),
-                      ),
-                    for (final versao in publicadas)
-                      Chip(
-                        backgroundColor: Colors.green.shade50,
-                        avatar: Icon(
-                          Icons.check_circle,
-                          color: Colors.green.shade800,
-                          size: 18,
-                        ),
-                        label: Text(
-                          'Publicado — versão ${versao['nrversao']}',
-                          style: TextStyle(
-                            color: Colors.green.shade800,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    for (final versao in rascunhos)
-                      Chip(
-                        backgroundColor: ClubbarColors.primariaClaro,
-                        avatar: const Icon(Icons.edit_note, size: 18),
-                        label: Text(
-                          'Alterações em rascunho — versão ${versao['nrversao']}',
-                        ),
-                      ),
-                    for (final versao in programadas)
-                      Chip(
-                        avatar: const Icon(Icons.schedule, size: 18),
-                        label: Text(
-                          'Publicação programada — versão ${versao['nrversao']}',
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => _editar(cardapio),
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text('Editar cardápio'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _reajustar(cardapio),
-                      icon: const Icon(Icons.price_change_outlined),
-                      label: const Text('Reajustar'),
-                    ),
-                    FilledButton.icon(
-                      onPressed: () => _publicar(cardapio),
-                      icon: const Icon(Icons.publish),
-                      label: const Text('Publicar'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
-    ];
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-      bottomNavigationBar: ClubbarActionBar(
-        actions: [
-          ClubbarAddButton(onPressed: _novo, label: 'Usar cardápio padrão'),
-        ],
-      ),
       body: Column(
         children: [
           ClubbarPageHeader(
-            titulo: _loja.nmloja,
-            subtitulo: 'Cardápios digitais',
+            titulo: _nomeOrganizacao,
+            subtitulo: 'Cardápios digitais dos estabelecimentos',
             tituloStyle: const TextStyle(
               color: ClubbarColors.primariaEscuro,
               fontSize: 17,
               fontWeight: FontWeight.w900,
             ),
-            trailing: widget.lojas.length < 2
-                ? null
-                : PopupMenuButton<int>(
-                    tooltip: 'Trocar estabelecimento',
-                    icon: const Icon(
-                      Icons.swap_horiz_rounded,
-                      color: Colors.blue,
-                    ),
-                    onSelected: _trocar,
-                    itemBuilder: (_) => widget.lojas
-                        .map(
-                          (loja) => PopupMenuItem(
-                            value: loja.lojaId,
-                            child: Text(loja.nmloja),
-                          ),
-                        )
-                        .toList(),
-                  ),
           ),
           Expanded(
             child: _loading
@@ -359,12 +235,162 @@ class _CardapiosPageState extends State<CardapiosPage> {
                     onRefresh: _carregar,
                     child: ListView(
                       padding: const EdgeInsets.all(14),
-                      children: cards,
+                      children: [for (final loja in _lojas) _cardLoja(loja)],
                     ),
                   ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _cardLoja(Loja loja) {
+    final cardapios = _itensPorLoja[loja.lojaId] ?? const [];
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 14),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.restaurant_menu_rounded,
+                  color: ClubbarColors.primariaEscuro,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Cardápio padrão - ${loja.nmloja}',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 22),
+            if (cardapios.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Nenhum cardápio criado para este estabelecimento.',
+                ),
+              ),
+            for (var i = 0; i < cardapios.length; i++) ...[
+              _conteudoCardapio(loja, cardapios[i]),
+              if (i < cardapios.length - 1) const Divider(height: 24),
+            ],
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: () => _novo(loja),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Usar cardápio padrão'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _conteudoCardapio(Loja loja, Map<String, dynamic> cardapio) {
+    final versoes = cardapio['versoes'] as List? ?? const [];
+    final publicadas = versoes
+        .where((v) => v['statusversao'] == 'PUBLICADA')
+        .toList();
+    final rascunhos = versoes
+        .where((v) => v['statusversao'] == 'RASCUNHO')
+        .toList();
+    final programadas = versoes
+        .where((v) => v['statusversao'] == 'PROGRAMADA')
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${cardapio['nmcardapio']}',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            Chip(label: Text('${cardapio['tipocardapio']}')),
+          ],
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (publicadas.isEmpty)
+              const Chip(
+                avatar: Icon(Icons.visibility_off_outlined, size: 18),
+                label: Text('Não publicado'),
+              ),
+            for (final versao in publicadas)
+              Chip(
+                backgroundColor: Colors.green.shade50,
+                avatar: Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade800,
+                  size: 18,
+                ),
+                label: Text(
+                  'Publicado — versão ${versao['nrversao']}',
+                  style: TextStyle(
+                    color: Colors.green.shade800,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            for (final versao in rascunhos)
+              Chip(
+                backgroundColor: ClubbarColors.primariaClaro,
+                avatar: const Icon(Icons.edit_note, size: 18),
+                label: Text(
+                  'Alterações em rascunho — versão ${versao['nrversao']}',
+                ),
+              ),
+            for (final versao in programadas)
+              Chip(
+                avatar: const Icon(Icons.schedule, size: 18),
+                label: Text(
+                  'Publicação programada — versão ${versao['nrversao']}',
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: () => _editar(loja, cardapio),
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Editar cardápio'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => _reajustar(cardapio),
+              icon: const Icon(Icons.price_change_outlined),
+              label: const Text('Reajustar'),
+            ),
+            FilledButton.icon(
+              onPressed: () => _publicar(cardapio),
+              icon: const Icon(Icons.publish),
+              label: const Text('Publicar'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
