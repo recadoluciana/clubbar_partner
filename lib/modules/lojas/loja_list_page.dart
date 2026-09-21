@@ -19,6 +19,7 @@ import 'loja_imagens_page.dart';
 import 'loja_conteudo_page.dart';
 import 'loja_politica_ingresso_page.dart';
 import 'loja_configuracao_produtos_page.dart';
+import 'pendencias_cancelamento_page.dart';
 
 class LojaListPage extends StatefulWidget {
   final int organizacaoId;
@@ -669,6 +670,10 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   Future<void> _solicitarCancelamento(Loja loja) async {
+    if (!_podeAlterarLoja(loja)) {
+      _avisarSomenteConsulta();
+      return;
+    }
     final controller = TextEditingController();
     final justificativa = await showDialog<String>(
       context: context,
@@ -706,6 +711,41 @@ class _LojaListPageState extends State<LojaListPage> {
     }
   }
 
+  Future<void> _retirarCancelamento(Loja loja) async {
+    if (!_podeAlterarLoja(loja)) {
+      _avisarSomenteConsulta();
+      return;
+    }
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Retirar pedido de cancelamento'),
+        content: Text(
+          'Deseja retirar o pedido de cancelamento da parceria de “${loja.nmloja}”?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Voltar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Retirar pedido'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+    try {
+      await _repository.retirarCancelamento(loja.lojaId);
+      if (!mounted) return;
+      AppSnackBar.sucesso(context, 'Pedido de cancelamento retirado.');
+      await _carregarLojas();
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
+    }
+  }
+
   String _formatarDataCancelamento(dynamic valor) {
     final data = DateTime.tryParse(valor?.toString() ?? '')?.toLocal();
     if (data == null) return 'data não informada';
@@ -718,48 +758,10 @@ class _LojaListPageState extends State<LojaListPage> {
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Pendências antes da inativação'),
-        content: pendencias.isEmpty
-            ? const Text(
-                'Não há tickets ou ingressos pendentes neste estabelecimento.',
-              )
-            : SizedBox(
-                width: 420,
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: pendencias.length,
-                  separatorBuilder: (_, index) => const Divider(),
-                  itemBuilder: (_, index) {
-                    final item = pendencias[index];
-                    final ehIngresso = item['tipo'] == 'INGRESSO';
-                    final dataEvento = item['data_evento'];
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        ehIngresso
-                            ? Icons.confirmation_number_outlined
-                            : Icons.shopping_bag_outlined,
-                        color: ClubbarColors.ambarEscuro,
-                      ),
-                      title: Text(
-                        '${item['quantidade'] ?? 1}x ${item['nome'] ?? 'Item'}',
-                      ),
-                      subtitle: Text(
-                        '${item['motivo'] ?? ''}${ehIngresso && dataEvento != null ? '\nEvento: ${_formatarDataCancelamento(dataEvento)}' : ''}',
-                      ),
-                    );
-                  },
-                ),
-              ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Fechar'),
-          ),
-        ],
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) =>
+            PendenciasCancelamentoPage(loja: loja, pendencias: pendencias),
       ),
     );
   }
@@ -1112,16 +1114,33 @@ class _LojaListPageState extends State<LojaListPage> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _solicitarCancelamento(loja),
-              icon: const Icon(
-                Icons.cancel_outlined,
-                color: ClubbarColors.erro,
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed:
+                      (_cancelamentos[loja.lojaId]?['solicitado'] ?? false)
+                      ? null
+                      : () => _solicitarCancelamento(loja),
+                  icon: const Icon(Icons.cancel_outlined),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ClubbarColors.erro,
+                  ),
+                  label: const Text('Solicitar cancelamento'),
+                ),
               ),
-              label: const Text('Solicitar cancelamento de parceria'),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed:
+                      (_cancelamentos[loja.lojaId]?['solicitado'] ?? false)
+                      ? () => _retirarCancelamento(loja)
+                      : null,
+                  icon: const Icon(Icons.undo_rounded),
+                  label: const Text('Retirar pedido'),
+                ),
+              ),
+            ],
           ),
           if ((_cancelamentos[loja.lojaId]?['solicitado'] ?? false) ==
               true) ...[

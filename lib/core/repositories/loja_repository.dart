@@ -358,4 +358,15 @@ class LojaRepository {
     }
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
+
+  Future<void> retirarCancelamento(int lojaId) async {
+    final response = await ApiService.delete(
+      '/lojas/$lojaId/cancelamento-parceria',
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Erro ao retirar solicitação de cancelamento: ${response.body}',
+      );
+    }
+  }
 }
