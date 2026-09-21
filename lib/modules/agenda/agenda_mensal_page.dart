@@ -108,7 +108,15 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       if (mounted) AppSnackBar.sucesso(context, mensagem);
     } catch (e) {
       if (mounted) {
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+        final texto = e.toString();
+        AppSnackBar.erro(
+          context,
+          texto.contains('temporariamente indisponível')
+              ? 'Sua agenda não pode ser publicada. Sua conta no Asaas ainda não foi aprovada.\n\nAcesse o menu Titular financeiro e efetive a integração com o Asaas.'
+              : texto.replaceFirst('Exception: ', ''),
+          duration: const Duration(seconds: 10),
+          mostrarFechar: true,
+        );
       }
     }
   }

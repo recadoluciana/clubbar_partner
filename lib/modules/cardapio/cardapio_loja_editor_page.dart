@@ -77,7 +77,15 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       });
     } catch (e) {
       if (mounted) {
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+        final texto = e.toString();
+        AppSnackBar.erro(
+          context,
+          texto.contains('temporariamente indisponível')
+              ? 'Seu cardápio não pode ser publicado. Sua conta no Asaas ainda não foi aprovada.\n\nAcesse o menu Titular financeiro e efetive a integração com o Asaas.'
+              : texto.replaceFirst('Exception: ', ''),
+          duration: const Duration(seconds: 10),
+          mostrarFechar: true,
+        );
       }
     } finally {
       if (mounted) setState(() => _carregando = false);
@@ -373,7 +381,15 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       return true;
     } catch (e) {
       if (mounted) {
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+        final texto = e.toString();
+        AppSnackBar.erro(
+          context,
+          texto.contains('temporariamente indisponível')
+              ? 'Seu cardápio não pode ser publicado. Sua conta no Asaas ainda não foi aprovada.\n\nAcesse o menu Titular financeiro e efetive a integração com o Asaas.'
+              : texto.replaceFirst('Exception: ', ''),
+          duration: const Duration(seconds: 10),
+          mostrarFechar: true,
+        );
       }
       return false;
     } finally {
