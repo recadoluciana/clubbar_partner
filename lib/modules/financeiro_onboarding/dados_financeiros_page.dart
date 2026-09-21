@@ -59,6 +59,12 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   bool _carregando = true, _processando = false, _consultandoCep = false;
   String? _ultimoCepConsultado;
 
+  // Titulares antigos podem ter a subconta criada sem data de nascimento.
+  // Nesse caso, permita completar esse dado uma única vez; após salvar, o
+  // campo volta a ficar protegido como os demais dados imutáveis da subconta.
+  bool get _nascimentoPodeSerEditado =>
+      !_subcontaCriada || _c['nascimento']!.text.trim().isEmpty;
+
   @override
   void initState() {
     super.initState();
@@ -378,8 +384,8 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     child: TextFormField(
       controller: _c['nascimento'],
       readOnly: true,
-      enabled: !_subcontaCriada,
-      onTap: _subcontaCriada ? null : _selecionarNascimento,
+      enabled: _nascimentoPodeSerEditado,
+      onTap: _nascimentoPodeSerEditado ? _selecionarNascimento : null,
       validator: _obrigatorio,
       decoration: InputDecoration(
         labelText: 'Data de nascimento',
