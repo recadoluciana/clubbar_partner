@@ -334,4 +334,18 @@ class LojaRepository {
       throw Exception('Erro ao reativar estabelecimento: ${response.body}');
     }
   }
+
+  Future<Map<String, dynamic>> solicitarCancelamento(
+    int lojaId,
+    String justificativa,
+  ) async {
+    final response = await ApiService.post(
+      '/lojas/$lojaId/cancelamento-parceria',
+      {'justificativa': justificativa},
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Erro ao solicitar cancelamento: ${response.body}');
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
 }

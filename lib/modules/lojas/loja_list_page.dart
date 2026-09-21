@@ -660,6 +660,52 @@ class _LojaListPageState extends State<LojaListPage> {
     }
   }
 
+  Future<void> _solicitarCancelamento(Loja loja) async {
+    final controller = TextEditingController();
+    final justificativa = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Solicitar cancelamento de parceria'),
+        content: TextField(
+          controller: controller,
+          minLines: 3,
+          maxLines: 6,
+          decoration: const InputDecoration(
+            labelText: 'Nos conte o que saiu errado',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Registrar solicitação'),
+          ),
+        ],
+      ),
+    );
+    if (justificativa == null || justificativa.trim().isEmpty || !mounted)
+      return;
+    try {
+      final retorno = await _repository.solicitarCancelamento(
+        loja.lojaId,
+        justificativa,
+      );
+      final pendencias = (retorno['pendencias'] as List? ?? []).length;
+      final data = (retorno['aviso_previo_ate'] ?? '').toString();
+      AppSnackBar.aviso(
+        context,
+        'Solicitação registrada. Enquanto houver tickets pendentes você não poderá inativar este estabelecimento. Mesmo sem pendências, a inativação só poderá ocorrer após 30 dias. Aviso prévio até $data. Pendências: $pendencias.',
+      );
+      await _carregarLojas();
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
+    }
+  }
+
   Widget _linhaInformacao({required IconData icone, required String texto}) {
     if (texto.trim().isEmpty) {
       return const SizedBox.shrink();
@@ -966,6 +1012,18 @@ class _LojaListPageState extends State<LojaListPage> {
               onPressed: () => _importarCardapioPadrao(loja),
               icon: const Icon(Icons.download_rounded),
               label: const Text('Importar Cardápio Digital da empresa'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _solicitarCancelamento(loja),
+              icon: const Icon(
+                Icons.cancel_outlined,
+                color: ClubbarColors.erro,
+              ),
+              label: const Text('Solicitar cancelamento de parceria'),
             ),
           ),
         ],
