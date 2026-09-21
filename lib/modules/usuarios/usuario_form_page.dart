@@ -45,11 +45,15 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
   String _statusSelecionado = 'ATIVO';
   String _cargoSelecionado = 'BARMAN';
   String _cargoLogado = '';
+  int? _usuarioLogadoId;
 
   bool get editando => widget.usuario != null;
 
   bool get usuarioPrincipal =>
-      editando && (widget.usuario!.usuarioId == 1 || usuarioSuperadmin);
+      editando &&
+      (widget.usuario!.usuarioId == 1 || usuarioSuperadmin) &&
+      !(_cargoLogado == 'SUPERADMIN' &&
+          _usuarioLogadoId == widget.usuario!.usuarioId);
 
   bool get usuarioSuperadmin =>
       editando && widget.usuario!.dscargo.trim().toUpperCase() == 'SUPERADMIN';
@@ -161,6 +165,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       final cargoLogado = (await StorageService.getCargo() ?? '')
           .trim()
           .toUpperCase();
+      final usuarioLogadoId = await StorageService.getUsuarioId();
       final lista = await _lojaRepository.listar(widget.organizacaoId);
 
       if (!mounted) return;
@@ -175,6 +180,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       setState(() {
         _lojas = lista;
         _cargoLogado = cargoLogado;
+        _usuarioLogadoId = usuarioLogadoId;
         _lojaIdSelecionada =
             lojaSelecionada ??
             (_usuarioLogadoManager && lista.isNotEmpty

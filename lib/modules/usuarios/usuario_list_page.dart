@@ -36,6 +36,8 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
   String? _erro;
   String _nomeOrganizacao = 'Empresa';
+  String _cargoLogado = '';
+  int? _usuarioLogadoId;
 
   List<Usuario> _usuarios = [];
   List<Usuario> _usuariosFiltrados = [];
@@ -47,7 +49,24 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
     _carregarTudo();
     _carregarNomeOrganizacao();
+    _carregarPermissao();
   }
+
+  Future<void> _carregarPermissao() async {
+    final dados = await Future.wait([
+      StorageService.getCargo(),
+      StorageService.getUsuarioId(),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _cargoLogado = (dados[0] as String? ?? '').toUpperCase();
+      _usuarioLogadoId = dados[1] as int?;
+    });
+  }
+
+  bool _podeEditar(Usuario usuario) =>
+      usuario.dscargo.trim().toUpperCase() != 'SUPERADMIN' ||
+      (_cargoLogado == 'SUPERADMIN' && _usuarioLogadoId == usuario.usuarioId);
 
   Future<void> _carregarNomeOrganizacao() async {
     final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
@@ -387,7 +406,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
       elevation: 1,
-      onTap: principal ? null : () => _abrirEdicao(usuario),
+      onTap: _podeEditar(usuario) ? () => _abrirEdicao(usuario) : null,
       child: Column(
         children: [
           Row(
@@ -555,7 +574,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: principal || _excluindo
+                  onPressed: !_podeEditar(usuario) || _excluindo
                       ? null
                       : () => _abrirEdicao(usuario),
                   icon: const Icon(Icons.edit_rounded),
