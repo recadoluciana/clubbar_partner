@@ -143,6 +143,170 @@ class _CardapiosPageState extends State<CardapiosPage> {
     }
   }
 
+  Future<void> _retirarPublicacao(Map<String, dynamic> cardapio) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retirar publicação?'),
+        content: Text(
+          '“${cardapio['nmcardapio']}” deixará de ficar disponível para os clientes.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Retirar publicação'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    try {
+      final mensagem = await _repo.retirarPublicacao(
+        int.parse('${cardapio['cardapio_id']}'),
+      );
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, mensagem);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  String _data(DateTime data) =>
+      '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}';
+
+  Future<void> _programarExibicao(Map<String, dynamic> cardapio) async {
+    final hoje = DateTime.now();
+    final inicio = await showDatePicker(
+      context: context,
+      initialDate: hoje,
+      firstDate: DateTime(hoje.year - 1),
+      lastDate: DateTime(hoje.year + 5),
+      helpText: 'Início da exibição da temporada',
+    );
+    if (inicio == null || !mounted) return;
+    final fim = await showDatePicker(
+      context: context,
+      initialDate: inicio,
+      firstDate: inicio,
+      lastDate: DateTime(inicio.year + 5),
+      helpText: 'Fim da exibição (opcional)',
+    );
+    if (!mounted) return;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Programar exibição'),
+        content: Text(
+          fim == null
+              ? 'Este cardápio ficará disponível a partir de ${_data(inicio)} até você retirar a programação.'
+              : 'Este cardápio ficará disponível de ${_data(inicio)} até ${_data(fim)}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Programar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    try {
+      await _repo.programarExibicao(
+        int.parse('${cardapio['cardapio_id']}'),
+        inicio: inicio,
+        fim: fim,
+      );
+      if (mounted) AppSnackBar.sucesso(context, 'Exibição programada.');
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  Future<void> _verProgramacoes(Map<String, dynamic> cardapio) async {
+    final cardapioId = int.parse('${cardapio['cardapio_id']}');
+    try {
+      final itens = await _repo.listarProgramacoes(cardapioId);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Programações de exibição'),
+          content: SizedBox(
+            width: 420,
+            child: itens.isEmpty
+                ? const Text('Não há programação ativa para este cardápio.')
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: itens.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (_, index) {
+                      final item = itens[index];
+                      final inicio = '${item['dtinicio'] ?? 'agora'}';
+                      final fim = '${item['dtfim'] ?? 'sem data final'}';
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('$inicio até $fim'),
+                        trailing: IconButton(
+                          tooltip: 'Remover programação',
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () async {
+                            try {
+                              await _repo.removerProgramacao(
+                                cardapioId,
+                                int.parse('${item['cardapioprogramacao_id']}'),
+                              );
+                              if (dialogContext.mounted) {
+                                Navigator.pop(dialogContext);
+                              }
+                              await _carregar();
+                              if (mounted) {
+                                AppSnackBar.sucesso(
+                                  context,
+                                  'Programação removida.',
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                AppSnackBar.erro(
+                                  context,
+                                  e.toString().replaceFirst('Exception: ', ''),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Fechar'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
   Future<void> _editar(Loja loja, Map<String, dynamic> cardapio) async {
     try {
       final versaoId = await _garantirRascunho(cardapio);
@@ -311,6 +475,9 @@ class _CardapiosPageState extends State<CardapiosPage> {
     final programadas = versoes
         .where((v) => v['statusversao'] == 'PROGRAMADA')
         .toList();
+    final publicado = publicadas.isNotEmpty || programadas.isNotEmpty;
+    final rascunho = _rascunho(cardapio);
+    final sazonal = cardapio['tipocardapio'] != 'PRINCIPAL';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,11 +550,30 @@ class _CardapiosPageState extends State<CardapiosPage> {
               icon: const Icon(Icons.price_change_outlined),
               label: const Text('Reajustar'),
             ),
-            FilledButton.icon(
-              onPressed: () => _publicar(cardapio),
-              icon: const Icon(Icons.publish),
-              label: const Text('Publicar'),
-            ),
+            if (rascunho != null)
+              FilledButton.icon(
+                onPressed: () => _publicar(cardapio),
+                icon: const Icon(Icons.publish),
+                label: const Text('Publicar alterações'),
+              ),
+            if (publicado)
+              OutlinedButton.icon(
+                onPressed: () => _retirarPublicacao(cardapio),
+                icon: const Icon(Icons.visibility_off_outlined),
+                label: const Text('Retirar publicação'),
+              ),
+            if (sazonal && publicado)
+              FilledButton.icon(
+                onPressed: () => _programarExibicao(cardapio),
+                icon: const Icon(Icons.schedule_outlined),
+                label: const Text('Programar exibição'),
+              ),
+            if (sazonal)
+              OutlinedButton.icon(
+                onPressed: () => _verProgramacoes(cardapio),
+                icon: const Icon(Icons.calendar_month_outlined),
+                label: const Text('Ver programações'),
+              ),
           ],
         ),
       ],

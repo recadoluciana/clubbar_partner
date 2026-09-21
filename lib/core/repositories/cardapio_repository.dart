@@ -315,6 +315,55 @@ class CardapioRepository {
         .toString();
   }
 
+  Future<String> retirarPublicacao(int cardapioId) async {
+    final response = await ApiService.post(
+      '/cardapios/$cardapioId/retirar-publicacao',
+      const {},
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível retirar a publicação.');
+    }
+    return (Map<String, dynamic>.from(_json(response))['mensagem'] ??
+            'Publicação retirada.')
+        .toString();
+  }
+
+  Future<List<Map<String, dynamic>>> listarProgramacoes(int cardapioId) async {
+    final response = await ApiService.get(
+      '/cardapios/$cardapioId/programacoes',
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível carregar as programações.');
+    }
+    return (_json(response) as List)
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<void> programarExibicao(
+    int cardapioId, {
+    required DateTime inicio,
+    DateTime? fim,
+  }) async {
+    final response =
+        await ApiService.post('/cardapios/$cardapioId/programacoes', {
+          'dtinicio': inicio.toIso8601String().substring(0, 10),
+          'dtfim': fim?.toIso8601String().substring(0, 10),
+        });
+    if (response.statusCode != 201) {
+      throw _erro(response, 'Não foi possível programar a exibição.');
+    }
+  }
+
+  Future<void> removerProgramacao(int cardapioId, int programacaoId) async {
+    final response = await ApiService.delete(
+      '/cardapios/$cardapioId/programacoes/$programacaoId',
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível remover a programação.');
+    }
+  }
+
   Future<int> reajustar(
     int versaoId,
     double percentual, {
