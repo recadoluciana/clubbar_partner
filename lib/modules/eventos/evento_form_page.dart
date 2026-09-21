@@ -9,6 +9,7 @@ import '../../core/repositories/evento_repository.dart';
 import '../../core/repositories/localidade_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
@@ -157,11 +158,13 @@ class _EventoFormPageState extends State<EventoFormPage> {
     required String label,
     required IconData icone,
     String? hint,
+    String? prefixText,
     Widget? suffixIcon,
   }) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
+      prefixText: prefixText,
       prefixIcon: Icon(icone, color: ClubbarColors.textoSecundario),
       suffixIcon: suffixIcon,
       filled: true,
@@ -190,16 +193,27 @@ class _EventoFormPageState extends State<EventoFormPage> {
     );
   }
 
+  double _valorPreco() =>
+      double.tryParse(
+        _precoController.text.replaceAll('.', '').replaceAll(',', '.'),
+      ) ??
+      0;
+
+  void _formatarPreco() {
+    final texto = _valorPreco().toStringAsFixed(2).replaceAll('.', ',');
+    _precoController.value = TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
+    );
+  }
+
   Future<void> _salvar() async {
+    _formatarPreco();
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _salvando = true);
-    final preco =
-        double.tryParse(
-          _precoController.text.replaceAll('.', '').replaceAll(',', '.'),
-        ) ??
-        0;
+    final preco = _valorPreco();
 
     try {
       if (editando) {
@@ -389,9 +403,18 @@ class _EventoFormPageState extends State<EventoFormPage> {
           TextFormField(
             controller: _precoController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: const [
+              DecimalInputFormatter(
+                casasDecimais: 2,
+                usarSeparadorMilhar: true,
+              ),
+            ],
+            onEditingComplete: _formatarPreco,
+            onTapOutside: (_) => _formatarPreco(),
             decoration: _decoracaoCampo(
               label: 'Preço padrão da inteira',
-              icone: Icons.attach_money_rounded,
+              icone: Icons.payments_outlined,
+              prefixText: 'R\$ ',
               hint: '0,00',
             ),
           ),
