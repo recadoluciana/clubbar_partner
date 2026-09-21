@@ -23,6 +23,11 @@ class ApiConfig {
 
   static bool get isProd => appFlavor == 'prod';
 
+  /// Endereço público do Clubbar Client usado em mensagens compartilhadas.
+  static String get clubbarClientUrl => isDev
+      ? 'https://clubbarclient-desenvolvimento.up.railway.app'
+      : 'https://app.clubbar.com.br';
+
   static String get baseUrl {
     /*
      * Permite sobrescrever a URL manualmente, caso seja necessário.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import '../../core/config/api_config.dart';
 import '../../core/repositories/atracao_repository.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
@@ -26,7 +27,6 @@ class AgendaMensalPage extends StatefulWidget {
 }
 
 class _AgendaMensalPageState extends State<AgendaMensalPage> {
-  static const _clubbarAppUrl = 'https://app.clubbar.com.br';
   final _repo = AtracaoRepository();
   DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
   List<AgendaEvento> _eventos = [];
@@ -163,7 +163,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     }
     texto
       ..writeln('Veja mais e compre seu ingresso digital pelo Clubbar App:')
-      ..writeln('$_clubbarAppUrl/?loja_id=${loja.lojaId}');
+      ..writeln('${ApiConfig.clubbarClientUrl}/?loja_id=${loja.lojaId}');
     await Clipboard.setData(ClipboardData(text: texto.toString().trim()));
     if (mounted) {
       AppSnackBar.sucesso(

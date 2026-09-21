@@ -19,7 +19,6 @@ class AgendaConsultaPage extends StatefulWidget {
 }
 
 class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
-  static const _clubbarAppUrl = 'https://app.clubbar.com.br';
   static const _tamanhoImagem = 128.0;
   final _repo = AtracaoRepository(), _lojaRepo = LojaRepository();
   DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
@@ -169,7 +168,7 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
     }
     b
       ..writeln('Compre seu ingresso digital pelo Clubbar App:')
-      ..writeln(_clubbarAppUrl)
+      ..writeln(ApiConfig.clubbarClientUrl)
       ..writeln()
       ..writeln(
         'Cadastre-se para comprar. Seu ingresso ficará na carteira digital do aplicativo e deverá ser apresentado pelo QR Code na portaria do local.',
