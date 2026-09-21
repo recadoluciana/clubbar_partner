@@ -904,7 +904,7 @@ class _LojaListPageState extends State<LojaListPage> {
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.inventory_2_outlined),
-            title: Text('Configuração de produtos'),
+            title: Text('Gerenciar cashback'),
           ),
         ),
         const PopupMenuItem(
@@ -1114,33 +1114,27 @@ class _LojaListPageState extends State<LojaListPage> {
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed:
-                      (_cancelamentos[loja.lojaId]?['solicitado'] ?? false)
-                      ? null
-                      : () => _solicitarCancelamento(loja),
-                  icon: const Icon(Icons.cancel_outlined),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ClubbarColors.erro,
-                  ),
-                  label: const Text('Solicitar cancelamento'),
-                ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: (_cancelamentos[loja.lojaId]?['solicitado'] ?? false)
+                  ? null
+                  : () => _solicitarCancelamento(loja),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ClubbarColors.erro,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed:
-                      (_cancelamentos[loja.lojaId]?['solicitado'] ?? false)
-                      ? () => _retirarCancelamento(loja)
-                      : null,
-                  icon: const Icon(Icons.undo_rounded),
-                  label: const Text('Retirar pedido'),
-                ),
-              ),
-            ],
+              child: const Text('Solicitar cancelamento de parceria'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: (_cancelamentos[loja.lojaId]?['solicitado'] ?? false)
+                  ? () => _retirarCancelamento(loja)
+                  : null,
+              child: const Text('Retirar pedido de cancelamento de parceria'),
+            ),
           ),
           if ((_cancelamentos[loja.lojaId]?['solicitado'] ?? false) ==
               true) ...[
