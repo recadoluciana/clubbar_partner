@@ -52,6 +52,7 @@ class _LojaListPageState extends State<LojaListPage> {
 
   List<Loja> _lojas = [];
   List<Loja> _lojasFiltradas = [];
+  Map<int, Map<String, dynamic>> _cancelamentos = const {};
 
   @override
   void initState() {
@@ -152,11 +153,18 @@ class _LojaListPageState extends State<LojaListPage> {
 
     try {
       final lista = await _repository.listar(widget.organizacaoId);
+      final cancelamentos = await Future.wait(
+        lista.map((loja) async {
+          final dados = await _repository.consultarCancelamento(loja.lojaId);
+          return MapEntry(loja.lojaId, dados);
+        }),
+      );
       if (!mounted) return;
 
       setState(() {
         _lojas = lista;
         _lojasFiltradas = _aplicarFiltro(lista, _buscaController.text);
+        _cancelamentos = Map.fromEntries(cancelamentos);
         _carregando = false;
       });
     } catch (e) {
@@ -687,23 +695,112 @@ class _LojaListPageState extends State<LojaListPage> {
         ],
       ),
     );
-    if (justificativa == null || justificativa.trim().isEmpty || !mounted)
+    if (justificativa == null || justificativa.trim().isEmpty || !mounted) {
       return;
+    }
     try {
-      final retorno = await _repository.solicitarCancelamento(
-        loja.lojaId,
-        justificativa,
-      );
-      final pendencias = (retorno['pendencias'] as List? ?? []).length;
-      final data = (retorno['aviso_previo_ate'] ?? '').toString();
-      AppSnackBar.aviso(
-        context,
-        'Solicitação registrada. Enquanto houver tickets pendentes você não poderá inativar este estabelecimento. Mesmo sem pendências, a inativação só poderá ocorrer após 30 dias. Aviso prévio até $data. Pendências: $pendencias.',
-      );
+      await _repository.solicitarCancelamento(loja.lojaId, justificativa);
       await _carregarLojas();
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
     }
+  }
+
+  String _formatarDataCancelamento(dynamic valor) {
+    final data = DateTime.tryParse(valor?.toString() ?? '')?.toLocal();
+    if (data == null) return 'data não informada';
+    return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}';
+  }
+
+  Future<void> _verPendenciasCancelamento(Loja loja) async {
+    final dados = _cancelamentos[loja.lojaId] ?? const <String, dynamic>{};
+    final pendencias = (dados['pendencias'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Pendências antes da inativação'),
+        content: pendencias.isEmpty
+            ? const Text(
+                'Não há tickets ou ingressos pendentes neste estabelecimento.',
+              )
+            : SizedBox(
+                width: 420,
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: pendencias.length,
+                  separatorBuilder: (_, index) => const Divider(),
+                  itemBuilder: (_, index) {
+                    final item = pendencias[index];
+                    final ehIngresso = item['tipo'] == 'INGRESSO';
+                    final dataEvento = item['data_evento'];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        ehIngresso
+                            ? Icons.confirmation_number_outlined
+                            : Icons.shopping_bag_outlined,
+                        color: ClubbarColors.ambarEscuro,
+                      ),
+                      title: Text(
+                        '${item['quantidade'] ?? 1}x ${item['nome'] ?? 'Item'}',
+                      ),
+                      subtitle: Text(
+                        '${item['motivo'] ?? ''}${ehIngresso && dataEvento != null ? '\nEvento: ${_formatarDataCancelamento(dataEvento)}' : ''}',
+                      ),
+                    );
+                  },
+                ),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _avisoCancelamentoNoCard(Loja loja) {
+    final dados = _cancelamentos[loja.lojaId];
+    if (dados == null || dados['solicitado'] != true) {
+      return const SizedBox.shrink();
+    }
+    final pendencias = (dados['pendencias'] as List? ?? const []).length;
+    final data = _formatarDataCancelamento(dados['aviso_previo_ate']);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3CD),
+        border: Border.all(color: const Color(0xFFF0C650)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Parceiro em aviso prévio de cancelamento de parceria até $data.',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            pendencias == 0
+                ? 'Não há pendências, mas o estabelecimento só poderá ser inativado após esse prazo.'
+                : 'Há $pendencias pendência(s). Enquanto existirem, o estabelecimento não poderá ser inativado.',
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => _verPendenciasCancelamento(loja),
+            icon: const Icon(Icons.list_alt_rounded),
+            label: const Text('Ver pendências'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _linhaInformacao({required IconData icone, required String texto}) {
@@ -1026,6 +1123,11 @@ class _LojaListPageState extends State<LojaListPage> {
               label: const Text('Solicitar cancelamento de parceria'),
             ),
           ),
+          if ((_cancelamentos[loja.lojaId]?['solicitado'] ?? false) ==
+              true) ...[
+            const SizedBox(height: 8),
+            _avisoCancelamentoNoCard(loja),
+          ],
         ],
       ),
     );

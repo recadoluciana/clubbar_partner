@@ -348,4 +348,14 @@ class LojaRepository {
     }
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> consultarCancelamento(int lojaId) async {
+    final response = await ApiService.get(
+      '/lojas/$lojaId/cancelamento-parceria',
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Erro ao consultar cancelamento: ${response.body}');
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
 }
