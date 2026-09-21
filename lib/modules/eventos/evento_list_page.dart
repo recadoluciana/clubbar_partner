@@ -646,185 +646,91 @@ class _EventoListPageState extends State<EventoListPage> {
     );
   }
 
-  Widget _linhaInformacao({required IconData icone, required String texto}) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icone, size: 18, color: ClubbarColors.textoSecundario),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Text(
-              texto,
-              style: const TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: ClubbarColors.textoSecundario,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _cardEvento(Evento evento) {
-    final local = (evento.nmlocalevento ?? '').trim();
-    final endereco = (evento.dsendlocevento ?? '').trim();
-
     return ClubbarCard(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 10),
       elevation: 1,
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.all(12),
       onTap: () => _abrirEdicao(evento),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(21)),
-            child: SizedBox(
-              width: double.infinity,
-              height: 180,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _bannerEvento(evento),
-                  const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Color(0xB3000000)],
-                        stops: [0.45, 1],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 14,
-                    right: 14,
-                    bottom: 12,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            evento.nmtituloevento,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(color: Colors.black54, blurRadius: 4),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        _chipStatus(evento),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (local.isNotEmpty)
-                  _linhaInformacao(
-                    icone: Icons.location_on_outlined,
-                    texto: local,
-                  ),
-                if (endereco.isNotEmpty)
-                  _linhaInformacao(icone: Icons.map_outlined, texto: endereco),
-                const SizedBox(height: 15),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => EventoModeloAtracoesPage(
-                          modeloId: evento.eventoId,
-                          titulo: evento.nmtituloevento,
-                        ),
-                      ),
-                    ),
-                    icon: const Icon(Icons.music_note_rounded),
-                    label: const Text(
-                      'Atrações padrão',
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Divider(height: 1, color: ClubbarColors.divisor),
-                const SizedBox(height: 11),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _agendarEvento(evento),
-                    icon: const Icon(Icons.calendar_month_rounded),
-                    label: const Text(
-                      'Adicionar à agenda',
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _excluindo
-                            ? null
-                            : () => _abrirEdicao(evento),
-                        icon: const Icon(Icons.edit_rounded, size: 18),
-                        label: const Text(
-                          'Editar',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: ClubbarColors.textoPrincipal,
-                          side: const BorderSide(color: ClubbarColors.borda),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(13),
-                          ),
-                        ),
+                    Text(
+                      evento.nmtituloevento,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _excluindo
-                            ? null
-                            : () => _excluirEvento(evento),
-                        icon: const Icon(
-                          Icons.delete_outline_rounded,
-                          size: 18,
-                        ),
-                        label: const Text(
-                          'Excluir',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ClubbarColors.erroClaro,
-                          foregroundColor: ClubbarColors.erro,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(13),
-                          ),
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 8),
+                    _chipStatus(evento),
                   ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 104,
+                  height: 76,
+                  child: _bannerEvento(evento),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => EventoModeloAtracoesPage(
+                        modeloId: evento.eventoId,
+                        titulo: evento.nmtituloevento,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.music_note_rounded, size: 18),
+                  label: const Text('Atrações'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _agendarEvento(evento),
+                  icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                  label: const Text('Adicionar à agenda'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Editar evento',
+                  onPressed: _excluindo ? null : () => _abrirEdicao(evento),
+                  icon: const Icon(Icons.edit_rounded),
+                  color: Colors.blue,
+                ),
+                IconButton(
+                  tooltip: 'Excluir evento',
+                  onPressed: _excluindo ? null : () => _excluirEvento(evento),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  color: ClubbarColors.erro,
                 ),
               ],
             ),
