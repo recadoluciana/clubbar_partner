@@ -55,15 +55,15 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   List<Map<String, dynamic>> _titulares = const [];
   String _tipo = 'PJ', _status = 'NAO_INICIADO', _onboardingUrl = '';
   bool _subcontaCriada = false;
+  bool _nascimentoAusenteAoCarregar = false;
   String _nomeOrganizacao = 'Empresa';
   bool _carregando = true, _processando = false, _consultandoCep = false;
   String? _ultimoCepConsultado;
 
   // Titulares antigos podem ter a subconta criada sem data de nascimento.
-  // Nesse caso, permita completar esse dado uma única vez; após salvar, o
-  // campo volta a ficar protegido como os demais dados imutáveis da subconta.
+  // Enquanto a primeira gravação não ocorrer, a data pode ser corrigida livremente.
   bool get _nascimentoPodeSerEditado =>
-      !_subcontaCriada || _c['nascimento']!.text.trim().isEmpty;
+      !_subcontaCriada || _nascimentoAusenteAoCarregar;
 
   @override
   void initState() {
@@ -89,6 +89,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     _status = 'NAO_INICIADO';
     _onboardingUrl = '';
     _subcontaCriada = false;
+    _nascimentoAusenteAoCarregar = false;
     _estadoId = null;
     _cidadeId = null;
     _ultimoCepConsultado = null;
@@ -101,6 +102,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
         : _texto(d['status_asaas']);
     _onboardingUrl = _texto(d['onboarding_url']);
     _subcontaCriada = _texto(d['asaas_account_id']).isNotEmpty;
+    _nascimentoAusenteAoCarregar = _texto(d['dtnascimento']).trim().isEmpty;
     _estadoId = d['estado_id'] as int?;
     _cidadeId = d['cidade_id'] as int?;
     final mapa = {
@@ -404,7 +406,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       controller: _c['faturamento'],
       keyboardType: TextInputType.number,
       inputFormatters: [_MoedaBrasileiraFormatter()],
-      validator: _obrigatorio,
+      validator: _validarFaturamento,
       decoration: InputDecoration(
         labelText: 'Faturamento mensal estimado',
         filled: true,
@@ -419,6 +421,14 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
         .replaceAll(RegExp(r'[^0-9,\-]'), '')
         .replaceAll(',', '.');
     return double.tryParse(normalizado) ?? 0;
+  }
+
+  String? _validarFaturamento(String? valor) {
+    if ((valor ?? '').trim().isEmpty) return 'Campo obrigatório.';
+    if (_valorMoeda(valor ?? '') <= 0) {
+      return 'Informe um faturamento mensal estimado maior que R\$ 0,00.';
+    }
+    return null;
   }
 
   Map<String, dynamic> _dados() => {
