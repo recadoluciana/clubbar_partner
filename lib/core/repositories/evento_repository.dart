@@ -123,6 +123,7 @@ class EventoRepository {
     required int lojaId,
     required DateTime inicio,
     required int capacidade,
+    required String nomeSetorInicial,
     required double precoInteira,
     required String recorrencia,
     required int repeticoes,
@@ -134,6 +135,7 @@ class EventoRepository {
           'dtinicio': inicio.toIso8601String(),
           'loja_id': lojaId,
           'capacidade': capacidade,
+          'nome_setor_inicial': nomeSetorInicial.trim(),
           'preco_inteira': precoInteira,
           if (local != null && local.trim().isNotEmpty) 'local': local.trim(),
           if (endereco != null && endereco.trim().isNotEmpty)

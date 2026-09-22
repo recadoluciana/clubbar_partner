@@ -240,6 +240,7 @@ class _EventoListPageState extends State<EventoListPage> {
     final capacidadeController = TextEditingController(
       text: loja?.capacidadeTotal?.toString() ?? '',
     );
+    final setorController = TextEditingController(text: 'Pista');
     final precoController = TextEditingController(
       text: evento.vrPrecoPadrao.toStringAsFixed(2).replaceAll('.', ','),
     );
@@ -291,6 +292,16 @@ class _EventoListPageState extends State<EventoListPage> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'Capacidade desta sessão',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: setorController,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Primeiro setor',
+                    hintText: 'Ex.: Pista, Camarote ou Área VIP',
+                    helperText: 'O sistema criará o Lote 1 para este setor.',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -372,6 +383,7 @@ class _EventoListPageState extends State<EventoListPage> {
     if (confirmar != true) return;
     if (lojaId == null) {
       capacidadeController.dispose();
+      setorController.dispose();
       precoController.dispose();
       localController.dispose();
       enderecoController.dispose();
@@ -384,11 +396,13 @@ class _EventoListPageState extends State<EventoListPage> {
       return;
     }
     final capacidade = int.tryParse(capacidadeController.text.trim()) ?? 0;
+    final nomeSetor = setorController.text.trim();
     final preco =
         double.tryParse(precoController.text.trim().replaceAll(',', '.')) ?? -1;
     final local = localController.text;
     final endereco = enderecoController.text;
     capacidadeController.dispose();
+    setorController.dispose();
     precoController.dispose();
     localController.dispose();
     enderecoController.dispose();
@@ -396,6 +410,10 @@ class _EventoListPageState extends State<EventoListPage> {
       if (mounted) {
         AppSnackBar.aviso(context, 'Informe a capacidade desta sessão.');
       }
+      return;
+    }
+    if (nomeSetor.isEmpty) {
+      if (mounted) AppSnackBar.aviso(context, 'Informe o primeiro setor.');
       return;
     }
     if (preco < 0) {
@@ -414,6 +432,7 @@ class _EventoListPageState extends State<EventoListPage> {
           hora.minute,
         ),
         capacidade: capacidade,
+        nomeSetorInicial: nomeSetor,
         precoInteira: preco,
         recorrencia: recorrencia,
         repeticoes: repeticoes.clamp(1, 60),
