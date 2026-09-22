@@ -22,10 +22,7 @@ class _LojaPoliticaIngressoPageState extends State<LojaPoliticaIngressoPage> {
       _mapaDesc = TextEditingController(),
       _acesso = TextEditingController();
   String? _mapa;
-  bool _loading = true,
-      _saving = false,
-      _permiteTransferencia = false,
-      _exigeDocumento = true;
+  bool _loading = true, _saving = false, _exigeDocumento = true;
   @override
   void initState() {
     super.initState();
@@ -50,7 +47,6 @@ class _LojaPoliticaIngressoPageState extends State<LojaPoliticaIngressoPage> {
         _mapa = x['urlmapaingressos']?.toString();
         _mapaDesc.text = x['dsmapaingressos']?.toString() ?? '';
         _acesso.text = x['dsorientacoesacesso']?.toString() ?? '';
-        _permiteTransferencia = cfg['permite_transferencia'] == true;
         _exigeDocumento = cfg['exige_documento'] != false;
         _loading = false;
       });
@@ -88,10 +84,7 @@ class _LojaPoliticaIngressoPageState extends State<LojaPoliticaIngressoPage> {
         'urlmapaingressos': _mapa,
         'dsmapaingressos': _mapaDesc.text.trim(),
         'dsorientacoesacesso': _acesso.text.trim(),
-        'configuracoes': {
-          'permite_transferencia': _permiteTransferencia,
-          'exige_documento': _exigeDocumento,
-        },
+        'configuracoes': {'exige_documento': _exigeDocumento},
       });
       if (mounted) {
         AppSnackBar.sucesso(context, 'Política salva.');
@@ -196,12 +189,6 @@ class _LojaPoliticaIngressoPageState extends State<LojaPoliticaIngressoPage> {
                       const SizedBox(height: 14),
                       _campo(_acesso, 'Orientações de entrada e acesso', 4),
                       const SizedBox(height: 10),
-                      SwitchListTile(
-                        value: _permiteTransferencia,
-                        onChanged: (v) =>
-                            setState(() => _permiteTransferencia = v),
-                        title: const Text('Permitir transferência de ingresso'),
-                      ),
                       SwitchListTile(
                         value: _exigeDocumento,
                         onChanged: (v) => setState(() => _exigeDocumento = v),
