@@ -173,6 +173,7 @@ class EventoRepository {
     required int produtoIdIngresso,
     required String titulo,
     String? descricao,
+    String? politicaCancelamento,
     String tipoLocal = 'ESTABELECIMENTO',
     String? cep,
     String? dataInicio,
@@ -198,6 +199,9 @@ class EventoRepository {
 
     if (descricao != null && descricao.isNotEmpty) {
       request.fields['dsdescevento'] = descricao;
+    }
+    if (politicaCancelamento != null) {
+      request.fields['dspoliticacancelamento'] = politicaCancelamento;
     }
     request.fields['tipolocalevento'] = tipoLocal;
     if (cep != null && cep.isNotEmpty) request.fields['nrceplocalevento'] = cep;
@@ -228,6 +232,7 @@ class EventoRepository {
     required int eventoId,
     String? titulo,
     String? descricao,
+    String? politicaCancelamento,
     String? tipoLocal,
     String? cep,
     String? dataInicio,
@@ -252,6 +257,9 @@ class EventoRepository {
     }
     if (descricao != null) {
       request.fields['dsdescevento'] = descricao;
+    }
+    if (politicaCancelamento != null) {
+      request.fields['dspoliticacancelamento'] = politicaCancelamento;
     }
     if (tipoLocal != null) request.fields['tipolocalevento'] = tipoLocal;
     if (cep != null) request.fields['nrceplocalevento'] = cep;

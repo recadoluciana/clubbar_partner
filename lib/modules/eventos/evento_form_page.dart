@@ -34,6 +34,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
+  final _politicaController = TextEditingController();
   final _localController = TextEditingController();
   final _cepController = TextEditingController();
   final _enderecoController = TextEditingController();
@@ -60,6 +61,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
     if (evento != null) {
       _tituloController.text = evento.nmtituloevento;
       _descricaoController.text = evento.dsdescevento ?? '';
+      _politicaController.text = evento.dspoliticacancelamento ?? '';
       _tipoLocalSelecionado = evento.tipoLocalEvento;
       _cepController.text = evento.nrCepLocalEvento ?? '';
       _localController.text = evento.nmlocalevento ?? '';
@@ -80,6 +82,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
   void dispose() {
     _tituloController.dispose();
     _descricaoController.dispose();
+    _politicaController.dispose();
     _localController.dispose();
     _cepController.dispose();
     _enderecoController.dispose();
@@ -221,6 +224,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
           eventoId: widget.evento!.eventoId,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
+          politicaCancelamento: _politicaController.text.trim(),
           tipoLocal: _tipoLocalSelecionado,
           cep: _tipoLocalSelecionado == 'OUTRO'
               ? _cepController.text.trim()
@@ -241,6 +245,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
           produtoIdIngresso: 1,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
+          politicaCancelamento: _politicaController.text.trim(),
           tipoLocal: _tipoLocalSelecionado,
           cep: _tipoLocalSelecionado == 'OUTRO'
               ? _cepController.text.trim()
@@ -397,6 +402,18 @@ class _EventoFormPageState extends State<EventoFormPage> {
               label: 'Descrição',
               icone: Icons.description_outlined,
               hint: 'Descreva o evento',
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _politicaController,
+            maxLines: 5,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: _decoracaoCampo(
+              label: 'Política específica do evento',
+              icone: Icons.policy_outlined,
+              hint:
+                  'Ex.: faixa etária, dress code, retirada de pulseira e regras especiais.',
             ),
           ),
           const SizedBox(height: 14),
