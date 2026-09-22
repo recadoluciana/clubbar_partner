@@ -64,6 +64,10 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
     );
     try {
       final detalhe = await _repo.detalheEvento(evento.eventoId);
+      final lotesAgrupados = <int, List<LoteVendaResumo>>{};
+      for (final lote in detalhe.lotes) {
+        lotesAgrupados.putIfAbsent(lote.loteId, () => []).add(lote);
+      }
       if (!mounted) return;
       Navigator.pop(context);
       await showModalBottomSheet<void>(
@@ -109,56 +113,17 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              _ocupacao(detalhe),
               const SizedBox(height: 16),
               const Text(
-                'Vendas por ingresso',
+                'Vendas por lote e setor',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
               if (detalhe.lotes.isEmpty)
                 const Text('Nenhum ingresso configurado para este evento.'),
-              ...detalhe.lotes.map(
-                (lote) => Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${lote.numero}º lote • ${lote.nome}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                            Chip(label: Text('${lote.quantidade} vendidos')),
-                          ],
-                        ),
-                        Text('${lote.setor} • ${_nomeTipo(lote.tipo)}'),
-                        const SizedBox(height: 7),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Unitário: ${_moeda.format(lote.valorUnitario)}',
-                            ),
-                            Text(
-                              _moeda.format(lote.valorTotal),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              ...lotesAgrupados.values.map(_cardLote),
             ],
           ),
         ),
@@ -181,6 +146,120 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
         'UNICO': 'Único',
       }[tipo] ??
       tipo;
+
+  Widget _ocupacao(EventoVendaDetalhe detalhe) {
+    final percentual = detalhe.percentualOcupacao.clamp(0, 100).toDouble();
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.red.withValues(alpha: .3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Ocupação do evento',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+              Text(
+                '${percentual.toStringAsFixed(1)}%',
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: percentual / 100,
+            color: Colors.red,
+            backgroundColor: Colors.red.withValues(alpha: .15),
+            borderRadius: BorderRadius.circular(10),
+            minHeight: 8,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${detalhe.quantidade} vendidos • ${detalhe.quantidadeRestante} restantes • capacidade ${detalhe.capacidadeTotal}',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cardLote(List<LoteVendaResumo> precos) {
+    final lote = precos.first;
+    final restante = lote.quantidadeRestante;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${lote.numero}º lote • ${lote.nome}',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            Text(lote.setor),
+            const SizedBox(height: 9),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                Chip(label: Text('${lote.quantidadeVendidaLote} vendidos')),
+                Chip(
+                  label: Text(
+                    restante == null
+                        ? 'Sem limite definido'
+                        : '$restante restantes',
+                  ),
+                ),
+              ],
+            ),
+            const Divider(),
+            ...precos.map(
+              (preco) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _nomeTipo(preco.tipo),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            '${preco.quantidade} vendidos • ${_moeda.format(preco.valorUnitario)} cada',
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      _moeda.format(preco.valorTotal),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _resumo(String titulo, String valor, IconData icone, Color cor) =>
       Container(
@@ -211,7 +290,7 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
         ),
       );
 
-  Widget _conteudo() {
+  Widget? _estadoComum() {
     if (_carregando) {
       return const Center(
         child: CircularProgressIndicator(color: ClubbarColors.ambar),
@@ -234,6 +313,12 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
         ),
       );
     }
+    return null;
+  }
+
+  Widget _conteudoProdutos() {
+    final estado = _estadoComum();
+    if (estado != null) return estado;
     final produtos = _produtos!;
     return RefreshIndicator(
       onRefresh: _carregar,
@@ -328,12 +413,24 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _conteudoIngressos() {
+    final estado = _estadoComum();
+    if (estado != null) return estado;
+    return RefreshIndicator(
+      onRefresh: _carregar,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
           Row(
             children: [
               const Expanded(
                 child: Text(
-                  'Acompanhamento de vendas de eventos',
+                  'Ingressos vendidos',
                   style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
                 ),
               ),
@@ -413,22 +510,47 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
-    body: SafeArea(
-      child: Column(
-        children: [
-          ClubbarPageHeader(
-            titulo: 'Acompanhamento de vendas',
-            subtitulo: 'Produtos a retirar e vendas de ingressos',
-            trailing: IconButton(
-              onPressed: _carregando ? null : _carregar,
-              icon: const Icon(Icons.refresh_rounded),
+  Widget build(BuildContext context) => DefaultTabController(
+    length: 2,
+    child: Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      body: SafeArea(
+        child: Column(
+          children: [
+            ClubbarPageHeader(
+              titulo: 'Acompanhamento de vendas',
+              subtitulo: 'Produtos a retirar e ingressos vendidos',
+              trailing: IconButton(
+                onPressed: _carregando ? null : _carregar,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
             ),
-          ),
-          Expanded(child: _conteudo()),
-        ],
+            const Material(
+              color: Colors.white,
+              child: TabBar(
+                labelColor: ClubbarColors.primaria,
+                unselectedLabelColor: ClubbarColors.textoSecundario,
+                indicatorColor: ClubbarColors.primaria,
+                tabs: [
+                  Tab(
+                    icon: Icon(Icons.inventory_2_rounded),
+                    text: 'Produtos a retirar',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.confirmation_number_rounded),
+                    text: 'Ingressos vendidos',
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [_conteudoProdutos(), _conteudoIngressos()],
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );

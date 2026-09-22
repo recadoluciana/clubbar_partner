@@ -87,6 +87,9 @@ class LoteVendaResumo {
   final String tipo;
   final double valorUnitario;
   final int quantidade;
+  final int quantidadeVendidaLote;
+  final int? capacidadeLote;
+  final int? quantidadeRestante;
   final double valorTotal;
 
   const LoteVendaResumo({
@@ -97,6 +100,9 @@ class LoteVendaResumo {
     required this.tipo,
     required this.valorUnitario,
     required this.quantidade,
+    required this.quantidadeVendidaLote,
+    required this.capacidadeLote,
+    required this.quantidadeRestante,
     required this.valorTotal,
   });
 
@@ -109,6 +115,10 @@ class LoteVendaResumo {
         tipo: json['tipo']?.toString() ?? '',
         valorUnitario: (json['valor_unitario'] as num?)?.toDouble() ?? 0,
         quantidade: (json['quantidade_vendida'] as num?)?.toInt() ?? 0,
+        quantidadeVendidaLote:
+            (json['quantidade_vendida_lote'] as num?)?.toInt() ?? 0,
+        capacidadeLote: (json['capacidade_lote'] as num?)?.toInt(),
+        quantidadeRestante: (json['quantidade_restante'] as num?)?.toInt(),
         valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
       );
 }
@@ -117,6 +127,9 @@ class EventoVendaDetalhe {
   final String nome;
   final DateTime dataHora;
   final int quantidade;
+  final int capacidadeTotal;
+  final int quantidadeRestante;
+  final double percentualOcupacao;
   final double valorTotal;
   final List<LoteVendaResumo> lotes;
 
@@ -124,6 +137,9 @@ class EventoVendaDetalhe {
     required this.nome,
     required this.dataHora,
     required this.quantidade,
+    required this.capacidadeTotal,
+    required this.quantidadeRestante,
+    required this.percentualOcupacao,
     required this.valorTotal,
     required this.lotes,
   });
@@ -134,6 +150,9 @@ class EventoVendaDetalhe {
     nome: json['nmtituloevento']?.toString() ?? '',
     dataHora: DateTime.parse(json['dtinicioevento'].toString()),
     quantidade: (json['quantidade_vendida'] as num?)?.toInt() ?? 0,
+    capacidadeTotal: (json['capacidade_total'] as num?)?.toInt() ?? 0,
+    quantidadeRestante: (json['quantidade_restante'] as num?)?.toInt() ?? 0,
+    percentualOcupacao: (json['percentual_ocupacao'] as num?)?.toDouble() ?? 0,
     valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
     lotes: ((json['lotes'] as List?) ?? const [])
         .map(
