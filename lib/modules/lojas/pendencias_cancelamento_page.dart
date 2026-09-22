@@ -29,6 +29,12 @@ class PendenciasCancelamentoPage extends StatelessWidget {
     return '$base às ${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
   }
 
+  String _cpf(dynamic valor) {
+    final numeros = (valor?.toString() ?? '').replaceAll(RegExp(r'\D'), '');
+    if (numeros.length != 11) return _texto(valor);
+    return '${numeros.substring(0, 3)}.${numeros.substring(3, 6)}.${numeros.substring(6, 9)}-${numeros.substring(9)}';
+  }
+
   Widget _linha(IconData icone, String texto) => Padding(
     padding: const EdgeInsets.only(top: 7),
     child: Row(
@@ -52,6 +58,13 @@ class PendenciasCancelamentoPage extends StatelessWidget {
 
   Widget _card(Map<String, dynamic> item) {
     final ehIngresso = item['tipo'] == 'INGRESSO';
+    final nome = _texto(
+      item['nome'],
+      vazio: ehIngresso ? 'Ingresso' : 'Produto',
+    );
+    final titulo = ehIngresso && item['data_evento'] != null
+        ? '${_data(item['data_evento'], comHora: true)} • $nome'
+        : nome;
     final local = [
       _texto(item['local_evento'], vazio: ''),
       _texto(item['endereco_evento'], vazio: ''),
@@ -79,10 +92,7 @@ class PendenciasCancelamentoPage extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  _texto(
-                    item['nome'],
-                    vazio: ehIngresso ? 'Ingresso' : 'Produto',
-                  ),
+                  titulo,
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
@@ -113,7 +123,19 @@ class PendenciasCancelamentoPage extends StatelessWidget {
           if (ehIngresso) ...[
             _linha(
               Icons.event_outlined,
-              'Evento em ${_data(item['data_evento'], comHora: true)}',
+              'Retirar no evento em ${_data(item['data_evento'], comHora: true)}',
+            ),
+            _linha(
+              Icons.badge_outlined,
+              'Participante: ${_texto(item['nome_participante'])}',
+            ),
+            _linha(
+              Icons.fingerprint_rounded,
+              'CPF: ${_cpf(item['cpf_participante'])}',
+            ),
+            _linha(
+              Icons.confirmation_number_outlined,
+              'Tipo de ingresso: ${_texto(item['tipo_ingresso'])}',
             ),
             if (local.isNotEmpty) _linha(Icons.location_on_outlined, local),
           ] else if (item['validade_produto'] != null)
