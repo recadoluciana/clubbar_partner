@@ -232,75 +232,6 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     }
   }
 
-  Future<void> _editarPolitica() async {
-    final controller = TextEditingController(
-      text: _evento.politicaCancelamento ?? '',
-    );
-    var salvando = false;
-    final salvo = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, atualizar) => AlertDialog(
-          title: const Text('Política deste evento'),
-          content: SizedBox(
-            width: 520,
-            child: TextField(
-              controller: controller,
-              autofocus: true,
-              minLines: 6,
-              maxLines: 12,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Texto da política',
-                hintText:
-                    'Ex.: regras de entrada, faixa etária e cancelamento.',
-                alignLabelWithHint: true,
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: salvando ? null : () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: salvando
-                  ? null
-                  : () async {
-                      atualizar(() => salvando = true);
-                      try {
-                        await _eventoRepository.atualizarPoliticaEventoAgendado(
-                          eventoId: _evento.eventoId,
-                          politicaCancelamento: controller.text.trim(),
-                        );
-                        if (context.mounted) {
-                          Navigator.pop(context, controller.text.trim());
-                        }
-                      } catch (e) {
-                        atualizar(() => salvando = false);
-                        if (mounted) {
-                          AppSnackBar.erro(
-                            this.context,
-                            e.toString().replaceFirst('Exception: ', ''),
-                          );
-                        }
-                      }
-                    },
-              child: Text(salvando ? 'Salvando...' : 'Salvar política'),
-            ),
-          ],
-        ),
-      ),
-    );
-    controller.dispose();
-    if (salvo != null && mounted) {
-      setState(() => _evento = _evento.copyWith(politicaCancelamento: salvo));
-      AppSnackBar.sucesso(context, 'Política do evento atualizada.');
-    }
-  }
-
   Future<void> _excluirData() async {
     final confirmado = await showDialog<bool>(
       context: context,
@@ -369,8 +300,6 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                         ),
                       ),
                     ),
-                  _politicaCard(),
-                  const SizedBox(height: 12),
                   Text(
                     'Atrações',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -438,56 +367,6 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
       ),
     ),
   );
-
-  Widget _politicaCard() {
-    final politica = _evento.politicaCancelamento?.trim() ?? '';
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.policy_outlined,
-                  color: ClubbarColors.primaria,
-                ),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'Política do evento',
-                    style: TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                ),
-                if (!widget.somenteConsulta)
-                  TextButton(
-                    onPressed: _carregando ? null : _editarPolitica,
-                    child: const Text('Editar'),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              politica.isEmpty
-                  ? 'Nenhuma política específica foi informada para esta data.'
-                  : politica,
-            ),
-            if (!widget.somenteConsulta) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _carregando ? null : _editarPolitica,
-                  child: const Text('Editar política do evento'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _atracaoCard(EventoAtracao item) => Card(
     child: ListTile(

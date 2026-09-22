@@ -17,7 +17,6 @@ import 'horario_funcionamento_screen.dart';
 import 'loja_form_page.dart';
 import 'loja_imagens_page.dart';
 import 'loja_conteudo_page.dart';
-import 'loja_politica_ingresso_page.dart';
 import 'loja_configuracao_produtos_page.dart';
 import 'pendencias_cancelamento_page.dart';
 
@@ -294,19 +293,6 @@ class _LojaListPageState extends State<LojaListPage> {
     }
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => LojaConteudoPage(loja: loja)),
-    );
-  }
-
-  Future<void> _abrirPoliticaIngressos(Loja loja) async {
-    if (!_podeAlterarLoja(loja)) {
-      AppSnackBar.aviso(
-        context,
-        'A função Política de Ingressos não é permitida para este usuário/cargo.',
-      );
-      return;
-    }
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => LojaPoliticaIngressoPage(loja: loja)),
     );
   }
 
@@ -884,8 +870,6 @@ class _LojaListPageState extends State<LojaListPage> {
             _abrirHorarios(loja);
           case 'conteudo':
             _abrirConteudo(loja);
-          case 'politica':
-            _abrirPoliticaIngressos(loja);
         }
       },
       itemBuilder: (context) => [
@@ -932,15 +916,6 @@ class _LojaListPageState extends State<LojaListPage> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.auto_stories_outlined),
             title: Text('Conteúdo do estabelecimento'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'politica',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.policy_outlined),
-            title: Text('Política de ingressos'),
           ),
         ),
         const PopupMenuDivider(),
