@@ -95,6 +95,29 @@ class EventoRepository {
     }
   }
 
+  Future<void> atualizarPoliticaEventoAgendado({
+    required int eventoId,
+    required String politicaCancelamento,
+  }) async {
+    final request = http.MultipartRequest(
+      'PUT',
+      Uri.parse('${ApiConfig.baseUrl}/eventos/$eventoId'),
+    );
+    final token = await StorageService.getToken();
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.fields['dspoliticacancelamento'] = politicaCancelamento;
+
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(body, 'Não foi possível atualizar a política do evento.'),
+      );
+    }
+  }
+
   Future<void> agendar({
     required int modeloId,
     required int lojaId,

@@ -11,8 +11,8 @@ import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/atracao.dart';
 import '../../models/loja.dart';
 import '../atracoes/atracao_list_page.dart';
+import 'evento_agendado_detalhe_page.dart';
 import '../eventos/evento_list_page.dart';
-import '../eventos/evento_lote_list_page.dart';
 
 class AgendaMensalPage extends StatefulWidget {
   final Loja loja;
@@ -219,6 +219,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
         : DateTime(d.year, d.month, d.day, t.hour, t.minute);
   }
 
+  // ignore: unused_element
   Future<void> _editarProgramacao(
     AgendaEvento evento, [
     EventoAtracao? atual,
@@ -550,6 +551,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _remover(AgendaEvento evento, EventoAtracao p) async {
     final confirmado = await showDialog<bool>(
       context: context,
@@ -583,6 +585,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _excluirOcorrencia(AgendaEvento evento) async {
     final confirmado = await showDialog<bool>(
       context: context,
@@ -616,137 +619,21 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     }
   }
 
-  void _abrirEvento(AgendaEvento e, {bool somenteConsulta = false}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheet) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            e.titulo,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          Text(DateFormat('dd/MM/yyyy HH:mm').format(e.inicio)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(sheet),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                const Divider(),
-                if (somenteConsulta)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      'Data encerrada • disponível somente para consulta',
-                      style: TextStyle(
-                        color: ClubbarColors.textoSecundario,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                if (e.atracoes.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text(
-                      'Nenhuma atração programada.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ...e.atracoes.map(
-                  (p) => ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.music_note)),
-                    title: Text(
-                      p.atracao.nome,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      '${DateFormat('dd/MM HH:mm').format(p.inicio)} → ${DateFormat('dd/MM HH:mm').format(p.fim)}',
-                    ),
-                    onTap: somenteConsulta
-                        ? null
-                        : () {
-                            Navigator.pop(sheet);
-                            _editarProgramacao(e, p);
-                          },
-                    trailing: somenteConsulta
-                        ? const Icon(Icons.lock_outline, size: 20)
-                        : IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: ClubbarColors.erro,
-                            ),
-                            onPressed: () => _remover(e, p),
-                          ),
-                  ),
-                ),
-                if (!somenteConsulta) ...[
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(sheet);
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => EventoLoteListPage(
-                            eventoId: e.eventoId,
-                            eventoTitulo: e.titulo,
-                            organizacaoId: _loja.organizacaoId,
-                            lojaId: _loja.lojaId,
-                            eventoInicio: e.inicio.toIso8601String(),
-                          ),
-                        ),
-                      );
-                      if (mounted) await _carregar();
-                    },
-                    icon: const Icon(Icons.confirmation_number_rounded),
-                    label: const Text('Gerenciar ingressos e preços'),
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pop(sheet);
-                      _editarProgramacao(e);
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Adicionar atração'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: ClubbarColors.erro,
-                    ),
-                    onPressed: () {
-                      Navigator.pop(sheet);
-                      _excluirOcorrencia(e);
-                    },
-                    icon: const Icon(Icons.delete_outline_rounded),
-                    label: const Text('Excluir esta data'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
+  Future<void> _abrirEvento(
+    AgendaEvento evento, {
+    bool somenteConsulta = false,
+  }) async {
+    final alterado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EventoAgendadoDetalhePage(
+          evento: evento,
+          organizacaoId: _loja.organizacaoId,
+          lojaId: _loja.lojaId,
+          somenteConsulta: somenteConsulta,
+        ),
+      ),
     );
+    if (alterado == true && mounted) await _carregar();
   }
 
   @override

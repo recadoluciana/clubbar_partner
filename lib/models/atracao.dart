@@ -117,6 +117,7 @@ class AgendaEvento {
   final String status;
   final List<EventoAtracao> atracoes;
   final String? bannerEvento;
+  final String? politicaCancelamento;
   const AgendaEvento({
     required this.eventoId,
     required this.titulo,
@@ -125,6 +126,7 @@ class AgendaEvento {
     required this.status,
     required this.atracoes,
     this.bannerEvento,
+    this.politicaCancelamento,
   });
   factory AgendaEvento.fromJson(Map<String, dynamic> j) {
     final atracoes =
@@ -144,7 +146,22 @@ class AgendaEvento {
           : DateTime.tryParse(j['dtfimevento'].toString()),
       status: '${j['statusevento'] ?? ''}',
       bannerEvento: j['urlbannerevento']?.toString(),
+      politicaCancelamento: j['dspoliticacancelamento']?.toString(),
       atracoes: atracoes,
     );
   }
+
+  AgendaEvento copyWith({
+    List<EventoAtracao>? atracoes,
+    String? politicaCancelamento,
+  }) => AgendaEvento(
+    eventoId: eventoId,
+    titulo: titulo,
+    inicio: inicio,
+    fim: fim,
+    status: status,
+    atracoes: atracoes ?? this.atracoes,
+    bannerEvento: bannerEvento,
+    politicaCancelamento: politicaCancelamento ?? this.politicaCancelamento,
+  );
 }
