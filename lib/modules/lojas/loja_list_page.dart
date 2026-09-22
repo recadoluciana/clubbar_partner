@@ -678,7 +678,7 @@ class _LojaListPageState extends State<LojaListPage> {
     final justificativa = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Solicitar cancelamento de parceria'),
+        title: const Text('Solicitar cancelamento da parceria'),
         content: TextField(
           controller: controller,
           minLines: 3,
@@ -785,14 +785,14 @@ class _LojaListPageState extends State<LojaListPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Parceiro em aviso prévio de cancelamento de parceria até $data.',
+            'Parceiro em aviso prévio de cancelamento da parceria até $data.',
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
             pendencias == 0
                 ? 'Não há pendências, mas o estabelecimento só poderá ser inativado após esse prazo.'
-                : 'Há $pendencias pendência(s). Enquanto existirem, o estabelecimento não poderá ser inativado.',
+                : 'Há $pendencias pendência(s). Enquanto existirem pendências, o estabelecimento não poderá ser inativado.',
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -1123,7 +1123,7 @@ class _LojaListPageState extends State<LojaListPage> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: ClubbarColors.erro,
               ),
-              child: const Text('Solicitar cancelamento de parceria'),
+              child: const Text('Solicitar cancelamento da parceria'),
             ),
           ),
           const SizedBox(height: 8),
@@ -1133,7 +1133,7 @@ class _LojaListPageState extends State<LojaListPage> {
               onPressed: (_cancelamentos[loja.lojaId]?['solicitado'] ?? false)
                   ? () => _retirarCancelamento(loja)
                   : null,
-              child: const Text('Retirar pedido de cancelamento de parceria'),
+              child: const Text('Retirar pedido de cancelamento da parceria'),
             ),
           ),
           if ((_cancelamentos[loja.lojaId]?['solicitado'] ?? false) ==
