@@ -62,9 +62,6 @@ class PendenciasCancelamentoPage extends StatelessWidget {
       item['nome'],
       vazio: ehIngresso ? 'Ingresso' : 'Produto',
     );
-    final titulo = ehIngresso && item['data_evento'] != null
-        ? '${_data(item['data_evento'], comHora: true)} • $nome'
-        : nome;
     final local = [
       _texto(item['local_evento'], vazio: ''),
       _texto(item['endereco_evento'], vazio: ''),
@@ -91,13 +88,36 @@ class PendenciasCancelamentoPage extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  titulo,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                child: ehIngresso && item['data_evento'] != null
+                    ? Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '$nome • ',
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: ClubbarColors.textoPrincipal,
+                              ),
+                            ),
+                            TextSpan(
+                              text: _data(item['data_evento'], comHora: true),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Text(
+                        nome,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -121,10 +141,6 @@ class PendenciasCancelamentoPage extends StatelessWidget {
             'Compra realizada em ${_data(item['data_compra'], comHora: true)}',
           ),
           if (ehIngresso) ...[
-            _linha(
-              Icons.event_outlined,
-              'Retirar no evento em ${_data(item['data_evento'], comHora: true)}',
-            ),
             _linha(
               Icons.badge_outlined,
               'Participante: ${_texto(item['nome_participante'])}',
