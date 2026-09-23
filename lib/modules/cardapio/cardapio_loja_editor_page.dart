@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -78,14 +79,16 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     } catch (e) {
       if (mounted) {
         final texto = e.toString();
-        AppSnackBar.erro(
-          context,
-          texto.contains('temporariamente indisponível')
-              ? 'Seu cardápio não pode ser publicado. Sua conta no Asaas ainda não foi aprovada.\n\nAcesse o menu Titular financeiro e efetive a integração com o Asaas.'
-              : texto.replaceFirst('Exception: ', ''),
-          duration: const Duration(seconds: 10),
-          mostrarFechar: true,
-        );
+        if (erroIndicaPendenteAsaas(e)) {
+          await mostrarDialogoAsaasPendente(context, recurso: 'este cardápio');
+        } else {
+          AppSnackBar.erro(
+            context,
+            texto.replaceFirst('Exception: ', ''),
+            duration: const Duration(seconds: 10),
+            mostrarFechar: true,
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _carregando = false);
@@ -382,14 +385,16 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     } catch (e) {
       if (mounted) {
         final texto = e.toString();
-        AppSnackBar.erro(
-          context,
-          texto.contains('temporariamente indisponível')
-              ? 'Seu cardápio não pode ser publicado. Sua conta no Asaas ainda não foi aprovada.\n\nAcesse o menu Titular financeiro e efetive a integração com o Asaas.'
-              : texto.replaceFirst('Exception: ', ''),
-          duration: const Duration(seconds: 10),
-          mostrarFechar: true,
-        );
+        if (erroIndicaPendenteAsaas(e)) {
+          await mostrarDialogoAsaasPendente(context, recurso: 'este cardápio');
+        } else {
+          AppSnackBar.erro(
+            context,
+            texto.replaceFirst('Exception: ', ''),
+            duration: const Duration(seconds: 10),
+            mostrarFechar: true,
+          );
+        }
       }
       return false;
     } finally {
@@ -442,7 +447,14 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+        if (erroIndicaPendenteAsaas(e)) {
+          await mostrarDialogoAsaasPendente(context, recurso: 'este cardápio');
+        } else {
+          AppSnackBar.erro(
+            context,
+            e.toString().replaceFirst('Exception: ', ''),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _salvando = false);
