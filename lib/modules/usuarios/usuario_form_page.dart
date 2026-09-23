@@ -279,8 +279,8 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       return 'Informe a senha';
     }
 
-    if (senha.isNotEmpty && senha.length < 6) {
-      return 'Use pelo menos 6 caracteres';
+    if (senha.isNotEmpty && senha.length != 6) {
+      return 'A senha deve ter exatamente 6 caracteres';
     }
 
     return null;
@@ -624,6 +624,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                           TextFormField(
                             controller: _senhaController,
                             obscureText: _ocultarSenha,
+                            maxLength: 6,
                             decoration: _decoracaoCampo(
                               label: editando
                                   ? 'Nova senha (opcional)'
@@ -653,6 +654,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
                           TextFormField(
                             controller: _confirmarSenhaController,
                             obscureText: _ocultarConfirmacaoSenha,
+                            maxLength: 6,
                             decoration: _decoracaoCampo(
                               label: editando
                                   ? 'Confirmar nova senha'
