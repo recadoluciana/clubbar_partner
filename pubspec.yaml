@@ -3,7 +3,7 @@ description: "Venda de ingressos e produtos para bares e casas noturnas."
 
 publish_to: 'none'
 
-version: 1.0.1+2
+version: 1.0.1+3
 
 environment:
   sdk: ^3.10.1
