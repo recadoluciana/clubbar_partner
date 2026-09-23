@@ -101,10 +101,13 @@ class _LojaConfiguracaoProdutosPageState
       return;
     }
     if (liberacao == null ||
-        liberacao < 0 ||
+        liberacao < 7 ||
         validade == null ||
         validade < 1) {
-      AppSnackBar.aviso(context, 'Confira os prazos de liberação e validade.');
+      AppSnackBar.aviso(
+        context,
+        'O cashback deve ser liberado em no mínimo 7 dias. Confira a validade.',
+      );
       return;
     }
     if (maximoUso == null || maximoUso <= 0 || maximoUso > 100) {
@@ -221,7 +224,7 @@ class _LojaConfiguracaoProdutosPageState
                                 sufixo: 'dias',
                                 decimal: false,
                                 ajuda:
-                                    'Período em que o crédito ficará pendente.',
+                                    'Mínimo de 7 dias. Período em que o crédito ficará pendente.',
                               ),
                               const SizedBox(height: 14),
                               _campoNumero(
