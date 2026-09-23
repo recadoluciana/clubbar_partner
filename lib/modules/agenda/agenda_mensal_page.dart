@@ -179,8 +179,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   List<AgendaEvento> _doDia(DateTime d) => _eventos.where((e) {
     bool mesmoDia(DateTime valor) =>
         valor.year == d.year && valor.month == d.month && valor.day == d.day;
-    return mesmoDia(e.inicio) ||
-        e.atracoes.any((item) => mesmoDia(item.inicio));
+    return mesmoDia(e.inicio);
   }).toList();
 
   bool _diaPassado(DateTime dia) {
@@ -190,20 +189,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     return dataDia.isBefore(dataHoje);
   }
 
-  DateTime _horarioNoDia(AgendaEvento evento, DateTime dia) {
-    final horarios =
-        evento.atracoes
-            .where(
-              (item) =>
-                  item.inicio.year == dia.year &&
-                  item.inicio.month == dia.month &&
-                  item.inicio.day == dia.day,
-            )
-            .map((item) => item.inicio)
-            .toList()
-          ..sort();
-    return horarios.isEmpty ? evento.inicio : horarios.first;
-  }
+  DateTime _horarioNoDia(AgendaEvento evento) => evento.inicio;
 
   Future<DateTime?> _dataHora(DateTime inicial) async {
     final d = await showDatePicker(
@@ -873,7 +859,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                                     borderRadius: BorderRadius.circular(5),
                                   ),
                                   child: Text(
-                                    '${DateFormat('HH:mm').format(_horarioNoDia(e, data))} ${e.titulo}\n${e.atracoes.length} atração(ões)',
+                                    '${DateFormat('HH:mm').format(_horarioNoDia(e))} ${e.titulo}\n${e.atracoes.length} atração(ões)',
                                     maxLines: 3,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
