@@ -70,7 +70,6 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
     final ordem = TextEditingController(
       text: '${atual?.ordem ?? (_itens.length + 1)}',
     );
-    final inicio = TextEditingController(text: '${atual?.minutoInicio ?? 0}');
     final duracao = TextEditingController(
       text: '${atual?.minutoDuracao ?? 120}',
     );
@@ -117,16 +116,6 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    controller: inicio,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Começa quantos minutos após o evento?',
-                      suffixText: 'min',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
                     controller: duracao,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
@@ -153,11 +142,9 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
       ),
     );
     if (confirmou != true || !mounted) return;
-    final o = int.tryParse(ordem.text),
-        i = int.tryParse(inicio.text),
-        d = int.tryParse(duracao.text);
-    if (o == null || o < 1 || i == null || i < 0 || d == null || d < 1) {
-      AppSnackBar.aviso(context, 'Confira a ordem e os tempos informados.');
+    final o = int.tryParse(ordem.text), d = int.tryParse(duracao.text);
+    if (o == null || o < 1 || d == null || d < 1) {
+      AppSnackBar.aviso(context, 'Confira a ordem e a duração informadas.');
       return;
     }
     try {
@@ -166,7 +153,6 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
         item: atual,
         atracaoId: atracaoId,
         ordem: o,
-        minutoInicio: i,
         minutoDuracao: d,
       );
       await _carregar();
@@ -264,7 +250,7 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(
-                            'Início: ${_tempo(x.minutoInicio)} após o evento • Duração: ${_tempo(x.minutoDuracao)}',
+                            'Ordem ${x.ordem} • Duração prevista: ${_tempo(x.minutoDuracao)}',
                           ),
                           onTap: () => _editar(x),
                           trailing: Row(
