@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/api_config.dart';
@@ -34,6 +35,21 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
   }
 
   String _texto(dynamic valor) => valor?.toString() ?? '';
+
+  double _valorMonetario(dynamic valor) {
+    if (valor is num) return valor.toDouble();
+    final texto = _texto(valor).trim();
+    if (texto.isEmpty) return 0;
+    final normalizado = texto.contains(',')
+        ? texto.replaceAll('.', '').replaceAll(',', '.')
+        : texto;
+    return double.tryParse(normalizado.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+  }
+
+  String _formatarData(dynamic valor) {
+    final data = DateTime.tryParse(_texto(valor));
+    return data == null ? '' : DateFormat('dd/MM/yyyy').format(data);
+  }
 
   String _documento(String valor) {
     final d = valor.replaceAll(RegExp(r'\D'), '');
@@ -187,6 +203,172 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     }
   }
 
+  Future<void> _ativarSubcontaAsaas(Map<String, dynamic> titular) async {
+    final pessoaFisica = _texto(titular['tipotitular']).toUpperCase() == 'PF';
+    final nascimentoInformado = _texto(
+      titular['dtnascimento'],
+    ).trim().isNotEmpty;
+    final rendaInformada = _valorMonetario(titular['vrfaturamentomensal']) > 0;
+    if ((pessoaFisica && !nascimentoInformado) || !rendaInformada) {
+      final dados = await _solicitarDadosAtivacaoAsaas(
+        titular,
+        pessoaFisica: pessoaFisica,
+      );
+      if (dados == null || !mounted) return;
+      final organizacaoId = _organizacaoId;
+      final titularId = titular['titularfinanceiro_id'] as int?;
+      if (organizacaoId == null || titularId == null) return;
+      setState(() => _processandoId = titularId);
+      try {
+        final atualizado = await _repo.salvarDadosAtivacaoAsaas(
+          organizacaoId,
+          titularFinanceiroId: titularId,
+          dataNascimento: dados.dataNascimento,
+          faturamentoMensal: dados.rendaMensal,
+        );
+        await _executarAsaasComTitular(atualizado);
+      } catch (e) {
+        if (mounted) {
+          AppSnackBar.erro(
+            context,
+            e.toString().replaceFirst('Exception: ', ''),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _processandoId = null);
+      }
+      return;
+    }
+    await _executarAsaasComTitular(titular);
+  }
+
+  Future<void> _executarAsaasComTitular(Map<String, dynamic> titular) =>
+      _executarAsaas(
+        titular,
+        (organizacaoId, titularId) =>
+            _repo.ativar(organizacaoId, titularFinanceiroId: titularId),
+        'Subconta Asaas criada. Verifique a situação para continuar.',
+      );
+
+  Future<_DadosAtivacaoAsaas?> _solicitarDadosAtivacaoAsaas(
+    Map<String, dynamic> titular, {
+    required bool pessoaFisica,
+  }) async {
+    DateTime? nascimento = DateTime.tryParse(_texto(titular['dtnascimento']));
+    final nascimentoController = TextEditingController(
+      text: _formatarData(titular['dtnascimento']),
+    );
+    final renda = TextEditingController(
+      text: _valorMonetario(titular['vrfaturamentomensal']) > 0
+          ? _valorMonetario(titular['vrfaturamentomensal']).toStringAsFixed(2)
+          : '',
+    );
+    final formulario = GlobalKey<FormState>();
+    try {
+      return await showDialog<_DadosAtivacaoAsaas>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, atualizarDialogo) => AlertDialog(
+            title: const Text('Dados necessários para ativar a subconta'),
+            content: SizedBox(
+              width: 420,
+              child: Form(
+                key: formulario,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pessoaFisica
+                          ? 'Como este titular financeiro é uma pessoa física, informe a data de nascimento e a renda mensal estimada antes de ativar a subconta Asaas.'
+                          : 'Informe o faturamento mensal estimado antes de ativar a subconta Asaas.',
+                    ),
+                    const SizedBox(height: 16),
+                    if (pessoaFisica) ...[
+                      TextFormField(
+                        readOnly: true,
+                        controller: nascimentoController,
+                        onTap: () async {
+                          final selecionada = await showDatePicker(
+                            context: dialogContext,
+                            initialDate: nascimento ?? DateTime(1990, 1, 1),
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                            helpText: 'Data de nascimento',
+                            cancelText: 'Cancelar',
+                            confirmText: 'Confirmar',
+                          );
+                          if (selecionada != null) {
+                            atualizarDialogo(() {
+                              nascimento = selecionada;
+                              nascimentoController.text = DateFormat(
+                                'dd/MM/yyyy',
+                              ).format(selecionada);
+                            });
+                          }
+                        },
+                        validator: (_) => nascimento == null
+                            ? 'Informe a data de nascimento.'
+                            : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Data de nascimento',
+                          hintText: 'DD/MM/AAAA',
+                          suffixIcon: Icon(Icons.calendar_month_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    TextFormField(
+                      controller: renda,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: (valor) => _valorMonetario(valor) <= 0
+                          ? 'Informe uma renda mensal estimada maior que R\$ 0,00.'
+                          : null,
+                      decoration: InputDecoration(
+                        labelText: pessoaFisica
+                            ? 'Renda mensal estimada'
+                            : 'Faturamento mensal estimado',
+                        prefixText: 'R\$ ',
+                        helperText: 'Informe uma estimativa real do titular.',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  if (!(formulario.currentState?.validate() ?? false)) return;
+                  Navigator.pop(
+                    dialogContext,
+                    _DadosAtivacaoAsaas(
+                      dataNascimento: pessoaFisica
+                          ? DateFormat('yyyy-MM-dd').format(nascimento!)
+                          : null,
+                      rendaMensal: _valorMonetario(renda.text),
+                    ),
+                  );
+                },
+                child: const Text('Salvar e ativar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      renda.dispose();
+      nascimentoController.dispose();
+    }
+  }
+
   Future<void> _abrirOnboarding(Map<String, dynamic> titular) async {
     final url = _texto(titular['onboarding_url']).trim();
     if (url.isEmpty) return;
@@ -229,14 +411,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
         child: ElevatedButton.icon(
           onPressed: processando || inativo
               ? null
-              : () => _executarAsaas(
-                  titular,
-                  (organizacaoId, titularId) => _repo.ativar(
-                    organizacaoId,
-                    titularFinanceiroId: titularId,
-                  ),
-                  'Subconta Asaas criada. Verifique a situação para continuar.',
-                ),
+              : () => _ativarSubcontaAsaas(titular),
           icon: const Icon(Icons.account_balance_rounded),
           label: Text(
             inativo
@@ -565,4 +740,14 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
       ),
     );
   }
+}
+
+class _DadosAtivacaoAsaas {
+  final String? dataNascimento;
+  final double rendaMensal;
+
+  const _DadosAtivacaoAsaas({
+    required this.dataNascimento,
+    required this.rendaMensal,
+  });
 }
