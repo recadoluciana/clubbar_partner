@@ -84,6 +84,23 @@ class TitularFinanceiroRepository {
     throw Exception(_erro(r.body));
   }
 
+  Future<Map<String, dynamic>> salvarDadosAtivacaoAsaas(
+    int organizacaoId, {
+    required int titularFinanceiroId,
+    required String? dataNascimento,
+    required double faturamentoMensal,
+  }) async {
+    final r = await ApiService.patch(
+      '/titular-financeiro/organizacao/$organizacaoId/titular/$titularFinanceiroId/dados-ativacao-asaas',
+      body: {
+        'dtnascimento': dataNascimento,
+        'vrfaturamentomensal': faturamentoMensal,
+      },
+    );
+    if (r.statusCode == 200) return _decode(r.body);
+    throw Exception(_erro(r.body));
+  }
+
   Future<Map<String, dynamic>> verificar(
     int id, {
     required int titularFinanceiroId,
