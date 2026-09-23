@@ -317,7 +317,9 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                         ),
                       ),
                     ),
-                  ..._evento.atracoes.map(_atracaoCard),
+                  ..._evento.atracoes.asMap().entries.map(
+                    (entrada) => _atracaoCard(entrada.value, entrada.key),
+                  ),
                   if (!widget.somenteConsulta) ...[
                     const SizedBox(height: 16),
                     FilledButton.icon(
@@ -368,16 +370,46 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     ),
   );
 
-  Widget _atracaoCard(EventoAtracao item) => Card(
+  String _duracaoPrevista(EventoAtracao item) {
+    final duracao = item.fim.difference(item.inicio);
+    if (duracao.inMinutes <= 0) return 'Duração prevista não informada';
+
+    final horas = duracao.inHours;
+    final minutos = duracao.inMinutes.remainder(60);
+    final texto = horas == 0
+        ? '$minutos min'
+        : minutos == 0
+        ? '${horas}h'
+        : '${horas}h ${minutos}min';
+    return 'Duração prevista: $texto';
+  }
+
+  Color _corAtracao(int indice) {
+    final cores = <Color>[
+      ClubbarColors.primaria,
+      Colors.blue.shade700,
+      Colors.deepPurple.shade600,
+      Colors.deepOrange.shade700,
+      Colors.teal.shade700,
+    ];
+    return cores[indice % cores.length];
+  }
+
+  Widget _atracaoCard(EventoAtracao item, int indice) => Card(
     child: ListTile(
-      leading: const CircleAvatar(child: Icon(Icons.music_note)),
+      leading: CircleAvatar(
+        backgroundColor: _corAtracao(indice),
+        foregroundColor: Colors.white,
+        child: Text(
+          '${indice + 1}',
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
       title: Text(
         item.atracao.nome,
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
-      subtitle: Text(
-        '${DateFormat('dd/MM HH:mm').format(item.inicio)} → ${DateFormat('dd/MM HH:mm').format(item.fim)}',
-      ),
+      subtitle: Text(_duracaoPrevista(item)),
       onTap: widget.somenteConsulta ? null : () => _editarProgramacao(item),
       trailing: widget.somenteConsulta
           ? const Icon(Icons.lock_outline, size: 20)
