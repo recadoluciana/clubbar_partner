@@ -6,6 +6,7 @@ import '../../core/repositories/atracao_repository.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/atracao.dart';
@@ -109,14 +110,16 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     } catch (e) {
       if (mounted) {
         final texto = e.toString();
-        AppSnackBar.erro(
-          context,
-          texto.contains('temporariamente indisponível')
-              ? 'Sua agenda não pode ser publicada. Sua conta no Asaas ainda não foi aprovada.\n\nAcesse o menu Titular financeiro e efetive a integração com o Asaas.'
-              : texto.replaceFirst('Exception: ', ''),
-          duration: const Duration(seconds: 10),
-          mostrarFechar: true,
-        );
+        if (erroIndicaPendenteAsaas(e)) {
+          await mostrarDialogoAsaasPendente(context, recurso: 'esta agenda');
+        } else {
+          AppSnackBar.erro(
+            context,
+            texto.replaceFirst('Exception: ', ''),
+            duration: const Duration(seconds: 10),
+            mostrarFechar: true,
+          );
+        }
       }
     }
   }

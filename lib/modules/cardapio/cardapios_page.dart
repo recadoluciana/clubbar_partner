@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../core/services/storage_service.dart';
@@ -110,7 +111,14 @@ class _CardapiosPageState extends State<CardapiosPage> {
       await _carregar();
     } catch (e) {
       if (mounted) {
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+        if (erroIndicaPendenteAsaas(e)) {
+          await mostrarDialogoAsaasPendente(context, recurso: 'este cardápio');
+        } else {
+          AppSnackBar.erro(
+            context,
+            e.toString().replaceFirst('Exception: ', ''),
+          );
+        }
       }
     }
   }
@@ -138,7 +146,14 @@ class _CardapiosPageState extends State<CardapiosPage> {
       if (mounted) AppSnackBar.sucesso(context, msg);
     } catch (e) {
       if (mounted) {
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+        if (erroIndicaPendenteAsaas(e)) {
+          await mostrarDialogoAsaasPendente(context, recurso: 'este cardápio');
+        } else {
+          AppSnackBar.erro(
+            context,
+            e.toString().replaceFirst('Exception: ', ''),
+          );
+        }
       }
     }
   }
