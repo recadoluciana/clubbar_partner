@@ -22,6 +22,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
   final _repo = TitularFinanceiroRepository();
   List<Map<String, dynamic>> _titulares = const [];
   int? _organizacaoId;
+  String _nomeOrganizacao = 'Organização';
   bool _carregando = true;
   int? _processandoId;
   String? _erroCarregamento;
@@ -55,11 +56,19 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     try {
       final id = await StorageService.getOrganizacaoId();
       if (id == null) throw Exception('Empresa não identificada.');
-      final titulares = await _repo.listar(id);
+      final resultados = await Future.wait([
+        _repo.listar(id),
+        StorageService.getNomeOrganizacao(),
+      ]);
+      final titulares = resultados[0] as List<Map<String, dynamic>>;
+      final nomeOrganizacao = resultados[1]?.toString().trim();
       if (!mounted) return;
       setState(() {
         _organizacaoId = id;
         _titulares = titulares;
+        _nomeOrganizacao = nomeOrganizacao?.isNotEmpty == true
+            ? nomeOrganizacao!
+            : 'Organização';
         _carregando = false;
         _erroCarregamento = null;
       });
@@ -226,13 +235,13 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                     organizacaoId,
                     titularFinanceiroId: titularId,
                   ),
-                  'Subconta criada. Verifique a situação para continuar.',
+                  'Subconta Asaas criada. Verifique a situação para continuar.',
                 ),
           icon: const Icon(Icons.account_balance_rounded),
           label: Text(
             inativo
-                ? 'Reative o titular para integrar ao Asaas'
-                : 'Ativar recebimentos',
+                ? 'Reative o titular para ativar a subconta Asaas'
+                : 'Ativar subconta Asaas',
           ),
         ),
       );
@@ -253,7 +262,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
             Icon(Icons.verified_rounded, color: ClubbarColors.sucesso),
             SizedBox(width: 8),
             Text(
-              'Recebimentos ativos',
+              'Subconta pronta para receber pagamentos',
               style: TextStyle(
                 color: ClubbarColors.sucesso,
                 fontWeight: FontWeight.w800,
@@ -314,6 +323,8 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     final inativo = _texto(titular['sittitular']).toUpperCase() == 'INATIVO';
     final asaasAprovado =
         _texto(titular['status_asaas']).toUpperCase() == 'APROVADO';
+    final pessoaJuridica = _texto(titular['tipotitular']).toUpperCase() == 'PJ';
+    final rotuloDocumento = pessoaJuridica ? 'CNPJ' : 'CPF';
     final statusCor = inativo
         ? ClubbarColors.textoSecundario
         : ClubbarColors.sucesso;
@@ -327,17 +338,30 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
             Row(
               children: [
                 const Icon(
-                  Icons.account_balance_wallet_rounded,
+                  Icons.person_outline_rounded,
                   color: ClubbarColors.info,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    _texto(titular['nmrazaosocial']),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Nome do titular financeiro',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: ClubbarColors.textoSecundario,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _texto(titular['nmrazaosocial']),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 IconButton(
@@ -352,13 +376,18 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
             ),
             const Divider(),
             Text(
-              '${_texto(titular['tipotitular'])} • ${_documento(_texto(titular['cpfcnpj']))}',
+              '$rotuloDocumento: ${_documento(_texto(titular['cpfcnpj']))}',
+              style: const TextStyle(color: ClubbarColors.textoSecundario),
             ),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
               children: [
+                Expanded(
+                  child: Text(
+                    'Situação do titular financeiro: ${inativo ? 'Inativo' : 'Ativo'}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
                 Chip(
                   avatar: Icon(
                     inativo
@@ -373,6 +402,26 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Divider(),
+            const SizedBox(height: 4),
+            const Row(
+              children: [
+                Icon(Icons.account_balance_rounded, color: ClubbarColors.info),
+                SizedBox(width: 8),
+                Text(
+                  'Subconta Asaas',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
                 Chip(
                   avatar: Icon(
                     possuiAsaas
@@ -383,11 +432,13 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                   label: Text(
                     possuiAsaas
                         ? 'Subconta Asaas criada'
-                        : 'Sem subconta Asaas',
+                        : 'Subconta Asaas não criada',
                   ),
                 ),
                 if (possuiAsaas)
-                  Chip(label: Text('Asaas: ${_statusAsaas(titular)}')),
+                  Chip(
+                    label: Text('Situação no Asaas: ${_statusAsaas(titular)}'),
+                  ),
               ],
             ),
             const SizedBox(height: 10),
@@ -397,7 +448,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   asaasAprovado
-                      ? 'Subconta aprovada pelo Asaas. Este titular não pode ser inativado.'
+                      ? 'Subconta aprovada pelo Asaas. Este titular não pode ser inativado.\n\nAcesse a tela de Meus estabelecimentos e associe a cada estabelecimento um titular financeiro ativo e aprovado.'
                       : 'Subconta criada, mas os recebimentos serão liberados somente após a aprovação do Asaas. Este titular não pode ser inativado.',
                   style: const TextStyle(
                     color: ClubbarColors.textoSecundario,
@@ -444,9 +495,14 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
       body: Column(
         children: [
           ClubbarPageHeader(
-            titulo: 'Titular financeiro',
+            titulo: _nomeOrganizacao,
+            tituloStyle: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+              color: Colors.blue,
+            ),
             subtitulo: _erroCarregamento == null
-                ? '${_titulares.length} titular(es) da organização'
+                ? '${_titulares.length} titular(es) financeiro(s) da organização'
                 : 'Consulta indisponível no momento',
           ),
           Expanded(
