@@ -24,6 +24,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
+  final _senhaFocusNode = FocusNode();
   bool _carregando = false;
   bool _mostrarSenha = false;
   bool _recuperando = false;
@@ -50,6 +51,7 @@ class _LoginPageState extends State<LoginPage> {
     _timerCoruja?.cancel();
     _emailController.dispose();
     _senhaController.dispose();
+    _senhaFocusNode.dispose();
     super.dispose();
   }
 
@@ -98,6 +100,7 @@ class _LoginPageState extends State<LoginPage> {
       ).pushReplacement(MaterialPageRoute(builder: (_) => destino!));
     } catch (e) {
       _mensagem(e.toString(), erro: true);
+      _senhaFocusNode.requestFocus();
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -361,6 +364,7 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(height: 16),
           TextField(
             controller: _senhaController,
+            focusNode: _senhaFocusNode,
             obscureText: !_mostrarSenha,
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.password],
@@ -369,12 +373,26 @@ class _LoginPageState extends State<LoginPage> {
               labelText: 'Senha',
               prefixIcon: const Icon(Icons.lock_outline_rounded),
               border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                tooltip: _mostrarSenha ? 'Ocultar senha' : 'Mostrar senha',
-                onPressed: () => setState(() => _mostrarSenha = !_mostrarSenha),
-                icon: Icon(
-                  _mostrarSenha ? Icons.visibility_off : Icons.visibility,
-                ),
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Limpar senha',
+                    onPressed: () {
+                      _senhaController.clear();
+                      _senhaFocusNode.requestFocus();
+                    },
+                    icon: const Icon(Icons.clear_rounded),
+                  ),
+                  IconButton(
+                    tooltip: _mostrarSenha ? 'Ocultar senha' : 'Mostrar senha',
+                    onPressed: () =>
+                        setState(() => _mostrarSenha = !_mostrarSenha),
+                    icon: Icon(
+                      _mostrarSenha ? Icons.visibility_off : Icons.visibility,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
