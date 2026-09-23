@@ -52,13 +52,11 @@ class EventoRepository {
     EventoModeloAtracao? item,
     required int atracaoId,
     required int ordem,
-    required int minutoInicio,
     required int minutoDuracao,
   }) async {
     final dados = {
       'atracao_id': atracaoId,
       'ordem': ordem,
-      'nrminutoinicio': minutoInicio,
       'nrminutoduracao': minutoDuracao,
     };
     final response = item == null

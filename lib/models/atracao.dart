@@ -83,7 +83,6 @@ class EventoModeloAtracao {
   final int modeloId;
   final int atracaoId;
   final int ordem;
-  final int minutoInicio;
   final int minutoDuracao;
   final String nomeAtracao;
 
@@ -92,7 +91,6 @@ class EventoModeloAtracao {
     required this.modeloId,
     required this.atracaoId,
     required this.ordem,
-    required this.minutoInicio,
     required this.minutoDuracao,
     required this.nomeAtracao,
   });
@@ -103,7 +101,6 @@ class EventoModeloAtracao {
         modeloId: int.tryParse('${j['eventomodelo_id'] ?? 0}') ?? 0,
         atracaoId: int.tryParse('${j['atracao_id'] ?? 0}') ?? 0,
         ordem: int.tryParse('${j['ordem'] ?? 1}') ?? 1,
-        minutoInicio: int.tryParse('${j['nrminutoinicio'] ?? 0}') ?? 0,
         minutoDuracao: int.tryParse('${j['nrminutoduracao'] ?? 120}') ?? 120,
         nomeAtracao: '${(j['atracao'] as Map?)?['nmatracao'] ?? ''}',
       );
