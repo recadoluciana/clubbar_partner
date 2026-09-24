@@ -13,14 +13,17 @@ class ClubbarPartnerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Clubbar Partner',
-      theme: AppTheme.light,
-      locale: const Locale('pt', 'BR'),
-      supportedLocales: const [Locale('pt', 'BR')],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: const SplashDeciderPage(),
+    return ValueListenableBuilder<int>(
+      valueListenable: StorageService.sessaoAlterada,
+      builder: (context, versaoSessao, _) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Clubbar Partner',
+        theme: AppTheme.light,
+        locale: const Locale('pt', 'BR'),
+        supportedLocales: const [Locale('pt', 'BR')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: SplashDeciderPage(key: ValueKey(versaoSessao)),
+      ),
     );
   }
 }
