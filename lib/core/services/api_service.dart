@@ -16,7 +16,8 @@ class ApiService {
   static Future<http.Response> get(String endpoint) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
 
-    return http.get(url, headers: await _headers());
+    final response = await http.get(url, headers: await _headers());
+    return _tratarRespostaDeAutenticacao(response);
   }
 
   static Future<http.Response> post(
@@ -25,29 +26,52 @@ class ApiService {
   ) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
 
-    return http.post(url, headers: await _headers(), body: jsonEncode(body));
+    final response = await http.post(
+      url,
+      headers: await _headers(),
+      body: jsonEncode(body),
+    );
+    return _tratarRespostaDeAutenticacao(response);
   }
 
   static Future<http.Response> put(String endpoint, Object body) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
 
-    return http.put(url, headers: await _headers(), body: jsonEncode(body));
+    final response = await http.put(
+      url,
+      headers: await _headers(),
+      body: jsonEncode(body),
+    );
+    return _tratarRespostaDeAutenticacao(response);
   }
 
   static Future<http.Response> patch(String endpoint, {Object? body}) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
 
-    return http.patch(
+    final response = await http.patch(
       url,
       headers: await _headers(),
       body: body == null ? null : jsonEncode(body),
     );
+    return _tratarRespostaDeAutenticacao(response);
   }
 
   static Future<http.Response> delete(String endpoint) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
 
-    return http.delete(url, headers: await _headers());
+    final response = await http.delete(url, headers: await _headers());
+    return _tratarRespostaDeAutenticacao(response);
+  }
+
+  /// Remove dados locais quando a API informa que a sessão não é mais válida.
+  /// O app observa essa alteração e retorna o usuário à tela de login.
+  static Future<http.Response> _tratarRespostaDeAutenticacao(
+    http.Response response,
+  ) async {
+    if (response.statusCode == 401) {
+      await StorageService.clearToken();
+    }
+    return response;
   }
 
   String mensagemErroAmigavel(Object e) {
@@ -88,11 +112,13 @@ class ApiService {
       throw Exception('Usuário não identificado. Faça login novamente.');
     }
 
-    final response = await http.post(
-      Uri.parse(
-        '${ApiConfig.baseUrl}/entregas/$itvendaId/entregarproduto?usuario_id=$usuarioId',
+    final response = await _tratarRespostaDeAutenticacao(
+      await http.post(
+        Uri.parse(
+          '${ApiConfig.baseUrl}/entregas/$itvendaId/entregarproduto?usuario_id=$usuarioId',
+        ),
+        headers: await _headers(),
       ),
-      headers: await _headers(),
     );
 
     final data = response.body.isNotEmpty
@@ -130,7 +156,9 @@ class ApiService {
         '?usuario_id=$usuarioId',
       );
 
-      final response = await http.get(uri, headers: await _headers());
+      final response = await _tratarRespostaDeAutenticacao(
+        await http.get(uri, headers: await _headers()),
+      );
 
       final texto = response.body.trim();
 
@@ -168,7 +196,9 @@ class ApiService {
         '?usuario_id=$usuarioId',
       );
 
-      final response = await http.post(uri, headers: await _headers());
+      final response = await _tratarRespostaDeAutenticacao(
+        await http.post(uri, headers: await _headers()),
+      );
 
       final dynamic decoded = response.body.trim().isEmpty
           ? <String, dynamic>{}
