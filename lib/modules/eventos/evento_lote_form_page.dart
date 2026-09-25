@@ -14,7 +14,11 @@ class EventoLoteFormPage extends StatefulWidget {
   final int eventoId;
   final int organizacaoId;
   final int lojaId;
+  final String eventoTitulo;
   final String? eventoInicio;
+  final int? setorInicialId;
+  final int? proximoNumeroLote;
+  final DateTime? inicioVendaSugerido;
   final EventoLote? lote;
 
   const EventoLoteFormPage({
@@ -22,7 +26,11 @@ class EventoLoteFormPage extends StatefulWidget {
     required this.eventoId,
     required this.organizacaoId,
     required this.lojaId,
+    required this.eventoTitulo,
     this.eventoInicio,
+    this.setorInicialId,
+    this.proximoNumeroLote,
+    this.inicioVendaSugerido,
     this.lote,
   });
 
@@ -93,6 +101,14 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       _preencherData(lote.dtfimvenda, _dtFimController, inicio: false);
     } else {
       _qtVendidaController.text = '0';
+      _setorId = widget.setorInicialId;
+      _numeroLoteController.text = '${widget.proximoNumeroLote ?? 1}';
+      if (widget.inicioVendaSugerido != null) {
+        _dataInicioSelecionada = widget.inicioVendaSugerido;
+        _dtInicioController.text = DateFormat(
+          'dd/MM/yyyy HH:mm',
+        ).format(widget.inicioVendaSugerido!);
+      }
     }
     _carregarSetores();
   }
@@ -114,6 +130,13 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
 
   String _precoBrasil(double valor) =>
       NumberFormat('0.00', 'pt_BR').format(valor);
+
+  String _formatarDataEvento() {
+    final data = DateTime.tryParse(widget.eventoInicio ?? '');
+    return data == null
+        ? 'Não informada'
+        : DateFormat('dd/MM/yyyy às HH:mm').format(data);
+  }
 
   void _formatarPreco() {
     if (_precoController.text.trim().isEmpty) return;
@@ -137,62 +160,11 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     } catch (_) {}
   }
 
-  Future<void> _novoSetor() async {
-    final nome = TextEditingController();
-    final capacidade = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Novo setor'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nome,
-              decoration: const InputDecoration(labelText: 'Nome do setor'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: capacidade,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Capacidade'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Salvar'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) {
-      nome.dispose();
-      capacidade.dispose();
-      return;
+  EventoSetor? get _setorSelecionado {
+    for (final setor in _setores) {
+      if (setor.id == _setorId) return setor;
     }
-    try {
-      final setor = await _repo.criarSetor(
-        eventoId: widget.eventoId,
-        nome: nome.text.trim(),
-        capacidade: int.tryParse(capacidade.text) ?? 0,
-      );
-      if (mounted) {
-        setState(() {
-          _setores.add(setor);
-          _setorId = setor.id;
-        });
-      }
-    } catch (e) {
-      if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
-    }
-    nome.dispose();
-    capacidade.dispose();
+    return null;
   }
 
   void _atualizarResumo() {
@@ -438,37 +410,50 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
             const SizedBox(height: 14),
           ],
           if (!_modoSimples) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: _setorId,
-                    decoration: _decoracaoCampo(
-                      label: 'Setor',
-                      icone: Icons.chair_alt_outlined,
-                    ),
-                    items: _setores
-                        .map(
-                          (s) => DropdownMenuItem(
-                            value: s.id,
-                            child: Text('${s.nome} (${s.capacidade})'),
+            if (_setorSelecionado != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: ClubbarColors.infoClaro,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: ClubbarColors.info),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.stadium_rounded, color: ClubbarColors.info),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Setor: ${_setorSelecionado!.nome}',
+                            style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setState(() => _setorId = v),
-                  ),
+                          Text('Capacidade total: ${_setorSelecionado!.capacidade} pessoas'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: _novoSetor,
-                  tooltip: 'Novo setor',
-                  icon: const Icon(Icons.add),
+              )
+            else
+              DropdownButtonFormField<int>(
+                initialValue: _setorId,
+                decoration: _decoracaoCampo(
+                  label: 'Setor',
+                  icone: Icons.stadium_outlined,
                 ),
-              ],
-            ),
+                items: _setores
+                    .map((s) => DropdownMenuItem(value: s.id, child: Text('${s.nome} (${s.capacidade})')))
+                    .toList(),
+                onChanged: (v) => setState(() => _setorId = v),
+              ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _numeroLoteController,
+              readOnly: !editando && widget.proximoNumeroLote != null,
               keyboardType: TextInputType.number,
               decoration: _decoracaoCampo(
                 label: 'Número do lote',
@@ -560,7 +545,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
             readOnly: true,
             onTap: _selecionarInicio,
             decoration: _decoracaoCampo(
-              label: 'Início das vendas',
+              label: 'Início das vendas${editando ? '' : ' (programado)'}',
               icone: Icons.calendar_month_outlined,
               hint: 'dd/mm/aaaa hh:mm',
               suffixIcon: const Icon(Icons.schedule_rounded),
@@ -653,9 +638,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           children: [
             ClubbarPageHeader(
               titulo: editando ? 'Editar Lote' : 'Novo Lote',
-              subtitulo: editando
-                  ? 'Atualize as condições de venda'
-                  : 'Defina preço, quantidade e período',
+              subtitulo: 'Evento, setor e programação de vendas',
             ),
             Expanded(
               child: Form(
@@ -663,6 +646,31 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
                   children: [
+                    ClubbarCard(
+                      backgroundColor: ClubbarColors.infoClaro,
+                      borderColor: ClubbarColors.info,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Evento', style: TextStyle(color: ClubbarColors.textoSecundario)),
+                          Text(
+                            widget.eventoTitulo,
+                            style: const TextStyle(
+                              color: ClubbarColors.info,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Data e hora: ${_formatarDataEvento()}'),
+                          if (_setorSelecionado != null) ...[
+                            const SizedBox(height: 4),
+                            Text('Setor: ${_setorSelecionado!.nome} • capacidade: ${_setorSelecionado!.capacidade}'),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     _cardFormulario(),
                     const SizedBox(height: 16),
                     _cardResumo(),
