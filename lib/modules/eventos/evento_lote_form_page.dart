@@ -50,7 +50,6 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   bool _modoSimples = false;
   List<EventoSetor> _setores = [];
   int? _setorId;
-  String _tipoIngresso = 'INTEIRA';
   bool _usarCapacidadeRestante = false;
 
   bool get editando => widget.lote != null;
@@ -89,9 +88,6 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       _modoSimples = lote.eventoSetorId == null && lote.tipoIngresso == 'UNICO';
       _setorId = lote.eventoSetorId;
       _numeroLoteController.text = lote.numeroLote.toString();
-      _tipoIngresso = lote.tipoIngresso == 'UNICO'
-          ? 'INTEIRA'
-          : lote.tipoIngresso;
       _usarCapacidadeRestante = lote.usarCapacidadeRestante;
       _preencherData(lote.dtiniciovenda, _dtInicioController, inicio: true);
       _preencherData(lote.dtfimvenda, _dtFimController, inicio: false);
@@ -348,14 +344,10 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       final numeroLote = _modoSimples
           ? 1
           : int.parse(_numeroLoteController.text);
-      final tipoIngresso = _modoSimples ? 'UNICO' : _tipoIngresso;
       final setor = _setores.where((e) => e.id == _setorId).firstOrNull;
-      final nomeTipo = _nomeTipo(tipoIngresso) == 'Meia'
-          ? 'Meia Entrada'
-          : _nomeTipo(tipoIngresso);
       final nomeLote = _modoSimples
           ? 'Ingresso único'
-          : 'Lote $numeroLote - ${setor!.nome} $nomeTipo';
+          : 'Lote $numeroLote - ${setor!.nome}';
       if (editando) {
         final precoFoiAlterado =
             (_preco - widget.lote!.vrprecolote).abs() >= 0.005;
@@ -367,7 +359,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           nome: nomeLote,
           eventoSetorId: _modoSimples ? null : _setorId,
           numeroLote: numeroLote,
-          tipoIngresso: tipoIngresso,
+          tipoIngresso: 'INTEIRA',
           preco: precoFoiAlterado ? _preco : null,
           quantidadeTotal: _quantidadeTotal,
           quantidadeVendida: _quantidadeVendida,
@@ -384,7 +376,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           nome: nomeLote,
           eventoSetorId: _modoSimples ? null : _setorId,
           numeroLote: numeroLote,
-          tipoIngresso: tipoIngresso,
+          tipoIngresso: 'INTEIRA',
           preco: _preco,
           quantidadeTotal: _quantidadeTotal,
           quantidadeVendida: 0,
@@ -413,16 +405,6 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       if (mounted) setState(() => _salvando = false);
     }
   }
-
-  String _nomeTipo(String tipo) =>
-      {
-        'INTEIRA': 'Inteira',
-        'MEIA': 'Meia',
-        'SOCIAL': 'Social',
-        'CORTESIA': 'Cortesia',
-        'OUTRO': 'Outro',
-      }[tipo] ??
-      tipo;
 
   Widget _cardFormulario() {
     return ClubbarCard(
@@ -485,41 +467,17 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
               ],
             ),
             const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _numeroLoteController,
-                    keyboardType: TextInputType.number,
-                    decoration: _decoracaoCampo(
-                      label: 'Número do lote',
-                      icone: Icons.numbers,
-                    ),
-                    validator: (v) => (int.tryParse(v ?? '') ?? 0) < 1
-                        ? 'Informe o lote'
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _tipoIngresso,
-                    decoration: _decoracaoCampo(
-                      label: 'Tipo',
-                      icone: Icons.badge_outlined,
-                    ),
-                    items: ['INTEIRA', 'MEIA', 'SOCIAL', 'CORTESIA', 'OUTRO']
-                        .map(
-                          (v) => DropdownMenuItem(
-                            value: v,
-                            child: Text(_nomeTipo(v)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setState(() => _tipoIngresso = v!),
-                  ),
-                ),
-              ],
+            TextFormField(
+              controller: _numeroLoteController,
+              keyboardType: TextInputType.number,
+              decoration: _decoracaoCampo(
+                label: 'Número do lote',
+                icone: Icons.numbers,
+                hint: 'Ex.: 1, 2, 3',
+              ),
+              validator: (v) => (int.tryParse(v ?? '') ?? 0) < 1
+                  ? 'Informe o lote'
+                  : null,
             ),
             const SizedBox(height: 14),
           ],
@@ -537,6 +495,20 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
               prefixText: 'R\$ ',
             ),
             validator: (value) => _preco < 0 ? 'Informe um preço válido' : null,
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: ClubbarColors.infoClaro,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: ClubbarColors.info),
+            ),
+            child: const Text(
+              'O sistema cria automaticamente três modalidades neste lote: Inteira, Meia-entrada e Pessoa idosa. As duas meias ficam com 50% do valor da inteira; a meia legal usa a cota do evento e ambas exigem comprovação na entrada.',
+              style: TextStyle(fontSize: 12, height: 1.35),
+            ),
           ),
           const SizedBox(height: 14),
           SwitchListTile.adaptive(

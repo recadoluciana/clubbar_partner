@@ -44,6 +44,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   String? _erro;
   List<EventoLote> _lotes = [];
   List<EventoLote> _lotesFiltrados = [];
+  List<EventoSetor> _setores = [];
 
   @override
   void initState() {
@@ -62,49 +63,22 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
   }
 
-  Map<int, List<EventoLote>> get _lotesPorSetor {
-    final grupos = <int, List<EventoLote>>{};
-    for (final lote in _lotes) {
-      (grupos[lote.eventoSetorId ?? -lote.loteId] ??= []).add(lote);
-    }
-    return grupos;
-  }
-
   int get _totalIngressos {
-    var total = 0;
-    for (final lotes in _lotesPorSetor.values) {
-      final dinamico = lotes
-          .where((lote) => lote.usarCapacidadeRestante)
-          .firstOrNull;
-      total +=
-          dinamico?.qtCapacidadeSetor ??
-          lotes.fold(0, (soma, lote) => soma + lote.qttotallote);
-    }
-    return total;
+    return _setores.fold(0, (soma, setor) => soma + setor.capacidade);
   }
 
   int get _totalVendidos =>
       _lotes.fold(0, (total, lote) => total + lote.qtvendidalote);
   int get _totalDisponiveis {
-    var total = 0;
-    for (final lotes in _lotesPorSetor.values) {
-      final dinamico = lotes
-          .where((lote) => lote.usarCapacidadeRestante)
-          .firstOrNull;
-      if (dinamico?.qtCapacidadeRestante != null) {
-        total += dinamico!.qtCapacidadeRestante!;
-      } else {
-        total += lotes.fold(
-          0,
-          (soma, lote) =>
-              soma +
-              (lote.qttotallote - lote.qtvendidalote - lote.qtReservadaLote)
-                  .clamp(0, lote.qttotallote),
-        );
-      }
-    }
-    return total;
+    return (_totalIngressos -
+            _totalVendidos -
+            _lotes.fold(0, (total, lote) => total + lote.qtReservadaLote))
+        .clamp(0, _totalIngressos)
+        .toInt();
   }
+
+  int get _cotaLegal => _lotes.isEmpty ? (_totalIngressos * .40).floor() : _lotes.first.cotaLegal;
+  int get _cotaLegalUsada => _lotes.isEmpty ? 0 : _lotes.first.quantidadeVendidaCotaLegal + _lotes.first.quantidadeReservadaCotaLegal;
 
   double get _menorPreco {
     if (_lotes.isEmpty) return 0;
@@ -129,10 +103,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     });
 
     try {
-      final lista = await _repo.listar(widget.eventoId);
+      final respostas = await Future.wait([
+        _repo.listar(widget.eventoId),
+        _repo.listarSetores(widget.eventoId),
+      ]);
+      final lista = respostas[0] as List<EventoLote>;
+      final setores = respostas[1] as List<EventoSetor>;
       if (!mounted) return;
       setState(() {
         _lotes = lista;
+        _setores = setores;
         _lotesFiltrados = _aplicarFiltro(lista, _buscaController.text);
         _carregando = false;
       });
@@ -200,6 +180,49 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
     );
     if (resultado == true) await _carregar();
+  }
+
+  Future<void> _novoSetor() async {
+    final nome = TextEditingController();
+    final capacidade = TextEditingController();
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Novo setor'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nome, decoration: const InputDecoration(labelText: 'Nome do setor')),
+            const SizedBox(height: 12),
+            TextField(
+              controller: capacidade,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Capacidade total'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Criar setor')),
+        ],
+      ),
+    );
+    if (confirmou == true) {
+      try {
+        await _repo.criarSetor(
+          eventoId: widget.eventoId,
+          nome: nome.text.trim(),
+          capacidade: int.tryParse(capacidade.text.trim()) ?? 0,
+        );
+        if (!mounted) return;
+        AppSnackBar.sucesso(context, 'Setor criado. Agora cadastre os lotes dele.');
+        await _carregar();
+      } catch (e) {
+        if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
+      }
+    }
+    nome.dispose();
+    capacidade.dispose();
   }
 
   Future<void> _editarLote(EventoLote lote) async {
@@ -421,6 +444,53 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           );
         },
       ),
+    );
+  }
+
+  Widget _cardRegras() {
+    final restante = (_cotaLegal - _cotaLegalUsada).clamp(0, _cotaLegal);
+    return ClubbarCard(
+      backgroundColor: ClubbarColors.infoClaro,
+      borderColor: ClubbarColors.info,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.gavel_rounded, color: ClubbarColors.info),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('Regras de venda e meia-entrada', style: TextStyle(fontWeight: FontWeight.w900)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Capacidade do evento: $_totalIngressos • cota legal: $_cotaLegal • disponível na cota: $restante',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Cada lote oferece Inteira, Meia-entrada e Pessoa idosa. A meia legal conta na cota de 40% do evento; pessoa idosa tem 50% de desconto e não consome essa cota. A comprovação é exigida na entrada.',
+            style: TextStyle(fontSize: 12, height: 1.35),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Crie os setores primeiro. Em cada setor, os lotes seguem a numeração: o próximo entra em venda quando o anterior esgota ou encerra, respeitando sempre seu horário de início.',
+            style: TextStyle(fontSize: 12, height: 1.35),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _botaoNovoSetor() {
+    return OutlinedButton.icon(
+      onPressed: _carregando ? null : _novoSetor,
+      icon: const Icon(Icons.add_business_rounded),
+      label: const Text('Adicionar setor'),
+      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
     );
   }
 
@@ -708,7 +778,32 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       );
     }
 
-    return Column(children: _lotesFiltrados.map(_cardLote).toList());
+    final grupos = <int, List<EventoLote>>{};
+    for (final lote in _lotesFiltrados) {
+      (grupos[lote.eventoSetorId ?? -lote.loteId] ??= []).add(lote);
+    }
+    return Column(
+      children: [
+        for (final grupo in grupos.values) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(2, 4, 2, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.stadium_outlined, size: 19),
+                const SizedBox(width: 7),
+                Text(
+                  grupo.first.nomeSetor?.isNotEmpty == true
+                      ? grupo.first.nomeSetor!
+                      : 'Ingressos sem setor',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+          ),
+          ...grupo.map(_cardLote),
+        ],
+      ],
+    );
   }
 
   @override
@@ -725,9 +820,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Evento - ${widget.eventoTitulo}',
+              titulo: 'Ingressos e lotes',
               tituloWidget: Text(
-                'Evento - ${widget.eventoTitulo}',
+                'Ingressos e lotes',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -751,6 +846,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               child: Column(
                 children: [
                   _cardResumo(),
+                  const SizedBox(height: 8),
+                  _cardRegras(),
+                  const SizedBox(height: 8),
+                  _botaoNovoSetor(),
                   const SizedBox(height: 8),
                   _campoBusca(),
                 ],
