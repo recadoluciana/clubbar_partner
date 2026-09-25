@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/repositories/atracao_repository.dart';
@@ -264,6 +267,130 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     }
   }
 
+  Future<void> _editarEventoAgendado() async {
+    final tituloController = TextEditingController(text: _evento.titulo);
+    XFile? imagem;
+    Uint8List? imagemPreview;
+    var salvando = false;
+
+    final salvo = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, atualizar) => AlertDialog(
+          title: const Text('Editar evento agendado'),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'As alterações serão aplicadas somente a esta data. O evento padrão e as demais datas não serão alterados.',
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: tituloController,
+                  enabled: !salvando,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do evento',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (imagemPreview != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.memory(
+                      imagemPreview!,
+                      height: 150,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ] else if ((_evento.bannerEvento ?? '').isNotEmpty) ...[
+                  const Text(
+                    'A imagem atual será mantida até você escolher outra.',
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                OutlinedButton.icon(
+                  onPressed: salvando
+                      ? null
+                      : () async {
+                          final selecionada = await ImagePicker().pickImage(
+                            source: ImageSource.gallery,
+                            imageQuality: 85,
+                          );
+                          if (selecionada == null) return;
+                          final bytes = await selecionada.readAsBytes();
+                          atualizar(() {
+                            imagem = selecionada;
+                            imagemPreview = bytes;
+                          });
+                        },
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: Text(
+                    imagemPreview == null
+                        ? 'Trocar foto do evento'
+                        : 'Escolher outra foto',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: salvando ? null : () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: salvando
+                  ? null
+                  : () async {
+                      final titulo = tituloController.text.trim();
+                      if (titulo.isEmpty) {
+                        AppSnackBar.aviso(context, 'Informe o nome do evento.');
+                        return;
+                      }
+                      atualizar(() => salvando = true);
+                      try {
+                        await _eventoRepository.atualizarEventoAgendado(
+                          eventoId: _evento.eventoId,
+                          titulo: titulo,
+                          imagem: imagem,
+                        );
+                        if (context.mounted) Navigator.pop(context, true);
+                      } catch (e) {
+                        atualizar(() => salvando = false);
+                        if (mounted) {
+                          AppSnackBar.erro(
+                            this.context,
+                            e.toString().replaceFirst('Exception: ', ''),
+                          );
+                        }
+                      }
+                    },
+              child: Text(salvando ? 'Salvando...' : 'Salvar alterações'),
+            ),
+          ],
+        ),
+      ),
+    );
+    tituloController.dispose();
+
+    if (salvo == true && mounted) {
+      await _recarregar();
+      if (mounted) {
+        AppSnackBar.sucesso(context, 'Evento agendado atualizado.');
+        Navigator.pop(context, true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
@@ -300,6 +427,14 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                         ),
                       ),
                     ),
+                  if (!widget.somenteConsulta) ...[
+                    OutlinedButton.icon(
+                      onPressed: _carregando ? null : _editarEventoAgendado,
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Editar nome e foto do evento'),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Text(
                     'Atrações',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(

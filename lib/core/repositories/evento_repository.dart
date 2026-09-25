@@ -116,6 +116,35 @@ class EventoRepository {
     }
   }
 
+  /// Atualiza somente esta ocorrência da agenda. Não altera o evento padrão
+  /// nem outras datas que tenham sido criadas a partir dele.
+  Future<void> atualizarEventoAgendado({
+    required int eventoId,
+    required String titulo,
+    XFile? imagem,
+  }) async {
+    final request = http.MultipartRequest(
+      'PUT',
+      Uri.parse('${ApiConfig.baseUrl}/eventos/$eventoId'),
+    );
+    final token = await StorageService.getToken();
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.fields['nmtituloevento'] = titulo.trim();
+    if (imagem != null) {
+      request.files.add(await _montarArquivoImagem('urlbannerevento', imagem));
+    }
+
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(body, 'Não foi possível atualizar o evento agendado.'),
+      );
+    }
+  }
+
   Future<void> agendar({
     required int modeloId,
     required int lojaId,
