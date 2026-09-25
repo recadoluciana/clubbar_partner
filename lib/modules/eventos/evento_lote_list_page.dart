@@ -17,8 +17,11 @@ class EventoLoteListPage extends StatefulWidget {
   final int organizacaoId;
   final int lojaId;
   final String? eventoInicio;
+  final EventoSetor? setorParaGerenciar;
+  final int abaInicial;
+  final bool abrirAlteracaoCapacidade;
 
-  const EventoLoteListPage({super.key, required this.eventoId, required this.eventoTitulo, required this.organizacaoId, required this.lojaId, this.eventoInicio});
+  const EventoLoteListPage({super.key, required this.eventoId, required this.eventoTitulo, required this.organizacaoId, required this.lojaId, this.eventoInicio, this.setorParaGerenciar, this.abaInicial = 0, this.abrirAlteracaoCapacidade = false});
 
   @override
   State<EventoLoteListPage> createState() => _EventoLoteListPageState();
@@ -30,13 +33,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   final NumberFormat _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   bool _carregando = true;
   bool _excluindo = false;
+  bool _dialogCapacidadeAberto = false;
   String? _erro;
   int _abaAtual = 0;
   List<EventoLote> _lotes = [];
   List<EventoSetor> _setores = [];
 
   @override
-  void initState() { super.initState(); _carregar(); }
+  void initState() { super.initState(); _abaAtual = widget.abaInicial.clamp(0, 1); _carregar(); }
   @override
   void dispose() { _buscaController.dispose(); super.dispose(); }
 
@@ -51,6 +55,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       final respostas = await Future.wait([_repo.listar(widget.eventoId), _repo.listarSetores(widget.eventoId)]);
       if (!mounted) return;
       setState(() { _lotes = respostas[0] as List<EventoLote>; _setores = respostas[1] as List<EventoSetor>; _carregando = false; });
+      if (widget.abrirAlteracaoCapacidade && !_dialogCapacidadeAberto) {
+        _dialogCapacidadeAberto = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _alterarCapacidadeTotal();
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() { _erro = _mensagemErro(e); _carregando = false; });
@@ -123,6 +133,75 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     nome.dispose(); capacidade.dispose();
   }
 
+  Future<void> _editarSetor(EventoSetor setor) async {
+    final nome = TextEditingController(text: setor.nome);
+    final capacidade = TextEditingController(text: '${setor.capacidade}');
+    final confirmou = await showDialog<bool>(context: context, builder: (c) => AlertDialog(
+      title: const Text('Editar setor'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: nome, decoration: const InputDecoration(labelText: 'Nome do setor')),
+        const SizedBox(height: 12),
+        TextField(controller: capacidade, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantidade máxima de pessoas')),
+      ]),
+      actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Salvar'))],
+    ));
+    if (confirmou == true) {
+      try {
+        await _repo.atualizarSetor(setor: setor, nome: nome.text, capacidade: int.tryParse(capacidade.text.trim()) ?? 0);
+        if (!mounted) return;
+        AppSnackBar.sucesso(context, 'Setor atualizado.');
+        await _carregar();
+      } catch (e) { if (mounted) AppSnackBar.erro(context, _mensagemErro(e)); }
+    }
+    nome.dispose(); capacidade.dispose();
+  }
+
+  Future<void> _alterarCapacidadeTotal() async {
+    final setoresAtivos = _setores.where((setor) => setor.situacao == 'ATIVO').toList();
+    if (setoresAtivos.isEmpty) {
+      AppSnackBar.aviso(context, 'Crie ao menos um setor antes de definir a capacidade total.');
+      return;
+    }
+    final total = TextEditingController(text: '$_capacidadeEvento');
+    var setorId = setoresAtivos.first.id;
+    final confirmou = await showDialog<bool>(context: context, builder: (c) => StatefulBuilder(builder: (context, atualizar) => AlertDialog(
+      title: const Text('Alterar capacidade total'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('A capacidade total é a soma dos setores. Escolha qual setor receberá o ajuste.'),
+        const SizedBox(height: 14),
+        TextField(controller: total, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Total de pessoas no evento')),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<int>(initialValue: setorId, decoration: const InputDecoration(labelText: 'Setor que será ajustado'), items: setoresAtivos.map((setor) => DropdownMenuItem(value: setor.id, child: Text(setor.nome))).toList(), onChanged: (valor) => atualizar(() => setorId = valor!)),
+      ]),
+      actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Salvar capacidade'))],
+    )));
+    if (confirmou == true) {
+      final novoTotal = int.tryParse(total.text.trim()) ?? 0;
+      final setor = setoresAtivos.firstWhere((item) => item.id == setorId);
+      final outros = _capacidadeEvento - setor.capacidade;
+      final novaCapacidadeSetor = novoTotal - outros;
+      if (novaCapacidadeSetor <= 0) {
+        if (mounted) AppSnackBar.aviso(context, 'O total informado é menor que a soma dos demais setores.');
+      } else {
+        try {
+          await _repo.atualizarSetor(setor: setor, nome: setor.nome, capacidade: novaCapacidadeSetor);
+          if (!mounted) return;
+          AppSnackBar.sucesso(context, 'Capacidade total atualizada para $novoTotal pessoas.');
+          await _carregar();
+        } catch (e) { if (mounted) AppSnackBar.erro(context, _mensagemErro(e)); }
+      }
+    }
+    total.dispose();
+  }
+
+  Future<void> _gerenciarLotesDoSetor(EventoSetor setor) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventoLoteListPage(
+      eventoId: widget.eventoId, eventoTitulo: widget.eventoTitulo, organizacaoId: widget.organizacaoId,
+      lojaId: widget.lojaId, eventoInicio: widget.eventoInicio, setorParaGerenciar: setor,
+    )));
+    if (mounted) await _carregar();
+  }
+
   Future<void> _excluirLote(EventoLote lote) async {
     if (_excluindo) return;
     final confirmou = await showDialog<bool>(context: context, builder: (c) => AlertDialog(
@@ -153,6 +232,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         SizedBox(width: 190, child: _itemResumo('Setores', '${_setores.length}', Icons.stadium_rounded)), SizedBox(width: 190, child: _itemResumo('Capacidade total', '$_capacidadeEvento', Icons.groups_rounded)),
         SizedBox(width: 190, child: _itemResumo('Ingressos disponíveis', '$disponiveis', Icons.confirmation_number_rounded)), SizedBox(width: 190, child: _itemResumo('Lotes programados', '${_lotes.length}', Icons.sell_rounded)),
       ]),
+      const SizedBox(height: 12), SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: _carregando ? null : _alterarCapacidadeTotal, icon: const Icon(Icons.groups_rounded), label: const Text('Alterar capacidade total de pessoas'))),
       const SizedBox(height: 12), ClubbarCard(backgroundColor: ClubbarColors.avisoClaro, borderColor: ClubbarColors.ambar, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Row(children: [Icon(Icons.gavel_rounded), SizedBox(width: 8), Text('Regras de venda', style: TextStyle(fontWeight: FontWeight.w900))]), const SizedBox(height: 10),
         Text('Cota de meia-entrada: $_cotaLegal ingressos • ainda disponíveis: $restanteCota', style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 7),
@@ -165,9 +245,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   Widget _cardSetor(EventoSetor setor) {
     final lotes = _lotesDoSetor(setor.id);
     return ClubbarCard(margin: const EdgeInsets.only(bottom: 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [Container(padding: const EdgeInsets.all(10), decoration: const BoxDecoration(color: ClubbarColors.infoClaro, shape: BoxShape.circle), child: const Icon(Icons.stadium_rounded, color: ClubbarColors.info)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(setor.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), Text('Capacidade máxima: ${setor.capacidade} pessoas', style: const TextStyle(color: ClubbarColors.textoSecundario))]))]),
+      Row(children: [Container(padding: const EdgeInsets.all(10), decoration: const BoxDecoration(color: ClubbarColors.infoClaro, shape: BoxShape.circle), child: const Icon(Icons.stadium_rounded, color: ClubbarColors.info)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(setor.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), Text('Capacidade máxima: ${setor.capacidade} pessoas', style: const TextStyle(color: ClubbarColors.textoSecundario))])), IconButton(onPressed: _carregando ? null : () => _editarSetor(setor), tooltip: 'Editar nome e capacidade do setor', icon: const Icon(Icons.edit_outlined, color: ClubbarColors.info))]),
       const SizedBox(height: 12), Text(lotes.isEmpty ? 'Nenhum lote programado neste setor.' : '${lotes.length} lote(s) programado(s)', style: const TextStyle(fontWeight: FontWeight.w700)), const SizedBox(height: 12),
-      SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: _carregando ? null : () => _novoLote(setor), icon: const Icon(Icons.add_rounded), label: const Text('Adicionar lote neste setor'), style: ElevatedButton.styleFrom(backgroundColor: ClubbarColors.sucesso, foregroundColor: ClubbarColors.branco))),
+      SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: _carregando ? null : () => _gerenciarLotesDoSetor(setor), icon: const Icon(Icons.confirmation_number_rounded), label: const Text('Gerenciar lotes'), style: ElevatedButton.styleFrom(backgroundColor: ClubbarColors.sucesso, foregroundColor: ClubbarColors.branco))),
     ]));
   }
 
@@ -193,25 +273,40 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     ]));
   }
 
-  Widget _abaLotes() {
-    if (_carregando) return const Center(child: CircularProgressIndicator()); if (_erro != null) return _erroWidget();
-    final busca = _buscaController.text.trim().toLowerCase(); final lotes = _lotes.where((lote) => busca.isEmpty || lote.nmlote.toLowerCase().contains(busca) || (lote.nomeSetor ?? '').toLowerCase().contains(busca)).toList(); final grupos = <int, List<EventoLote>>{};
-    for (final lote in lotes) { (grupos[lote.eventoSetorId ?? -lote.loteId] ??= []).add(lote); }
-    return RefreshIndicator(onRefresh: _carregar, child: ListView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.fromLTRB(20, 16, 20, 30), children: [
-      TextField(controller: _buscaController, onChanged: (_) => setState(() {}), decoration: InputDecoration(prefixIcon: const Icon(Icons.search_rounded), hintText: 'Buscar lote ou setor', filled: true, fillColor: ClubbarColors.branco, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)))), const SizedBox(height: 16),
-      if (lotes.isEmpty) ClubbarCard(child: const Padding(padding: EdgeInsets.all(16), child: Text('Nenhum lote encontrado. Entre na aba Setores e escolha onde deseja adicionar um lote.', textAlign: TextAlign.center))) else for (final grupo in grupos.values) ...[Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(grupo.first.nomeSetor ?? 'Setor', style: const TextStyle(color: ClubbarColors.info, fontSize: 17, fontWeight: FontWeight.w900))), ...(grupo..sort((a, b) => a.numeroLote.compareTo(b.numeroLote))).map(_cardLote), const SizedBox(height: 8)],
-    ]));
+  Widget _paginaLotesDoSetor(EventoSetor setor) {
+    if (_carregando) return const Center(child: CircularProgressIndicator());
+    if (_erro != null) return _erroWidget();
+    final busca = _buscaController.text.trim().toLowerCase();
+    final lotes = _lotesDoSetor(setor.id).where((lote) => busca.isEmpty || lote.nmlote.toLowerCase().contains(busca)).toList();
+    return Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      bottomNavigationBar: ClubbarActionBar(actions: [ClubbarAddButton(onPressed: () => _novoLote(setor), label: 'Adicionar lote')]),
+      body: SafeArea(child: Column(children: [
+        ClubbarPageHeader(titulo: setor.nome, tituloWidget: Text(setor.nome, style: const TextStyle(color: ClubbarColors.info, fontSize: 20, fontWeight: FontWeight.w900)), subtitulo: 'Setor • capacidade máxima: ${setor.capacidade} pessoas', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
+        Expanded(child: RefreshIndicator(onRefresh: _carregar, child: ListView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.fromLTRB(20, 16, 20, 90), children: [
+          TextField(controller: _buscaController, onChanged: (_) => setState(() {}), decoration: InputDecoration(prefixIcon: const Icon(Icons.search_rounded), hintText: 'Buscar lote', filled: true, fillColor: ClubbarColors.branco, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)))),
+          const SizedBox(height: 16),
+          if (lotes.isEmpty) ClubbarCard(child: const Padding(padding: EdgeInsets.all(18), child: Text('Nenhum lote programado neste setor.', textAlign: TextAlign.center))) else ...lotes.map(_cardLote),
+        ]))),
+      ])),
+    );
   }
   Widget _erroWidget() => Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(_erro!, textAlign: TextAlign.center), const SizedBox(height: 12), ElevatedButton.icon(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded), label: const Text('Tentar novamente'))])));
 
   @override
-  Widget build(BuildContext context) => DefaultTabController(length: 3, child: Scaffold(
+  Widget build(BuildContext context) {
+    if (widget.setorParaGerenciar != null) {
+      return _paginaLotesDoSetor(widget.setorParaGerenciar!);
+    }
+    return DefaultTabController(initialIndex: _abaAtual, length: 2, child: Scaffold(
     backgroundColor: ClubbarColors.fundo, appBar: const ClubbarAppBar(mostrarVoltar: true),
     bottomNavigationBar: _abaAtual == 1 ? ClubbarActionBar(actions: [ClubbarAddButton(onPressed: _novoSetor, label: 'Adicionar setor')]) : null,
     body: SafeArea(child: Column(children: [
       ClubbarPageHeader(titulo: widget.eventoTitulo, tituloWidget: Text(widget.eventoTitulo, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: ClubbarColors.info, fontSize: 20, fontWeight: FontWeight.w900)), subtitulo: 'Data e hora do evento: $_dataHoraEvento', trailing: IconButton(onPressed: _carregando ? null : _carregar, icon: const Icon(Icons.refresh_rounded))),
-      Material(color: ClubbarColors.branco, child: TabBar(onTap: (indice) => setState(() => _abaAtual = indice), labelColor: ClubbarColors.info, unselectedLabelColor: ClubbarColors.textoSecundario, tabs: const [Tab(text: 'Resumo'), Tab(text: 'Setores'), Tab(text: 'Lotes')])),
-      Expanded(child: TabBarView(children: [_abaResumo(), _abaSetores(), _abaLotes()])),
+      Material(color: ClubbarColors.branco, child: TabBar(onTap: (indice) => setState(() => _abaAtual = indice), labelColor: ClubbarColors.info, unselectedLabelColor: ClubbarColors.textoSecundario, tabs: const [Tab(text: 'Resumo'), Tab(text: 'Setores')])),
+      Expanded(child: TabBarView(children: [_abaResumo(), _abaSetores()])),
     ])),
   ));
+  }
 }

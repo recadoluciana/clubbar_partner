@@ -44,6 +44,27 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     _evento = widget.evento;
   }
 
+  Future<void> _abrirGerenciadorLotes({
+    int abaInicial = 1,
+    bool abrirAlteracaoCapacidade = false,
+  }) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EventoLoteListPage(
+          eventoId: _evento.eventoId,
+          eventoTitulo: _evento.titulo,
+          organizacaoId: widget.organizacaoId,
+          lojaId: widget.lojaId,
+          eventoInicio: _evento.inicio.toIso8601String(),
+          abaInicial: abaInicial,
+          abrirAlteracaoCapacidade: abrirAlteracaoCapacidade,
+        ),
+      ),
+    );
+    if (mounted) await _recarregar();
+  }
+
   Future<void> _recarregar() async {
     setState(() => _carregando = true);
     try {
@@ -530,6 +551,43 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                         ),
                       ),
                     ),
+                  if (!widget.somenteConsulta) ...[
+                    OutlinedButton.icon(
+                      onPressed: _carregando ? null : _editarEventoAgendado,
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Editar nome e foto do evento'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _carregando ? null : _editarHorarioEvento,
+                      icon: const Icon(Icons.access_time_outlined),
+                      label: const Text('Editar horário do evento'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _carregando ? null : () => _abrirGerenciadorLotes(),
+                      icon: const Icon(Icons.confirmation_number_rounded),
+                      label: const Text('Gerenciar lotes e preços'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _carregando ? null : () => _abrirGerenciadorLotes(
+                        abaInicial: 0,
+                        abrirAlteracaoCapacidade: true,
+                      ),
+                      icon: const Icon(Icons.groups_outlined),
+                      label: const Text('Alterar capacidade total de pessoas'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ClubbarColors.erro,
+                      ),
+                      onPressed: _carregando ? null : _excluirData,
+                      child: const Text('Excluir esta data'),
+                    ),
+                  ],
+                  const SizedBox(height: 22),
                   Text(
                     'Atrações',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -552,55 +610,10 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                   ),
                   if (!widget.somenteConsulta) ...[
                     const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: _carregando ? null : _editarEventoAgendado,
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text('Editar nome e foto do evento'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _carregando ? null : _editarHorarioEvento,
-                      icon: const Icon(Icons.access_time_outlined),
-                      label: const Text('Editar horário do evento'),
-                    ),
-                    const SizedBox(height: 16),
                     FilledButton.icon(
-                      onPressed: _carregando
-                          ? null
-                          : () => _editarProgramacao(),
+                      onPressed: _carregando ? null : () => _editarProgramacao(),
                       icon: const Icon(Icons.add),
                       label: const Text('Adicionar atração'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _carregando
-                          ? null
-                          : () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => EventoLoteListPage(
-                                    eventoId: _evento.eventoId,
-                                    eventoTitulo: _evento.titulo,
-                                    organizacaoId: widget.organizacaoId,
-                                    lojaId: widget.lojaId,
-                                    eventoInicio: _evento.inicio
-                                        .toIso8601String(),
-                                  ),
-                                ),
-                              );
-                              if (mounted) await _recarregar();
-                            },
-                      icon: const Icon(Icons.confirmation_number_rounded),
-                      label: const Text('Gerenciar ingressos e preços'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: ClubbarColors.erro,
-                      ),
-                      onPressed: _carregando ? null : _excluirData,
-                      child: const Text('Excluir esta data'),
                     ),
                   ],
                 ],

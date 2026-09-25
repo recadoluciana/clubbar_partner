@@ -153,6 +153,26 @@ class EventoLoteRepository {
     );
   }
 
+  Future<EventoSetor> atualizarSetor({
+    required EventoSetor setor,
+    required String nome,
+    required int capacidade,
+  }) async {
+    final response = await ApiService.put('/eventos/setores/${setor.id}', {
+      'nmsetor': nome.trim(),
+      'dssetor': setor.descricao,
+      'qtcapacidade': capacidade,
+      'nrordem': setor.ordem,
+      'sitsetor': setor.situacao,
+    });
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível atualizar o setor.');
+    }
+    return EventoSetor.fromJson(
+      Map<String, dynamic>.from(jsonDecode(response.body)),
+    );
+  }
+
   Future<void> excluir(int loteId) async {
     final response = await ApiService.delete('/eventos/lotes/$loteId');
 
