@@ -263,11 +263,46 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     final ativo = (lote.statuslote ?? 'ATIVO').toUpperCase() == 'ATIVO';
     return Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: ativo ? ClubbarColors.sucessoClaro : ClubbarColors.erroClaro, borderRadius: BorderRadius.circular(18)), child: Text(ativo ? 'Ativo' : 'Inativo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: ativo ? ClubbarColors.sucesso : ClubbarColors.erro)));
   }
+
+  String _regrasDoPreco(EventoLotePreco preco) {
+    final regras = <String>[];
+    if (preco.aplicaCotaLegal) regras.add('Cota legal');
+    if (preco.exigeComprovante) regras.add('Comprovante');
+    if (preco.situacao.toUpperCase() != 'ATIVO') regras.add('Inativa');
+    return regras.isEmpty ? 'Sem exigência' : regras.join(' • ');
+  }
+
+  Widget _tabelaDeModalidades(EventoLote lote) {
+    final precos = [...lote.precos]..sort((a, b) => a.ordem.compareTo(b.ordem));
+    if (precos.isEmpty) return const Text('Nenhuma modalidade de preço cadastrada.', style: TextStyle(color: ClubbarColors.textoSecundario));
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(color: ClubbarColors.branco, border: Border.all(color: ClubbarColors.borda), borderRadius: BorderRadius.circular(12)),
+      child: Table(
+        columnWidths: const {0: FlexColumnWidth(1.5), 1: IntrinsicColumnWidth(), 2: FlexColumnWidth(1.35)},
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: [
+          TableRow(decoration: const BoxDecoration(color: ClubbarColors.fundo), children: const [
+            Padding(padding: EdgeInsets.all(10), child: Text('Modalidade', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900))),
+            Padding(padding: EdgeInsets.all(10), child: Text('Preço', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900))),
+            Padding(padding: EdgeInsets.all(10), child: Text('Regras', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900))),
+          ]),
+          ...precos.map((preco) => TableRow(children: [
+            Padding(padding: const EdgeInsets.all(10), child: Text(preco.nome, style: const TextStyle(fontWeight: FontWeight.w800))),
+            Padding(padding: const EdgeInsets.all(10), child: Text(_moeda.format(preco.valor), style: const TextStyle(fontWeight: FontWeight.w800))),
+            Padding(padding: const EdgeInsets.all(10), child: Text(_regrasDoPreco(preco), style: const TextStyle(fontSize: 11, color: ClubbarColors.textoSecundario))),
+          ])),
+        ],
+      ),
+    );
+  }
+
   Widget _cardLote(EventoLote lote) {
-    final inteira = lote.precos.where((preco) => preco.tipo == 'INTEIRA').firstOrNull;
     final disponiveis = lote.usarCapacidadeRestante ? lote.qtCapacidadeRestante ?? 0 : (lote.qttotallote - lote.qtvendidalote - lote.qtReservadaLote).clamp(0, lote.qttotallote);
+    final descricaoEstoque = lote.usarCapacidadeRestante ? 'Estoque compartilhado do setor: $disponiveis disponíveis' : 'Estoque do lote: ${lote.qttotallote} ingressos • $disponiveis disponíveis';
     return ClubbarCard(margin: const EdgeInsets.only(bottom: 12), onTap: () => _editarLote(lote), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [Container(padding: const EdgeInsets.all(10), decoration: const BoxDecoration(color: ClubbarColors.ambarClaro, shape: BoxShape.circle), child: Text('${lote.numeroLote}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))), const SizedBox(width: 11), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(lote.nmlote, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)), Text('Inteira: ${_moeda.format(inteira?.valor ?? lote.vrprecolote)} • $disponiveis disponíveis', style: const TextStyle(color: ClubbarColors.textoSecundario))])), _chipStatus(lote)]),
+      Row(children: [Container(padding: const EdgeInsets.all(10), decoration: const BoxDecoration(color: ClubbarColors.ambarClaro, shape: BoxShape.circle), child: Text('${lote.numeroLote}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))), const SizedBox(width: 11), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(lote.nmlote, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)), Text(descricaoEstoque, style: const TextStyle(color: ClubbarColors.textoSecundario))])), _chipStatus(lote)]),
+      const SizedBox(height: 14), const Text('Modalidades de preço', style: TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 8), _tabelaDeModalidades(lote),
       const SizedBox(height: 14), Container(width: double.infinity, padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: ClubbarColors.fundo, borderRadius: BorderRadius.circular(12), border: Border.all(color: ClubbarColors.borda)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Início das vendas: ${_formatarData(lote.dtiniciovenda)}', style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 5), Text('Fim das vendas: ${_formatarData(lote.dtfimvenda)}', style: const TextStyle(fontWeight: FontWeight.w800))])),
       const SizedBox(height: 12), Row(children: [Expanded(child: OutlinedButton.icon(onPressed: () => _editarLote(lote), icon: const Icon(Icons.edit_rounded), label: const Text('Editar'))), const SizedBox(width: 10), Expanded(child: OutlinedButton.icon(onPressed: _excluindo ? null : () => _excluirLote(lote), icon: const Icon(Icons.delete_outline_rounded), label: const Text('Excluir'), style: OutlinedButton.styleFrom(foregroundColor: ClubbarColors.erro)))]),
     ]));
