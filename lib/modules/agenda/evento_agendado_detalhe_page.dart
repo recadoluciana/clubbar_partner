@@ -391,6 +391,109 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     }
   }
 
+  Future<void> _editarHorarioEvento() async {
+    var horario = TimeOfDay.fromDateTime(_evento.inicio);
+    var salvando = false;
+
+    final salvo = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, atualizar) => AlertDialog(
+          title: const Text('Editar horário do evento'),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Data do evento: ${DateFormat('dd/MM/yyyy').format(_evento.inicio)}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'A data não pode ser alterada nesta tela.',
+                  style: TextStyle(color: Colors.black54),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  shape: RoundedRectangleBorder(
+                    side: const BorderSide(color: Colors.black38),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  leading: const Icon(Icons.access_time_outlined),
+                  title: const Text('Horário de início'),
+                  subtitle: Text(horario.format(context)),
+                  trailing: const Icon(Icons.edit_outlined),
+                  onTap: salvando
+                      ? null
+                      : () async {
+                          final selecionado = await showTimePicker(
+                            context: context,
+                            initialTime: horario,
+                          );
+                          if (selecionado != null) {
+                            atualizar(() => horario = selecionado);
+                          }
+                        },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: salvando ? null : () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: salvando
+                  ? null
+                  : () async {
+                      final inicioAtualizado = DateTime(
+                        _evento.inicio.year,
+                        _evento.inicio.month,
+                        _evento.inicio.day,
+                        horario.hour,
+                        horario.minute,
+                      );
+                      if (inicioAtualizado == _evento.inicio) {
+                        Navigator.pop(context, false);
+                        return;
+                      }
+                      atualizar(() => salvando = true);
+                      try {
+                        await _eventoRepository.atualizarHorarioEventoAgendado(
+                          eventoId: _evento.eventoId,
+                          inicio: inicioAtualizado,
+                        );
+                        if (context.mounted) Navigator.pop(context, true);
+                      } catch (e) {
+                        atualizar(() => salvando = false);
+                        if (mounted) {
+                          AppSnackBar.erro(
+                            this.context,
+                            e.toString().replaceFirst('Exception: ', ''),
+                          );
+                        }
+                      }
+                    },
+              child: Text(salvando ? 'Salvando...' : 'Salvar alterações'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (salvo == true && mounted) {
+      await _recarregar();
+      if (mounted) {
+        AppSnackBar.sucesso(context, 'Horário do evento atualizado.');
+        Navigator.pop(context, true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
@@ -427,14 +530,6 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                         ),
                       ),
                     ),
-                  if (!widget.somenteConsulta) ...[
-                    OutlinedButton.icon(
-                      onPressed: _carregando ? null : _editarEventoAgendado,
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text('Editar nome e foto do evento'),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
                   Text(
                     'Atrações',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -456,6 +551,18 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                     (entrada) => _atracaoCard(entrada.value, entrada.key),
                   ),
                   if (!widget.somenteConsulta) ...[
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: _carregando ? null : _editarEventoAgendado,
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Editar nome e foto do evento'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _carregando ? null : _editarHorarioEvento,
+                      icon: const Icon(Icons.access_time_outlined),
+                      label: const Text('Editar horário do evento'),
+                    ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       onPressed: _carregando
