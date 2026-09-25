@@ -272,39 +272,97 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     return regras.isEmpty ? 'Sem exigência' : regras.join(' • ');
   }
 
-  Widget _tabelaDeModalidades(EventoLote lote) {
-    final precos = [...lote.precos]..sort((a, b) => a.ordem.compareTo(b.ordem));
-    if (precos.isEmpty) return const Text('Nenhuma modalidade de preço cadastrada.', style: TextStyle(color: ClubbarColors.textoSecundario));
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(color: ClubbarColors.branco, border: Border.all(color: ClubbarColors.borda), borderRadius: BorderRadius.circular(12)),
-      child: Table(
-        columnWidths: const {0: FlexColumnWidth(1.5), 1: IntrinsicColumnWidth(), 2: FlexColumnWidth(1.35)},
-        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-        children: [
-          TableRow(decoration: const BoxDecoration(color: ClubbarColors.fundo), children: const [
-            Padding(padding: EdgeInsets.all(10), child: Text('Modalidade', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900))),
-            Padding(padding: EdgeInsets.all(10), child: Text('Preço', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900))),
-            Padding(padding: EdgeInsets.all(10), child: Text('Regras', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900))),
-          ]),
-          ...precos.map((preco) => TableRow(children: [
-            Padding(padding: const EdgeInsets.all(10), child: Text(preco.nome, style: const TextStyle(fontWeight: FontWeight.w800))),
-            Padding(padding: const EdgeInsets.all(10), child: Text(_moeda.format(preco.valor), style: const TextStyle(fontWeight: FontWeight.w800))),
-            Padding(padding: const EdgeInsets.all(10), child: Text(_regrasDoPreco(preco), style: const TextStyle(fontSize: 11, color: ClubbarColors.textoSecundario))),
-          ])),
-        ],
-      ),
-    );
+  int _disponiveisDoLote(EventoLote lote) => lote.usarCapacidadeRestante
+      ? lote.qtCapacidadeRestante ?? 0
+      : (lote.qttotallote - lote.qtvendidalote - lote.qtReservadaLote)
+          .clamp(0, lote.qttotallote);
+
+  String _capacidadeDaModalidade(EventoLote lote, EventoLotePreco preco) {
+    if (preco.aplicaCotaLegal) {
+      return 'Até ${lote.cotaLegal} ingresso(s) no evento';
+    }
+    return 'Estoque compartilhado: ${_disponiveisDoLote(lote)} disponível(is)';
   }
 
+  String _percentualDaModalidade(EventoLotePreco preco) =>
+      preco.aplicaCotaLegal ? '40% da capacidade do evento' : 'Não possui cota própria';
+
+  double? _valorMonetario(String texto) {
+    final limpo = texto.replaceAll(r'R$', '').replaceAll(' ', '').trim();
+    final normalizado = limpo.contains(',')
+        ? limpo.replaceAll('.', '').replaceAll(',', '.')
+        : limpo;
+    return double.tryParse(normalizado);
+  }
+
+  Future<void> _editarModalidade(EventoLote lote, EventoLotePreco preco) async {
+    if (lote.qtvendidalote > 0 || lote.qtReservadaLote > 0) {
+      AppSnackBar.aviso(context, 'Esta modalidade não pode ser alterada porque o lote já possui vendas ou reservas. Crie um novo lote para mudar os preços.');
+      return;
+    }
+    final nome = TextEditingController(text: preco.nome);
+    final valor = TextEditingController(text: NumberFormat('0.00', 'pt_BR').format(preco.valor));
+    var aplicaCota = preco.aplicaCotaLegal;
+    var exigeComprovante = preco.exigeComprovante;
+    final regrasFixas = ['INTEIRA', 'MEIA_LEGAL', 'MEIA_IDOSO'].contains(preco.tipo);
+    final confirmou = await showDialog<bool>(context: context, builder: (c) => StatefulBuilder(builder: (context, atualizar) => AlertDialog(
+      title: Text('Editar ${preco.nome}'),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: nome, decoration: const InputDecoration(labelText: 'Nome da modalidade')),
+        const SizedBox(height: 12),
+        TextField(controller: valor, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Preço', prefixText: r'R$ ')),
+        const SizedBox(height: 10),
+        CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('Usa a cota legal'), value: aplicaCota, onChanged: regrasFixas ? null : (valor) => atualizar(() => aplicaCota = valor ?? false)),
+        CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('Exige comprovante'), value: exigeComprovante, onChanged: regrasFixas ? null : (valor) => atualizar(() => exigeComprovante = valor ?? false)),
+        if (regrasFixas) const Padding(padding: EdgeInsets.only(top: 4), child: Text('As regras desta modalidade padrão são protegidas pela configuração legal do sistema.', style: TextStyle(fontSize: 12, color: ClubbarColors.textoSecundario))),
+      ])),
+      actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Salvar'))],
+    )));
+    if (confirmou == true) {
+      final novoValor = _valorMonetario(valor.text);
+      if (nome.text.trim().isEmpty || novoValor == null || novoValor < 0) {
+        if (mounted) AppSnackBar.aviso(context, 'Informe um nome e um preço válido.');
+      } else {
+        final atualizado = EventoLotePreco(id: preco.id, nome: nome.text.trim(), tipo: preco.tipo, valor: novoValor, aplicaCotaLegal: aplicaCota, exigeComprovante: exigeComprovante, situacao: preco.situacao, ordem: preco.ordem);
+        final precos = lote.precos.map((item) => item.id == preco.id ? atualizado : item).toList();
+        try {
+          await _repo.atualizarModalidades(loteId: lote.loteId, precos: precos);
+          if (!mounted) return;
+          AppSnackBar.sucesso(context, 'Modalidade atualizada.');
+          await _carregar();
+        } catch (e) { if (mounted) AppSnackBar.erro(context, _mensagemErro(e)); }
+      }
+    }
+    nome.dispose(); valor.dispose();
+  }
+
+  Widget _campoModalidade(String rotulo, String valor) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(rotulo, style: const TextStyle(fontSize: 11, color: ClubbarColors.textoSecundario)), const SizedBox(height: 2), Text(valor, style: const TextStyle(fontWeight: FontWeight.w800))]);
+
+  Widget _cardModalidade(EventoLote lote, EventoLotePreco preco) => Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 10),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(color: ClubbarColors.branco, border: Border.all(color: ClubbarColors.borda), borderRadius: BorderRadius.circular(12)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [Expanded(child: Text(preco.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900))), IconButton(onPressed: () => _editarModalidade(lote, preco), tooltip: 'Editar modalidade', icon: const Icon(Icons.edit_rounded, color: ClubbarColors.info))]),
+      const SizedBox(height: 8),
+      Wrap(runSpacing: 12, spacing: 22, children: [
+        _campoModalidade('Preço', _moeda.format(preco.valor)),
+        _campoModalidade('Percentual da capacidade', _percentualDaModalidade(preco)),
+        _campoModalidade('Capacidade prevista', _capacidadeDaModalidade(lote, preco)),
+      ]),
+      const SizedBox(height: 12), _campoModalidade('Regras', _regrasDoPreco(preco)),
+    ]),
+  );
+
   Widget _cardLote(EventoLote lote) {
-    final disponiveis = lote.usarCapacidadeRestante ? lote.qtCapacidadeRestante ?? 0 : (lote.qttotallote - lote.qtvendidalote - lote.qtReservadaLote).clamp(0, lote.qttotallote);
+    final disponiveis = _disponiveisDoLote(lote);
     final descricaoEstoque = lote.usarCapacidadeRestante ? 'Estoque compartilhado do setor: $disponiveis disponíveis' : 'Estoque do lote: ${lote.qttotallote} ingressos • $disponiveis disponíveis';
     return ClubbarCard(margin: const EdgeInsets.only(bottom: 12), onTap: () => _editarLote(lote), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [Container(padding: const EdgeInsets.all(10), decoration: const BoxDecoration(color: ClubbarColors.ambarClaro, shape: BoxShape.circle), child: Text('${lote.numeroLote}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))), const SizedBox(width: 11), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(lote.nmlote, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)), Text(descricaoEstoque, style: const TextStyle(color: ClubbarColors.textoSecundario))])), _chipStatus(lote)]),
-      const SizedBox(height: 14), const Text('Modalidades de preço', style: TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 8), _tabelaDeModalidades(lote),
+      const SizedBox(height: 14), const Text('Modalidades de preço', style: TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 8), if (lote.precos.isEmpty) const Text('Nenhuma modalidade de preço cadastrada.', style: TextStyle(color: ClubbarColors.textoSecundario)) else ...([...lote.precos]..sort((a, b) => a.ordem.compareTo(b.ordem))).map((preco) => _cardModalidade(lote, preco)),
       const SizedBox(height: 14), Container(width: double.infinity, padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: ClubbarColors.fundo, borderRadius: BorderRadius.circular(12), border: Border.all(color: ClubbarColors.borda)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Início das vendas: ${_formatarData(lote.dtiniciovenda)}', style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 5), Text('Fim das vendas: ${_formatarData(lote.dtfimvenda)}', style: const TextStyle(fontWeight: FontWeight.w800))])),
-      const SizedBox(height: 12), Row(children: [Expanded(child: OutlinedButton.icon(onPressed: () => _editarLote(lote), icon: const Icon(Icons.edit_rounded), label: const Text('Editar'))), const SizedBox(width: 10), Expanded(child: OutlinedButton.icon(onPressed: _excluindo ? null : () => _excluirLote(lote), icon: const Icon(Icons.delete_outline_rounded), label: const Text('Excluir'), style: OutlinedButton.styleFrom(foregroundColor: ClubbarColors.erro)))]),
+      const SizedBox(height: 12), Row(children: [Expanded(child: OutlinedButton.icon(onPressed: () => _editarLote(lote), icon: const Icon(Icons.edit_rounded), label: const Text('Editar lote'))), const SizedBox(width: 10), Expanded(child: OutlinedButton.icon(onPressed: _excluindo ? null : () => _excluirLote(lote), icon: const Icon(Icons.delete_outline_rounded), label: const Text('Excluir'), style: OutlinedButton.styleFrom(foregroundColor: ClubbarColors.erro)))]),
     ]));
   }
 

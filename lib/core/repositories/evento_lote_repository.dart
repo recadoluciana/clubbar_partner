@@ -95,6 +95,31 @@ class EventoLoteRepository {
     }
   }
 
+  Future<void> atualizarModalidades({
+    required int loteId,
+    required List<EventoLotePreco> precos,
+  }) async {
+    final response = await ApiService.put('/eventos/lotes/$loteId', {
+      'precos': precos
+          .map(
+            (preco) => {
+              'nmpreco': preco.nome.trim(),
+              'tipopreco': preco.tipo,
+              'vrpreco': preco.valor,
+              'aplicacotalegal': preco.aplicaCotaLegal,
+              'exigecomprovante': preco.exigeComprovante,
+              'situacao': preco.situacao,
+              'nrordem': preco.ordem,
+            },
+          )
+          .toList(),
+    });
+
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível atualizar as modalidades.');
+    }
+  }
+
   List<Map<String, dynamic>> _precosPadrao(double inteira) => [
     {
       'nmpreco': 'Inteira',
