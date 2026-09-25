@@ -61,12 +61,14 @@ class EventoAtracao {
   final int eventoId;
   final DateTime inicio;
   final DateTime fim;
+  final int duracaoPrevistaMinutos;
   final Atracao atracao;
   const EventoAtracao({
     required this.programacaoId,
     required this.eventoId,
     required this.inicio,
     required this.fim,
+    required this.duracaoPrevistaMinutos,
     required this.atracao,
   });
   factory EventoAtracao.fromJson(Map<String, dynamic> j) => EventoAtracao(
@@ -74,6 +76,8 @@ class EventoAtracao {
     eventoId: int.tryParse('${j['evento_id'] ?? 0}') ?? 0,
     inicio: DateTime.parse(j['dtinicioatracao'].toString()),
     fim: DateTime.parse(j['dtfimatracao'].toString()),
+    duracaoPrevistaMinutos:
+        int.tryParse('${j['nrminutoduracao'] ?? 0}') ?? 0,
     atracao: Atracao.fromJson(Map<String, dynamic>.from(j['atracao'] as Map)),
   );
 }

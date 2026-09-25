@@ -613,11 +613,13 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
   );
 
   String _duracaoPrevista(EventoAtracao item) {
-    final duracao = item.fim.difference(item.inicio);
-    if (duracao.inMinutes <= 0) return 'Duração prevista não informada';
+    final duracaoMinutos = item.duracaoPrevistaMinutos > 0
+        ? item.duracaoPrevistaMinutos
+        : item.fim.difference(item.inicio).inMinutes;
+    if (duracaoMinutos <= 0) return 'Duração prevista não informada';
 
-    final horas = duracao.inHours;
-    final minutos = duracao.inMinutes.remainder(60);
+    final horas = duracaoMinutos ~/ 60;
+    final minutos = duracaoMinutos % 60;
     final texto = horas == 0
         ? '$minutos min'
         : minutos == 0
