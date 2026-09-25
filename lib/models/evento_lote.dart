@@ -12,6 +12,7 @@ class EventoLote {
   final List<EventoLotePreco> precos;
   final int cotaLegal;
   final int quantidadeVendidaCotaLegal;
+  final int quantidadeReservadaCotaLegal;
   final int qttotallote;
   final bool usarCapacidadeRestante;
   final int qtvendidalote;
@@ -36,6 +37,7 @@ class EventoLote {
     this.precos = const [],
     this.cotaLegal = 0,
     this.quantidadeVendidaCotaLegal = 0,
+    this.quantidadeReservadaCotaLegal = 0,
     required this.qttotallote,
     this.usarCapacidadeRestante = false,
     required this.qtvendidalote,
@@ -67,6 +69,8 @@ class EventoLote {
       cotaLegal: (json['cotalegal'] as num?)?.toInt() ?? 0,
       quantidadeVendidaCotaLegal:
           (json['qtvendidacotalegal'] as num?)?.toInt() ?? 0,
+      quantidadeReservadaCotaLegal:
+          (json['qtreservadacotalegal'] as num?)?.toInt() ?? 0,
       qttotallote: (json['qttotallote'] as num?)?.toInt() ?? 0,
       usarCapacidadeRestante: json['usarcapacidaderestante'] == true,
       qtvendidalote: (json['qtvendidalote'] as num?)?.toInt() ?? 0,
