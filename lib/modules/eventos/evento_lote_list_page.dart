@@ -477,7 +477,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Crie os setores primeiro. Em cada setor, os lotes seguem a numeração: o próximo entra em venda quando o anterior esgota ou encerra, respeitando sempre seu horário de início.',
+            'A cota legal permanece protegida até 48 h antes do evento (72 h acima de 10 mil lugares). Crie os setores primeiro. Em cada setor, os lotes seguem a numeração: o próximo entra em venda quando o anterior esgota ou encerra, respeitando sempre seu horário de início.',
             style: TextStyle(fontSize: 12, height: 1.35),
           ),
         ],
