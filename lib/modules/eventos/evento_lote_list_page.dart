@@ -277,15 +277,15 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       : (lote.qttotallote - lote.qtvendidalote - lote.qtReservadaLote)
           .clamp(0, lote.qttotallote);
 
-  String _capacidadeDaModalidade(EventoLote lote, EventoLotePreco preco) {
+  String _regraDeEstoque(EventoLote lote, EventoLotePreco preco) {
     if (preco.aplicaCotaLegal) {
-      return 'Até ${lote.cotaLegal} ingresso(s) no evento';
+      return 'Cota legal do evento: até ${lote.cotaLegal} meias-entradas (40%). Também usa o estoque deste lote.';
     }
-    return 'Estoque compartilhado: ${_disponiveisDoLote(lote)} disponível(is)';
+    if (preco.tipo == 'MEIA_IDOSO') {
+      return 'Não usa a cota de meia-entrada. Usa o estoque compartilhado deste lote.';
+    }
+    return 'Usa o estoque compartilhado deste lote.';
   }
-
-  String _percentualDaModalidade(EventoLotePreco preco) =>
-      preco.aplicaCotaLegal ? '40% da capacidade do evento' : 'Não possui cota própria';
 
   double? _valorMonetario(String texto) {
     final limpo = texto.replaceAll(r'R$', '').replaceAll(' ', '').trim();
@@ -345,12 +345,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     decoration: BoxDecoration(color: ClubbarColors.branco, border: Border.all(color: ClubbarColors.borda), borderRadius: BorderRadius.circular(12)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [Expanded(child: Text(preco.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900))), IconButton(onPressed: () => _editarModalidade(lote, preco), tooltip: 'Editar modalidade', icon: const Icon(Icons.edit_rounded, color: ClubbarColors.info))]),
-      const SizedBox(height: 8),
-      Wrap(runSpacing: 12, spacing: 22, children: [
-        _campoModalidade('Preço', _moeda.format(preco.valor)),
-        _campoModalidade('Percentual da capacidade', _percentualDaModalidade(preco)),
-        _campoModalidade('Capacidade prevista', _capacidadeDaModalidade(lote, preco)),
-      ]),
+      const SizedBox(height: 8), _campoModalidade('Preço', _moeda.format(preco.valor)),
+      const SizedBox(height: 12), Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: preco.aplicaCotaLegal ? ClubbarColors.avisoClaro : ClubbarColors.infoClaro, borderRadius: BorderRadius.circular(10)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(preco.aplicaCotaLegal ? 'Limite legal de meia-entrada' : 'Estoque compartilhado do lote', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 3), Text(_regraDeEstoque(lote, preco), style: const TextStyle(fontSize: 12, height: 1.3)),
+          const SizedBox(height: 6), Text('${_disponiveisDoLote(lote)} ingresso(s) disponível(is) no estoque compartilhado do lote.', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+        ]),
+      ),
       const SizedBox(height: 12), _campoModalidade('Regras', _regrasDoPreco(preco)),
     ]),
   );
