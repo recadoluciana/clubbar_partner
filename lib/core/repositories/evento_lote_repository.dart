@@ -126,6 +126,21 @@ class EventoLoteRepository {
     }
   }
 
+  Future<void> atualizarPeriodoVendas({
+    required int loteId,
+    required String dtInicioVenda,
+    required String dtFimVenda,
+  }) async {
+    final response = await ApiService.put('/eventos/lotes/$loteId', {
+      'dtiniciovenda': dtInicioVenda,
+      'dtfimvenda': dtFimVenda,
+    });
+
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível atualizar o período de vendas.');
+    }
+  }
+
   Future<void> atualizarModalidades({
     required int loteId,
     required List<EventoLotePreco> precos,

@@ -46,6 +46,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   );
   bool _carregando = true;
   bool _excluindo = false;
+  bool _atualizandoPeriodo = false;
   bool _dialogCapacidadeAberto = false;
   String? _erro;
   int _abaAtual = 0;
@@ -135,6 +136,69 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     return data == null
         ? 'Não informada'
         : DateFormat("dd/MM/yyyy 'às' HH:mm").format(data);
+  }
+
+  String _dataParaApi(DateTime data) =>
+      DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(data);
+
+  Future<void> _editarDataVendas(
+    EventoLote lote, {
+    required bool inicio,
+  }) async {
+    final dataInicioAtual = DateTime.tryParse(lote.dtiniciovenda ?? '');
+    final dataFimAtual = DateTime.tryParse(lote.dtfimvenda ?? '');
+    final dataAtual = inicio ? dataInicioAtual : dataFimAtual;
+    if (dataAtual == null || dataInicioAtual == null || dataFimAtual == null) {
+      AppSnackBar.aviso(
+        context,
+        'Use Editar lote para informar o período completo de vendas.',
+      );
+      return;
+    }
+
+    final dataEscolhida = await showDatePicker(
+      context: context,
+      initialDate: dataAtual,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: inicio
+          ? 'Selecione o início das vendas'
+          : 'Selecione o fim das vendas',
+    );
+    if (dataEscolhida == null || !mounted) return;
+
+    final novaData = DateTime(
+      dataEscolhida.year,
+      dataEscolhida.month,
+      dataEscolhida.day,
+      dataAtual.hour,
+      dataAtual.minute,
+    );
+    final novoInicio = inicio ? novaData : dataInicioAtual;
+    final novoFim = inicio ? dataFimAtual : novaData;
+    if (!novoFim.isAfter(novoInicio)) {
+      AppSnackBar.aviso(
+        context,
+        'O fim das vendas deve ser posterior ao início das vendas.',
+      );
+      return;
+    }
+
+    setState(() => _atualizandoPeriodo = true);
+    try {
+      await _repo.atualizarPeriodoVendas(
+        loteId: lote.loteId,
+        dtInicioVenda: _dataParaApi(novoInicio),
+        dtFimVenda: _dataParaApi(novoFim),
+      );
+      if (!mounted) return;
+      AppSnackBar.sucesso(context, 'Período de vendas atualizado.');
+      await _carregar();
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
+    } finally {
+      if (mounted) setState(() => _atualizandoPeriodo = false);
+    }
   }
 
   List<EventoLote> _lotesDoSetor(int setorId) {
@@ -1181,6 +1245,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                           ],
                         ),
                       ),
+                      IconButton(
+                        onPressed: _atualizandoPeriodo
+                            ? null
+                            : () => _editarDataVendas(lote, inicio: true),
+                        tooltip: 'Editar início das vendas',
+                        icon: const Icon(Icons.calendar_month_rounded),
+                        color: ClubbarColors.info,
+                      ),
                     ],
                   ),
                 ),
@@ -1221,6 +1293,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                           ],
                         ),
                       ),
+                      IconButton(
+                        onPressed: _atualizandoPeriodo
+                            ? null
+                            : () => _editarDataVendas(lote, inicio: false),
+                        tooltip: 'Editar fim das vendas',
+                        icon: const Icon(Icons.calendar_month_rounded),
+                        color: ClubbarColors.info,
+                      ),
                     ],
                   ),
                 ),
@@ -1235,7 +1315,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             child: OutlinedButton.icon(
               onPressed: _excluindo ? null : () => _excluirLote(lote),
               icon: const Icon(Icons.delete_outline_rounded),
-              label: const Text('Excluir'),
+              label: const Text('Excluir lote'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: ClubbarColors.erro,
               ),
