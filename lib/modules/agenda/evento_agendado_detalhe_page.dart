@@ -44,7 +44,7 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     _evento = widget.evento;
   }
 
-  Future<void> _abrirGerenciadorLotes({int abaInicial = 1}) async {
+  Future<void> _abrirGerenciadorLotes({int abaInicial = 0}) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
