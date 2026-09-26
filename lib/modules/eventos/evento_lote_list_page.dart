@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/repositories/atracao_repository.dart';
 import '../../core/repositories/evento_lote_repository.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
@@ -14,6 +15,7 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento_lote.dart';
+import '../../models/atracao.dart';
 import 'evento_lote_form_page.dart';
 
 class EventoLoteListPage extends StatefulWidget {
@@ -45,12 +47,14 @@ class EventoLoteListPage extends StatefulWidget {
 class _EventoLoteListPageState extends State<EventoLoteListPage> {
   final _repo = EventoLoteRepository();
   final _eventoRepo = EventoRepository();
+  final _atracaoRepo = AtracaoRepository();
   final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   bool _carregando = true;
   String? _erro;
   int _aba = 0;
   List<EventoSetor> _setores = [];
   List<EventoLoteGlobal> _globais = [];
+  List<EventoAtracao> _atracoes = [];
   CapacidadeEvento? _capacidade;
   late String? _eventoInicio;
   late String _eventoTitulo;
@@ -60,7 +64,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   @override
   void initState() {
     super.initState();
-    _aba = widget.abaInicial.clamp(0, 1);
+    _aba = widget.abaInicial.clamp(0, 2);
     _eventoInicio = widget.eventoInicio;
     _eventoTitulo = widget.eventoTitulo;
     _eventoBanner = widget.eventoBanner;
@@ -131,12 +135,20 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _repo.listarSetores(widget.eventoId),
         _repo.listarGlobais(widget.eventoId),
         _repo.obterCapacidadeEvento(widget.eventoId),
+        _atracaoRepo.agenda(
+          widget.lojaId,
+          DateTime.tryParse(_eventoInicio ?? '') ?? DateTime.now(),
+        ),
       ]);
       if (!mounted) return;
+      final eventos = respostas[3] as List<AgendaEvento>;
+      final evento = eventos.where((item) => item.eventoId == widget.eventoId);
       setState(() {
         _setores = respostas[0] as List<EventoSetor>;
         _globais = respostas[1] as List<EventoLoteGlobal>;
         _capacidade = respostas[2] as CapacidadeEvento;
+        _atracoes = evento.expand((item) => item.atracoes).toList()
+          ..sort((a, b) => a.inicio.compareTo(b.inicio));
         _carregando = false;
       });
     } catch (erro) {
@@ -200,10 +212,112 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         eventoId: widget.eventoId,
         inicio: nova,
       );
-      if (mounted) {
-        setState(() => _eventoInicio = nova.toIso8601String());
-        AppSnackBar.sucesso(context, 'Horário do evento atualizado.');
-      }
+      if (!mounted) return;
+      setState(() => _eventoInicio = nova.toIso8601String());
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Horário do evento atualizado.');
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _editarAtracao([EventoAtracao? atual]) async {
+    final atracoes = await _atracaoRepo.listar();
+    if (!mounted) return;
+    if (atracoes.isEmpty) {
+      AppSnackBar.aviso(context, 'Cadastre uma atração antes de incluí-la no evento.');
+      return;
+    }
+
+    var atracaoId = atual?.atracao.atracaoId ?? atracoes.first.atracaoId;
+    var inicio = atual?.inicio ?? (DateTime.tryParse(_eventoInicio ?? '') ?? DateTime.now());
+    var fim = atual?.fim ?? inicio.add(const Duration(hours: 2));
+    var salvando = false;
+    final salvo = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, atualizar) => AlertDialog(
+          title: Text(atual == null ? 'Adicionar atração' : 'Editar atração'),
+          content: SizedBox(
+            width: 440,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              DropdownButtonFormField<int>(
+                initialValue: atracaoId,
+                decoration: const InputDecoration(labelText: 'Atração', border: OutlineInputBorder()),
+                items: atracoes.map((item) => DropdownMenuItem(value: item.atracaoId, child: Text(item.nome))).toList(),
+                onChanged: (valor) => atualizar(() => atracaoId = valor!),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                tileColor: ClubbarColors.fundo,
+                leading: const Icon(Icons.play_arrow_rounded),
+                title: const Text('Início'),
+                subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(inicio)),
+                onTap: () async {
+                  final valor = await _selecionarDataHora(inicio);
+                  if (valor != null) atualizar(() => inicio = valor);
+                },
+              ),
+              ListTile(
+                tileColor: ClubbarColors.fundo,
+                leading: const Icon(Icons.stop_rounded),
+                title: const Text('Fim'),
+                subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(fim)),
+                onTap: () async {
+                  final valor = await _selecionarDataHora(fim);
+                  if (valor != null) atualizar(() => fim = valor);
+                },
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: salvando ? null : () => Navigator.pop(context, false), child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: salvando ? null : () async {
+                if (!fim.isAfter(inicio)) {
+                  AppSnackBar.aviso(context, 'O fim deve ser posterior ao início.');
+                  return;
+                }
+                atualizar(() => salvando = true);
+                try {
+                  if (atual == null) {
+                    await _atracaoRepo.adicionar(eventoId: widget.eventoId, atracaoId: atracaoId, inicio: inicio, fim: fim);
+                  } else {
+                    await _atracaoRepo.atualizarProgramacao(id: atual.programacaoId, atracaoId: atracaoId, inicio: inicio, fim: fim);
+                  }
+                  if (context.mounted) Navigator.pop(context, true);
+                } catch (erro) {
+                  atualizar(() => salvando = false);
+                  if (mounted) AppSnackBar.erro(this.context, erro.toString().replaceFirst('Exception: ', ''));
+                }
+              },
+              child: Text(salvando ? 'Salvando...' : 'Salvar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (salvo == true && mounted) await _carregar();
+  }
+
+  Future<void> _removerAtracao(EventoAtracao atracao) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remover atração?'),
+        content: Text('Deseja remover a atração “${atracao.atracao.nome}” deste evento?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remover')),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+    try {
+      await _atracaoRepo.removerProgramacao(atracao.programacaoId);
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Atração removida do evento.');
     } catch (erro) {
       if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
     }
@@ -564,6 +678,50 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     ..._globais.map(_cardLoteGlobal),
   ]);
 
+  Widget _abaAtracoes() => ListView(padding: const EdgeInsets.all(16), children: [
+    const Text('Atrações do evento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+    const SizedBox(height: 6),
+    const Text('Programe as atrações e informe o horário de início e fim de cada apresentação.'),
+    const SizedBox(height: 14),
+    if (_atracoes.isEmpty)
+      const ClubbarCard(
+        child: Padding(
+          padding: EdgeInsets.all(18),
+          child: Center(child: Text('Nenhuma atração programada.')),
+        ),
+      ),
+    ..._atracoes.asMap().entries.map((entrada) => _cardAtracao(entrada.value, entrada.key)),
+  ]);
+
+  Widget _cardAtracao(EventoAtracao atracao, int indice) => ClubbarCard(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      CircleAvatar(
+        backgroundColor: ClubbarColors.primariaClaro,
+        child: Text('${indice + 1}', style: const TextStyle(fontWeight: FontWeight.w900)),
+      ),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(atracao.atracao.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        Text('Início: ${DateFormat("dd/MM/yyyy 'às' HH:mm").format(atracao.inicio)}'),
+        Text('Fim: ${DateFormat("dd/MM/yyyy 'às' HH:mm").format(atracao.fim)}'),
+      ])),
+      Column(children: [
+        IconButton(
+          onPressed: () => _editarAtracao(atracao),
+          icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+          tooltip: 'Editar atração',
+        ),
+        IconButton(
+          onPressed: () => _removerAtracao(atracao),
+          icon: const Icon(Icons.delete_outline, color: ClubbarColors.erro),
+          tooltip: 'Remover atração',
+        ),
+      ]),
+    ]),
+  );
+
   Widget _cardLoteGlobal(EventoLoteGlobal lote) => ClubbarCard(
     margin: const EdgeInsets.only(bottom: 14),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -644,7 +802,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   @override
   Widget build(BuildContext context) => DefaultTabController(
-    length: 2,
+    length: 3,
     initialIndex: _aba,
     child: Scaffold(
     appBar: const ClubbarAppBar(mostrarVoltar: true),
@@ -652,13 +810,28 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ClubbarPageHeader(titulo: _eventoTitulo, subtitulo: 'Gerenciar evento, setores, lotes e preços', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
       TabBar(
         onTap: (indice) => setState(() => _aba = indice),
-        tabs: const [Tab(text: 'Resumo do Evento'), Tab(text: 'Lotes globais e preços')],
+        tabs: const [
+          Tab(text: 'Resumo do Evento'),
+          Tab(text: 'Lotes globais e preços'),
+          Tab(text: 'Atrações'),
+        ],
       ),
-      Expanded(child: _carregando ? const Center(child: CircularProgressIndicator()) : _erro != null ? Center(child: Text(_erro!)) : _aba == 0 ? _resumo() : _lotes()),
+      Expanded(
+        child: _carregando
+            ? const Center(child: CircularProgressIndicator())
+            : _erro != null
+                ? Center(child: Text(_erro!))
+                : _aba == 0
+                    ? _resumo()
+                    : _aba == 1
+                        ? _lotes()
+                        : _abaAtracoes(),
+      ),
     ]),
     bottomNavigationBar: ClubbarActionBar(actions: [
       if (_aba == 0) ClubbarAddButton(label: 'Adicionar setor', onPressed: () => _editarSetor(null)),
       if (_aba == 1) ClubbarAddButton(label: 'Adicionar lote global', onPressed: _novoLote),
+      if (_aba == 2) ClubbarAddButton(label: 'Adicionar atração', onPressed: () => _editarAtracao()),
     ]),
     ),
   );
