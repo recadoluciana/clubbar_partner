@@ -612,7 +612,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     AgendaEvento evento, {
     bool somenteConsulta = false,
   }) async {
-    final alterado = await Navigator.of(context).push<bool>(
+    await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => EventoLoteListPage(
           eventoId: evento.eventoId,
@@ -625,7 +625,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
         ),
       ),
     );
-    if (alterado == true && mounted) await _carregar();
+    if (mounted) await _carregar();
   }
 
   @override
