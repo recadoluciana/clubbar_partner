@@ -38,38 +38,74 @@ class EventoLoteListPage extends StatefulWidget {
 }
 
 class _EventoLoteListPageState extends State<EventoLoteListPage> {
-  final EventoLoteRepository _repo = EventoLoteRepository();
-  final TextEditingController _buscaController = TextEditingController();
-  final NumberFormat _moeda = NumberFormat.currency(
-    locale: 'pt_BR',
-    symbol: 'R\$',
-  );
+  final _repo = EventoLoteRepository();
+  final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   bool _carregando = true;
-  bool _excluindo = false;
-  bool _atualizandoPeriodo = false;
-  bool _dialogCapacidadeAberto = false;
   String? _erro;
-  int _abaAtual = 0;
-  List<EventoLote> _lotes = [];
+  int _aba = 0;
   List<EventoSetor> _setores = [];
-  CapacidadeEvento? _capacidadeConfigurada;
+  List<EventoLoteGlobal> _globais = [];
+  CapacidadeEvento? _capacidade;
 
   @override
   void initState() {
     super.initState();
-    _abaAtual = widget.abaInicial.clamp(0, 1);
+    _aba = widget.abaInicial.clamp(0, 1);
     _carregar();
   }
 
-  @override
-  void dispose() {
-    _buscaController.dispose();
-    super.dispose();
+  String get _dataEvento {
+    final data = DateTime.tryParse(widget.eventoInicio ?? '');
+    return data == null
+        ? 'Data e hora do evento não informadas'
+        : DateFormat("dd/MM/yyyy 'às' HH:mm 'horas'").format(data);
   }
 
-  String _mensagemErro(Object erro) {
-    final texto = erro.toString().replaceFirst('Exception: ', '').trim();
-    return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
+  String _data(String? valor) {
+    final data = DateTime.tryParse(valor ?? '');
+    return data == null ? 'Não informada' : DateFormat("dd/MM/yyyy 'às' HH:mm").format(data);
+  }
+
+  Future<DateTime?> _selecionarDataHora(DateTime? atual) async {
+    final data = await showDatePicker(
+      context: context,
+      initialDate: atual ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (data == null || !mounted) return null;
+    final hora = await showTimePicker(
+      context: context,
+      initialTime: atual == null ? TimeOfDay.now() : TimeOfDay.fromDateTime(atual),
+    );
+    if (hora == null) return null;
+    return DateTime(data.year, data.month, data.day, hora.hour, hora.minute);
+  }
+
+  Future<void> _editarDataGlobal(EventoLoteGlobal lote, {required bool inicio}) async {
+    final atual = DateTime.tryParse(inicio ? lote.inicioVendas ?? '' : lote.fimVendas ?? '');
+    final escolhida = await _selecionarDataHora(atual);
+    if (escolhida == null) return;
+    final inicioAtual = inicio ? escolhida : DateTime.tryParse(lote.inicioVendas ?? '');
+    final fimAtual = inicio ? DateTime.tryParse(lote.fimVendas ?? '') : escolhida;
+    if (inicioAtual != null && fimAtual != null && !fimAtual.isAfter(inicioAtual)) {
+      if (mounted) AppSnackBar.aviso(context, 'O fim das vendas deve ser posterior ao início.');
+      return;
+    }
+    try {
+      final valor = DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(escolhida);
+      await _repo.atualizarGlobal(
+        loteGlobalId: lote.id,
+        inicioVendas: inicio ? valor : null,
+        fimVendas: inicio ? null : valor,
+      );
+      if (mounted) {
+        AppSnackBar.sucesso(context, '${inicio ? 'Início' : 'Fim'} das vendas atualizado.');
+        _carregar();
+      }
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   Future<void> _carregar() async {
@@ -79,1453 +115,411 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     });
     try {
       final respostas = await Future.wait([
-        _repo.listar(widget.eventoId),
         _repo.listarSetores(widget.eventoId),
+        _repo.listarGlobais(widget.eventoId),
         _repo.obterCapacidadeEvento(widget.eventoId),
       ]);
       if (!mounted) return;
       setState(() {
-        _lotes = respostas[0] as List<EventoLote>;
-        _setores = respostas[1] as List<EventoSetor>;
-        _capacidadeConfigurada = respostas[2] as CapacidadeEvento;
+        _setores = respostas[0] as List<EventoSetor>;
+        _globais = respostas[1] as List<EventoLoteGlobal>;
+        _capacidade = respostas[2] as CapacidadeEvento;
         _carregando = false;
       });
-      if (widget.abrirAlteracaoCapacidade && !_dialogCapacidadeAberto) {
-        _dialogCapacidadeAberto = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _alterarCapacidadeTotal();
-        });
-      }
-    } catch (e) {
+      if (widget.abrirAlteracaoCapacidade) _alterarCapacidade();
+    } catch (erro) {
       if (!mounted) return;
       setState(() {
-        _erro = _mensagemErro(e);
+        _erro = erro.toString().replaceFirst('Exception: ', '');
         _carregando = false;
       });
-      AppSnackBar.erro(context, _erro!);
     }
   }
 
+  int get _capacidadeEvento => _capacidade?.capacidadeTotal ?? 0;
   int get _capacidadeSetores => _setores
-      .where((s) => s.situacao == 'ATIVO')
-      .fold(0, (total, s) => total + s.capacidade);
-  int get _capacidadeEvento =>
-      _capacidadeConfigurada?.capacidadeTotal ?? _capacidadeSetores;
-  int get _capacidadeNaoDistribuida =>
-      _capacidadeConfigurada?.capacidadeNaoDistribuida ??
-      (_capacidadeEvento - _capacidadeSetores);
-  int get _vendidos =>
-      _lotes.fold(0, (total, lote) => total + lote.qtvendidalote);
-  int get _reservados =>
-      _lotes.fold(0, (total, lote) => total + lote.qtReservadaLote);
-  int get _cotaLegal => (_capacidadeEvento * .40).floor();
-  int get _cotaUsada => _lotes.isEmpty
-      ? 0
-      : _lotes.first.quantidadeVendidaCotaLegal +
-            _lotes.first.quantidadeReservadaCotaLegal;
+      .where((setor) => setor.situacao == 'ATIVO')
+      .fold(0, (total, setor) => total + setor.capacidade);
 
-  String get _dataHoraEvento {
-    final inicio = DateTime.tryParse(widget.eventoInicio ?? '');
-    return inicio == null
-        ? 'Não informadas'
-        : DateFormat("dd/MM/yyyy 'às' HH:mm").format(inicio);
-  }
-
-  String _formatarData(String? valor) {
-    final data = valor == null ? null : DateTime.tryParse(valor);
-    return data == null
-        ? 'Não informada'
-        : DateFormat("dd/MM/yyyy 'às' HH:mm").format(data);
-  }
-
-  String _dataParaApi(DateTime data) =>
-      DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(data);
-
-  Future<void> _editarDataVendas(
-    EventoLote lote, {
-    required bool inicio,
-  }) async {
-    final dataInicioAtual = DateTime.tryParse(lote.dtiniciovenda ?? '');
-    final dataFimAtual = DateTime.tryParse(lote.dtfimvenda ?? '');
-    final dataAtual = inicio ? dataInicioAtual : dataFimAtual;
-    if (dataAtual == null || dataInicioAtual == null || dataFimAtual == null) {
-      AppSnackBar.aviso(
-        context,
-        'Use Editar lote para informar o período completo de vendas.',
-      );
-      return;
-    }
-
-    final dataEscolhida = await showDatePicker(
+  Future<void> _alterarCapacidade() async {
+    final controller = TextEditingController(text: _capacidadeEvento.toString());
+    final nova = await showDialog<int>(
       context: context,
-      initialDate: dataAtual,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-      helpText: inicio
-          ? 'Selecione o início das vendas'
-          : 'Selecione o fim das vendas',
-    );
-    if (dataEscolhida == null || !mounted) return;
-
-    final novaData = DateTime(
-      dataEscolhida.year,
-      dataEscolhida.month,
-      dataEscolhida.day,
-      dataAtual.hour,
-      dataAtual.minute,
-    );
-    final novoInicio = inicio ? novaData : dataInicioAtual;
-    final novoFim = inicio ? dataFimAtual : novaData;
-    if (!novoFim.isAfter(novoInicio)) {
-      AppSnackBar.aviso(
-        context,
-        'O fim das vendas deve ser posterior ao início das vendas.',
-      );
-      return;
-    }
-
-    setState(() => _atualizandoPeriodo = true);
-    try {
-      await _repo.atualizarPeriodoVendas(
-        loteId: lote.loteId,
-        dtInicioVenda: _dataParaApi(novoInicio),
-        dtFimVenda: _dataParaApi(novoFim),
-      );
-      if (!mounted) return;
-      AppSnackBar.sucesso(context, 'Período de vendas atualizado.');
-      await _carregar();
-    } catch (e) {
-      if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
-    } finally {
-      if (mounted) setState(() => _atualizandoPeriodo = false);
-    }
-  }
-
-  List<EventoLote> _lotesDoSetor(int setorId) {
-    final lotes = _lotes.where((lote) => lote.eventoSetorId == setorId).toList()
-      ..sort((a, b) => a.numeroLote.compareTo(b.numeroLote));
-    return lotes;
-  }
-
-  DateTime _sugestaoInicio(EventoSetor setor) {
-    final lotes = _lotesDoSetor(setor.id);
-    if (lotes.isNotEmpty) {
-      final fim = DateTime.tryParse(lotes.last.dtfimvenda ?? '');
-      if (fim != null) return fim.add(const Duration(minutes: 1));
-    }
-    final agora = DateTime.now();
-    return DateTime(
-      agora.year,
-      agora.month,
-      agora.day,
-      agora.hour,
-      agora.minute,
-    );
-  }
-
-  Future<void> _novoLote(EventoSetor setor) async {
-    final lotes = _lotesDoSetor(setor.id);
-    final resultado = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EventoLoteFormPage(
-          eventoId: widget.eventoId,
-          organizacaoId: widget.organizacaoId,
-          lojaId: widget.lojaId,
-          eventoTitulo: widget.eventoTitulo,
-          eventoInicio: widget.eventoInicio,
-          setorInicialId: setor.id,
-          proximoNumeroLote: lotes.isEmpty ? 1 : lotes.last.numeroLote + 1,
-          inicioVendaSugerido: _sugestaoInicio(setor),
-        ),
-      ),
-    );
-    if (resultado == true) await _carregar();
-  }
-
-  Future<void> _editarLote(EventoLote lote) async {
-    final resultado = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EventoLoteFormPage(
-          eventoId: widget.eventoId,
-          organizacaoId: widget.organizacaoId,
-          lojaId: widget.lojaId,
-          eventoTitulo: widget.eventoTitulo,
-          eventoInicio: widget.eventoInicio,
-          setorInicialId: lote.eventoSetorId,
-          lote: lote,
-        ),
-      ),
-    );
-    if (resultado == true) await _carregar();
-  }
-
-  Future<void> _novoSetor() async {
-    final nome = TextEditingController();
-    final capacidade = TextEditingController();
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Novo setor do evento'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nome,
-              decoration: const InputDecoration(labelText: 'Nome do setor'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: capacidade,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Capacidade máxima'),
-            ),
-          ],
+      builder: (context) => AlertDialog(
+        title: const Text('Capacidade total do evento'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Quantidade máxima de pessoas',
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancelar'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Criar setor'),
-          ),
-        ],
-      ),
-    );
-    if (confirmou == true) {
-      try {
-        await _repo.criarSetor(
-          eventoId: widget.eventoId,
-          nome: nome.text.trim(),
-          capacidade: int.tryParse(capacidade.text.trim()) ?? 0,
-        );
-        if (!mounted) return;
-        AppSnackBar.sucesso(
-          context,
-          'Setor criado. Agora você pode programar os lotes dele.',
-        );
-        await _carregar();
-      } catch (e) {
-        if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
-      }
-    }
-    nome.dispose();
-    capacidade.dispose();
-  }
-
-  Future<void> _editarSetor(EventoSetor setor) async {
-    final nome = TextEditingController(text: setor.nome);
-    final capacidade = TextEditingController(text: '${setor.capacidade}');
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Editar setor'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nome,
-              decoration: const InputDecoration(labelText: 'Nome do setor'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: capacidade,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Quantidade máxima de pessoas',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
+            onPressed: () => Navigator.pop(context, int.tryParse(controller.text.trim())),
             child: const Text('Salvar'),
           ),
         ],
       ),
     );
-    if (confirmou == true) {
-      try {
-        await _repo.atualizarSetor(
-          setor: setor,
-          nome: nome.text,
-          capacidade: int.tryParse(capacidade.text.trim()) ?? 0,
-        );
-        if (!mounted) return;
-        AppSnackBar.sucesso(context, 'Setor atualizado.');
-        await _carregar();
-      } catch (e) {
-        if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
-      }
-    }
-    nome.dispose();
-    capacidade.dispose();
-  }
-
-  Future<void> _alterarCapacidadeTotal() async {
-    final total = TextEditingController(text: '$_capacidadeEvento');
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Alterar capacidade total'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Informe a lotação autorizada desta data do evento. Os setores poderão ser distribuídos até esse limite.',
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: total,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Total de pessoas no evento',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Salvar capacidade'),
-          ),
-        ],
-      ),
-    );
-    if (confirmou == true) {
-      final novoTotal = int.tryParse(total.text.trim()) ?? 0;
-      if (novoTotal <= 0) {
-        if (mounted) {
-          AppSnackBar.aviso(context, 'Informe uma capacidade maior que zero.');
-        }
-      } else {
-        try {
-          await _repo.atualizarCapacidadeEvento(
-            eventoId: widget.eventoId,
-            capacidade: novoTotal,
-          );
-          if (!mounted) return;
-          AppSnackBar.sucesso(
-            context,
-            'Capacidade total do evento atualizada para $novoTotal pessoas.',
-          );
-          await _carregar();
-        } catch (e) {
-          if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
-        }
-      }
-    }
-    total.dispose();
-  }
-
-  Future<void> _gerenciarLotesDoSetor(EventoSetor setor) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EventoLoteListPage(
-          eventoId: widget.eventoId,
-          eventoTitulo: widget.eventoTitulo,
-          organizacaoId: widget.organizacaoId,
-          lojaId: widget.lojaId,
-          eventoInicio: widget.eventoInicio,
-          setorParaGerenciar: setor,
-        ),
-      ),
-    );
-    if (mounted) await _carregar();
-  }
-
-  Future<void> _excluirLote(EventoLote lote) async {
-    if (_excluindo) return;
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Excluir lote'),
-        content: Text(
-          'Deseja excluir ${lote.nmlote}? Não é possível excluir um lote que já tenha vendas.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: ClubbarColors.erro),
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
-    );
-    if (confirmou != true) return;
-    setState(() => _excluindo = true);
+    if (nova == null || nova <= 0) return;
     try {
-      await _repo.excluir(lote.loteId);
-      if (!mounted) return;
-      AppSnackBar.sucesso(context, 'Lote excluído.');
-      await _carregar();
-    } catch (e) {
-      if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
-    } finally {
-      if (mounted) setState(() => _excluindo = false);
+      await _repo.atualizarCapacidadeEvento(eventoId: widget.eventoId, capacidade: nova);
+      if (mounted) {
+        AppSnackBar.sucesso(context, 'Capacidade total atualizada.');
+        _carregar();
+      }
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
     }
   }
 
-  Widget _itemResumo(String titulo, String valor, IconData icone) => Container(
-    padding: const EdgeInsets.all(11),
-    decoration: BoxDecoration(
-      color: ClubbarColors.branco,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: ClubbarColors.borda),
-    ),
-    child: Row(
-      children: [
-        Icon(icone, color: ClubbarColors.info),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              titulo,
-              style: const TextStyle(
-                fontSize: 11,
-                color: ClubbarColors.textoSecundario,
-              ),
-            ),
-            Text(
-              valor,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-
-  List<int> get _numerosLotes =>
-      (_lotes.map((lote) => lote.numeroLote).toSet().toList()..sort());
-
-  int _quantidadeProgramada(EventoSetor setor) => _lotesDoSetor(setor.id)
-      .where((lote) => !lote.usarCapacidadeRestante)
-      .fold(0, (total, lote) => total + lote.qttotallote);
-
-  String _quantidadeNoLote(EventoSetor setor, int numero) {
-    final encontrados = _lotesDoSetor(
-      setor.id,
-    ).where((lote) => lote.numeroLote == numero).toList();
-    if (encontrados.isEmpty) return '—';
-    final lote = encontrados.first;
-    return lote.usarCapacidadeRestante ? 'Saldo' : '${lote.qttotallote}';
-  }
-
-  Widget _matrizCapacidade() {
-    final numeros = _numerosLotes;
-    final setores = _setores
-        .where((setor) => setor.situacao == 'ATIVO')
-        .toList();
-    final distribuido = _capacidadeSetores;
-    final faltaDistribuir = _capacidadeNaoDistribuida;
-    return ClubbarCard(
-      backgroundColor: ClubbarColors.branco,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Matriz de capacidade e lotes',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Confira se a lotação autorizada foi distribuída corretamente entre os setores e lotes.',
-            style: const TextStyle(color: ClubbarColors.textoSecundario),
-          ),
+  Future<void> _editarSetor(EventoSetor? existente) async {
+    final nome = TextEditingController(text: existente?.nome ?? '');
+    final capacidade = TextEditingController(text: existente?.capacidade.toString() ?? '');
+    final resultado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(existente == null ? 'Adicionar setor' : 'Editar setor'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: nome, decoration: const InputDecoration(labelText: 'Nome do setor')),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 14,
-            runSpacing: 7,
-            children: [
-              Text(
-                'Evento: $_capacidadeEvento pessoas',
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              Text(
-                'Setores: $distribuido pessoas',
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              Text(
-                faltaDistribuir == 0
-                    ? 'Distribuição dos setores completa'
-                    : 'Faltam $faltaDistribuir pessoas para distribuir nos setores',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: faltaDistribuir == 0
-                      ? ClubbarColors.sucesso
-                      : ClubbarColors.ambar,
-                ),
-              ),
-            ],
+          TextField(
+            controller: capacidade,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Capacidade máxima de pessoas'),
           ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowColor: WidgetStatePropertyAll(ClubbarColors.infoClaro),
-              columns: [
-                const DataColumn(label: Text('Setor')),
-                const DataColumn(label: Text('Capacidade')),
-                ...numeros.map(
-                  (numero) => DataColumn(label: Text('Lote $numero')),
-                ),
-                const DataColumn(label: Text('Programado')),
-                const DataColumn(label: Text('Saldo')),
-              ],
-              rows: [
-                ...setores.map((setor) {
-                  final programado = _quantidadeProgramada(setor);
-                  return DataRow(
-                    cells: [
-                      DataCell(
-                        SizedBox(
-                          width: 115,
-                          child: Text(
-                            setor.nome,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      DataCell(Text('${setor.capacidade}')),
-                      ...numeros.map(
-                        (numero) =>
-                            DataCell(Text(_quantidadeNoLote(setor, numero))),
-                      ),
-                      DataCell(Text('$programado')),
-                      DataCell(Text('${setor.capacidade - programado}')),
-                    ],
-                  );
-                }),
-                DataRow(
-                  cells: [
-                    const DataCell(
-                      Text(
-                        'Total',
-                        style: TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        '$distribuido',
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    ...numeros.map(
-                      (numero) => DataCell(
-                        Text(
-                          '${_lotes.where((lote) => lote.numeroLote == numero && !lote.usarCapacidadeRestante).fold(0, (total, lote) => total + lote.qttotallote)}',
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        '${_lotes.where((lote) => !lote.usarCapacidadeRestante).fold(0, (total, lote) => total + lote.qttotallote)}',
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    const DataCell(Text('—')),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '“Saldo” no lote significa que ele usa automaticamente a capacidade ainda disponível no setor.',
-            style: TextStyle(
-              fontSize: 12,
-              color: ClubbarColors.textoSecundario,
-            ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () async {
+              final quantidade = int.tryParse(capacidade.text.trim());
+              if (nome.text.trim().isEmpty || quantidade == null || quantidade <= 0) return;
+              try {
+                if (existente == null) {
+                  await _repo.criarSetor(eventoId: widget.eventoId, nome: nome.text.trim(), capacidade: quantidade);
+                } else {
+                  await _repo.atualizarSetor(setor: existente, nome: nome.text.trim(), capacidade: quantidade);
+                }
+                if (context.mounted) Navigator.pop(context, true);
+              } catch (erro) {
+                if (context.mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+              }
+            },
+            child: const Text('Salvar'),
           ),
         ],
       ),
     );
+    if (resultado == true && mounted) _carregar();
   }
 
-  Widget _abaResumo() {
-    final disponiveis = (_capacidadeEvento - _vendidos - _reservados).clamp(
-      0,
-      _capacidadeEvento,
-    );
-    final restanteCota = (_cotaLegal - _cotaUsada).clamp(0, _cotaLegal);
-    return RefreshIndicator(
-      onRefresh: _carregar,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
-        children: [
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              SizedBox(
-                width: 190,
-                child: _itemResumo(
-                  'Setores',
-                  '${_setores.length}',
-                  Icons.stadium_rounded,
-                ),
-              ),
-              SizedBox(
-                width: 190,
-                child: _itemResumo(
-                  'Capacidade autorizada',
-                  '$_capacidadeEvento',
-                  Icons.groups_rounded,
-                ),
-              ),
-              SizedBox(
-                width: 190,
-                child: _itemResumo(
-                  'Ingressos disponíveis',
-                  '$disponiveis',
-                  Icons.confirmation_number_rounded,
-                ),
-              ),
-              SizedBox(
-                width: 190,
-                child: _itemResumo(
-                  'Lotes programados',
-                  '${_lotes.length}',
-                  Icons.sell_rounded,
-                ),
-              ),
-              SizedBox(
-                width: 280,
-                child: _itemResumo(
-                  'Data do evento',
-                  _dataHoraEvento,
-                  Icons.calendar_month_rounded,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _carregando ? null : _alterarCapacidadeTotal,
-              icon: const Icon(Icons.groups_rounded),
-              label: Text(
-                _capacidadeConfigurada?.capacidadeTotal == null
-                    ? 'Definir capacidade total de pessoas'
-                    : 'Alterar capacidade total de pessoas',
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _matrizCapacidade(),
-          const SizedBox(height: 12),
-          ClubbarCard(
-            backgroundColor: ClubbarColors.avisoClaro,
-            borderColor: ClubbarColors.ambar,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.gavel_rounded),
-                    SizedBox(width: 8),
-                    Text(
-                      'Regras de venda',
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Cota de meia-entrada: $_cotaLegal ingressos • ainda disponíveis: $restanteCota',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 7),
-                const Text(
-                  'Cada lote oferece Inteira, Meia-entrada e Pessoa idosa. A meia legal ocupa a cota de 40% do evento; a pessoa idosa tem 50% de desconto e não consome essa cota.',
-                ),
-                const SizedBox(height: 7),
-                const Text(
-                  'Em cada setor, os lotes são sequenciais. O próximo inicia exatamente um minuto após o horário final do anterior, sem sobreposição nem interrupção de vendas.',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _cardSetor(EventoSetor setor) {
-    final lotes = _lotesDoSetor(setor.id);
-    return ClubbarCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(
-                  color: ClubbarColors.infoClaro,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.stadium_rounded,
-                  color: ClubbarColors.info,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      setor.nome,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      'Capacidade máxima: ${setor.capacidade} pessoas',
-                      style: const TextStyle(
-                        color: ClubbarColors.textoSecundario,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: _carregando ? null : () => _editarSetor(setor),
-                tooltip: 'Editar nome e capacidade do setor',
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  color: ClubbarColors.info,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            lotes.isEmpty
-                ? 'Nenhum lote programado neste setor.'
-                : '${lotes.length} lote(s) programado(s)',
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _carregando
-                  ? null
-                  : () => _gerenciarLotesDoSetor(setor),
-              icon: const Icon(Icons.confirmation_number_rounded),
-              label: const Text('Gerenciar lotes e preços'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ClubbarColors.sucesso,
-                foregroundColor: ClubbarColors.branco,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _abaSetores() {
-    if (_carregando) return const Center(child: CircularProgressIndicator());
-    if (_erro != null) return _erroWidget();
-    return RefreshIndicator(
-      onRefresh: _carregar,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 90),
-        children: [
-          const Text(
-            'Setores do evento',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Cadastre os setores e a capacidade máxima de cada um.',
-            style: TextStyle(color: ClubbarColors.textoSecundario),
-          ),
-          const SizedBox(height: 14),
-          if (_setores.isEmpty)
-            ClubbarCard(
-              child: const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Ainda não há setores. Crie o primeiro setor para começar a programar os ingressos.',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            )
-          else
-            ..._setores.map(_cardSetor),
-        ],
-      ),
-    );
-  }
-
-  Widget _chipStatus(EventoLote lote) {
-    final ativo = (lote.statuslote ?? 'ATIVO').toUpperCase() == 'ATIVO';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: ativo ? ClubbarColors.sucessoClaro : ClubbarColors.erroClaro,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Text(
-        ativo ? 'Ativo' : 'Inativo',
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: ativo ? ClubbarColors.sucesso : ClubbarColors.erro,
-        ),
-      ),
-    );
-  }
-
-  String _regrasDoPreco(EventoLotePreco preco) {
-    final regras = <String>[];
-    if (preco.aplicaCotaLegal) regras.add('Cota legal');
-    if (preco.exigeComprovante) regras.add('Comprovante');
-    if (preco.situacao.toUpperCase() != 'ATIVO') regras.add('Inativa');
-    return regras.isEmpty ? 'Sem exigência' : regras.join(' • ');
-  }
-
-  int _disponiveisDoLote(EventoLote lote) => lote.usarCapacidadeRestante
-      ? lote.qtCapacidadeRestante ?? 0
-      : (lote.qttotallote - lote.qtvendidalote - lote.qtReservadaLote).clamp(
-          0,
-          lote.qttotallote,
-        );
-
-  String _regraDeEstoque(EventoLote lote, EventoLotePreco preco) {
-    if (preco.aplicaCotaLegal) {
-      return 'Cota legal do evento: até ${lote.cotaLegal} meias-entradas (40%). Também usa o estoque deste lote.';
-    }
-    if (preco.tipo == 'MEIA_IDOSO') {
-      return 'Não usa a cota de meia-entrada. Usa o estoque compartilhado deste lote.';
-    }
-    return 'Usa o estoque compartilhado deste lote.';
-  }
-
-  double? _valorMonetario(String texto) {
-    final limpo = texto.replaceAll(r'R$', '').replaceAll(' ', '').trim();
-    final normalizado = limpo.contains(',')
-        ? limpo.replaceAll('.', '').replaceAll(',', '.')
-        : limpo;
-    return double.tryParse(normalizado);
-  }
-
-  Future<void> _editarModalidade(EventoLote lote, EventoLotePreco preco) async {
-    if (lote.qtvendidalote > 0 || lote.qtReservadaLote > 0) {
-      AppSnackBar.aviso(
-        context,
-        'Esta modalidade não pode ser alterada porque o lote já possui vendas ou reservas. Crie um novo lote para mudar os preços.',
-      );
+  Future<void> _novoLote() async {
+    if (_setores.where((setor) => setor.situacao == 'ATIVO').isEmpty) {
+      AppSnackBar.aviso(context, 'Cadastre pelo menos um setor antes de criar o lote global.');
       return;
     }
-    final nome = TextEditingController(text: preco.nome);
-    final valor = TextEditingController(
-      text: NumberFormat('0.00', 'pt_BR').format(preco.valor),
-    );
-    var aplicaCota = preco.aplicaCotaLegal;
-    var exigeComprovante = preco.exigeComprovante;
-    final regrasFixas = [
-      'INTEIRA',
-      'MEIA_LEGAL',
-      'MEIA_IDOSO',
-    ].contains(preco.tipo);
-    final confirmou = await showDialog<bool>(
+    final salvou = await Navigator.of(context).push<bool>(MaterialPageRoute(
+      builder: (_) => EventoLoteFormPage(
+        eventoId: widget.eventoId,
+        organizacaoId: widget.organizacaoId,
+        lojaId: widget.lojaId,
+        eventoTitulo: widget.eventoTitulo,
+        eventoInicio: widget.eventoInicio,
+        setores: _setores.where((setor) => setor.situacao == 'ATIVO').toList(),
+        proximoNumeroLote: _globais.length + 1,
+      ),
+    ));
+    if (salvou == true && mounted) _carregar();
+  }
+
+  Future<void> _editarLoteGlobal(EventoLoteGlobal lote) async {
+    final salvou = await Navigator.of(context).push<bool>(MaterialPageRoute(
+      builder: (_) => EventoLoteFormPage(
+        eventoId: widget.eventoId,
+        organizacaoId: widget.organizacaoId,
+        lojaId: widget.lojaId,
+        eventoTitulo: widget.eventoTitulo,
+        eventoInicio: widget.eventoInicio,
+        setores: _setores.where((setor) => setor.situacao == 'ATIVO').toList(),
+        proximoNumeroLote: lote.numero,
+        loteGlobal: lote,
+      ),
+    ));
+    if (salvou == true && mounted) _carregar();
+  }
+
+  Future<void> _editarConfiguracao(EventoLote configuracao) async {
+    final limite = TextEditingController(text: configuracao.qttotallote.toString());
+    final precoInteira = configuracao.precos.where((preco) => preco.tipo == 'INTEIRA').firstOrNull;
+    final preco = TextEditingController(text: (precoInteira?.valor ?? 0).toStringAsFixed(2).replaceAll('.', ','));
+    final salvou = await showDialog<bool>(
       context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (context, atualizar) => AlertDialog(
-          title: Text('Editar ${preco.nome}'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nome,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome da modalidade',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: valor,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Preço',
-                    prefixText: r'R$ ',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Usa a cota legal'),
-                  value: aplicaCota,
-                  onChanged: regrasFixas
-                      ? null
-                      : (valor) => atualizar(() => aplicaCota = valor ?? false),
-                ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Exige comprovante'),
-                  value: exigeComprovante,
-                  onChanged: regrasFixas
-                      ? null
-                      : (valor) =>
-                            atualizar(() => exigeComprovante = valor ?? false),
-                ),
-                if (regrasFixas)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: Text(
-                      'As regras desta modalidade padrão são protegidas pela configuração legal do sistema.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: ClubbarColors.textoSecundario,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('Salvar'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (confirmou == true) {
-      final novoValor = _valorMonetario(valor.text);
-      if (nome.text.trim().isEmpty || novoValor == null || novoValor < 0) {
-        if (mounted) {
-          AppSnackBar.aviso(context, 'Informe um nome e um preço válido.');
-        }
-      } else {
-        final atualizado = EventoLotePreco(
-          id: preco.id,
-          nome: nome.text.trim(),
-          tipo: preco.tipo,
-          valor: novoValor,
-          aplicaCotaLegal: aplicaCota,
-          exigeComprovante: exigeComprovante,
-          situacao: preco.situacao,
-          ordem: preco.ordem,
-        );
-        final precos = lote.precos
-            .map((item) => item.id == preco.id ? atualizado : item)
-            .toList();
-        try {
-          await _repo.atualizarModalidades(loteId: lote.loteId, precos: precos);
-          if (!mounted) return;
-          AppSnackBar.sucesso(context, 'Modalidade atualizada.');
-          await _carregar();
-        } catch (e) {
-          if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
-        }
-      }
-    }
-    nome.dispose();
-    valor.dispose();
-  }
-
-  Widget _campoModalidade(String rotulo, String valor) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        rotulo,
-        style: const TextStyle(
-          fontSize: 11,
-          color: ClubbarColors.textoSecundario,
-        ),
-      ),
-      const SizedBox(height: 2),
-      Text(valor, style: const TextStyle(fontWeight: FontWeight.w800)),
-    ],
-  );
-
-  Widget _cardModalidade(EventoLote lote, EventoLotePreco preco) => Container(
-    width: double.infinity,
-    margin: const EdgeInsets.only(bottom: 10),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: ClubbarColors.branco,
-      border: Border.all(color: ClubbarColors.borda),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                preco.nome,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: () => _editarModalidade(lote, preco),
-              tooltip: 'Editar modalidade',
-              icon: const Icon(Icons.edit_rounded, color: ClubbarColors.info),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _campoModalidade('Preço', _moeda.format(preco.valor)),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: preco.aplicaCotaLegal
-                ? ClubbarColors.avisoClaro
-                : ClubbarColors.infoClaro,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                preco.aplicaCotaLegal
-                    ? 'Limite legal de meia-entrada'
-                    : 'Estoque compartilhado do lote',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                _regraDeEstoque(lote, preco),
-                style: const TextStyle(fontSize: 12, height: 1.3),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${_disponiveisDoLote(lote)} ingresso(s) disponível(is) no estoque compartilhado do lote.',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _campoModalidade('Regras', _regrasDoPreco(preco)),
-      ],
-    ),
-  );
-
-  Widget _cardLote(EventoLote lote) {
-    final disponiveis = _disponiveisDoLote(lote);
-    final descricaoEstoque = lote.usarCapacidadeRestante
-        ? 'Estoque compartilhado do setor: $disponiveis disponíveis'
-        : 'Estoque do lote: ${lote.qttotallote} ingressos • $disponiveis disponíveis';
-    return ClubbarCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(
-                  color: ClubbarColors.ambarClaro,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '${lote.numeroLote}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lote.nmlote,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      descricaoEstoque,
-                      style: const TextStyle(
-                        color: ClubbarColors.textoSecundario,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _chipStatus(lote),
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: () => _editarLote(lote),
-                icon: const Icon(Icons.edit_rounded),
-                label: const Text('Editar lote'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(11),
-                  decoration: BoxDecoration(
-                    color: ClubbarColors.fundo,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: ClubbarColors.borda),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.play_circle_outline_rounded,
-                        color: ClubbarColors.sucesso,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Início das vendas',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: ClubbarColors.textoSecundario,
-                              ),
-                            ),
-                            Text(
-                              _formatarData(lote.dtiniciovenda),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: _atualizandoPeriodo
-                            ? null
-                            : () => _editarDataVendas(lote, inicio: true),
-                        tooltip: 'Editar início das vendas',
-                        icon: const Icon(Icons.calendar_month_rounded),
-                        color: ClubbarColors.info,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(11),
-                  decoration: BoxDecoration(
-                    color: ClubbarColors.fundo,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: ClubbarColors.borda),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.stop_circle_outlined,
-                        color: ClubbarColors.erro,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Fim das vendas',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: ClubbarColors.textoSecundario,
-                              ),
-                            ),
-                            Text(
-                              _formatarData(lote.dtfimvenda),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: _atualizandoPeriodo
-                            ? null
-                            : () => _editarDataVendas(lote, inicio: false),
-                        tooltip: 'Editar fim das vendas',
-                        icon: const Icon(Icons.calendar_month_rounded),
-                        color: ClubbarColors.info,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _painelModalidades(lote),
+      builder: (context) => AlertDialog(
+        title: Text('Lote ${configuracao.numeroLote} · ${configuracao.nomeSetor ?? 'Setor'}'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: limite, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantidade neste lote')),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _excluindo ? null : () => _excluirLote(lote),
-              icon: const Icon(Icons.delete_outline_rounded),
-              label: const Text('Excluir lote'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ClubbarColors.erro,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _painelModalidades(EventoLote lote) {
-    final quantidade = lote.precos.length;
-    return Container(
-      decoration: BoxDecoration(
-        color: ClubbarColors.branco,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ClubbarColors.borda),
-      ),
-      child: ExpansionTile(
-        key: PageStorageKey('modalidades-lote-${lote.loteId}'),
-        maintainState: true,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        title: const Text(
-          'Modalidades de preço',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        subtitle: Text(
-          '$quantidade modalidade${quantidade == 1 ? '' : 's'} cadastrada${quantidade == 1 ? '' : 's'}',
-          style: const TextStyle(color: ClubbarColors.textoSecundario),
-        ),
-        children: [
-          if (lote.precos.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 4),
-              child: Text(
-                'Nenhuma modalidade de preço cadastrada.',
-                style: TextStyle(color: ClubbarColors.textoSecundario),
-              ),
-            )
-          else
-            ...([...lote.precos]..sort((a, b) => a.ordem.compareTo(b.ordem)))
-                .map((preco) => _cardModalidade(lote, preco)),
-        ],
-      ),
-    );
-  }
-
-  Widget _paginaLotesDoSetor(EventoSetor setor) {
-    if (_carregando) return const Center(child: CircularProgressIndicator());
-    if (_erro != null) return _erroWidget();
-    final busca = _buscaController.text.trim().toLowerCase();
-    final lotes = _lotesDoSetor(setor.id)
-        .where(
-          (lote) => busca.isEmpty || lote.nmlote.toLowerCase().contains(busca),
-        )
-        .toList();
-    return Scaffold(
-      backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
-      bottomNavigationBar: ClubbarActionBar(
+          TextField(controller: preco, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Preço da inteira')),
+          const SizedBox(height: 10),
+          const Text('Ao alterar a inteira, as modalidades existentes são mantidas. Edite cada modalidade no painel abaixo para alterar suas regras.'),
+        ]),
         actions: [
-          ClubbarAddButton(
-            onPressed: () => _novoLote(setor),
-            label: 'Adicionar lote',
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () async {
+              final quantidade = int.tryParse(limite.text.trim());
+              if (quantidade == null || quantidade <= 0) return;
+              try {
+                final valor = double.tryParse(preco.text.replaceAll('.', '').replaceAll(',', '.'));
+                final modalidades = configuracao.precos.map((item) {
+                  if (item.tipo != 'INTEIRA' || valor == null) return item;
+                  return EventoLotePreco(
+                    id: item.id, nome: item.nome, tipo: item.tipo, valor: valor,
+                    aplicaCotaLegal: item.aplicaCotaLegal, exigeComprovante: item.exigeComprovante,
+                    situacao: item.situacao, ordem: item.ordem,
+                  );
+                }).toList();
+                await _repo.atualizarConfiguracaoSetor(loteId: configuracao.loteId, limite: quantidade, precos: modalidades);
+                if (context.mounted) Navigator.pop(context, true);
+              } catch (erro) {
+                if (context.mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+              }
+            },
+            child: const Text('Salvar'),
           ),
         ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            ClubbarPageHeader(
-              titulo: setor.nome,
-              tituloWidget: Text(
-                setor.nome,
-                style: const TextStyle(
-                  color: ClubbarColors.info,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              subtitulo:
-                  'Setor • capacidade máxima: ${setor.capacidade} pessoas',
-              trailing: IconButton(
-                onPressed: _carregar,
-                icon: const Icon(Icons.refresh_rounded),
-              ),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _carregar,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 90),
-                  children: [
-                    TextField(
-                      controller: _buscaController,
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        hintText: 'Buscar lote',
-                        filled: true,
-                        fillColor: ClubbarColors.branco,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (lotes.isEmpty)
-                      ClubbarCard(
-                        child: const Padding(
-                          padding: EdgeInsets.all(18),
-                          child: Text(
-                            'Nenhum lote programado neste setor.',
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      )
-                    else
-                      ...lotes.map(_cardLote),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
+    if (salvou == true && mounted) _carregar();
   }
 
-  Widget _erroWidget() => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(_erro!, textAlign: TextAlign.center),
+  Future<void> _editarModalidade(EventoLote configuracao, EventoLotePreco atual) async {
+    final nome = TextEditingController(text: atual.nome);
+    final valor = TextEditingController(text: atual.valor.toStringAsFixed(2).replaceAll('.', ','));
+    var usaCota = atual.aplicaCotaLegal;
+    var exigeComprovante = atual.exigeComprovante;
+    final salvou = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(builder: (context, atualizar) => AlertDialog(
+        title: Text('Editar ${atual.nome}'),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: nome, decoration: const InputDecoration(labelText: 'Modalidade')),
           const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _carregar,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Tentar novamente'),
+          TextField(controller: valor, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Preço')),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: usaCota,
+            onChanged: (novo) => atualizar(() => usaCota = novo ?? false),
+            title: const Text('Usa a cota legal de meia-entrada'),
           ),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: exigeComprovante,
+            onChanged: (novo) => atualizar(() => exigeComprovante = novo ?? false),
+            title: const Text('Exige comprovante'),
+          ),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          FilledButton(onPressed: () async {
+            final preco = double.tryParse(valor.text.replaceAll('.', '').replaceAll(',', '.'));
+            if (nome.text.trim().isEmpty || preco == null || preco < 0) return;
+            try {
+              final modalidades = configuracao.precos.map((item) => item.id == atual.id
+                  ? EventoLotePreco(id: item.id, nome: nome.text.trim(), tipo: item.tipo, valor: preco, aplicaCotaLegal: usaCota, exigeComprovante: exigeComprovante, situacao: item.situacao, ordem: item.ordem)
+                  : item).toList();
+              await _repo.atualizarConfiguracaoSetor(loteId: configuracao.loteId, precos: modalidades);
+              if (context.mounted) Navigator.pop(context, true);
+            } catch (erro) {
+              if (context.mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+            }
+          }, child: const Text('Salvar')),
+        ],
+      )),
+    );
+    if (salvou == true && mounted) _carregar();
+  }
+
+  Future<void> _excluirGlobal(EventoLoteGlobal lote) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Excluir ${lote.nome}?'),
+        content: const Text('Todas as configurações de setor deste lote serão excluídas.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Excluir')),
         ],
       ),
+    );
+    if (confirmar != true) return;
+    try {
+      await _repo.excluirGlobal(lote.id);
+      if (mounted) {
+        AppSnackBar.sucesso(context, 'Lote global excluído.');
+        _carregar();
+      }
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Widget _resumo() => ListView(padding: const EdgeInsets.all(16), children: [
+    Wrap(spacing: 10, runSpacing: 10, children: [
+      _numero('Setores', _setores.where((setor) => setor.situacao == 'ATIVO').length.toString(), Icons.stadium_outlined),
+      _numero('Capacidade autorizada', '$_capacidadeEvento', Icons.groups_outlined),
+      _numero('Capacidade distribuída', '$_capacidadeSetores', Icons.pie_chart_outline),
+      _numero('Lotes globais', _globais.length.toString(), Icons.confirmation_number_outlined),
+    ]),
+    const SizedBox(height: 16),
+    OutlinedButton.icon(onPressed: _alterarCapacidade, icon: const Icon(Icons.groups_rounded), label: const Text('Alterar capacidade total de pessoas')),
+    const SizedBox(height: 18),
+    const Text('Setores do evento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+    const SizedBox(height: 6),
+    const Text('A capacidade de cada setor define o máximo distribuível entre todos os lotes globais.'),
+    const SizedBox(height: 12),
+    ..._setores.map((setor) => ClubbarCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Row(children: [
+        const CircleAvatar(child: Icon(Icons.stadium_outlined)),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(setor.nome, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text('Capacidade máxima: ${setor.capacidade} pessoas'),
+        ])),
+        IconButton(onPressed: () => _editarSetor(setor), icon: const Icon(Icons.edit_rounded, color: Colors.blue), tooltip: 'Editar setor'),
+      ]),
+    )),
+  ]);
+
+  Widget _numero(String titulo, String valor, IconData icone) => SizedBox(
+    width: 205,
+    child: ClubbarCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(children: [Icon(icone, color: ClubbarColors.primariaEscuro), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(titulo, style: const TextStyle(fontSize: 11)), Text(valor, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))]))]),
+    ),
+  );
+
+  Widget _lotes() => ListView(padding: const EdgeInsets.all(16), children: [
+    const Text('Lotes globais do evento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+    const SizedBox(height: 6),
+    const Text('Cada lote abre ou encerra ao mesmo tempo para todos os setores. Um setor esgotado fica indisponível, sem mudar sozinho de lote.'),
+    const SizedBox(height: 14),
+    if (_globais.isEmpty) const ClubbarCard(child: Center(child: Padding(padding: EdgeInsets.all(18), child: Text('Nenhum lote global programado.')))),
+    ..._globais.map(_cardLoteGlobal),
+  ]);
+
+  Widget _cardLoteGlobal(EventoLoteGlobal lote) => ClubbarCard(
+    margin: const EdgeInsets.only(bottom: 14),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        CircleAvatar(backgroundColor: ClubbarColors.primariaClaro, child: Text('${lote.numero}', style: const TextStyle(fontWeight: FontWeight.w900))),
+        const SizedBox(width: 10),
+        Expanded(child: Text(lote.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
+        Chip(label: Text(lote.disponivelGlobalmente ? 'Em venda' : lote.situacao), backgroundColor: lote.disponivelGlobalmente ? Colors.green.shade50 : null),
+        IconButton(onPressed: () => _editarLoteGlobal(lote), icon: const Icon(Icons.edit_rounded, color: Colors.blue), tooltip: 'Editar lote global'),
+      ]),
+      const SizedBox(height: 14),
+      Row(children: [
+        Expanded(child: lote.numero == 1
+            ? _dataCard(
+                Icons.play_circle_outline,
+                'Início das vendas',
+                _data(lote.inicioVendas),
+                onEditar: () => _editarDataGlobal(lote, inicio: true),
+              )
+            : _dataCard(
+                Icons.auto_mode_rounded,
+                'Início das vendas',
+                'Automático na virada do Lote ${lote.numero - 1}',
+              )),
+        const SizedBox(width: 10),
+        Expanded(child: _dataCard(
+          Icons.stop_circle_outlined,
+          'Fim / virada',
+          _data(lote.fimVendas),
+          onEditar: () => _editarDataGlobal(lote, inicio: false),
+        )),
+      ]),
+      const SizedBox(height: 10),
+      Text('Virada: ${lote.gatilhoVirada == 'DATA' ? 'na data final' : lote.gatilhoVirada == 'ESGOTAMENTO' ? 'quando todos os setores esgotarem' : 'na primeira condição: data final ou esgotamento global'}'),
+      const SizedBox(height: 10),
+      ...lote.setores.map((configuracao) => _setorNoLote(configuracao)),
+      const SizedBox(height: 8),
+      Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () => _excluirGlobal(lote), icon: const Icon(Icons.delete_outline, color: Colors.red), label: const Text('Excluir lote', style: TextStyle(color: Colors.red)))),
+    ]),
+  );
+
+  Widget _dataCard(IconData icone, String titulo, String valor, {VoidCallback? onEditar}) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(color: ClubbarColors.fundo, borderRadius: BorderRadius.circular(12), border: Border.all(color: ClubbarColors.borda)),
+    child: Row(children: [
+      Icon(icone, color: ClubbarColors.primariaEscuro),
+      const SizedBox(width: 8),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(titulo, style: const TextStyle(fontSize: 11)), Text(valor, style: const TextStyle(fontWeight: FontWeight.w800))])),
+      if (onEditar != null) IconButton(onPressed: onEditar, icon: const Icon(Icons.calendar_month_rounded, color: Colors.blue), tooltip: 'Alterar data e hora'),
+    ]),
+  );
+
+  Widget _setorNoLote(EventoLote configuracao) => Container(
+    margin: const EdgeInsets.only(top: 10),
+    decoration: BoxDecoration(border: Border.all(color: ClubbarColors.borda), borderRadius: BorderRadius.circular(12)),
+    child: ExpansionTile(
+      title: Text(configuracao.nomeSetor ?? 'Setor', style: const TextStyle(fontWeight: FontWeight.w800)),
+      subtitle: Text('${configuracao.qttotallote} ingressos neste lote · ${configuracao.qtvendidalote} vendidos · ${configuracao.qtReservadaLote} reservados'),
+      trailing: IconButton(onPressed: () => _editarConfiguracao(configuracao), icon: const Icon(Icons.edit_rounded, color: Colors.blue), tooltip: 'Editar setor neste lote'),
+      children: [
+        Padding(padding: const EdgeInsets.fromLTRB(14, 0, 14, 14), child: Column(children: configuracao.precos.map((preco) => Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: ClubbarColors.fundo, borderRadius: BorderRadius.circular(10)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(child: Text(preco.nome, style: const TextStyle(fontWeight: FontWeight.w800))),
+              IconButton(onPressed: () => _editarModalidade(configuracao, preco), icon: const Icon(Icons.edit_rounded, color: Colors.blue), tooltip: 'Editar modalidade'),
+            ]),
+            Text('Preço: ${_moeda.format(preco.valor)}'),
+            Text(preco.aplicaCotaLegal ? 'Regra: usa a cota legal de meia-entrada' : preco.exigeComprovante ? 'Regra: comprovante obrigatório' : 'Regra: sem exigência'),
+          ]),
+        )).toList())),
+      ],
     ),
   );
 
   @override
-  Widget build(BuildContext context) {
-    if (widget.setorParaGerenciar != null) {
-      return _paginaLotesDoSetor(widget.setorParaGerenciar!);
-    }
-    return DefaultTabController(
-      initialIndex: _abaAtual,
-      length: 2,
-      child: Scaffold(
-        backgroundColor: ClubbarColors.fundo,
-        appBar: const ClubbarAppBar(mostrarVoltar: true),
-        bottomNavigationBar: _abaAtual == 1
-            ? ClubbarActionBar(
-                actions: [
-                  ClubbarAddButton(
-                    onPressed: _novoSetor,
-                    label: 'Adicionar setor',
-                  ),
-                ],
-              )
-            : null,
-        body: SafeArea(
-          child: Column(
-            children: [
-              ClubbarPageHeader(
-                titulo: widget.eventoTitulo,
-                tituloWidget: Text(
-                  widget.eventoTitulo,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: ClubbarColors.info,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                subtitulo: 'Gerenciar setores, lotes e preços',
-                trailing: IconButton(
-                  onPressed: _carregando ? null : _carregar,
-                  icon: const Icon(Icons.refresh_rounded),
-                ),
-              ),
-              Material(
-                color: ClubbarColors.branco,
-                child: TabBar(
-                  onTap: (indice) => setState(() => _abaAtual = indice),
-                  labelColor: ClubbarColors.info,
-                  unselectedLabelColor: ClubbarColors.textoSecundario,
-                  tabs: const [
-                    Tab(text: 'Resumo'),
-                    Tab(text: 'Setores, lotes e preços'),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: TabBarView(children: [_abaResumo(), _abaSetores()]),
-              ),
-            ],
-          ),
-        ),
+  Widget build(BuildContext context) => DefaultTabController(
+    length: 2,
+    initialIndex: _aba,
+    child: Scaffold(
+    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    body: Column(children: [
+      ClubbarPageHeader(titulo: widget.eventoTitulo, subtitulo: 'Gerenciar lotes e preços', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
+      Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: ClubbarColors.primariaClaro, borderRadius: BorderRadius.circular(14), border: Border.all(color: ClubbarColors.primaria)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Evento agendado para', style: TextStyle(fontWeight: FontWeight.w700)),
+          Text(_dataEvento, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 5),
+          Text('Capacidade total: $_capacidadeEvento pessoas', style: const TextStyle(fontWeight: FontWeight.w800)),
+        ]),
       ),
-    );
-  }
+      TabBar(
+        onTap: (indice) => setState(() => _aba = indice),
+        tabs: const [Tab(text: 'Resumo'), Tab(text: 'Setores, lotes e preços')],
+      ),
+      Expanded(child: _carregando ? const Center(child: CircularProgressIndicator()) : _erro != null ? Center(child: Text(_erro!)) : _aba == 0 ? _resumo() : _lotes()),
+    ]),
+    bottomNavigationBar: ClubbarActionBar(actions: [
+      if (_aba == 0) ClubbarAddButton(label: 'Adicionar setor', onPressed: () => _editarSetor(null)),
+      if (_aba == 1) ClubbarAddButton(label: 'Adicionar lote global', onPressed: _novoLote),
+    ]),
+    ),
+  );
 }

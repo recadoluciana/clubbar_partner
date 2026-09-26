@@ -1,5 +1,6 @@
 class EventoLote {
   final int loteId;
+  final int? loteGlobalId;
   final int? organizacaoId;
   final int? lojaId;
   final int? eventoId;
@@ -22,9 +23,11 @@ class EventoLote {
   final String? dtiniciovenda;
   final String? dtfimvenda;
   final String? statuslote;
+  final String? gatilhoVirada;
 
   EventoLote({
     required this.loteId,
+    this.loteGlobalId,
     this.organizacaoId,
     this.lojaId,
     this.eventoId,
@@ -47,6 +50,7 @@ class EventoLote {
     this.dtiniciovenda,
     this.dtfimvenda,
     this.statuslote,
+    this.gatilhoVirada,
   });
 
   factory EventoLote.fromJson(Map<String, dynamic> json) {
@@ -56,6 +60,7 @@ class EventoLote {
     final inteira = precos.where((e) => e.tipo == 'INTEIRA').firstOrNull;
     return EventoLote(
       loteId: json['lote_id'] ?? 0,
+      loteGlobalId: (json['loteglobal_id'] as num?)?.toInt(),
       organizacaoId: json['organizacao_id'],
       lojaId: json['loja_id'],
       eventoId: json['evento_id'],
@@ -80,8 +85,48 @@ class EventoLote {
       dtiniciovenda: json['dtiniciovenda']?.toString(),
       dtfimvenda: json['dtfimvenda']?.toString(),
       statuslote: json['statuslote']?.toString(),
+      gatilhoVirada: json['gatilhovirada']?.toString(),
     );
   }
+}
+
+class EventoLoteGlobal {
+  final int id;
+  final int numero;
+  final String nome;
+  final String? inicioVendas;
+  final String? fimVendas;
+  final String gatilhoVirada;
+  final String situacao;
+  final bool disponivelGlobalmente;
+  final List<EventoLote> setores;
+
+  const EventoLoteGlobal({
+    required this.id,
+    required this.numero,
+    required this.nome,
+    required this.inicioVendas,
+    required this.fimVendas,
+    required this.gatilhoVirada,
+    required this.situacao,
+    required this.disponivelGlobalmente,
+    required this.setores,
+  });
+
+  factory EventoLoteGlobal.fromJson(Map<String, dynamic> json) =>
+      EventoLoteGlobal(
+        id: (json['loteglobal_id'] as num?)?.toInt() ?? 0,
+        numero: (json['nrlote'] as num?)?.toInt() ?? 1,
+        nome: '${json['nmlote'] ?? ''}',
+        inicioVendas: json['dtiniciovenda']?.toString(),
+        fimVendas: json['dtfimvenda']?.toString(),
+        gatilhoVirada: '${json['gatilhovirada'] ?? 'HIBRIDO'}',
+        situacao: '${json['situacao'] ?? 'ATIVO'}',
+        disponivelGlobalmente: json['disponivel_globalmente'] == true,
+        setores: (json['setores'] as List? ?? const [])
+            .map((item) => EventoLote.fromJson(Map<String, dynamic>.from(item)))
+            .toList(),
+      );
 }
 
 class EventoLotePreco {

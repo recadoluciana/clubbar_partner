@@ -26,6 +26,94 @@ class EventoLoteRepository {
     throw _erro(response, 'Não foi possível carregar os lotes do evento.');
   }
 
+  Future<List<EventoLoteGlobal>> listarGlobais(int eventoId) async {
+    final response = await ApiService.get('/eventos/$eventoId/lotes-globais');
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível carregar os lotes do evento.');
+    }
+    return (jsonDecode(response.body) as List)
+        .map((item) => EventoLoteGlobal.fromJson(
+              Map<String, dynamic>.from(item),
+            ))
+        .toList();
+  }
+
+  Future<void> criarGlobal({
+    required int eventoId,
+    required int organizacaoId,
+    required int lojaId,
+    required String nome,
+    String? inicioVendas,
+    required String fimVendas,
+    required String gatilhoVirada,
+    required List<Map<String, dynamic>> setores,
+  }) async {
+    final response = await ApiService.post('/eventos/$eventoId/lotes', {
+      'organizacao_id': organizacaoId,
+      'loja_id': lojaId,
+      'nmlote': nome,
+      'dtiniciovenda': ?inicioVendas,
+      'dtfimvenda': fimVendas,
+      'gatilhovirada': gatilhoVirada,
+      'setores': setores,
+    });
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw _erro(response, 'Não foi possível criar o lote global.');
+    }
+  }
+
+  Future<void> atualizarGlobal({
+    required int loteGlobalId,
+    String? nome,
+    String? inicioVendas,
+    String? fimVendas,
+    String? gatilhoVirada,
+    String? situacao,
+  }) async {
+    final response = await ApiService.put('/eventos/lotes-globais/$loteGlobalId', {
+      'nmlote': ?nome,
+      'dtiniciovenda': ?inicioVendas,
+      'dtfimvenda': ?fimVendas,
+      'gatilhovirada': ?gatilhoVirada,
+      'situacao': ?situacao,
+    });
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível atualizar o lote global.');
+    }
+  }
+
+  Future<void> atualizarConfiguracaoSetor({
+    required int loteId,
+    int? limite,
+    List<EventoLotePreco>? precos,
+  }) async {
+    final response = await ApiService.put('/eventos/lotes/$loteId', {
+      'qtlimite': ?limite,
+      if (precos != null)
+        'precos': precos
+            .map((preco) => {
+                  'nmpreco': preco.nome.trim(),
+                  'tipopreco': preco.tipo,
+                  'vrpreco': preco.valor,
+                  'aplicacotalegal': preco.aplicaCotaLegal,
+                  'exigecomprovante': preco.exigeComprovante,
+                  'situacao': preco.situacao,
+                  'nrordem': preco.ordem,
+                })
+            .toList(),
+    });
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível atualizar o setor do lote.');
+    }
+  }
+
+  Future<void> excluirGlobal(int loteGlobalId) async {
+    final response = await ApiService.delete('/eventos/lotes-globais/$loteGlobalId');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw _erro(response, 'Não foi possível excluir o lote global.');
+    }
+  }
+
   Future<CapacidadeEvento> obterCapacidadeEvento(int eventoId) async {
     final response = await ApiService.get('/eventos/$eventoId/capacidade');
     if (response.statusCode != 200) {
