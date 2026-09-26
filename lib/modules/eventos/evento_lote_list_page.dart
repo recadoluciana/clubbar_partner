@@ -1094,7 +1094,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         : 'Estoque do lote: ${lote.qttotallote} ingressos • $disponiveis disponíveis';
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 12),
-      onTap: () => _editarLote(lote),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1136,6 +1135,96 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 ),
               ),
               _chipStatus(lote),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: () => _editarLote(lote),
+                icon: const Icon(Icons.edit_rounded),
+                label: const Text('Editar lote'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(11),
+                  decoration: BoxDecoration(
+                    color: ClubbarColors.fundo,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: ClubbarColors.borda),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.play_circle_outline_rounded,
+                        color: ClubbarColors.sucesso,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Início das vendas',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: ClubbarColors.textoSecundario,
+                              ),
+                            ),
+                            Text(
+                              _formatarData(lote.dtiniciovenda),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(11),
+                  decoration: BoxDecoration(
+                    color: ClubbarColors.fundo,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: ClubbarColors.borda),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.stop_circle_outlined,
+                        color: ClubbarColors.erro,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Fim das vendas',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: ClubbarColors.textoSecundario,
+                              ),
+                            ),
+                            Text(
+                              _formatarData(lote.dtfimvenda),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -1152,52 +1241,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           else
             ...([...lote.precos]..sort((a, b) => a.ordem.compareTo(b.ordem)))
                 .map((preco) => _cardModalidade(lote, preco)),
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(11),
-            decoration: BoxDecoration(
-              color: ClubbarColors.fundo,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: ClubbarColors.borda),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Início das vendas: ${_formatarData(lote.dtiniciovenda)}',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  'Fim das vendas: ${_formatarData(lote.dtfimvenda)}',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _editarLote(lote),
-                  icon: const Icon(Icons.edit_rounded),
-                  label: const Text('Editar lote'),
-                ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _excluindo ? null : () => _excluirLote(lote),
+              icon: const Icon(Icons.delete_outline_rounded),
+              label: const Text('Excluir'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ClubbarColors.erro,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _excluindo ? null : () => _excluirLote(lote),
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  label: const Text('Excluir'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ClubbarColors.erro,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
