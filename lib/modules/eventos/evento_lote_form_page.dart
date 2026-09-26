@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/repositories/evento_lote_repository.dart';
-import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -16,10 +16,9 @@ class EventoLoteFormPage extends StatefulWidget {
   final int lojaId;
   final String eventoTitulo;
   final String? eventoInicio;
-  final int? setorInicialId;
-  final int? proximoNumeroLote;
-  final DateTime? inicioVendaSugerido;
-  final EventoLote? lote;
+  final List<EventoSetor> setores;
+  final int proximoNumeroLote;
+  final EventoLoteGlobal? loteGlobal;
 
   const EventoLoteFormPage({
     super.key,
@@ -27,11 +26,10 @@ class EventoLoteFormPage extends StatefulWidget {
     required this.organizacaoId,
     required this.lojaId,
     required this.eventoTitulo,
+    required this.setores,
+    required this.proximoNumeroLote,
     this.eventoInicio,
-    this.setorInicialId,
-    this.proximoNumeroLote,
-    this.inicioVendaSugerido,
-    this.lote,
+    this.loteGlobal,
   });
 
   @override
@@ -39,679 +37,208 @@ class EventoLoteFormPage extends StatefulWidget {
 }
 
 class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
+  final _repo = EventoLoteRepository();
   final _formKey = GlobalKey<FormState>();
-  final EventoLoteRepository _repo = EventoLoteRepository();
-
-  final _nomeController = TextEditingController();
-  final _precoController = TextEditingController();
-  final _qtTotalController = TextEditingController();
-  final _qtVendidaController = TextEditingController();
-  final _dtInicioController = TextEditingController();
-  final _dtFimController = TextEditingController();
-  final _numeroLoteController = TextEditingController(text: '1');
-  final _precoFocusNode = FocusNode();
-
+  final _nome = TextEditingController();
+  final _inicio = TextEditingController();
+  final _fim = TextEditingController();
+  final Map<int, TextEditingController> _quantidades = {};
+  final Map<int, TextEditingController> _inteiras = {};
+  DateTime? _inicioSelecionado;
+  DateTime? _fimSelecionado;
   bool _salvando = false;
-  String _status = 'ATIVO';
-  DateTime? _dataInicioSelecionada;
-  DateTime? _dataFimSelecionada;
-  bool _modoSimples = false;
-  List<EventoSetor> _setores = [];
-  int? _setorId;
-  bool _usarCapacidadeRestante = false;
+  String _gatilho = 'HIBRIDO';
 
-  bool get editando => widget.lote != null;
-  int get _quantidadeTotal => int.tryParse(_qtTotalController.text.trim()) ?? 0;
-  int get _quantidadeVendida =>
-      int.tryParse(_qtVendidaController.text.trim()) ?? 0;
-  int get _quantidadeDisponivel =>
-      (_quantidadeTotal - _quantidadeVendida).clamp(0, _quantidadeTotal);
-  double get _preco =>
-      double.tryParse(_normalizarNumero(_precoController.text)) ?? 0;
-
-  String _normalizarNumero(String texto) {
-    final limpo = texto.replaceAll('R\$', '').replaceAll(' ', '').trim();
-    if (limpo.contains(',')) {
-      return limpo.replaceAll('.', '').replaceAll(',', '.');
-    }
-    return limpo;
-  }
+  bool get _editando => widget.loteGlobal != null;
+  int get _numero => widget.loteGlobal?.numero ?? widget.proximoNumeroLote;
+  bool get _temInicioProprio => _numero == 1;
 
   @override
   void initState() {
     super.initState();
-    _precoController.addListener(_atualizarResumo);
-    _qtTotalController.addListener(_atualizarResumo);
-    _precoFocusNode.addListener(() {
-      if (!_precoFocusNode.hasFocus) _formatarPreco();
-    });
-
-    final lote = widget.lote;
-    if (lote != null) {
-      _nomeController.text = lote.nmlote;
-      _precoController.text = _precoBrasil(lote.vrprecolote);
-      _qtTotalController.text = lote.qttotallote.toString();
-      _qtVendidaController.text = lote.qtvendidalote.toString();
-      _status = lote.statuslote ?? 'ATIVO';
-      _modoSimples = lote.eventoSetorId == null && lote.tipoIngresso == 'UNICO';
-      _setorId = lote.eventoSetorId;
-      _numeroLoteController.text = lote.numeroLote.toString();
-      _usarCapacidadeRestante = lote.usarCapacidadeRestante;
-      _preencherData(lote.dtiniciovenda, _dtInicioController, inicio: true);
-      _preencherData(lote.dtfimvenda, _dtFimController, inicio: false);
-    } else {
-      _qtVendidaController.text = '0';
-      _setorId = widget.setorInicialId;
-      _numeroLoteController.text = '${widget.proximoNumeroLote ?? 1}';
-      if (widget.inicioVendaSugerido != null) {
-        _dataInicioSelecionada = widget.inicioVendaSugerido;
-        _dtInicioController.text = DateFormat(
-          'dd/MM/yyyy HH:mm',
-        ).format(widget.inicioVendaSugerido!);
-      }
+    final lote = widget.loteGlobal;
+    _nome.text = lote?.nome ?? 'Lote $_numero';
+    _gatilho = lote?.gatilhoVirada ?? 'HIBRIDO';
+    _inicioSelecionado = _temInicioProprio
+        ? DateTime.tryParse(lote?.inicioVendas ?? '')
+        : null;
+    _fimSelecionado = DateTime.tryParse(lote?.fimVendas ?? '');
+    if (_inicioSelecionado != null) _inicio.text = _br(_inicioSelecionado!);
+    if (_fimSelecionado != null) _fim.text = _br(_fimSelecionado!);
+    for (final setor in widget.setores) {
+      final configuracao = lote?.setores.where((item) => item.eventoSetorId == setor.id).firstOrNull;
+      _quantidades[setor.id] = TextEditingController(text: '${configuracao?.qttotallote ?? setor.capacidade}');
+      final inteira = configuracao?.precos.where((preco) => preco.tipo == 'INTEIRA').firstOrNull;
+      _inteiras[setor.id] = TextEditingController(text: (inteira?.valor ?? 0).toStringAsFixed(2).replaceAll('.', ','));
     }
-    _carregarSetores();
   }
 
   @override
   void dispose() {
-    _precoController.removeListener(_atualizarResumo);
-    _qtTotalController.removeListener(_atualizarResumo);
-    _nomeController.dispose();
-    _precoController.dispose();
-    _qtTotalController.dispose();
-    _qtVendidaController.dispose();
-    _dtInicioController.dispose();
-    _dtFimController.dispose();
-    _numeroLoteController.dispose();
-    _precoFocusNode.dispose();
+    _nome.dispose();
+    _inicio.dispose();
+    _fim.dispose();
+    for (final controller in _quantidades.values) { controller.dispose(); }
+    for (final controller in _inteiras.values) { controller.dispose(); }
     super.dispose();
   }
 
-  String _precoBrasil(double valor) =>
-      NumberFormat('0.00', 'pt_BR').format(valor);
+  String _br(DateTime data) => DateFormat("dd/MM/yyyy 'às' HH:mm").format(data);
+  String _api(DateTime data) => DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(data);
 
-  String _formatarDataEvento() {
-    final data = DateTime.tryParse(widget.eventoInicio ?? '');
-    return data == null
-        ? 'Não informada'
-        : DateFormat('dd/MM/yyyy às HH:mm').format(data);
-  }
-
-  void _formatarPreco() {
-    if (_precoController.text.trim().isEmpty) return;
-    final texto = _precoBrasil(_preco);
-    if (_precoController.text != texto) {
-      _precoController.value = TextEditingValue(
-        text: texto,
-        selection: TextSelection.collapsed(offset: texto.length),
-      );
-    }
-  }
-
-  Future<void> _carregarSetores() async {
-    try {
-      final setores = await _repo.listarSetores(widget.eventoId);
-      if (mounted) {
-        setState(
-          () => _setores = setores.where((e) => e.situacao == 'ATIVO').toList(),
-        );
-      }
-    } catch (_) {}
-  }
-
-  EventoSetor? get _setorSelecionado {
-    for (final setor in _setores) {
-      if (setor.id == _setorId) return setor;
-    }
-    return null;
-  }
-
-  void _atualizarResumo() {
-    if (mounted) setState(() {});
-  }
-
-  void _preencherData(
-    String? valor,
-    TextEditingController controller, {
-    required bool inicio,
-  }) {
-    if (valor == null || valor.trim().isEmpty) return;
-    final data = DateTime.tryParse(valor);
-    if (data == null) {
-      controller.text = valor;
-      return;
-    }
-    controller.text = DateFormat('dd/MM/yyyy HH:mm').format(data);
-    if (inicio) {
-      _dataInicioSelecionada = data;
-    } else {
-      _dataFimSelecionada = data;
-    }
-  }
-
-  String _mensagemErro(Object erro) {
-    final texto = erro.toString().replaceFirst('Exception: ', '').trim();
-    if (texto.toLowerCase().contains(
-      'os preços de um lote com vendas não podem ser substituídos',
-    )) {
-      return 'Este lote já possui ingressos vendidos. Para preservar as vendas realizadas, mantenha o preço atual ou crie um novo lote para utilizar outro valor.';
-    }
-    return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
-  }
-
-  String? _dataParaApi(DateTime? data) {
-    if (data == null) return null;
-    return DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(data);
-  }
-
-  Future<DateTime?> _selecionarDataHora(DateTime? atual) async {
-    final agora = DateTime.now();
+  Future<DateTime?> _selecionar(DateTime? atual) async {
     final data = await showDatePicker(
       context: context,
-      initialDate: atual ?? agora,
+      initialDate: atual ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
     if (data == null || !mounted) return null;
-
     final hora = await showTimePicker(
       context: context,
-      initialTime: atual != null
-          ? TimeOfDay.fromDateTime(atual)
-          : TimeOfDay.now(),
+      initialTime: atual == null ? TimeOfDay.now() : TimeOfDay.fromDateTime(atual),
     );
     if (hora == null) return null;
-
     return DateTime(data.year, data.month, data.day, hora.hour, hora.minute);
   }
 
   Future<void> _selecionarInicio() async {
-    final data = await _selecionarDataHora(_dataInicioSelecionada);
-    if (data == null || !mounted) return;
-    setState(() {
-      _dataInicioSelecionada = data;
-      _dtInicioController.text = DateFormat('dd/MM/yyyy HH:mm').format(data);
-    });
+    final data = await _selecionar(_inicioSelecionado);
+    if (data != null && mounted) setState(() { _inicioSelecionado = data; _inicio.text = _br(data); });
   }
 
   Future<void> _selecionarFim() async {
-    final data = await _selecionarDataHora(
-      _dataFimSelecionada ?? _dataInicioSelecionada,
-    );
-    if (data == null || !mounted) return;
-    setState(() {
-      _dataFimSelecionada = data;
-      _dtFimController.text = DateFormat('dd/MM/yyyy HH:mm').format(data);
-    });
+    final data = await _selecionar(_fimSelecionado ?? _inicioSelecionado);
+    if (data != null && mounted) setState(() { _fimSelecionado = data; _fim.text = _br(data); });
   }
 
-  InputDecoration _decoracaoCampo({
-    required String label,
-    required IconData icone,
-    String? hint,
-    String? prefixText,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      prefixText: prefixText,
-      prefixIcon: Icon(icone, color: ClubbarColors.textoSecundario),
-      suffixIcon: suffixIcon,
-      filled: true,
-      fillColor: ClubbarColors.branco,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
-      ),
-    );
-  }
+  double _valor(TextEditingController controller) =>
+      double.tryParse(controller.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+
+  List<Map<String, dynamic>> _setoresPayload() => widget.setores.map((setor) {
+    final inteira = _valor(_inteiras[setor.id]!);
+    final meia = inteira / 2;
+    return {
+      'eventosetor_id': setor.id,
+      'qtlimite': int.tryParse(_quantidades[setor.id]!.text.trim()) ?? 0,
+      'precos': [
+        {'nmpreco': 'Inteira', 'tipopreco': 'INTEIRA', 'vrpreco': inteira, 'aplicacotalegal': false, 'exigecomprovante': false, 'nrordem': 1},
+        {'nmpreco': 'Meia-entrada', 'tipopreco': 'MEIA_LEGAL', 'vrpreco': meia, 'aplicacotalegal': true, 'exigecomprovante': true, 'nrordem': 2},
+        {'nmpreco': 'Pessoa idosa', 'tipopreco': 'MEIA_IDOSO', 'vrpreco': meia, 'aplicacotalegal': false, 'exigecomprovante': true, 'nrordem': 3},
+      ],
+    };
+  }).toList();
 
   Future<void> _salvar() async {
-    FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
-    if (!_modoSimples && _setorId == null) {
-      AppSnackBar.aviso(context, 'Selecione o setor do ingresso.');
+    if ((_temInicioProprio && _inicioSelecionado == null) || _fimSelecionado == null ||
+        (_temInicioProprio && !_fimSelecionado!.isAfter(_inicioSelecionado!))) {
+      AppSnackBar.aviso(context, _temInicioProprio
+          ? 'Informe início e fim das vendas, com fim posterior ao início.'
+          : 'Informe o fim das vendas deste lote. O início será automático.');
       return;
     }
-
-    if (!_usarCapacidadeRestante && _quantidadeVendida > _quantidadeTotal) {
-      AppSnackBar.aviso(
-        context,
-        'A quantidade vendida não pode ser maior que a quantidade total.',
-      );
+    if (!_editando && _setoresPayload().any((setor) => (setor['qtlimite'] as int) <= 0 || ((setor['precos'] as List).first['vrpreco'] as double) < 0)) {
+      AppSnackBar.aviso(context, 'Informe uma quantidade e um preço válidos para cada setor.');
       return;
-    }
-
-    if (_dataInicioSelecionada != null &&
-        _dataFimSelecionada != null &&
-        !_dataFimSelecionada!.isAfter(_dataInicioSelecionada!)) {
-      AppSnackBar.aviso(
-        context,
-        'A data final de venda deve ser posterior à data inicial.',
-      );
-      return;
-    }
-
-    final inicioEvento = DateTime.tryParse(widget.eventoInicio ?? '');
-    if (inicioEvento != null) {
-      if (_dataInicioSelecionada != null &&
-          !_dataInicioSelecionada!.isBefore(inicioEvento)) {
-        AppSnackBar.aviso(
-          context,
-          'O início das vendas deve acontecer antes do início do evento.',
-        );
-        return;
-      }
-      if (_dataFimSelecionada == null) {
-        AppSnackBar.aviso(context, 'Informe o fim das vendas.');
-        return;
-      }
     }
     setState(() => _salvando = true);
-
     try {
-      final numeroLote = _modoSimples
-          ? 1
-          : int.parse(_numeroLoteController.text);
-      final setor = _setores.where((e) => e.id == _setorId).firstOrNull;
-      final nomeLote = _modoSimples
-          ? 'Ingresso único'
-          : 'Lote $numeroLote - ${setor!.nome}';
-      if (editando) {
-        final precoFoiAlterado =
-            (_preco - widget.lote!.vrprecolote).abs() >= 0.005;
-        await _repo.atualizar(
-          loteId: widget.lote!.loteId,
-          organizacaoId: widget.organizacaoId,
-          lojaId: widget.lojaId,
-          eventoId: widget.eventoId,
-          nome: nomeLote,
-          eventoSetorId: _modoSimples ? null : _setorId,
-          numeroLote: numeroLote,
-          tipoIngresso: 'INTEIRA',
-          preco: precoFoiAlterado ? _preco : null,
-          quantidadeTotal: _quantidadeTotal,
-          quantidadeVendida: _quantidadeVendida,
-          usarCapacidadeRestante: _usarCapacidadeRestante,
-          dtInicioVenda: _dataParaApi(_dataInicioSelecionada),
-          dtFimVenda: _dataParaApi(_dataFimSelecionada),
-          status: _status,
+      if (_editando) {
+        await _repo.atualizarGlobal(
+          loteGlobalId: widget.loteGlobal!.id,
+          nome: _nome.text.trim(),
+          inicioVendas: _temInicioProprio ? _api(_inicioSelecionado!) : null,
+          fimVendas: _api(_fimSelecionado!),
+          gatilhoVirada: _gatilho,
         );
       } else {
-        await _repo.criar(
+        await _repo.criarGlobal(
           eventoId: widget.eventoId,
           organizacaoId: widget.organizacaoId,
           lojaId: widget.lojaId,
-          nome: nomeLote,
-          eventoSetorId: _modoSimples ? null : _setorId,
-          numeroLote: numeroLote,
-          tipoIngresso: 'INTEIRA',
-          preco: _preco,
-          quantidadeTotal: _quantidadeTotal,
-          quantidadeVendida: 0,
-          usarCapacidadeRestante: _usarCapacidadeRestante,
-          dtInicioVenda: _dataParaApi(_dataInicioSelecionada),
-          dtFimVenda: _dataParaApi(_dataFimSelecionada),
-          status: _status,
+          nome: _nome.text.trim(),
+          inicioVendas: _temInicioProprio ? _api(_inicioSelecionado!) : null,
+          fimVendas: _api(_fimSelecionado!),
+          gatilhoVirada: _gatilho,
+          setores: _setoresPayload(),
         );
       }
-
-      if (!mounted) return;
-      AppSnackBar.sucesso(
-        context,
-        editando ? 'Lote atualizado com sucesso.' : 'Lote criado com sucesso.',
-      );
-      Navigator.of(context).pop(true);
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackBar.erro(
-        context,
-        _mensagemErro(e),
-        duration: const Duration(seconds: 7),
-        mostrarFechar: true,
-      );
+      if (mounted) Navigator.pop(context, true);
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
   }
 
-  Widget _cardFormulario() {
-    return ClubbarCard(
-      child: Column(
-        children: [
-          if (editando && _modoSimples) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: ClubbarColors.ambarClaro,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Este ingresso foi criado no formato antigo. Converta-o '
-                    'para informar setor e tipo de ingresso.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: _quantidadeVendida > 0
-                        ? null
-                        : () => setState(() => _modoSimples = false),
-                    icon: const Icon(Icons.account_tree_outlined),
-                    label: const Text('Converter ingresso'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-          ],
-          if (!_modoSimples) ...[
-            if (_setorSelecionado != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: ClubbarColors.infoClaro,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: ClubbarColors.info),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.stadium_rounded, color: ClubbarColors.info),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Setor: ${_setorSelecionado!.nome}',
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          Text('Capacidade total: ${_setorSelecionado!.capacidade} pessoas'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              DropdownButtonFormField<int>(
-                initialValue: _setorId,
-                decoration: _decoracaoCampo(
-                  label: 'Setor',
-                  icone: Icons.stadium_outlined,
-                ),
-                items: _setores
-                    .map((s) => DropdownMenuItem(value: s.id, child: Text('${s.nome} (${s.capacidade})')))
-                    .toList(),
-                onChanged: (v) => setState(() => _setorId = v),
-              ),
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _numeroLoteController,
-              readOnly: !editando && widget.proximoNumeroLote != null,
-              keyboardType: TextInputType.number,
-              decoration: _decoracaoCampo(
-                label: 'Número do lote',
-                icone: Icons.numbers,
-                hint: 'Ex.: 1, 2, 3',
-              ),
-              validator: (v) => (int.tryParse(v ?? '') ?? 0) < 1
-                  ? 'Informe o lote'
-                  : null,
-            ),
-            const SizedBox(height: 14),
-          ],
-          TextFormField(
-            controller: _precoController,
-            focusNode: _precoFocusNode,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            ],
-            decoration: _decoracaoCampo(
-              label: 'Preço do ingresso',
-              icone: Icons.payments_outlined,
-              hint: '0,00',
-              prefixText: 'R\$ ',
-            ),
-            validator: (value) => _preco < 0 ? 'Informe um preço válido' : null,
-          ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: ClubbarColors.infoClaro,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: ClubbarColors.info),
-            ),
-            child: const Text(
-              'O sistema cria automaticamente três modalidades neste lote: Inteira, Meia-entrada e Pessoa idosa. As duas meias ficam com 50% do valor da inteira; a meia legal usa a cota do evento e ambas exigem comprovação na entrada.',
-              style: TextStyle(fontSize: 12, height: 1.35),
-            ),
-          ),
-          const SizedBox(height: 14),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Usar a capacidade restante'),
-            subtitle: const Text(
-              'Recomendado para o último lote. O sistema calcula automaticamente os lugares restantes.',
-            ),
-            value: _usarCapacidadeRestante,
-            onChanged: (valor) =>
-                setState(() => _usarCapacidadeRestante = valor),
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _qtTotalController,
-            enabled: !_usarCapacidadeRestante,
-            keyboardType: TextInputType.number,
-            decoration: _decoracaoCampo(
-              label: 'Quantidade total',
-              icone: Icons.groups_outlined,
-              hint: 'Ex.: 500',
-            ),
-            validator: (value) {
-              if (_usarCapacidadeRestante) return null;
-              final quantidade = int.tryParse(value?.trim() ?? '');
-              if (quantidade == null || quantidade <= 0) {
-                return 'Informe uma quantidade maior que zero';
-              }
-              if (editando && quantidade < _quantidadeVendida) {
-                return 'Não pode ser menor que a quantidade vendida';
-              }
-              return null;
-            },
-          ),
-          if (editando) ...[
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _qtVendidaController,
-              readOnly: true,
-              decoration: _decoracaoCampo(
-                label: 'Quantidade vendida',
-                icone: Icons.check_circle_outline_rounded,
-              ),
-            ),
-          ],
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _dtInicioController,
-            readOnly: true,
-            onTap: _selecionarInicio,
-            decoration: _decoracaoCampo(
-              label: 'Início das vendas${editando ? '' : ' (programado)'}',
-              icone: Icons.calendar_month_outlined,
-              hint: 'dd/mm/aaaa hh:mm',
-              suffixIcon: const Icon(Icons.schedule_rounded),
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _dtFimController,
-            readOnly: true,
-            onTap: _selecionarFim,
-            decoration: _decoracaoCampo(
-              label: 'Fim das vendas',
-              icone: Icons.event_available_outlined,
-              hint: 'dd/mm/aaaa hh:mm',
-              suffixIcon: const Icon(Icons.schedule_rounded),
-            ),
-          ),
-          const SizedBox(height: 14),
-          DropdownButtonFormField<String>(
-            initialValue: _status,
-            decoration: _decoracaoCampo(
-              label: 'Status',
-              icone: Icons.toggle_on_outlined,
-            ),
-            items: const [
-              DropdownMenuItem(value: 'ATIVO', child: Text('Ativo')),
-              DropdownMenuItem(value: 'INATIVO', child: Text('Inativo')),
-            ],
-            onChanged: _salvando
-                ? null
-                : (value) => setState(() => _status = value ?? 'ATIVO'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _linhaResumo(String titulo, String valor, {bool destaque = false}) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            titulo,
-            style: TextStyle(
-              fontWeight: destaque ? FontWeight.w900 : FontWeight.w600,
-              color: ClubbarColors.textoSecundario,
-            ),
-          ),
-        ),
-        Text(
-          valor,
-          style: TextStyle(
-            fontSize: destaque ? 21 : 15,
-            fontWeight: FontWeight.w900,
-            color: destaque
-                ? ClubbarColors.sucesso
-                : ClubbarColors.textoPrincipal,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _cardResumo() {
-    final moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
-    return ClubbarCard(
-      backgroundColor: ClubbarColors.avisoClaro,
-      borderColor: ClubbarColors.ambar,
-      child: Column(
-        children: [
-          _linhaResumo('Preço', moeda.format(_preco)),
-          const SizedBox(height: 10),
-          _linhaResumo('Quantidade total', '$_quantidadeTotal'),
-          const SizedBox(height: 10),
-          _linhaResumo('Vendidos', '$_quantidadeVendida'),
-          const Divider(height: 26),
-          _linhaResumo('Disponíveis', '$_quantidadeDisponivel', destaque: true),
-        ],
-      ),
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
-      body: SafeArea(
-        child: Column(
-          children: [
-            ClubbarPageHeader(
-              titulo: editando ? 'Editar Lote' : 'Novo Lote',
-              subtitulo: 'Evento, setor e programação de vendas',
+  Widget build(BuildContext context) => Scaffold(
+    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    body: Column(children: [
+      ClubbarPageHeader(
+        titulo: _editando ? 'Editar Lote $_numero' : 'Novo Lote $_numero',
+        subtitulo: widget.eventoTitulo,
+      ),
+      Expanded(child: Form(
+        key: _formKey,
+        child: ListView(padding: const EdgeInsets.all(16), children: [
+          ClubbarCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Etapa global de vendas', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            const Text('Quando este lote estiver em venda, todos os setores vendem nesta mesma etapa. A passagem para o próximo lote é única para todo o evento.'),
+            const SizedBox(height: 14),
+            TextFormField(controller: _nome, decoration: const InputDecoration(labelText: 'Nome do lote'), validator: (valor) => valor == null || valor.trim().isEmpty ? 'Informe o nome do lote' : null),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _gatilho,
+              decoration: const InputDecoration(labelText: 'Como virar para o próximo lote'),
+              items: const [
+                DropdownMenuItem(value: 'HIBRIDO', child: Text('Na data final ou quando todos os setores esgotarem')),
+                DropdownMenuItem(value: 'DATA', child: Text('Somente na data final')),
+                DropdownMenuItem(value: 'ESGOTAMENTO', child: Text('Somente quando todos os setores esgotarem')),
+              ],
+              onChanged: (valor) => setState(() => _gatilho = valor ?? 'HIBRIDO'),
             ),
-            Expanded(
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-                  children: [
-                    ClubbarCard(
-                      backgroundColor: ClubbarColors.infoClaro,
-                      borderColor: ClubbarColors.info,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Evento', style: TextStyle(color: ClubbarColors.textoSecundario)),
-                          Text(
-                            widget.eventoTitulo,
-                            style: const TextStyle(
-                              color: ClubbarColors.info,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text('Data e hora: ${_formatarDataEvento()}'),
-                          if (_setorSelecionado != null) ...[
-                            const SizedBox(height: 4),
-                            Text('Setor: ${_setorSelecionado!.nome} • capacidade: ${_setorSelecionado!.capacidade}'),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _cardFormulario(),
-                    const SizedBox(height: 16),
-                    _cardResumo(),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 56,
-                      child: ElevatedButton.icon(
-                        onPressed: _salvando ? null : _salvar,
-                        icon: _salvando
-                            ? const SizedBox(
-                                width: 21,
-                                height: 21,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.save_rounded),
-                        label: Text(
-                          _salvando
-                              ? 'Salvando...'
-                              : editando
-                              ? 'Salvar alterações'
-                              : 'Cadastrar lote',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ClubbarColors.ambar,
-                          foregroundColor: ClubbarColors.preto,
-                        ),
-                      ),
-                    ),
-                  ],
+            const SizedBox(height: 12),
+            if (_temInicioProprio)
+              TextFormField(controller: _inicio, readOnly: true, onTap: _selecionarInicio, decoration: const InputDecoration(labelText: 'Início das vendas', suffixIcon: Icon(Icons.calendar_month_outlined)))
+            else
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.auto_mode_rounded),
+                  title: Text('Início automático'),
+                  subtitle: Text('Este lote começa quando o lote anterior virar; não há intervalo sem vendas.'),
                 ),
               ),
-            ),
+            const SizedBox(height: 12),
+            TextFormField(controller: _fim, readOnly: true, onTap: _selecionarFim, decoration: const InputDecoration(labelText: 'Fim das vendas / limite de virada', suffixIcon: Icon(Icons.calendar_month_outlined))),
+          ])),
+          if (!_editando) ...[
+            const SizedBox(height: 16),
+            const Text('Configuração deste lote por setor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            const Text('Defina quanto cada setor venderá neste lote. A inteira cria automaticamente Meia-entrada e Pessoa idosa a 50%; você poderá ajustar cada modalidade depois.'),
+            const SizedBox(height: 10),
+            ...widget.setores.map((setor) => ClubbarCard(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(setor.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                Text('Capacidade total do setor: ${setor.capacidade} pessoas'),
+                const SizedBox(height: 12),
+                TextFormField(controller: _quantidades[setor.id], keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: InputDecoration(labelText: 'Quantidade deste setor no Lote $_numero'), validator: (valor) => (int.tryParse(valor ?? '') ?? 0) <= 0 ? 'Informe a quantidade' : null),
+                const SizedBox(height: 12),
+                TextFormField(controller: _inteiras[setor.id], keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Preço da inteira'), validator: (valor) => _valor(_inteiras[setor.id]!) < 0 ? 'Preço inválido' : null),
+              ]),
+            )),
           ],
-        ),
-      ),
-    );
-  }
+        ]),
+      )),
+    ]),
+    bottomNavigationBar: ClubbarActionBar(actions: [
+      FilledButton.icon(onPressed: _salvando ? null : _salvar, icon: _salvando ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_rounded), label: Text(_editando ? 'Salvar lote global' : 'Criar lote global')),
+    ]),
+  );
 }
