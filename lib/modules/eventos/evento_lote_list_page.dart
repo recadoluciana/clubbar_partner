@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/repositories/evento_lote_repository.dart';
+import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
@@ -19,7 +20,6 @@ class EventoLoteListPage extends StatefulWidget {
   final String? eventoInicio;
   final EventoSetor? setorParaGerenciar;
   final int abaInicial;
-  final bool abrirAlteracaoCapacidade;
 
   const EventoLoteListPage({
     super.key,
@@ -30,7 +30,6 @@ class EventoLoteListPage extends StatefulWidget {
     this.eventoInicio,
     this.setorParaGerenciar,
     this.abaInicial = 0,
-    this.abrirAlteracaoCapacidade = false,
   });
 
   @override
@@ -39,6 +38,7 @@ class EventoLoteListPage extends StatefulWidget {
 
 class _EventoLoteListPageState extends State<EventoLoteListPage> {
   final _repo = EventoLoteRepository();
+  final _eventoRepo = EventoRepository();
   final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   bool _carregando = true;
   String? _erro;
@@ -46,16 +46,18 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   List<EventoSetor> _setores = [];
   List<EventoLoteGlobal> _globais = [];
   CapacidadeEvento? _capacidade;
+  late String? _eventoInicio;
 
   @override
   void initState() {
     super.initState();
     _aba = widget.abaInicial.clamp(0, 1);
+    _eventoInicio = widget.eventoInicio;
     _carregar();
   }
 
   String get _dataEvento {
-    final data = DateTime.tryParse(widget.eventoInicio ?? '');
+    final data = DateTime.tryParse(_eventoInicio ?? '');
     return data == null
         ? 'Data e hora do evento não informadas'
         : DateFormat("dd/MM/yyyy 'às' HH:mm 'horas'").format(data);
@@ -126,7 +128,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _capacidade = respostas[2] as CapacidadeEvento;
         _carregando = false;
       });
-      if (widget.abrirAlteracaoCapacidade) _alterarCapacidade();
     } catch (erro) {
       if (!mounted) return;
       setState(() {
@@ -169,6 +170,28 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       if (mounted) {
         AppSnackBar.sucesso(context, 'Capacidade total atualizada.');
         _carregar();
+      }
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _alterarHorarioEvento() async {
+    final atual = DateTime.tryParse(_eventoInicio ?? '') ?? DateTime.now();
+    final hora = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(atual),
+    );
+    if (hora == null) return;
+    final nova = DateTime(atual.year, atual.month, atual.day, hora.hour, hora.minute);
+    try {
+      await _eventoRepo.atualizarHorarioEventoAgendado(
+        eventoId: widget.eventoId,
+        inicio: nova,
+      );
+      if (mounted) {
+        setState(() => _eventoInicio = nova.toIso8601String());
+        AppSnackBar.sucesso(context, 'Horário do evento atualizado.');
       }
     } catch (erro) {
       if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
@@ -227,7 +250,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         organizacaoId: widget.organizacaoId,
         lojaId: widget.lojaId,
         eventoTitulo: widget.eventoTitulo,
-        eventoInicio: widget.eventoInicio,
+        eventoInicio: _eventoInicio,
         setores: _setores.where((setor) => setor.situacao == 'ATIVO').toList(),
         proximoNumeroLote: _globais.length + 1,
       ),
@@ -242,7 +265,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         organizacaoId: widget.organizacaoId,
         lojaId: widget.lojaId,
         eventoTitulo: widget.eventoTitulo,
-        eventoInicio: widget.eventoInicio,
+        eventoInicio: _eventoInicio,
         setores: _setores.where((setor) => setor.situacao == 'ATIVO').toList(),
         proximoNumeroLote: lote.numero,
         loteGlobal: lote,
@@ -370,12 +393,29 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   Widget _resumo() => ListView(padding: const EdgeInsets.all(16), children: [
     Wrap(spacing: 10, runSpacing: 10, children: [
       _numero('Setores', _setores.where((setor) => setor.situacao == 'ATIVO').length.toString(), Icons.stadium_outlined),
-      _numero('Capacidade autorizada', '$_capacidadeEvento', Icons.groups_outlined),
+      _numero(
+        'Capacidade autorizada',
+        '$_capacidadeEvento',
+        Icons.groups_outlined,
+        onEditar: _alterarCapacidade,
+      ),
       _numero('Capacidade distribuída', '$_capacidadeSetores', Icons.pie_chart_outline),
       _numero('Lotes globais', _globais.length.toString(), Icons.confirmation_number_outlined),
     ]),
-    const SizedBox(height: 16),
-    OutlinedButton.icon(onPressed: _alterarCapacidade, icon: const Icon(Icons.groups_rounded), label: const Text('Alterar capacidade total de pessoas')),
+    const SizedBox(height: 18),
+    ClubbarCard(child: Row(children: [
+      const Icon(Icons.event_available_outlined, color: ClubbarColors.primariaEscuro),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Agendado para', style: TextStyle(fontSize: 12)),
+        Text(_dataEvento, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+      ])),
+      IconButton(
+        onPressed: _alterarHorarioEvento,
+        icon: const Icon(Icons.access_time_rounded, color: Colors.blue),
+        tooltip: 'Alterar horário do evento',
+      ),
+    ])),
     const SizedBox(height: 18),
     const Text('Setores do evento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
     const SizedBox(height: 6),
@@ -395,11 +435,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     )),
   ]);
 
-  Widget _numero(String titulo, String valor, IconData icone) => SizedBox(
+  Widget _numero(String titulo, String valor, IconData icone, {VoidCallback? onEditar}) => SizedBox(
     width: 205,
     child: ClubbarCard(
       padding: const EdgeInsets.all(14),
-      child: Row(children: [Icon(icone, color: ClubbarColors.primariaEscuro), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(titulo, style: const TextStyle(fontSize: 11)), Text(valor, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))]))]),
+      child: Row(children: [
+        Icon(icone, color: ClubbarColors.primariaEscuro),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(titulo, style: const TextStyle(fontSize: 11)), Text(valor, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))])),
+        if (onEditar != null) IconButton(onPressed: onEditar, icon: const Icon(Icons.edit_rounded, size: 19, color: Colors.blue), tooltip: 'Editar capacidade autorizada'),
+      ]),
     ),
   );
 
@@ -498,21 +543,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     appBar: const ClubbarAppBar(mostrarVoltar: true),
     body: Column(children: [
       ClubbarPageHeader(titulo: widget.eventoTitulo, subtitulo: 'Gerenciar lotes e preços', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
-      Container(
-        width: double.infinity,
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: ClubbarColors.primariaClaro, borderRadius: BorderRadius.circular(14), border: Border.all(color: ClubbarColors.primaria)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Evento agendado para', style: TextStyle(fontWeight: FontWeight.w700)),
-          Text(_dataEvento, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 5),
-          Text('Capacidade total: $_capacidadeEvento pessoas', style: const TextStyle(fontWeight: FontWeight.w800)),
-        ]),
-      ),
       TabBar(
         onTap: (indice) => setState(() => _aba = indice),
-        tabs: const [Tab(text: 'Resumo'), Tab(text: 'Setores, lotes e preços')],
+        tabs: const [Tab(text: 'Resumo do Evento'), Tab(text: 'Setores, lotes e preços')],
       ),
       Expanded(child: _carregando ? const Center(child: CircularProgressIndicator()) : _erro != null ? Center(child: Text(_erro!)) : _aba == 0 ? _resumo() : _lotes()),
     ]),

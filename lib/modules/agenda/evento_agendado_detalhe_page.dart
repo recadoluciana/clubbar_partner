@@ -44,10 +44,7 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     _evento = widget.evento;
   }
 
-  Future<void> _abrirGerenciadorLotes({
-    int abaInicial = 1,
-    bool abrirAlteracaoCapacidade = false,
-  }) async {
+  Future<void> _abrirGerenciadorLotes({int abaInicial = 1}) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -58,7 +55,6 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
           lojaId: widget.lojaId,
           eventoInicio: _evento.inicio.toIso8601String(),
           abaInicial: abaInicial,
-          abrirAlteracaoCapacidade: abrirAlteracaoCapacidade,
         ),
       ),
     );
@@ -570,17 +566,6 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                           : () => _abrirGerenciadorLotes(),
                       icon: const Icon(Icons.confirmation_number_rounded),
                       label: const Text('Gerenciar lotes e preços'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _carregando
-                          ? null
-                          : () => _abrirGerenciadorLotes(
-                              abaInicial: 0,
-                              abrirAlteracaoCapacidade: true,
-                            ),
-                      icon: const Icon(Icons.groups_outlined),
-                      label: const Text('Alterar capacidade total de pessoas'),
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton(
