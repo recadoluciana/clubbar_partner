@@ -64,7 +64,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   @override
   void initState() {
     super.initState();
-    _aba = widget.abaInicial.clamp(0, 2);
+    _aba = widget.abaInicial.clamp(0, 3);
     _eventoInicio = widget.eventoInicio;
     _eventoTitulo = widget.eventoTitulo;
     _eventoBanner = widget.eventoBanner;
@@ -637,7 +637,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         tooltip: 'Alterar horário do evento',
       ),
     ])),
-    const SizedBox(height: 18),
+  ]);
+
+  Widget _abaSetores() => ListView(padding: const EdgeInsets.all(16), children: [
     const Text('Setores do evento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
     const SizedBox(height: 6),
     const Text('A capacidade de cada setor define o máximo distribuível entre todos os lotes globais.'),
@@ -701,6 +703,27 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         child: Text('${indice + 1}', style: const TextStyle(fontWeight: FontWeight.w900)),
       ),
       const SizedBox(width: 12),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: 64,
+          height: 64,
+          child: _urlImagemAtracao(atracao) == null
+              ? const ColoredBox(
+                  color: ClubbarColors.primariaClaro,
+                  child: Icon(Icons.music_note_rounded),
+                )
+              : Image.network(
+                  _urlImagemAtracao(atracao)!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const ColoredBox(
+                    color: ClubbarColors.primariaClaro,
+                    child: Icon(Icons.image_not_supported_outlined),
+                  ),
+                ),
+        ),
+      ),
+      const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(atracao.atracao.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
@@ -721,6 +744,13 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ]),
     ]),
   );
+
+  String? _urlImagemAtracao(EventoAtracao atracao) {
+    final banner = atracao.atracao.banner?.trim() ?? '';
+    if (banner.isEmpty) return null;
+    if (banner.startsWith('http://') || banner.startsWith('https://')) return banner;
+    return '${ApiConfig.baseUrl}${banner.startsWith('/') ? '' : '/'}$banner';
+  }
 
   Widget _cardLoteGlobal(EventoLoteGlobal lote) => ClubbarCard(
     margin: const EdgeInsets.only(bottom: 14),
@@ -802,17 +832,18 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   @override
   Widget build(BuildContext context) => DefaultTabController(
-    length: 3,
+    length: 4,
     initialIndex: _aba,
     child: Scaffold(
     appBar: const ClubbarAppBar(mostrarVoltar: true),
     body: Column(children: [
-      ClubbarPageHeader(titulo: _eventoTitulo, subtitulo: 'Gerenciar evento, setores, lotes e preços', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
+      ClubbarPageHeader(titulo: 'Nome Evento: $_eventoTitulo', subtitulo: 'Gerenciar evento, setores, lotes e preços', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
       TabBar(
         onTap: (indice) => setState(() => _aba = indice),
         tabs: const [
-          Tab(text: 'Resumo do Evento'),
-          Tab(text: 'Lotes globais e preços'),
+          Tab(text: 'Resumo'),
+          Tab(text: 'Setores'),
+          Tab(text: 'Lotes globais'),
           Tab(text: 'Atrações'),
         ],
       ),
@@ -824,14 +855,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 : _aba == 0
                     ? _resumo()
                     : _aba == 1
-                        ? _lotes()
-                        : _abaAtracoes(),
+                        ? _abaSetores()
+                        : _aba == 2
+                            ? _lotes()
+                            : _abaAtracoes(),
       ),
     ]),
     bottomNavigationBar: ClubbarActionBar(actions: [
-      if (_aba == 0) ClubbarAddButton(label: 'Adicionar setor', onPressed: () => _editarSetor(null)),
-      if (_aba == 1) ClubbarAddButton(label: 'Adicionar lote global', onPressed: _novoLote),
-      if (_aba == 2) ClubbarAddButton(label: 'Adicionar atração', onPressed: () => _editarAtracao()),
+      if (_aba == 1) ClubbarAddButton(label: 'Adicionar setor', onPressed: () => _editarSetor(null)),
+      if (_aba == 2) ClubbarAddButton(label: 'Adicionar lote global', onPressed: _novoLote),
+      if (_aba == 3) ClubbarAddButton(label: 'Adicionar atração', onPressed: () => _editarAtracao()),
     ]),
     ),
   );
