@@ -140,3 +140,23 @@ class EventoSetor {
     situacao: '${json['sitsetor'] ?? 'ATIVO'}',
   );
 }
+
+class CapacidadeEvento {
+  final int? capacidadeTotal;
+  final int capacidadeSetores;
+  final int? capacidadeNaoDistribuida;
+
+  const CapacidadeEvento({
+    required this.capacidadeTotal,
+    required this.capacidadeSetores,
+    required this.capacidadeNaoDistribuida,
+  });
+
+  factory CapacidadeEvento.fromJson(Map<String, dynamic> json) =>
+      CapacidadeEvento(
+        capacidadeTotal: (json['qtcapacidadeevento'] as num?)?.toInt(),
+        capacidadeSetores: (json['qtcapacidade_setores'] as num?)?.toInt() ?? 0,
+        capacidadeNaoDistribuida: (json['qtcapacidade_nao_distribuida'] as num?)
+            ?.toInt(),
+      );
+}

@@ -76,8 +76,7 @@ class EventoAtracao {
     eventoId: int.tryParse('${j['evento_id'] ?? 0}') ?? 0,
     inicio: DateTime.parse(j['dtinicioatracao'].toString()),
     fim: DateTime.parse(j['dtfimatracao'].toString()),
-    duracaoPrevistaMinutos:
-        int.tryParse('${j['nrminutoduracao'] ?? 0}') ?? 0,
+    duracaoPrevistaMinutos: int.tryParse('${j['nrminutoduracao'] ?? 0}') ?? 0,
     atracao: Atracao.fromJson(Map<String, dynamic>.from(j['atracao'] as Map)),
   );
 }
@@ -115,6 +114,7 @@ class AgendaEvento {
   final String titulo;
   final DateTime inicio;
   final DateTime? fim;
+  final int? capacidadeTotal;
   final String status;
   final List<EventoAtracao> atracoes;
   final String? bannerEvento;
@@ -124,6 +124,7 @@ class AgendaEvento {
     required this.titulo,
     required this.inicio,
     this.fim,
+    this.capacidadeTotal,
     required this.status,
     required this.atracoes,
     this.bannerEvento,
@@ -145,6 +146,7 @@ class AgendaEvento {
       fim: j['dtfimevento'] == null
           ? null
           : DateTime.tryParse(j['dtfimevento'].toString()),
+      capacidadeTotal: (j['qtcapacidadeevento'] as num?)?.toInt(),
       status: '${j['statusevento'] ?? ''}',
       bannerEvento: j['urlbannerevento']?.toString(),
       politicaCancelamento: j['dspoliticacancelamento']?.toString(),
@@ -160,6 +162,7 @@ class AgendaEvento {
     titulo: titulo,
     inicio: inicio,
     fim: fim,
+    capacidadeTotal: capacidadeTotal,
     status: status,
     atracoes: atracoes ?? this.atracoes,
     bannerEvento: bannerEvento,
