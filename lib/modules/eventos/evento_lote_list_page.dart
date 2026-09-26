@@ -892,7 +892,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
     ]),
     bottomNavigationBar: ClubbarActionBar(actions: [
-      if (!widget.somenteConsulta)
+      if (!widget.somenteConsulta && _aba == 0)
         OutlinedButton.icon(
           onPressed: _excluirData,
           icon: const Icon(Icons.delete_outline),
