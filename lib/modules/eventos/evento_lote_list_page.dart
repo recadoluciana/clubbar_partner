@@ -1228,19 +1228,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             ],
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Modalidades de preço',
-            style: TextStyle(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 8),
-          if (lote.precos.isEmpty)
-            const Text(
-              'Nenhuma modalidade de preço cadastrada.',
-              style: TextStyle(color: ClubbarColors.textoSecundario),
-            )
-          else
-            ...([...lote.precos]..sort((a, b) => a.ordem.compareTo(b.ordem)))
-                .map((preco) => _cardModalidade(lote, preco)),
+          _painelModalidades(lote),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -1253,6 +1241,44 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _painelModalidades(EventoLote lote) {
+    final quantidade = lote.precos.length;
+    return Container(
+      decoration: BoxDecoration(
+        color: ClubbarColors.branco,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ClubbarColors.borda),
+      ),
+      child: ExpansionTile(
+        key: PageStorageKey('modalidades-lote-${lote.loteId}'),
+        maintainState: true,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        title: const Text(
+          'Modalidades de preço',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(
+          '$quantidade modalidade${quantidade == 1 ? '' : 's'} cadastrada${quantidade == 1 ? '' : 's'}',
+          style: const TextStyle(color: ClubbarColors.textoSecundario),
+        ),
+        children: [
+          if (lote.precos.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Text(
+                'Nenhuma modalidade de preço cadastrada.',
+                style: TextStyle(color: ClubbarColors.textoSecundario),
+              ),
+            )
+          else
+            ...([...lote.precos]..sort((a, b) => a.ordem.compareTo(b.ordem)))
+                .map((preco) => _cardModalidade(lote, preco)),
         ],
       ),
     );
