@@ -12,8 +12,8 @@ import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/atracao.dart';
 import '../../models/loja.dart';
 import '../atracoes/atracao_list_page.dart';
-import 'evento_agendado_detalhe_page.dart';
 import '../eventos/evento_list_page.dart';
+import '../eventos/evento_lote_list_page.dart';
 
 class AgendaMensalPage extends StatefulWidget {
   final Loja loja;
@@ -614,10 +614,13 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   }) async {
     final alterado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EventoAgendadoDetalhePage(
-          evento: evento,
+        builder: (_) => EventoLoteListPage(
+          eventoId: evento.eventoId,
+          eventoTitulo: evento.titulo,
+          eventoBanner: evento.bannerEvento,
           organizacaoId: _loja.organizacaoId,
           lojaId: _loja.lojaId,
+          eventoInicio: evento.inicio.toIso8601String(),
           somenteConsulta: somenteConsulta,
         ),
       ),
