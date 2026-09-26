@@ -130,6 +130,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         : DateFormat('dd/MM/yyyy às HH:mm').format(inicio);
   }
 
+  String get _textoEventoAgendado {
+    final inicio = DateTime.tryParse(widget.eventoInicio ?? '');
+    if (inicio == null) return 'Data e hora do evento não informadas';
+    return 'Evento agendado para $_dataHoraEvento horas';
+  }
+
   String _formatarData(String? valor) {
     final data = valor == null ? null : DateTime.tryParse(valor);
     return data == null
@@ -607,45 +613,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
         children: [
-          ClubbarCard(
-            backgroundColor: ClubbarColors.infoClaro,
-            borderColor: ClubbarColors.info,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Evento',
-                  style: TextStyle(color: ClubbarColors.textoSecundario),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  widget.eventoTitulo,
-                  style: const TextStyle(
-                    color: ClubbarColors.info,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.calendar_month_rounded,
-                      color: ClubbarColors.info,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Data e hora: $_dataHoraEvento',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -733,6 +700,52 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _cardInformacoesEvento() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      child: ClubbarCard(
+        backgroundColor: ClubbarColors.infoClaro,
+        borderColor: ClubbarColors.info,
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.event_available_rounded,
+                  color: ClubbarColors.info,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _textoEventoAgendado,
+                    style: const TextStyle(
+                      color: ClubbarColors.info,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.groups_rounded, color: ClubbarColors.info),
+                const SizedBox(width: 8),
+                Text(
+                  'Capacidade total: $_capacidadeEvento pessoas',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1372,12 +1385,13 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                subtitulo: 'Data e hora do evento: $_dataHoraEvento',
+                subtitulo: 'Gerenciar setores, lotes e preços',
                 trailing: IconButton(
                   onPressed: _carregando ? null : _carregar,
                   icon: const Icon(Icons.refresh_rounded),
                 ),
               ),
+              _cardInformacoesEvento(),
               Material(
                 color: ClubbarColors.branco,
                 child: TabBar(
