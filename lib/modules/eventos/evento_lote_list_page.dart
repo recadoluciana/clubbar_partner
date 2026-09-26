@@ -127,20 +127,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     final inicio = DateTime.tryParse(widget.eventoInicio ?? '');
     return inicio == null
         ? 'Não informadas'
-        : DateFormat('dd/MM/yyyy às HH:mm').format(inicio);
-  }
-
-  String get _textoEventoAgendado {
-    final inicio = DateTime.tryParse(widget.eventoInicio ?? '');
-    if (inicio == null) return 'Data e hora do evento não informadas';
-    return 'Evento agendado para $_dataHoraEvento horas';
+        : DateFormat("dd/MM/yyyy 'às' HH:mm").format(inicio);
   }
 
   String _formatarData(String? valor) {
     final data = valor == null ? null : DateTime.tryParse(valor);
     return data == null
         ? 'Não informada'
-        : DateFormat('dd/MM/yyyy às HH:mm').format(data);
+        : DateFormat("dd/MM/yyyy 'às' HH:mm").format(data);
   }
 
   List<EventoLote> _lotesDoSetor(int setorId) {
@@ -649,6 +643,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   Icons.sell_rounded,
                 ),
               ),
+              SizedBox(
+                width: 280,
+                child: _itemResumo(
+                  'Data do evento',
+                  _dataHoraEvento,
+                  Icons.calendar_month_rounded,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -700,52 +702,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _cardInformacoesEvento() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-      child: ClubbarCard(
-        backgroundColor: ClubbarColors.infoClaro,
-        borderColor: ClubbarColors.info,
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.event_available_rounded,
-                  color: ClubbarColors.info,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _textoEventoAgendado,
-                    style: const TextStyle(
-                      color: ClubbarColors.info,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.groups_rounded, color: ClubbarColors.info),
-                const SizedBox(width: 8),
-                Text(
-                  'Capacidade total: $_capacidadeEvento pessoas',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1391,7 +1347,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   icon: const Icon(Icons.refresh_rounded),
                 ),
               ),
-              _cardInformacoesEvento(),
               Material(
                 color: ClubbarColors.branco,
                 child: TabBar(
@@ -1400,7 +1355,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   unselectedLabelColor: ClubbarColors.textoSecundario,
                   tabs: const [
                     Tab(text: 'Resumo'),
-                    Tab(text: 'Setores'),
+                    Tab(text: 'Setores, lotes e preços'),
                   ],
                 ),
               ),
