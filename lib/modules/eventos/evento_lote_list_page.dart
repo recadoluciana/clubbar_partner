@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../core/config/api_config.dart';
 import '../../core/repositories/evento_lote_repository.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
@@ -15,6 +19,7 @@ import 'evento_lote_form_page.dart';
 class EventoLoteListPage extends StatefulWidget {
   final int eventoId;
   final String eventoTitulo;
+  final String? eventoBanner;
   final int organizacaoId;
   final int lojaId;
   final String? eventoInicio;
@@ -25,6 +30,7 @@ class EventoLoteListPage extends StatefulWidget {
     super.key,
     required this.eventoId,
     required this.eventoTitulo,
+    this.eventoBanner,
     required this.organizacaoId,
     required this.lojaId,
     this.eventoInicio,
@@ -47,12 +53,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   List<EventoLoteGlobal> _globais = [];
   CapacidadeEvento? _capacidade;
   late String? _eventoInicio;
+  late String _eventoTitulo;
+  late String? _eventoBanner;
+  Uint8List? _bannerPreview;
 
   @override
   void initState() {
     super.initState();
     _aba = widget.abaInicial.clamp(0, 1);
     _eventoInicio = widget.eventoInicio;
+    _eventoTitulo = widget.eventoTitulo;
+    _eventoBanner = widget.eventoBanner;
     _carregar();
   }
 
@@ -198,6 +209,63 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     }
   }
 
+  Future<void> _editarNomeEvento() async {
+    final nome = TextEditingController(text: _eventoTitulo);
+    final novoNome = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nome do evento'),
+        content: TextField(
+          controller: nome,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(labelText: 'Nome do evento'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(context, nome.text.trim()), child: const Text('Salvar')),
+        ],
+      ),
+    );
+    nome.dispose();
+    if (novoNome == null || novoNome.isEmpty || novoNome == _eventoTitulo) return;
+    try {
+      await _eventoRepo.atualizarEventoAgendado(eventoId: widget.eventoId, titulo: novoNome);
+      if (mounted) {
+        setState(() => _eventoTitulo = novoNome);
+        AppSnackBar.sucesso(context, 'Nome do evento atualizado.');
+      }
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _editarFotoEvento() async {
+    final foto = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (foto == null) return;
+    try {
+      final bytes = await foto.readAsBytes();
+      await _eventoRepo.atualizarEventoAgendado(
+        eventoId: widget.eventoId,
+        titulo: _eventoTitulo,
+        imagem: foto,
+      );
+      if (mounted) {
+        setState(() => _bannerPreview = bytes);
+        AppSnackBar.sucesso(context, 'Foto do evento atualizada.');
+      }
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  String? get _urlBanner {
+    final banner = _eventoBanner?.trim() ?? '';
+    if (banner.isEmpty) return null;
+    if (banner.startsWith('http://') || banner.startsWith('https://')) return banner;
+    return '${ApiConfig.baseUrl}${banner.startsWith('/') ? '' : '/'}$banner';
+  }
+
   Future<void> _editarSetor(EventoSetor? existente) async {
     final nome = TextEditingController(text: existente?.nome ?? '');
     final capacidade = TextEditingController(text: existente?.capacidade.toString() ?? '');
@@ -249,7 +317,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         eventoId: widget.eventoId,
         organizacaoId: widget.organizacaoId,
         lojaId: widget.lojaId,
-        eventoTitulo: widget.eventoTitulo,
+        eventoTitulo: _eventoTitulo,
         eventoInicio: _eventoInicio,
         setores: _setores.where((setor) => setor.situacao == 'ATIVO').toList(),
         proximoNumeroLote: _globais.length + 1,
@@ -264,7 +332,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         eventoId: widget.eventoId,
         organizacaoId: widget.organizacaoId,
         lojaId: widget.lojaId,
-        eventoTitulo: widget.eventoTitulo,
+        eventoTitulo: _eventoTitulo,
         eventoInicio: _eventoInicio,
         setores: _setores.where((setor) => setor.situacao == 'ATIVO').toList(),
         proximoNumeroLote: lote.numero,
@@ -404,6 +472,45 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     ]),
     const SizedBox(height: 18),
     ClubbarCard(child: Row(children: [
+      const Icon(Icons.title_rounded, color: ClubbarColors.primariaEscuro),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Nome do evento', style: TextStyle(fontSize: 12)),
+        Text(_eventoTitulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+      ])),
+      IconButton(
+        onPressed: _editarNomeEvento,
+        icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+        tooltip: 'Editar nome do evento',
+      ),
+    ])),
+    const SizedBox(height: 12),
+    ClubbarCard(child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: 74,
+          height: 54,
+          child: _bannerPreview != null
+              ? Image.memory(_bannerPreview!, fit: BoxFit.cover)
+              : _urlBanner != null
+                  ? Image.network(_urlBanner!, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => const ColoredBox(color: ClubbarColors.primariaClaro, child: Icon(Icons.image_not_supported_outlined)))
+                  : const ColoredBox(color: ClubbarColors.primariaClaro, child: Icon(Icons.image_outlined)),
+        ),
+      ),
+      const SizedBox(width: 12),
+      const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Foto do evento', style: TextStyle(fontSize: 12)),
+        Text('Imagem exibida para o público', style: TextStyle(fontWeight: FontWeight.w800)),
+      ])),
+      IconButton(
+        onPressed: _editarFotoEvento,
+        icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+        tooltip: 'Editar foto do evento',
+      ),
+    ])),
+    const SizedBox(height: 12),
+    ClubbarCard(child: Row(children: [
       const Icon(Icons.event_available_outlined, color: ClubbarColors.primariaEscuro),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -542,7 +649,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     child: Scaffold(
     appBar: const ClubbarAppBar(mostrarVoltar: true),
     body: Column(children: [
-      ClubbarPageHeader(titulo: widget.eventoTitulo, subtitulo: 'Gerenciar evento, setores, lotes e preços', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
+      ClubbarPageHeader(titulo: _eventoTitulo, subtitulo: 'Gerenciar evento, setores, lotes e preços', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
       TabBar(
         onTap: (indice) => setState(() => _aba = indice),
         tabs: const [Tab(text: 'Resumo do Evento'), Tab(text: 'Lotes globais e preços')],
