@@ -772,7 +772,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   ? null
                   : () => _gerenciarLotesDoSetor(setor),
               icon: const Icon(Icons.confirmation_number_rounded),
-              label: const Text('Gerenciar lotes'),
+              label: const Text('Gerenciar lotes e preços'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ClubbarColors.sucesso,
                 foregroundColor: ClubbarColors.branco,
