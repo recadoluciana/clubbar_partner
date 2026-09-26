@@ -27,6 +27,7 @@ class EventoLoteListPage extends StatefulWidget {
   final String? eventoInicio;
   final EventoSetor? setorParaGerenciar;
   final int abaInicial;
+  final bool somenteConsulta;
 
   const EventoLoteListPage({
     super.key,
@@ -38,6 +39,7 @@ class EventoLoteListPage extends StatefulWidget {
     this.eventoInicio,
     this.setorParaGerenciar,
     this.abaInicial = 0,
+    this.somenteConsulta = false,
   });
 
   @override
@@ -194,6 +196,34 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         AppSnackBar.sucesso(context, 'Capacidade total atualizada.');
         _carregar();
       }
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _excluirData() async {
+    final data = DateTime.tryParse(_eventoInicio ?? '');
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir esta data?'),
+        content: Text(
+          'O evento “$_eventoTitulo” será removido somente de ${data == null ? 'sua data agendada' : DateFormat('dd/MM/yyyy').format(data)}. O evento padrão e as demais datas não serão alterados.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: ClubbarColors.erro),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir esta data'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+    try {
+      await _eventoRepo.excluirOcorrencia(widget.eventoId);
+      if (mounted) Navigator.pop(context, true);
     } catch (erro) {
       if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
     }
@@ -862,9 +892,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
     ]),
     bottomNavigationBar: ClubbarActionBar(actions: [
-      if (_aba == 1) ClubbarAddButton(label: 'Adicionar setor', onPressed: () => _editarSetor(null)),
-      if (_aba == 2) ClubbarAddButton(label: 'Adicionar lote global', onPressed: _novoLote),
-      if (_aba == 3) ClubbarAddButton(label: 'Adicionar atração', onPressed: () => _editarAtracao()),
+      if (!widget.somenteConsulta)
+        OutlinedButton.icon(
+          onPressed: _excluirData,
+          icon: const Icon(Icons.delete_outline),
+          label: const Text('Excluir esta data'),
+          style: OutlinedButton.styleFrom(foregroundColor: ClubbarColors.erro),
+        ),
+      if (!widget.somenteConsulta && _aba == 1) ClubbarAddButton(label: 'Adicionar setor', onPressed: () => _editarSetor(null)),
+      if (!widget.somenteConsulta && _aba == 2) ClubbarAddButton(label: 'Adicionar lote global', onPressed: _novoLote),
+      if (!widget.somenteConsulta && _aba == 3) ClubbarAddButton(label: 'Adicionar atração', onPressed: () => _editarAtracao()),
     ]),
     ),
   );
