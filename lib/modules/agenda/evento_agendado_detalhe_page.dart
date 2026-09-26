@@ -567,37 +567,6 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                       child: const Text('Excluir esta data'),
                     ),
                   ],
-                  const SizedBox(height: 22),
-                  Text(
-                    'Atrações',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (_evento.atracoes.isEmpty)
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Text(
-                          'Nenhuma atração programada.',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  ..._evento.atracoes.asMap().entries.map(
-                    (entrada) => _atracaoCard(entrada.value, entrada.key),
-                  ),
-                  if (!widget.somenteConsulta) ...[
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _carregando
-                          ? null
-                          : () => _editarProgramacao(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Adicionar atração'),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -634,6 +603,7 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     return cores[indice % cores.length];
   }
 
+  // ignore: unused_element
   Widget _atracaoCard(EventoAtracao item, int indice) => Card(
     child: ListTile(
       leading: CircleAvatar(
