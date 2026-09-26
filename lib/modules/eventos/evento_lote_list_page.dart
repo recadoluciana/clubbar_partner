@@ -542,7 +542,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     child: Scaffold(
     appBar: const ClubbarAppBar(mostrarVoltar: true),
     body: Column(children: [
-      ClubbarPageHeader(titulo: widget.eventoTitulo, subtitulo: 'Gerenciar lotes e preços', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
+      ClubbarPageHeader(titulo: widget.eventoTitulo, subtitulo: 'Gerenciar evento, setores, lotes e preços', trailing: IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh_rounded))),
       TabBar(
         onTap: (indice) => setState(() => _aba = indice),
         tabs: const [Tab(text: 'Resumo do Evento'), Tab(text: 'Lotes globais e preços')],
