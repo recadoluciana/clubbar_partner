@@ -26,6 +26,37 @@ class EventoLoteRepository {
     throw _erro(response, 'Não foi possível carregar os lotes do evento.');
   }
 
+  Future<CapacidadeEvento> obterCapacidadeEvento(int eventoId) async {
+    final response = await ApiService.get('/eventos/$eventoId/capacidade');
+    if (response.statusCode != 200) {
+      throw _erro(
+        response,
+        'Não foi possível carregar a capacidade do evento.',
+      );
+    }
+    return CapacidadeEvento.fromJson(
+      Map<String, dynamic>.from(jsonDecode(response.body)),
+    );
+  }
+
+  Future<CapacidadeEvento> atualizarCapacidadeEvento({
+    required int eventoId,
+    required int capacidade,
+  }) async {
+    final response = await ApiService.put('/eventos/$eventoId/capacidade', {
+      'qtcapacidadeevento': capacidade,
+    });
+    if (response.statusCode != 200) {
+      throw _erro(
+        response,
+        'Não foi possível atualizar a capacidade do evento.',
+      );
+    }
+    return CapacidadeEvento.fromJson(
+      Map<String, dynamic>.from(jsonDecode(response.body)),
+    );
+  }
+
   Future<void> criar({
     required int eventoId,
     required int organizacaoId,

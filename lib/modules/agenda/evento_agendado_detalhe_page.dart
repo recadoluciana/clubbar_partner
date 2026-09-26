@@ -525,7 +525,7 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
           ClubbarPageHeader(
             titulo: _evento.titulo,
             subtitulo:
-                'Evento agendado • ${DateFormat('dd/MM/yyyy às HH:mm').format(_evento.inicio)}',
+                'Evento agendado • ${DateFormat('dd/MM/yyyy às HH:mm').format(_evento.inicio)}${_evento.capacidadeTotal == null ? '' : ' • capacidade: ${_evento.capacidadeTotal} pessoas'}',
           ),
           Expanded(
             child: RefreshIndicator(
@@ -565,16 +565,20 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
-                      onPressed: _carregando ? null : () => _abrirGerenciadorLotes(),
+                      onPressed: _carregando
+                          ? null
+                          : () => _abrirGerenciadorLotes(),
                       icon: const Icon(Icons.confirmation_number_rounded),
                       label: const Text('Gerenciar lotes e preços'),
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
-                      onPressed: _carregando ? null : () => _abrirGerenciadorLotes(
-                        abaInicial: 0,
-                        abrirAlteracaoCapacidade: true,
-                      ),
+                      onPressed: _carregando
+                          ? null
+                          : () => _abrirGerenciadorLotes(
+                              abaInicial: 0,
+                              abrirAlteracaoCapacidade: true,
+                            ),
                       icon: const Icon(Icons.groups_outlined),
                       label: const Text('Alterar capacidade total de pessoas'),
                     ),
@@ -611,7 +615,9 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                   if (!widget.somenteConsulta) ...[
                     const SizedBox(height: 16),
                     FilledButton.icon(
-                      onPressed: _carregando ? null : () => _editarProgramacao(),
+                      onPressed: _carregando
+                          ? null
+                          : () => _editarProgramacao(),
                       icon: const Icon(Icons.add),
                       label: const Text('Adicionar atração'),
                     ),
