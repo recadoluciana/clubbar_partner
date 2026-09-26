@@ -51,6 +51,7 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
         builder: (_) => EventoLoteListPage(
           eventoId: _evento.eventoId,
           eventoTitulo: _evento.titulo,
+          eventoBanner: _evento.bannerEvento,
           organizacaoId: widget.organizacaoId,
           lojaId: widget.lojaId,
           eventoInicio: _evento.inicio.toIso8601String(),
@@ -284,6 +285,7 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _editarEventoAgendado() async {
     final tituloController = TextEditingController(text: _evento.titulo);
     XFile? imagem;
@@ -408,6 +410,7 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _editarHorarioEvento() async {
     var horario = TimeOfDay.fromDateTime(_evento.inicio);
     var salvando = false;
@@ -548,18 +551,6 @@ class _EventoAgendadoDetalhePageState extends State<EventoAgendadoDetalhePage> {
                       ),
                     ),
                   if (!widget.somenteConsulta) ...[
-                    OutlinedButton.icon(
-                      onPressed: _carregando ? null : _editarEventoAgendado,
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text('Editar nome e foto do evento'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _carregando ? null : _editarHorarioEvento,
-                      icon: const Icon(Icons.access_time_outlined),
-                      label: const Text('Editar horário do evento'),
-                    ),
-                    const SizedBox(height: 10),
                     OutlinedButton.icon(
                       onPressed: _carregando
                           ? null
