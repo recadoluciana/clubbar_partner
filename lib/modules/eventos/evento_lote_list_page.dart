@@ -873,7 +873,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         )
         .toList();
     if (setoresDisponiveis.isEmpty) {
-      AppSnackBar.aviso(context, 'Todos os setores ativos já participam deste lote.');
+      AppSnackBar.aviso(
+        context,
+        'Todos os setores ativos já participam deste lote.',
+      );
       return;
     }
 
@@ -970,8 +973,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         final inteira = double.tryParse(
                           preco.text.replaceAll('.', '').replaceAll(',', '.'),
                         );
-                        if (limite == null || limite <= 0 || inteira == null || inteira < 0) {
-                          AppSnackBar.aviso(context, 'Informe a quantidade e o preço da inteira.');
+                        if (limite == null ||
+                            limite <= 0 ||
+                            inteira == null ||
+                            inteira < 0) {
+                          AppSnackBar.aviso(
+                            context,
+                            'Informe a quantidade e o preço da inteira.',
+                          );
                           return;
                         }
                         if (limite > setor.capacidade) {
@@ -1383,7 +1392,153 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           ],
         ),
       ),
+      const SizedBox(height: 18),
+      _matrizCapacidade(),
+      const SizedBox(height: 14),
+      _matrizPrecos(),
     ],
+  );
+
+  List<EventoSetor> get _setoresAtivos =>
+      _setores.where((setor) => setor.situacao == 'ATIVO').toList()
+        ..sort((a, b) => a.ordem.compareTo(b.ordem));
+
+  EventoLote? _configuracaoDoSetor(EventoSetor setor, EventoLoteGlobal lote) {
+    for (final configuracao in lote.setores) {
+      if (configuracao.eventoSetorId == setor.id) return configuracao;
+    }
+    return null;
+  }
+
+  Widget _matrizCapacidade() => _cardMatriz(
+    titulo: 'Matriz de capacidade',
+    subtitulo:
+        'Consulta da quantidade programada de cada setor em cada lote global.',
+    child: _setoresAtivos.isEmpty || _globais.isEmpty
+        ? const Text(
+            'Cadastre setores e lotes globais para visualizar a matriz.',
+          )
+        : SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: const WidgetStatePropertyAll(
+                ClubbarColors.primariaClaro,
+              ),
+              dataRowMinHeight: 54,
+              columns: [
+                const DataColumn(label: Text('Setor')),
+                const DataColumn(label: Text('Capacidade')),
+                ..._globais.map((lote) => DataColumn(label: Text(lote.nome))),
+                const DataColumn(label: Text('Programado')),
+              ],
+              rows: _setoresAtivos.map((setor) {
+                final configuracoes = _globais
+                    .map((lote) => _configuracaoDoSetor(setor, lote))
+                    .toList();
+                final programado = configuracoes.fold<int>(
+                  0,
+                  (total, configuracao) =>
+                      total + (configuracao?.qttotallote ?? 0),
+                );
+                return DataRow(
+                  cells: [
+                    DataCell(Text(setor.nome)),
+                    DataCell(Text('${setor.capacidade}')),
+                    ...configuracoes.map(
+                      (configuracao) => DataCell(
+                        Text(
+                          configuracao == null
+                              ? '—'
+                              : configuracao.usarCapacidadeRestante
+                              ? 'Saldo'
+                              : '${configuracao.qttotallote}',
+                        ),
+                      ),
+                    ),
+                    DataCell(Text('$programado')),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+  );
+
+  Widget _matrizPrecos() => _cardMatriz(
+    titulo: 'Matriz de preços',
+    subtitulo:
+        'Consulta dos preços por modalidade em cada setor e lote global.',
+    child: _setoresAtivos.isEmpty || _globais.isEmpty
+        ? const Text(
+            'Cadastre setores e lotes globais para visualizar a matriz.',
+          )
+        : SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: const WidgetStatePropertyAll(
+                ClubbarColors.primariaClaro,
+              ),
+              dataRowMinHeight: 64,
+              dataRowMaxHeight: 128,
+              columns: [
+                const DataColumn(label: Text('Setor')),
+                ..._globais.map((lote) => DataColumn(label: Text(lote.nome))),
+              ],
+              rows: _setoresAtivos.map((setor) {
+                return DataRow(
+                  cells: [
+                    DataCell(Text(setor.nome)),
+                    ..._globais.map(
+                      (lote) => DataCell(
+                        _precosDaConfiguracao(
+                          _configuracaoDoSetor(setor, lote),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+  );
+
+  Widget _precosDaConfiguracao(EventoLote? configuracao) {
+    if (configuracao == null) return const Text('—');
+    final precos =
+        configuracao.precos.where((preco) => preco.situacao == 'ATIVO').toList()
+          ..sort((a, b) => a.ordem.compareTo(b.ordem));
+    if (precos.isEmpty) return const Text('Sem preço');
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: precos
+          .map(
+            (preco) => Text(
+              '${preco.nome}: ${_moeda.format(preco.valor)}',
+              style: const TextStyle(fontSize: 12),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _cardMatriz({
+    required String titulo,
+    required String subtitulo,
+    required Widget child,
+  }) => ClubbarCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          titulo,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 4),
+        Text(subtitulo, style: const TextStyle(color: Colors.black54)),
+        const SizedBox(height: 12),
+        child,
+      ],
+    ),
   );
 
   Widget _abaSetores() => ListView(
