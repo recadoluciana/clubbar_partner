@@ -781,6 +781,166 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     if (salvou == true && mounted) _carregar();
   }
 
+  Future<void> _adicionarSetorAoLoteGlobal(EventoLoteGlobal lote) async {
+    final setoresDisponiveis = _setores
+        .where(
+          (setor) =>
+              setor.situacao == 'ATIVO' &&
+              !lote.setores.any(
+                (configuracao) => configuracao.eventoSetorId == setor.id,
+              ),
+        )
+        .toList();
+    if (setoresDisponiveis.isEmpty) {
+      AppSnackBar.aviso(context, 'Todos os setores ativos já participam deste lote.');
+      return;
+    }
+
+    var setorId = setoresDisponiveis.first.id;
+    final quantidade = TextEditingController(
+      text: setoresDisponiveis.first.capacidade.toString(),
+    );
+    final preco = TextEditingController(text: '0,00');
+    var salvando = false;
+    final salvo = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, atualizar) {
+          final setor = setoresDisponiveis.firstWhere(
+            (item) => item.id == setorId,
+          );
+          return AlertDialog(
+            title: Text('Adicionar setor ao ${lote.nome}'),
+            content: SizedBox(
+              width: 440,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<int>(
+                      key: ValueKey(setorId),
+                      initialValue: setorId,
+                      decoration: const InputDecoration(labelText: 'Setor'),
+                      items: setoresDisponiveis
+                          .map(
+                            (item) => DropdownMenuItem(
+                              value: item.id,
+                              child: Text(item.nome),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (valor) {
+                        if (valor == null) return;
+                        final selecionado = setoresDisponiveis.firstWhere(
+                          (item) => item.id == valor,
+                        );
+                        atualizar(() {
+                          setorId = valor;
+                          quantidade.text = selecionado.capacidade.toString();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Capacidade do setor: ${setor.capacidade} pessoas',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: quantidade,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Máximo de ingressos neste lote',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: preco,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Preço da inteira',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Meia-entrada e Pessoa idosa serão criadas automaticamente a 50% do valor da inteira.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: salvando
+                    ? null
+                    : () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                onPressed: salvando
+                    ? null
+                    : () async {
+                        final limite = int.tryParse(quantidade.text.trim());
+                        final inteira = double.tryParse(
+                          preco.text.replaceAll('.', '').replaceAll(',', '.'),
+                        );
+                        if (limite == null || limite <= 0 || inteira == null || inteira < 0) {
+                          AppSnackBar.aviso(context, 'Informe a quantidade e o preço da inteira.');
+                          return;
+                        }
+                        if (limite > setor.capacidade) {
+                          AppSnackBar.aviso(
+                            context,
+                            'A quantidade não pode superar a capacidade do setor.',
+                          );
+                          return;
+                        }
+                        atualizar(() => salvando = true);
+                        try {
+                          await _repo.adicionarSetorAoGlobal(
+                            loteGlobalId: lote.id,
+                            setorId: setorId,
+                            limite: limite,
+                            precoInteira: inteira,
+                          );
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext, true);
+                          }
+                        } catch (erro) {
+                          if (context.mounted) {
+                            AppSnackBar.erro(
+                              context,
+                              erro.toString().replaceFirst('Exception: ', ''),
+                            );
+                          }
+                          atualizar(() => salvando = false);
+                        }
+                      },
+                icon: salvando
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add_rounded),
+                label: const Text('Adicionar setor'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (salvo == true && mounted) {
+      AppSnackBar.sucesso(context, 'Setor adicionado ao lote global.');
+      _carregar();
+    }
+  }
+
   Future<void> _excluirSetorDoLote(EventoLote configuracao) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -1413,6 +1573,24 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         ...lote.setores.map((configuracao) => _setorNoLote(configuracao)),
+        if (_setores.any(
+          (setor) =>
+              setor.situacao == 'ATIVO' &&
+              !lote.setores.any(
+                (configuracao) => configuracao.eventoSetorId == setor.id,
+              ),
+        ))
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _adicionarSetorAoLoteGlobal(lote),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Adicionar setor a este lote'),
+              ),
+            ),
+          ),
         const SizedBox(height: 6),
         Align(
           alignment: Alignment.centerRight,
