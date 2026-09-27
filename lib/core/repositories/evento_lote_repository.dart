@@ -32,9 +32,9 @@ class EventoLoteRepository {
       throw _erro(response, 'Não foi possível carregar os lotes do evento.');
     }
     return (jsonDecode(response.body) as List)
-        .map((item) => EventoLoteGlobal.fromJson(
-              Map<String, dynamic>.from(item),
-            ))
+        .map(
+          (item) => EventoLoteGlobal.fromJson(Map<String, dynamic>.from(item)),
+        )
         .toList();
   }
 
@@ -70,13 +70,14 @@ class EventoLoteRepository {
     String? gatilhoVirada,
     String? situacao,
   }) async {
-    final response = await ApiService.put('/eventos/lotes-globais/$loteGlobalId', {
-      'nmlote': ?nome,
-      'dtiniciovenda': ?inicioVendas,
-      'dtfimvenda': ?fimVendas,
-      'gatilhovirada': ?gatilhoVirada,
-      'situacao': ?situacao,
-    });
+    final response =
+        await ApiService.put('/eventos/lotes-globais/$loteGlobalId', {
+          'nmlote': ?nome,
+          'dtiniciovenda': ?inicioVendas,
+          'dtfimvenda': ?fimVendas,
+          'gatilhovirada': ?gatilhoVirada,
+          'situacao': ?situacao,
+        });
     if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível atualizar o lote global.');
     }
@@ -91,15 +92,17 @@ class EventoLoteRepository {
       'qtlimite': ?limite,
       if (precos != null)
         'precos': precos
-            .map((preco) => {
-                  'nmpreco': preco.nome.trim(),
-                  'tipopreco': preco.tipo,
-                  'vrpreco': preco.valor,
-                  'aplicacotalegal': preco.aplicaCotaLegal,
-                  'exigecomprovante': preco.exigeComprovante,
-                  'situacao': preco.situacao,
-                  'nrordem': preco.ordem,
-                })
+            .map(
+              (preco) => {
+                'nmpreco': preco.nome.trim(),
+                'tipopreco': preco.tipo,
+                'vrpreco': preco.valor,
+                'aplicacotalegal': preco.aplicaCotaLegal,
+                'exigecomprovante': preco.exigeComprovante,
+                'situacao': preco.situacao,
+                'nrordem': preco.ordem,
+              },
+            )
             .toList(),
     });
     if (response.statusCode != 200) {
@@ -108,7 +111,9 @@ class EventoLoteRepository {
   }
 
   Future<void> excluirGlobal(int loteGlobalId) async {
-    final response = await ApiService.delete('/eventos/lotes-globais/$loteGlobalId');
+    final response = await ApiService.delete(
+      '/eventos/lotes-globais/$loteGlobalId',
+    );
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw _erro(response, 'Não foi possível excluir o lote global.');
     }
@@ -330,6 +335,13 @@ class EventoLoteRepository {
     return EventoSetor.fromJson(
       Map<String, dynamic>.from(jsonDecode(response.body)),
     );
+  }
+
+  Future<void> excluirSetor(int setorId) async {
+    final response = await ApiService.delete('/eventos/setores/$setorId');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw _erro(response, 'Não foi possível excluir o setor.');
+    }
   }
 
   Future<void> excluir(int loteId) async {
