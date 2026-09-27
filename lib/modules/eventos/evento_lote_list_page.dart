@@ -1659,6 +1659,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const Tooltip(
+            message: 'Toque no card para ver modalidades e preços',
+            child: Icon(
+              Icons.expand_more_rounded,
+              color: ClubbarColors.primariaEscuro,
+            ),
+          ),
+          const SizedBox(width: 4),
           IconButton(
             onPressed: () => _editarConfiguracao(configuracao),
             icon: const Icon(Icons.edit_rounded, color: Colors.blue),
