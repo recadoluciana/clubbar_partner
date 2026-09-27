@@ -1391,14 +1391,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   ? Colors.green.shade50
                   : null,
             ),
-            TextButton.icon(
-              onPressed: () => _excluirGlobal(lote),
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              label: const Text(
-                'Excluir lote',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
             IconButton(
               onPressed: () => _editarLoteGlobal(lote),
               icon: const Icon(Icons.edit_rounded, color: Colors.blue),
@@ -1448,6 +1440,18 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         ...lote.setores.map((configuracao) => _setorNoLote(configuracao)),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () => _excluirGlobal(lote),
+            icon: const Icon(Icons.delete_outline, color: ClubbarColors.erro),
+            label: const Text(
+              'Excluir lote',
+              style: TextStyle(color: ClubbarColors.erro),
+            ),
+          ),
+        ),
       ],
     ),
   );
