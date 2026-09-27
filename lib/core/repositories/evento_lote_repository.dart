@@ -110,6 +110,13 @@ class EventoLoteRepository {
     }
   }
 
+  Future<void> excluirSetorDoLote(int loteId) async {
+    final response = await ApiService.delete('/eventos/lotes/$loteId');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw _erro(response, 'Não foi possível excluir o setor deste lote.');
+    }
+  }
+
   Future<void> excluirGlobal(int loteGlobalId) async {
     final response = await ApiService.delete(
       '/eventos/lotes-globais/$loteGlobalId',
