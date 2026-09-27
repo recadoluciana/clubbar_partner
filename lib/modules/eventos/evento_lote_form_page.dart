@@ -44,6 +44,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   final _fim = TextEditingController();
   final Map<int, TextEditingController> _quantidades = {};
   final Map<int, TextEditingController> _inteiras = {};
+  final Map<int, bool> _venderNesteLote = {};
   DateTime? _inicioSelecionado;
   DateTime? _fimSelecionado;
   bool _salvando = false;
@@ -67,6 +68,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     if (_fimSelecionado != null) _fim.text = _br(_fimSelecionado!);
     for (final setor in widget.setores) {
       final configuracao = lote?.setores.where((item) => item.eventoSetorId == setor.id).firstOrNull;
+      _venderNesteLote[setor.id] = _editando ? configuracao != null : true;
       _quantidades[setor.id] = TextEditingController(text: '${configuracao?.qttotallote ?? setor.capacidade}');
       final inteira = configuracao?.precos.where((preco) => preco.tipo == 'INTEIRA').firstOrNull;
       _inteiras[setor.id] = TextEditingController(text: (inteira?.valor ?? 0).toStringAsFixed(2).replaceAll('.', ','));
@@ -115,7 +117,9 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   double _valor(TextEditingController controller) =>
       double.tryParse(controller.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
 
-  List<Map<String, dynamic>> _setoresPayload() => widget.setores.map((setor) {
+  List<Map<String, dynamic>> _setoresPayload() => widget.setores
+      .where((setor) => _venderNesteLote[setor.id] ?? false)
+      .map((setor) {
     final inteira = _valor(_inteiras[setor.id]!);
     final meia = inteira / 2;
     return {
@@ -138,7 +142,12 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           : 'Informe o fim das vendas deste lote. O início será automático.');
       return;
     }
-    if (!_editando && _setoresPayload().any((setor) => (setor['qtlimite'] as int) <= 0 || ((setor['precos'] as List).first['vrpreco'] as double) < 0)) {
+    final setoresSelecionados = _setoresPayload();
+    if (!_editando && setoresSelecionados.isEmpty) {
+      AppSnackBar.aviso(context, 'Selecione pelo menos um setor para vender neste lote.');
+      return;
+    }
+    if (!_editando && setoresSelecionados.any((setor) => (setor['qtlimite'] as int) <= 0 || ((setor['precos'] as List).first['vrpreco'] as double) < 0)) {
       AppSnackBar.aviso(context, 'Informe uma quantidade e um preço válidos para cada setor.');
       return;
     }
@@ -161,7 +170,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           inicioVendas: _temInicioProprio ? _api(_inicioSelecionado!) : null,
           fimVendas: _api(_fimSelecionado!),
           gatilhoVirada: _gatilho,
-          setores: _setoresPayload(),
+          setores: setoresSelecionados,
         );
       }
       if (mounted) Navigator.pop(context, true);
@@ -220,17 +229,30 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
             const SizedBox(height: 16),
             const Text('Configuração deste lote por setor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
             const SizedBox(height: 6),
-            const Text('Defina o máximo que cada setor poderá vender enquanto este lote estiver vigente. O estoque é compartilhado: as vendas dos lotes anteriores reduzem automaticamente a disponibilidade do próximo lote. A inteira cria automaticamente Meia-entrada e Pessoa idosa a 50%; você poderá ajustar cada modalidade depois.'),
+            const Text('Escolha os setores que participarão desta etapa. Um setor não selecionado continua cadastrado no evento, mas não vende ingressos neste lote. O estoque é compartilhado: as vendas dos lotes anteriores reduzem automaticamente a disponibilidade do próximo lote.'),
             const SizedBox(height: 10),
             ...widget.setores.map((setor) => ClubbarCard(
               margin: const EdgeInsets.only(bottom: 10),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(setor.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                 Text('Capacidade total do setor: ${setor.capacidade} pessoas'),
-                const SizedBox(height: 12),
-                TextFormField(controller: _quantidades[setor.id], keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: InputDecoration(labelText: 'Máximo deste setor no Lote $_numero', helperText: 'Até ${setor.capacidade} ingressos, conforme o estoque restante do setor.'), validator: (valor) => (int.tryParse(valor ?? '') ?? 0) <= 0 ? 'Informe a quantidade' : null),
-                const SizedBox(height: 12),
-                TextFormField(controller: _inteiras[setor.id], keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Preço da inteira'), validator: (valor) => _valor(_inteiras[setor.id]!) < 0 ? 'Preço inválido' : null),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _venderNesteLote[setor.id] ?? false,
+                  onChanged: (valor) => setState(() => _venderNesteLote[setor.id] = valor ?? false),
+                  title: const Text('Vender neste lote'),
+                ),
+                if (_venderNesteLote[setor.id] ?? false) ...[
+                  TextFormField(controller: _quantidades[setor.id], keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: InputDecoration(labelText: 'Máximo deste setor no Lote $_numero', helperText: 'Até ${setor.capacidade} ingressos, conforme o estoque restante do setor.'), validator: (valor) => (int.tryParse(valor ?? '') ?? 0) <= 0 ? 'Informe a quantidade' : null),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: _inteiras[setor.id], keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Preço da inteira'), validator: (valor) => _valor(_inteiras[setor.id]!) < 0 ? 'Preço inválido' : null),
+                  const SizedBox(height: 4),
+                  const Text('A inteira cria automaticamente Meia-entrada e Pessoa idosa a 50%.', style: TextStyle(fontSize: 12)),
+                ] else
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text('Este setor ficará indisponível para venda neste lote.'),
+                  ),
               ]),
             )),
           ],

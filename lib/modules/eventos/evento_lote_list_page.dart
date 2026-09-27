@@ -781,6 +781,43 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     if (salvou == true && mounted) _carregar();
   }
 
+  Future<void> _excluirSetorDoLote(EventoLote configuracao) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Excluir ${configuracao.nomeSetor} deste lote?'),
+        content: const Text(
+          'Este setor deixará de vender ingressos somente neste lote global. Ele continuará cadastrado no evento e poderá participar dos próximos lotes.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: ClubbarColors.erro),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir setor do lote'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    try {
+      await _repo.excluirSetorDoLote(configuracao.loteId);
+      if (mounted) {
+        AppSnackBar.sucesso(context, 'Setor removido deste lote global.');
+        _carregar();
+      }
+    } catch (erro) {
+      if (mounted)
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+        );
+    }
+  }
+
   Future<void> _editarModalidade(
     EventoLote configuracao,
     EventoLotePreco atual,
@@ -1464,10 +1501,20 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       subtitle: Text(
         '${configuracao.qttotallote} ingressos neste lote · ${configuracao.qtvendidalote} vendidos · ${configuracao.qtReservadaLote} reservados',
       ),
-      trailing: IconButton(
-        onPressed: () => _editarConfiguracao(configuracao),
-        icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-        tooltip: 'Editar setor neste lote',
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            onPressed: () => _editarConfiguracao(configuracao),
+            icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+            tooltip: 'Editar setor neste lote',
+          ),
+          IconButton(
+            onPressed: () => _excluirSetorDoLote(configuracao),
+            icon: const Icon(Icons.delete_outline, color: ClubbarColors.erro),
+            tooltip: 'Excluir setor deste lote',
+          ),
+        ],
       ),
       children: [
         Padding(
