@@ -14,6 +14,7 @@ import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../models/evento.dart';
 import '../../models/evento_lote.dart';
 import '../../models/atracao.dart';
 import 'evento_lote_form_page.dart';
@@ -58,6 +59,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   List<EventoLoteGlobal> _globais = [];
   List<EventoAtracao> _atracoes = [];
   CapacidadeEvento? _capacidade;
+  Evento? _evento;
   late String? _eventoInicio;
   late String _eventoTitulo;
   late String? _eventoBanner;
@@ -167,6 +169,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           widget.lojaId,
           DateTime.tryParse(_eventoInicio ?? '') ?? DateTime.now(),
         ),
+        _eventoRepo.obterEventoAgendado(widget.eventoId),
       ]);
       if (!mounted) return;
       final eventos = respostas[3] as List<AgendaEvento>;
@@ -177,6 +180,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _capacidade = respostas[2] as CapacidadeEvento;
         _atracoes = evento.expand((item) => item.atracoes).toList()
           ..sort((a, b) => a.inicio.compareTo(b.inicio));
+        _evento = respostas[4] as Evento;
         _carregando = false;
       });
     } catch (erro) {
@@ -530,6 +534,83 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+    }
+  }
+
+  Future<void> _editarLocalEvento() async {
+    final local = TextEditingController(text: _evento?.nmlocalevento ?? '');
+    final endereco = TextEditingController(text: _evento?.dsendlocevento ?? '');
+    final valores = await showDialog<List<String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Local do evento'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: local,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Nome do local'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: endereco,
+                textCapitalization: TextCapitalization.sentences,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Endereço do local',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, [
+              local.text.trim(),
+              endereco.text.trim(),
+            ]),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    local.dispose();
+    endereco.dispose();
+    if (valores == null) return;
+
+    if (valores[0].isEmpty || valores[1].isEmpty) {
+      if (mounted) {
+        AppSnackBar.aviso(context, 'Informe o nome e o endereço do local.');
+      }
+      return;
+    }
+
+    try {
+      await _eventoRepo.atualizarLocalEventoAgendado(
+        eventoId: widget.eventoId,
+        local: valores[0],
+        endereco: valores[1],
+      );
+      if (mounted) {
+        await _carregar();
+        if (mounted) {
+          AppSnackBar.sucesso(context, 'Local do evento atualizado.');
+        }
+      }
+    } catch (erro) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+        );
+      }
     }
   }
 
@@ -1173,6 +1254,50 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               onPressed: _editarNomeEvento,
               icon: const Icon(Icons.edit_rounded, color: Colors.blue),
               tooltip: 'Editar nome do evento',
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      ClubbarCard(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.place_outlined,
+              color: ClubbarColors.primariaEscuro,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Local do evento', style: TextStyle(fontSize: 12)),
+                  Text(
+                    (_evento?.nmlocalevento ?? '').trim().isEmpty
+                        ? 'Local não informado'
+                        : _evento!.nmlocalevento!.trim(),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    (_evento?.dsendlocevento ?? '').trim().isEmpty
+                        ? 'Endereço não informado'
+                        : _evento!.dsendlocevento!.trim(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: _editarLocalEvento,
+              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+              tooltip: 'Editar local do evento',
             ),
           ],
         ),
