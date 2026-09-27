@@ -220,7 +220,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
             const SizedBox(height: 16),
             const Text('Configuração deste lote por setor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
             const SizedBox(height: 6),
-            const Text('Defina quanto cada setor venderá neste lote. A inteira cria automaticamente Meia-entrada e Pessoa idosa a 50%; você poderá ajustar cada modalidade depois.'),
+            const Text('Defina o máximo que cada setor poderá vender enquanto este lote estiver vigente. O estoque é compartilhado: as vendas dos lotes anteriores reduzem automaticamente a disponibilidade do próximo lote. A inteira cria automaticamente Meia-entrada e Pessoa idosa a 50%; você poderá ajustar cada modalidade depois.'),
             const SizedBox(height: 10),
             ...widget.setores.map((setor) => ClubbarCard(
               margin: const EdgeInsets.only(bottom: 10),
@@ -228,7 +228,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                 Text(setor.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                 Text('Capacidade total do setor: ${setor.capacidade} pessoas'),
                 const SizedBox(height: 12),
-                TextFormField(controller: _quantidades[setor.id], keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: InputDecoration(labelText: 'Quantidade deste setor no Lote $_numero'), validator: (valor) => (int.tryParse(valor ?? '') ?? 0) <= 0 ? 'Informe a quantidade' : null),
+                TextFormField(controller: _quantidades[setor.id], keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: InputDecoration(labelText: 'Máximo deste setor no Lote $_numero', helperText: 'Até ${setor.capacidade} ingressos, conforme o estoque restante do setor.'), validator: (valor) => (int.tryParse(valor ?? '') ?? 0) <= 0 ? 'Informe a quantidade' : null),
                 const SizedBox(height: 12),
                 TextFormField(controller: _inteiras[setor.id], keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Preço da inteira'), validator: (valor) => _valor(_inteiras[setor.id]!) < 0 ? 'Preço inválido' : null),
               ]),
@@ -238,7 +238,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       )),
     ]),
     bottomNavigationBar: ClubbarActionBar(actions: [
-      FilledButton.icon(onPressed: _salvando ? null : _salvar, icon: _salvando ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_rounded), label: Text(_editando ? 'Salvar lote global' : 'Criar lote global')),
+      FilledButton.icon(onPressed: _salvando ? null : _salvar, icon: _salvando ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_rounded), label: const Text('Salvar lote global')),
     ]),
   );
 }
