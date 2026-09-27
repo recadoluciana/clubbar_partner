@@ -214,6 +214,45 @@ class EventoRepository {
     throw Exception('Erro ao listar eventos: ${response.body}');
   }
 
+  /// Busca os dados próprios de uma ocorrência agendada, incluindo o local
+  /// que será apresentado ao público.
+  Future<Evento> obterEventoAgendado(int eventoId) async {
+    final response = await ApiService.get('/eventos/$eventoId');
+    if (response.statusCode == 200) {
+      return Evento.fromJson(
+        Map<String, dynamic>.from(jsonDecode(response.body) as Map),
+      );
+    }
+    throw Exception(
+      _mensagemErro(response.body, 'Não foi possível carregar o evento.'),
+    );
+  }
+
+  Future<void> atualizarLocalEventoAgendado({
+    required int eventoId,
+    required String local,
+    required String endereco,
+  }) async {
+    final request = http.MultipartRequest(
+      'PUT',
+      Uri.parse('${ApiConfig.baseUrl}/eventos/$eventoId'),
+    );
+    final token = await StorageService.getToken();
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.fields['nmlocalevento'] = local.trim();
+    request.fields['dsendlocevento'] = endereco.trim();
+
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(body, 'Não foi possível atualizar o local do evento.'),
+      );
+    }
+  }
+
   Future<http.MultipartFile> _montarArquivoImagem(
     String fieldName,
     XFile imagem,
