@@ -83,6 +83,25 @@ class EventoLoteRepository {
     }
   }
 
+  Future<void> adicionarSetorAoGlobal({
+    required int loteGlobalId,
+    required int setorId,
+    required int limite,
+    required double precoInteira,
+  }) async {
+    final response = await ApiService.post(
+      '/eventos/lotes-globais/$loteGlobalId/setores',
+      {
+        'eventosetor_id': setorId,
+        'qtlimite': limite,
+        'precos': _precosPadrao(precoInteira),
+      },
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw _erro(response, 'Não foi possível adicionar o setor ao lote.');
+    }
+  }
+
   Future<void> atualizarConfiguracaoSetor({
     required int loteId,
     int? limite,
