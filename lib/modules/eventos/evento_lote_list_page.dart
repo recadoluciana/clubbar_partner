@@ -686,6 +686,20 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         IconButton(onPressed: () => _editarSetor(setor), icon: const Icon(Icons.edit_rounded, color: Colors.blue), tooltip: 'Editar setor'),
       ]),
     )),
+    if (!widget.somenteConsulta)
+      ClubbarCard(
+        margin: const EdgeInsets.only(top: 4),
+        onTap: () => _editarSetor(null),
+        child: const Row(children: [
+          CircleAvatar(child: Icon(Icons.add_rounded)),
+          SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Adicionar setor ao evento', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            Text('Cadastre um novo setor e sua capacidade máxima.'),
+          ])),
+          Icon(Icons.chevron_right_rounded),
+        ]),
+      ),
   ]);
 
   Widget _numero(String titulo, String valor, IconData icone, {VoidCallback? onEditar}) => SizedBox(
@@ -790,6 +804,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         const SizedBox(width: 10),
         Expanded(child: Text(lote.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
         Chip(label: Text(lote.disponivelGlobalmente ? 'Em venda' : lote.situacao), backgroundColor: lote.disponivelGlobalmente ? Colors.green.shade50 : null),
+        TextButton.icon(
+          onPressed: () => _excluirGlobal(lote),
+          icon: const Icon(Icons.delete_outline, color: Colors.red),
+          label: const Text('Excluir lote', style: TextStyle(color: Colors.red)),
+        ),
         IconButton(onPressed: () => _editarLoteGlobal(lote), icon: const Icon(Icons.edit_rounded, color: Colors.blue), tooltip: 'Editar lote global'),
       ]),
       const SizedBox(height: 14),
@@ -817,9 +836,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       const SizedBox(height: 10),
       Text('Virada: ${lote.gatilhoVirada == 'DATA' ? 'na data final' : lote.gatilhoVirada == 'ESGOTAMENTO' ? 'quando todos os setores esgotarem' : 'na primeira condição: data final ou esgotamento global'}'),
       const SizedBox(height: 10),
+      const Text('Setores do lote', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
       ...lote.setores.map((configuracao) => _setorNoLote(configuracao)),
-      const SizedBox(height: 8),
-      Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () => _excluirGlobal(lote), icon: const Icon(Icons.delete_outline, color: Colors.red), label: const Text('Excluir lote', style: TextStyle(color: Colors.red)))),
     ]),
   );
 
@@ -899,7 +917,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           label: const Text('Excluir esta data'),
           style: OutlinedButton.styleFrom(foregroundColor: ClubbarColors.erro),
         ),
-      if (!widget.somenteConsulta && _aba == 1) ClubbarAddButton(label: 'Adicionar setor', onPressed: () => _editarSetor(null)),
       if (!widget.somenteConsulta && _aba == 2) ClubbarAddButton(label: 'Adicionar lote global', onPressed: _novoLote),
       if (!widget.somenteConsulta && _aba == 3) ClubbarAddButton(label: 'Adicionar atração', onPressed: () => _editarAtracao()),
     ]),
