@@ -1154,33 +1154,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           ),
         ),
       ),
-      if (!widget.somenteConsulta)
-        ClubbarCard(
-          margin: const EdgeInsets.only(top: 4),
-          onTap: () => _editarSetor(null),
-          child: const Row(
-            children: [
-              CircleAvatar(child: Icon(Icons.add_rounded)),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Adicionar setor ao evento',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text('Cadastre um novo setor e sua capacidade máxima.'),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded),
-            ],
-          ),
-        ),
     ],
   );
 
@@ -1637,6 +1610,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             ClubbarAddButton(
               label: 'Adicionar atração',
               onPressed: () => _editarAtracao(),
+            ),
+          if (!widget.somenteConsulta && _aba == 2)
+            ClubbarAddButton(
+              label: 'Adicionar setor',
+              onPressed: () => _editarSetor(null),
             ),
         ],
       ),
