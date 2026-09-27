@@ -291,7 +291,7 @@ class _EventoListPageState extends State<EventoListPage> {
                   controller: capacidadeController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Capacidade desta sessão',
+                    labelText: 'Capacidade deste evento',
                   ),
                 ),
                 const SizedBox(height: 12),
