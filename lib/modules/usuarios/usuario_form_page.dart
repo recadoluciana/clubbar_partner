@@ -51,7 +51,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
   bool get usuarioPrincipal =>
       editando &&
-      (widget.usuario!.usuarioId == 1 || usuarioSuperadmin) &&
+      usuarioSuperadmin &&
       !(_cargoLogado == 'SUPERADMIN' &&
           _usuarioLogadoId == widget.usuario!.usuarioId);
 
