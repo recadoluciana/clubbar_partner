@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
@@ -343,17 +344,24 @@ class CardapioRepository {
   Future<void> programarExibicao(
     int cardapioId, {
     required DateTime inicio,
+    required TimeOfDay horaInicio,
     DateTime? fim,
+    TimeOfDay? horaFim,
   }) async {
     final response =
         await ApiService.post('/cardapios/$cardapioId/programacoes', {
           'dtinicio': inicio.toIso8601String().substring(0, 10),
           'dtfim': fim?.toIso8601String().substring(0, 10),
+          'hrinicio': _horaApi(horaInicio),
+          'hrfim': horaFim == null ? null : _horaApi(horaFim),
         });
     if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível programar a exibição.');
     }
   }
+
+  String _horaApi(TimeOfDay hora) =>
+      '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}:00';
 
   Future<void> removerProgramacao(int cardapioId, int programacaoId) async {
     final response = await ApiService.delete(
