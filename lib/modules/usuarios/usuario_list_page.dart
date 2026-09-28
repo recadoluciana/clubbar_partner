@@ -365,9 +365,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   }
 
   Widget _badgeCargo(Usuario usuario) {
-    final principal =
-        usuario.usuarioId == 1 ||
-        usuario.dscargo.trim().toUpperCase() == 'SUPERADMIN';
+    final principal = usuario.dscargo.trim().toUpperCase() == 'SUPERADMIN';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -399,9 +397,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
     final ativo = status == 'ATIVO' || status == 'ATIVA';
 
-    final principal =
-        usuario.usuarioId == 1 ||
-        usuario.dscargo.trim().toUpperCase() == 'SUPERADMIN';
+    final principal = usuario.dscargo.trim().toUpperCase() == 'SUPERADMIN';
 
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
