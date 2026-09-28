@@ -196,6 +196,40 @@ class _CardapiosPageState extends State<CardapiosPage> {
   String _data(DateTime data) =>
       '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}';
 
+  String _hora(TimeOfDay hora) =>
+      '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}';
+
+  DateTime _unirDataHora(DateTime data, TimeOfDay hora) =>
+      DateTime(data.year, data.month, data.day, hora.hour, hora.minute);
+
+  String _formatarDataProgramacao(dynamic valor) {
+    if (valor == null || '$valor'.trim().isEmpty) return 'sem data inicial';
+    final data = DateTime.tryParse('$valor');
+    return data == null ? '$valor' : _data(data);
+  }
+
+  String _formatarHoraProgramacao(dynamic valor) {
+    final texto = '${valor ?? ''}'.trim();
+    if (texto.isEmpty || texto == 'null') return '';
+    final partes = texto.split(':');
+    return partes.length >= 2 ? '${partes[0]}:${partes[1]}' : texto;
+  }
+
+  String _intervaloProgramacao(Map<String, dynamic> programacao) {
+    final inicio = _formatarDataProgramacao(programacao['dtinicio']);
+    final horaInicio = _formatarHoraProgramacao(programacao['hrinicio']);
+    final fim = _formatarDataProgramacao(programacao['dtfim']);
+    final horaFim = _formatarHoraProgramacao(programacao['hrfim']);
+    final inicioCompleto = horaInicio.isEmpty
+        ? inicio
+        : '$inicio às $horaInicio';
+    if (programacao['dtfim'] == null || '${programacao['dtfim']}'.isEmpty) {
+      return '$inicioCompleto até você retirar a programação';
+    }
+    final fimCompleto = horaFim.isEmpty ? fim : '$fim às $horaFim';
+    return '$inicioCompleto até $fimCompleto';
+  }
+
   Future<void> _programarExibicao(Map<String, dynamic> cardapio) async {
     final hoje = DateTime.now();
     final inicio = await showDatePicker(
@@ -206,22 +240,72 @@ class _CardapiosPageState extends State<CardapiosPage> {
       helpText: 'Início da exibição da temporada',
     );
     if (inicio == null || !mounted) return;
-    final fim = await showDatePicker(
+
+    final horaInicio = await showTimePicker(
       context: context,
-      initialDate: inicio,
-      firstDate: inicio,
-      lastDate: DateTime(inicio.year + 5),
-      helpText: 'Fim da exibição (opcional)',
+      initialTime: TimeOfDay.fromDateTime(hoje),
+      helpText: 'Horário de início da exibição',
     );
-    if (!mounted) return;
+    if (horaInicio == null || !mounted) return;
+
+    final definirFim = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Encerramento da exibição'),
+        content: const Text(
+          'Deseja informar a data e a hora em que este cardápio deixará de ser exibido?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Sem data final'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Informar encerramento'),
+          ),
+        ],
+      ),
+    );
+    if (definirFim == null || !mounted) return;
+
+    DateTime? fim;
+    TimeOfDay? horaFim;
+    if (definirFim) {
+      fim = await showDatePicker(
+        context: context,
+        initialDate: inicio,
+        firstDate: inicio,
+        lastDate: DateTime(inicio.year + 5),
+        helpText: 'Fim da exibição',
+      );
+      if (fim == null || !mounted) return;
+      horaFim = await showTimePicker(
+        context: context,
+        initialTime: horaInicio,
+        helpText: 'Horário de fim da exibição',
+      );
+      if (horaFim == null || !mounted) return;
+      if (!_unirDataHora(
+        fim,
+        horaFim,
+      ).isAfter(_unirDataHora(inicio, horaInicio))) {
+        AppSnackBar.aviso(
+          context,
+          'O encerramento deve ser posterior ao início da exibição.',
+        );
+        return;
+      }
+    }
+
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Programar exibição'),
         content: Text(
           fim == null
-              ? 'Este cardápio ficará disponível a partir de ${_data(inicio)} até você retirar a programação.'
-              : 'Este cardápio ficará disponível de ${_data(inicio)} até ${_data(fim)}.',
+              ? 'Este cardápio será exibido a partir de ${_data(inicio)} às ${_hora(horaInicio)} até você retirar a programação.'
+              : 'Este cardápio será exibido de ${_data(inicio)} às ${_hora(horaInicio)} até ${_data(fim)} às ${_hora(horaFim!)}.',
         ),
         actions: [
           TextButton(
@@ -240,8 +324,11 @@ class _CardapiosPageState extends State<CardapiosPage> {
       await _repo.programarExibicao(
         int.parse('${cardapio['cardapio_id']}'),
         inicio: inicio,
+        horaInicio: horaInicio,
         fim: fim,
+        horaFim: horaFim,
       );
+      await _carregar();
       if (mounted) AppSnackBar.sucesso(context, 'Exibição programada.');
     } catch (e) {
       if (mounted) {
@@ -250,71 +337,17 @@ class _CardapiosPageState extends State<CardapiosPage> {
     }
   }
 
-  Future<void> _verProgramacoes(Map<String, dynamic> cardapio) async {
-    final cardapioId = int.parse('${cardapio['cardapio_id']}');
+  Future<void> _removerProgramacao(
+    Map<String, dynamic> cardapio,
+    Map<String, dynamic> programacao,
+  ) async {
     try {
-      final itens = await _repo.listarProgramacoes(cardapioId);
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Programações de exibição'),
-          content: SizedBox(
-            width: 420,
-            child: itens.isEmpty
-                ? const Text('Não há programação ativa para este cardápio.')
-                : ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: itens.length,
-                    separatorBuilder: (context, index) => const Divider(),
-                    itemBuilder: (_, index) {
-                      final item = itens[index];
-                      final inicio = '${item['dtinicio'] ?? 'agora'}';
-                      final fim = '${item['dtfim'] ?? 'sem data final'}';
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text('$inicio até $fim'),
-                        trailing: IconButton(
-                          tooltip: 'Remover programação',
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () async {
-                            try {
-                              await _repo.removerProgramacao(
-                                cardapioId,
-                                int.parse('${item['cardapioprogramacao_id']}'),
-                              );
-                              if (dialogContext.mounted) {
-                                Navigator.pop(dialogContext);
-                              }
-                              await _carregar();
-                              if (mounted) {
-                                AppSnackBar.sucesso(
-                                  context,
-                                  'Programação removida.',
-                                );
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                AppSnackBar.erro(
-                                  context,
-                                  e.toString().replaceFirst('Exception: ', ''),
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Fechar'),
-            ),
-          ],
-        ),
+      await _repo.removerProgramacao(
+        int.parse('${cardapio['cardapio_id']}'),
+        int.parse('${programacao['cardapioprogramacao_id']}'),
       );
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Programação removida.');
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -493,6 +526,9 @@ class _CardapiosPageState extends State<CardapiosPage> {
     final publicado = publicadas.isNotEmpty || programadas.isNotEmpty;
     final rascunho = _rascunho(cardapio);
     final sazonal = cardapio['tipocardapio'] != 'PRINCIPAL';
+    final programacoes = (cardapio['programacoes'] as List? ?? const [])
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -550,6 +586,47 @@ class _CardapiosPageState extends State<CardapiosPage> {
               ),
           ],
         ),
+        if (sazonal && programacoes.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade100),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Este cardápio será exibido neste intervalo de datas.',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 6),
+                for (final programacao in programacoes)
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _intervaloProgramacao(programacao),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Remover programação',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () =>
+                            _removerProgramacao(cardapio, programacao),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
@@ -582,12 +659,6 @@ class _CardapiosPageState extends State<CardapiosPage> {
                 onPressed: () => _programarExibicao(cardapio),
                 icon: const Icon(Icons.schedule_outlined),
                 label: const Text('Programar exibição'),
-              ),
-            if (sazonal)
-              OutlinedButton.icon(
-                onPressed: () => _verProgramacoes(cardapio),
-                icon: const Icon(Icons.calendar_month_outlined),
-                label: const Text('Ver programações'),
               ),
           ],
         ),
