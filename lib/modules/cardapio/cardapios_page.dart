@@ -368,68 +368,43 @@ class _CardapiosPageState extends State<CardapiosPage> {
     }
   }
 
-  Future<void> _editar(Loja loja, Map<String, dynamic> cardapio) async {
+  Future<void> _gerenciar(Loja loja, Map<String, dynamic> cardapio) async {
     try {
-      final versaoId = await _garantirRascunho(cardapio);
+      final rascunho = _rascunho(cardapio);
+      final versoes = cardapio['versoes'] as List? ?? const [];
+      Map<String, dynamic>? origem = rascunho;
+      final publicadas = versoes
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .where(
+            (versao) =>
+                versao['statusversao'] == 'PUBLICADA' ||
+                versao['statusversao'] == 'PROGRAMADA',
+          )
+          .toList();
+      if (origem == null && publicadas.isNotEmpty) {
+        origem = publicadas.first;
+      }
+      if (origem == null) {
+        AppSnackBar.aviso(
+          context,
+          'Publique uma versão do cardápio antes de gerenciá-lo.',
+        );
+        return;
+      }
+      final versaoOrigem = origem;
       if (!mounted) return;
       await Navigator.push<bool>(
         context,
         MaterialPageRoute(
           builder: (_) => CardapioLojaEditorPage(
             loja: loja,
-            versaoId: versaoId,
+            cardapioId: int.parse('${cardapio['cardapio_id']}'),
+            versaoId: int.parse('${versaoOrigem['cardapioversao_id']}'),
             nomeCardapio: '${cardapio['nmcardapio']}',
           ),
         ),
       );
       await _carregar();
-    } catch (e) {
-      if (mounted) {
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
-      }
-    }
-  }
-
-  Future<void> _reajustar(Map<String, dynamic> c) async {
-    final ctrl = TextEditingController();
-    final valor = await showDialog<double>(
-      context: context,
-      builder: (d) => AlertDialog(
-        title: const Text('Reajustar preços'),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: const TextInputType.numberWithOptions(
-            decimal: true,
-            signed: true,
-          ),
-          decoration: const InputDecoration(
-            labelText: 'Percentual (use - para reduzir)',
-            suffixText: '%',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(d),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(
-              d,
-              double.tryParse(ctrl.text.replaceAll(',', '.')),
-            ),
-            child: const Text('Aplicar'),
-          ),
-        ],
-      ),
-    );
-    if (valor == null || valor == 0) return;
-    try {
-      final id = await _garantirRascunho(c);
-      final qtd = await _repo.reajustar(id, valor);
-      if (mounted) {
-        AppSnackBar.sucesso(context, '$qtd preços reajustados no rascunho.');
-      }
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -646,21 +621,15 @@ class _CardapiosPageState extends State<CardapiosPage> {
           runSpacing: 8,
           children: [
             FilledButton.icon(
-              onPressed: () => _editar(loja, cardapio),
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text('Editar cardápio'),
+              onPressed: () => _gerenciar(loja, cardapio),
+              icon: const Icon(Icons.restaurant_menu_outlined),
+              label: const Text('Gerenciar cardápio'),
             ),
-            OutlinedButton.icon(
-              onPressed: () => _reajustar(cardapio),
-              icon: const Icon(Icons.price_change_outlined),
-              label: const Text('Reajustar'),
+            FilledButton.icon(
+              onPressed: rascunho == null ? null : () => _publicar(cardapio),
+              icon: const Icon(Icons.publish),
+              label: const Text('Publicar alterações'),
             ),
-            if (rascunho != null)
-              FilledButton.icon(
-                onPressed: () => _publicar(cardapio),
-                icon: const Icon(Icons.publish),
-                label: const Text('Publicar alterações'),
-              ),
             if (publicado)
               OutlinedButton.icon(
                 onPressed: () => _retirarPublicacao(cardapio),

@@ -13,12 +13,14 @@ import '../../models/loja.dart';
 
 class CardapioLojaEditorPage extends StatefulWidget {
   final Loja loja;
+  final int cardapioId;
   final int versaoId;
   final String nomeCardapio;
 
   const CardapioLojaEditorPage({
     super.key,
     required this.loja,
+    required this.cardapioId,
     required this.versaoId,
     required this.nomeCardapio,
   });
@@ -38,6 +40,8 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   bool _alterado = false;
   int? _numeroVersao;
   int? _categoriaSelecionadaId;
+  late int _versaoEdicaoId;
+  bool _versaoEhRascunho = false;
 
   int _id(Object? valor) => int.parse('$valor');
   double _valor(Object? valor) => double.tryParse('$valor') ?? 0;
@@ -69,6 +73,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   @override
   void initState() {
     super.initState();
+    _versaoEdicaoId = widget.versaoId;
     _carregar();
   }
 
@@ -76,7 +81,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     setState(() => _carregando = true);
     try {
       final resultados = await Future.wait([
-        _repo.consultarVersao(widget.versaoId),
+        _repo.consultarVersao(_versaoEdicaoId),
         _repo.listarCategoriasOrganizacao(widget.loja.organizacaoId),
         _repo.listarProdutosPadraoOrganizacao(widget.loja.organizacaoId),
       ]);
@@ -93,6 +98,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       if (!mounted) return;
       setState(() {
         _numeroVersao = (conteudo['nrversao'] as num?)?.toInt();
+        _versaoEhRascunho = conteudo['statusversao'] == 'RASCUNHO';
         _categorias = categorias;
         _categoriasOrganizacao = List<Map<String, dynamic>>.from(
           resultados[1] as List,
@@ -533,6 +539,63 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     });
   }
 
+  Future<void> _reajustarPrecos() async {
+    final controlador = TextEditingController();
+    final percentual = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reajustar preços'),
+        content: TextField(
+          controller: controlador,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(
+            decimal: true,
+            signed: true,
+          ),
+          decoration: const InputDecoration(
+            labelText: 'Percentual (use - para reduzir)',
+            suffixText: '%',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              double.tryParse(controlador.text.replaceAll(',', '.')),
+            ),
+            child: const Text('Aplicar'),
+          ),
+        ],
+      ),
+    );
+    controlador.dispose();
+    if (percentual == null || percentual == 0 || !mounted) return;
+
+    var quantidade = 0;
+    setState(() {
+      for (final categoria in _categorias) {
+        final itens = _itens(categoria);
+        for (final item in itens) {
+          final reajustado = (_valor(item['vrpreco']) * (1 + percentual / 100))
+              .clamp(0, double.infinity);
+          item['vrpreco'] = double.parse(reajustado.toStringAsFixed(2));
+          quantidade++;
+        }
+        categoria['itens'] = itens;
+      }
+      _alterado = true;
+    });
+    AppSnackBar.sucesso(
+      context,
+      '$quantidade ${quantidade == 1 ? 'preço reajustado' : 'preços reajustados'}. Salve ou publique quando estiver pronto.',
+    );
+  }
+
   List<Map<String, dynamic>> _payload() => [
     for (
       var categoriaIndice = 0;
@@ -574,11 +637,32 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       },
   ];
 
+  Future<bool> _garantirRascunho() async {
+    if (_versaoEhRascunho) return true;
+    try {
+      final nova = await _repo.novaVersao(widget.cardapioId);
+      if (!mounted) return false;
+      setState(() {
+        _versaoEdicaoId = int.parse('${nova['cardapioversao_id']}');
+        _numeroVersao = (nova['nrversao'] as num?)?.toInt();
+        _versaoEhRascunho = true;
+      });
+      return true;
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+      return false;
+    }
+  }
+
   Future<bool> _salvar({bool avisar = true}) async {
     if (_salvando) return false;
+    if (!_alterado && !_versaoEhRascunho) return true;
     setState(() => _salvando = true);
     try {
-      await _repo.salvarConteudo(widget.versaoId, _payload());
+      if (!await _garantirRascunho()) return false;
+      await _repo.salvarConteudo(_versaoEdicaoId, _payload());
       if (!mounted) return true;
       setState(() => _alterado = false);
       if (avisar) {
@@ -609,6 +693,10 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   }
 
   Future<void> _publicar() async {
+    if (!_alterado && !_versaoEhRascunho) {
+      AppSnackBar.aviso(context, 'Faça uma alteração antes de publicar.');
+      return;
+    }
     final ativos = _categorias.fold<int>(
       0,
       (total, categoria) =>
@@ -647,7 +735,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     if (!await _salvar(avisar: false)) return;
     setState(() => _salvando = true);
     try {
-      final mensagem = await _repo.publicar(widget.versaoId);
+      final mensagem = await _repo.publicar(_versaoEdicaoId);
       if (!mounted) return;
       AppSnackBar.sucesso(context, mensagem);
       Navigator.pop(context, true);
@@ -1000,7 +1088,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         ClubbarAddButton(
           label: 'Publicar alterações',
           icon: Icons.publish,
-          onPressed: _salvando ? null : _publicar,
+          onPressed: _salvando || (!_alterado && !_versaoEhRascunho)
+              ? null
+              : _publicar,
         ),
       ],
     ),
@@ -1009,7 +1099,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         ClubbarPageHeader(
           titulo: widget.loja.nmloja,
           subtitulo:
-              '${widget.nomeCardapio} • versão ${_numeroVersao ?? '—'} em rascunho',
+              '${widget.nomeCardapio} • versão ${_numeroVersao ?? '—'}${_versaoEhRascunho ? ' em rascunho' : ''}',
         ),
         Expanded(
           child: _carregando
@@ -1033,7 +1123,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Estas alterações valem somente para este estabelecimento. O cardápio publicado continua funcionando até você publicar este rascunho.',
+                                  'Você pode consultar e ajustar este cardápio para este estabelecimento. O cardápio publicado só muda quando as alterações forem publicadas.',
                                 ),
                               ),
                             ],
@@ -1045,12 +1135,21 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                         _filtroCategorias(),
                         const SizedBox(height: 8),
                       ],
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton.icon(
+                          onPressed: _reajustarPrecos,
+                          icon: const Icon(Icons.price_change_outlined),
+                          label: const Text('Reajustar preços'),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       if (_categorias.isEmpty)
                         const Card(
                           child: Padding(
                             padding: EdgeInsets.all(24),
                             child: Text(
-                              'Este rascunho ainda não possui categorias.',
+                              'Este cardápio ainda não possui categorias.',
                               textAlign: TextAlign.center,
                             ),
                           ),
