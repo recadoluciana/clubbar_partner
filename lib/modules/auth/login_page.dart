@@ -9,10 +9,7 @@ import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
-import '../caixa/caixa_page.dart';
 import '../dashboard/dashboard_page.dart';
-import '../leitor_qr/barman_home_page.dart';
-import '../leitor_qr/ticketman_home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -79,20 +76,17 @@ class _LoginPageState extends State<LoginPage> {
           .toUpperCase();
       if (!mounted) return;
       Widget? destino;
-      if (cargo == 'CASHIER') {
-        destino = const CaixaPage();
-      } else if (cargo == 'WAITER' || cargo == 'BARMAN') {
-        destino = const BarmanHomePage();
-      } else if (cargo == 'TICKETMAN') {
-        destino = const TicketmanHomePage();
-      } else if (cargo == 'SUPERADMIN' ||
+      if (cargo == 'SUPERADMIN' ||
           cargo == 'ADMIN' ||
           cargo == 'MANAGER') {
         destino = const DashboardPage();
       }
       if (destino == null) {
         await StorageService.clearToken();
-        _mensagem('Usuário não possui cargo definido.', erro: true);
+        _mensagem(
+          'Este acesso é operacional. Use o aplicativo Clubbar QR Code.',
+          erro: true,
+        );
         return;
       }
       Navigator.of(
