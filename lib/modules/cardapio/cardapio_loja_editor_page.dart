@@ -37,6 +37,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   bool _salvando = false;
   bool _alterado = false;
   int? _numeroVersao;
+  int? _categoriaSelecionadaId;
 
   int _id(Object? valor) => int.parse('$valor');
   double _valor(Object? valor) => double.tryParse('$valor') ?? 0;
@@ -99,6 +100,13 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         _produtosOrganizacao = List<Map<String, dynamic>>.from(
           resultados[2] as List,
         );
+        if (_categoriaSelecionadaId != null &&
+            !categorias.any(
+              (categoria) =>
+                  _id(categoria['categoria_id']) == _categoriaSelecionadaId,
+            )) {
+          _categoriaSelecionadaId = null;
+        }
         _alterado = false;
       });
     } catch (e) {
@@ -122,6 +130,17 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
 
   List<Map<String, dynamic>> _itens(Map<String, dynamic> categoria) =>
       List<Map<String, dynamic>>.from(categoria['itens'] as List? ?? const []);
+
+  List<MapEntry<int, Map<String, dynamic>>> get _categoriasExibidas =>
+      _categorias
+          .asMap()
+          .entries
+          .where(
+            (entrada) =>
+                _categoriaSelecionadaId == null ||
+                _id(entrada.value['categoria_id']) == _categoriaSelecionadaId,
+          )
+          .toList();
 
   void _marcarAlterado() => setState(() => _alterado = true);
 
@@ -429,6 +448,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
 
   Future<void> _removerCategoria(int indice) async {
     final categoria = _categorias[indice];
+    final categoriaId = _id(categoria['categoria_id']);
     final quantidade = _itens(categoria).length;
     final confirmar = await showDialog<bool>(
       context: context,
@@ -455,6 +475,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     if (confirmar != true || !mounted) return;
     setState(() {
       _categorias.removeAt(indice);
+      if (_categoriaSelecionadaId == categoriaId) {
+        _categoriaSelecionadaId = null;
+      }
       _alterado = true;
     });
   }
@@ -468,6 +491,31 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       _alterado = true;
     });
   }
+
+  Widget _filtroCategorias() => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        ChoiceChip(
+          label: const Text('Todas'),
+          selected: _categoriaSelecionadaId == null,
+          onSelected: (_) => setState(() => _categoriaSelecionadaId = null),
+        ),
+        const SizedBox(width: 8),
+        for (final categoria in _categorias) ...[
+          ChoiceChip(
+            label: Text('${categoria['nmcategoria']}'),
+            selected: _categoriaSelecionadaId == _id(categoria['categoria_id']),
+            onSelected: (_) => setState(
+              () => _categoriaSelecionadaId = _id(categoria['categoria_id']),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ],
+    ),
+  );
 
   void _moverProduto(
     Map<String, dynamic> categoria,
@@ -993,6 +1041,10 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                         ),
                       ),
                       const SizedBox(height: 4),
+                      if (_categorias.isNotEmpty) ...[
+                        _filtroCategorias(),
+                        const SizedBox(height: 8),
+                      ],
                       if (_categorias.isEmpty)
                         const Card(
                           child: Padding(
@@ -1003,8 +1055,8 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                             ),
                           ),
                         ),
-                      for (var i = 0; i < _categorias.length; i++)
-                        _categoriaCard(_categorias[i], i),
+                      for (final entrada in _categoriasExibidas)
+                        _categoriaCard(entrada.value, entrada.key),
                       OutlinedButton.icon(
                         onPressed: _adicionarCategoria,
                         icon: const Icon(Icons.add),
