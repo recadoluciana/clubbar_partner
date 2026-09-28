@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/config/api_config.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -39,6 +40,30 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
 
   int _id(Object? valor) => int.parse('$valor');
   double _valor(Object? valor) => double.tryParse('$valor') ?? 0;
+
+  double _precoPromocional(Map<String, dynamic> item) {
+    final preco = _valor(item['vrpreco']);
+    final desconto = _valor(item['vrdesconto']);
+    switch ('${item['tipodesconto'] ?? 'NENHUM'}'.toUpperCase()) {
+      case 'PERCENTUAL':
+        return (preco * (1 - desconto / 100)).clamp(0, preco);
+      case 'VALOR':
+        return (preco - desconto).clamp(0, preco);
+      default:
+        return preco;
+    }
+  }
+
+  bool _temDesconto(Map<String, dynamic> item) =>
+      '${item['tipodesconto'] ?? 'NENHUM'}'.toUpperCase() != 'NENHUM' &&
+      _valor(item['vrdesconto']) > 0;
+
+  String _seloDesconto(Map<String, dynamic> item) {
+    final desconto = _valor(item['vrdesconto']);
+    return '${item['tipodesconto']}'.toString().toUpperCase() == 'PERCENTUAL'
+        ? '${desconto.toStringAsFixed(0)}% OFF'
+        : '${_moeda.format(desconto)} OFF';
+  }
 
   @override
   void initState() {
@@ -228,6 +253,10 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       itens.add({
         ...produto,
         'vrpreco': _valor(produto['vrprecoprod']),
+        'tipodesconto': produto['tipodesconto'] ?? 'NENHUM',
+        'vrdesconto': _valor(produto['vrdesconto']),
+        'dtinidesconto': produto['dtinidesconto'],
+        'dtfimdesconto': produto['dtfimdesconto'],
         'sititem': 'ATIVO',
       });
       categoria['itens'] = itens;
@@ -276,6 +305,124 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     if (valor == null || !mounted) return;
     setState(() {
       item['vrpreco'] = valor;
+      _alterado = true;
+    });
+  }
+
+  Future<void> _editarDesconto(Map<String, dynamic> item) async {
+    var tipo = '${item['tipodesconto'] ?? 'NENHUM'}'.toUpperCase();
+    final valorController = TextEditingController(
+      text: _valor(item['vrdesconto']).toStringAsFixed(2).replaceAll('.', ','),
+    );
+    final resultado = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, atualizar) {
+          final porPercentual = tipo == 'PERCENTUAL';
+          final semDesconto = tipo == 'NENHUM';
+          return AlertDialog(
+            title: Text('Desconto • ${item['nmproduto']}'),
+            content: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: tipo,
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo de desconto',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'NENHUM',
+                        child: Text('Sem desconto'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'PERCENTUAL',
+                        child: Text('Percentual (%)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'VALOR',
+                        child: Text('Valor fixo (R\$)'),
+                      ),
+                    ],
+                    onChanged: (valor) =>
+                        atualizar(() => tipo = valor ?? 'NENHUM'),
+                  ),
+                  if (!semDesconto) ...[
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: valorController,
+                      autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: porPercentual
+                            ? 'Percentual de desconto'
+                            : 'Valor do desconto',
+                        prefixText: porPercentual ? null : 'R\$ ',
+                        suffixText: porPercentual ? '%' : null,
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Preço atual: ${_moeda.format(_valor(item['vrpreco']))}',
+                      style: const TextStyle(
+                        color: ClubbarColors.textoSecundario,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final desconto = semDesconto
+                      ? 0.0
+                      : double.tryParse(
+                          valorController.text.replaceAll(',', '.'),
+                        );
+                  if (desconto == null ||
+                      desconto < 0 ||
+                      (porPercentual && desconto > 100) ||
+                      (!porPercentual && desconto > _valor(item['vrpreco']))) {
+                    AppSnackBar.aviso(
+                      context,
+                      porPercentual
+                          ? 'Informe um percentual entre 0 e 100.'
+                          : 'O desconto não pode ser maior que o preço.',
+                    );
+                    return;
+                  }
+                  Navigator.pop(dialogContext, {
+                    'tipodesconto': tipo,
+                    'vrdesconto': desconto,
+                  });
+                },
+                child: const Text('Aplicar desconto'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    valorController.dispose();
+    if (resultado == null || !mounted) return;
+    setState(() {
+      item['tipodesconto'] = resultado['tipodesconto'];
+      item['vrdesconto'] = resultado['vrdesconto'];
+      if (resultado['tipodesconto'] == 'NENHUM') {
+        item['dtinidesconto'] = null;
+        item['dtfimdesconto'] = null;
+      }
       _alterado = true;
     });
   }
@@ -360,6 +507,17 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
               'vrpreco': _valor(
                 _itens(_categorias[categoriaIndice])[itemIndice]['vrpreco'],
               ),
+              'tipodesconto':
+                  '${_itens(_categorias[categoriaIndice])[itemIndice]['tipodesconto'] ?? 'NENHUM'}',
+              'vrdesconto': _valor(
+                _itens(_categorias[categoriaIndice])[itemIndice]['vrdesconto'],
+              ),
+              'dtinidesconto': _itens(
+                _categorias[categoriaIndice],
+              )[itemIndice]['dtinidesconto'],
+              'dtfimdesconto': _itens(
+                _categorias[categoriaIndice],
+              )[itemIndice]['dtfimdesconto'],
               'sititem':
                   '${_itens(_categorias[categoriaIndice])[itemIndice]['sititem'] ?? 'ATIVO'}',
               'idorditem': itemIndice + 1,
@@ -468,89 +626,228 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   ) {
     final ativo = '${item['sititem'] ?? 'ATIVO'}' == 'ATIVO';
     final itens = _itens(categoria);
+    final temDesconto = _temDesconto(item);
+    final foto = '${item['urlfotoproduto'] ?? ''}'.trim();
+    final urlFoto = foto.isEmpty ? '' : ApiConfig.buildUrl(foto);
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${item['nmproduto']}',
-                    style: const TextStyle(fontSize: 15),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${_moeda.format(_valor(item['vrpreco']))} neste estabelecimento',
-                    style: const TextStyle(color: ClubbarColors.primariaEscuro),
-                  ),
-                  Text(
-                    ativo ? 'Disponível' : 'Indisponível',
-                    style: TextStyle(
-                      color: ativo ? ClubbarColors.sucesso : ClubbarColors.erro,
-                    ),
-                  ),
-                ],
+        padding: EdgeInsets.zero,
+        child: SizedBox(
+          height: 132,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 124,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    urlFoto.isEmpty
+                        ? Container(
+                            color: ClubbarColors.fundo,
+                            child: const Icon(
+                              Icons.fastfood_outlined,
+                              size: 38,
+                            ),
+                          )
+                        : Image.network(
+                            urlFoto,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Container(
+                              color: ClubbarColors.fundo,
+                              child: const Icon(
+                                Icons.image_not_supported_outlined,
+                              ),
+                            ),
+                          ),
+                    if (temDesconto)
+                      Positioned(
+                        left: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: ClubbarColors.erro,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            _seloDesconto(item),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            Switch(
-              value: ativo,
-              onChanged: (valor) {
-                item['sititem'] = valor ? 'ATIVO' : 'INATIVO';
-                _marcarAlterado();
-              },
-            ),
-            PopupMenuButton<String>(
-              tooltip: 'Ações do produto',
-              onSelected: (acao) {
-                if (acao == 'preco') _editarPreco(item);
-                if (acao == 'subir') _moverProduto(categoria, indice, -1);
-                if (acao == 'descer') _moverProduto(categoria, indice, 1);
-                if (acao == 'remover') {
-                  setState(() {
-                    itens.removeAt(indice);
-                    categoria['itens'] = itens;
-                    _alterado = true;
-                  });
-                }
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: 'preco',
-                  child: ListTile(
-                    leading: Icon(Icons.price_change, color: Colors.blue),
-                    title: Text('Alterar preço'),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${item['nmproduto']}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            tooltip: 'Editar produto',
+                            onSelected: (acao) {
+                              if (acao == 'preco') {
+                                _editarPreco(item);
+                              }
+                              if (acao == 'desconto') {
+                                _editarDesconto(item);
+                              }
+                              if (acao == 'subir') {
+                                _moverProduto(categoria, indice, -1);
+                              }
+                              if (acao == 'descer') {
+                                _moverProduto(categoria, indice, 1);
+                              }
+                              if (acao == 'remover') {
+                                setState(() {
+                                  itens.removeAt(indice);
+                                  categoria['itens'] = itens;
+                                  _alterado = true;
+                                });
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              const PopupMenuItem(
+                                value: 'preco',
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.price_change,
+                                    color: Colors.blue,
+                                  ),
+                                  title: Text('Alterar preço'),
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'desconto',
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.sell_outlined,
+                                    color: ClubbarColors.erro,
+                                  ),
+                                  title: Text('Desconto'),
+                                ),
+                              ),
+                              if (indice > 0)
+                                const PopupMenuItem(
+                                  value: 'subir',
+                                  child: ListTile(
+                                    leading: Icon(Icons.arrow_upward),
+                                    title: Text('Mover para cima'),
+                                  ),
+                                ),
+                              if (indice < itens.length - 1)
+                                const PopupMenuItem(
+                                  value: 'descer',
+                                  child: ListTile(
+                                    leading: Icon(Icons.arrow_downward),
+                                    title: Text('Mover para baixo'),
+                                  ),
+                                ),
+                              const PopupMenuItem(
+                                value: 'remover',
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                  ),
+                                  title: Text('Retirar do cardápio'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      if ('${item['dsproduto'] ?? ''}'.trim().isNotEmpty)
+                        Text(
+                          '${item['dsproduto']}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: ClubbarColors.textoSecundario,
+                            fontSize: 12,
+                          ),
+                        ),
+                      const Spacer(),
+                      if (temDesconto)
+                        Text(
+                          _moeda.format(_valor(item['vrpreco'])),
+                          style: const TextStyle(
+                            color: ClubbarColors.textoSecundario,
+                            decoration: TextDecoration.lineThrough,
+                            fontSize: 12,
+                          ),
+                        ),
+                      Text(
+                        _moeda.format(_precoPromocional(item)),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: temDesconto
+                              ? ClubbarColors.erro
+                              : ClubbarColors.textoPrincipal,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Icon(
+                            ativo
+                                ? Icons.check_circle_outline
+                                : Icons.remove_circle_outline,
+                            size: 16,
+                            color: ativo
+                                ? ClubbarColors.sucesso
+                                : ClubbarColors.erro,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            ativo ? 'Disponível' : 'Indisponível',
+                            style: TextStyle(
+                              color: ativo
+                                  ? ClubbarColors.sucesso
+                                  : ClubbarColors.erro,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const Spacer(),
+                          Switch.adaptive(
+                            value: ativo,
+                            onChanged: (valor) {
+                              item['sititem'] = valor ? 'ATIVO' : 'INATIVO';
+                              _marcarAlterado();
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                if (indice > 0)
-                  const PopupMenuItem(
-                    value: 'subir',
-                    child: ListTile(
-                      leading: Icon(Icons.arrow_upward),
-                      title: Text('Mover para cima'),
-                    ),
-                  ),
-                if (indice < itens.length - 1)
-                  const PopupMenuItem(
-                    value: 'descer',
-                    child: ListTile(
-                      leading: Icon(Icons.arrow_downward),
-                      title: Text('Mover para baixo'),
-                    ),
-                  ),
-                const PopupMenuItem(
-                  value: 'remover',
-                  child: ListTile(
-                    leading: Icon(Icons.delete_outline, color: Colors.red),
-                    title: Text('Retirar do cardápio'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
