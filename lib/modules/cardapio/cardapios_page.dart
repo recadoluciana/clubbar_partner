@@ -37,7 +37,20 @@ class _CardapiosPageState extends State<CardapiosPage> {
     setState(() => _loading = true);
     try {
       final resultados = await Future.wait(
-        _lojas.map((loja) => _repo.listar(loja.lojaId)),
+        _lojas.map((loja) async {
+          final cardapios = await _repo.listar(loja.lojaId);
+          return Future.wait(
+            cardapios.map((cardapio) async {
+              if (cardapio['tipocardapio'] == 'PRINCIPAL') {
+                return cardapio;
+              }
+              final programacoes = await _repo.listarProgramacoes(
+                int.parse('${cardapio['cardapio_id']}'),
+              );
+              return {...cardapio, 'programacoes': programacoes};
+            }),
+          );
+        }),
       );
       final nomeOrganizacao = await StorageService.getNomeOrganizacao();
       if (mounted) {
