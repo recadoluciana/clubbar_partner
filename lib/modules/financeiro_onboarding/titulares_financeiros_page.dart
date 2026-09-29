@@ -195,12 +195,92 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
       });
       AppSnackBar.sucesso(context, mensagem);
     } catch (e) {
-      if (mounted) {
-        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
-      }
+      await _mostrarErroAtivacaoAsaas(e);
     } finally {
       if (mounted) setState(() => _processandoId = null);
     }
+  }
+
+  Future<void> _mostrarErroAtivacaoAsaas(Object erro) async {
+    if (!mounted) return;
+    final mensagem = erro.toString().replaceFirst('Exception: ', '').trim();
+    final mensagemNormalizada = mensagem.toLowerCase();
+    final falhaAoVincularSubconta =
+        mensagemNormalizada.contains('subconta já existe no asaas') &&
+        mensagemNormalizada.contains('chave');
+
+    if (!falhaAoVincularSubconta) {
+      AppSnackBar.erro(
+        context,
+        mensagem,
+        duration: const Duration(seconds: 15),
+        mostrarFechar: true,
+      );
+      return;
+    }
+
+    final detalhe = mensagem.contains('Detalhe do Asaas:')
+        ? mensagem.split('Detalhe do Asaas:').last.trim()
+        : '';
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.key_off_rounded, color: ClubbarColors.erro),
+            SizedBox(width: 10),
+            Expanded(child: Text('Não foi possível vincular a subconta')),
+          ],
+        ),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'A subconta já existe no Asaas, mas o Asaas bloqueou a criação da chave de acesso que permite ao Clubbar vinculá-la.',
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Para resolver no Asaas:',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '1. Acesse as configurações da conta principal no Asaas.',
+                ),
+                const Text(
+                  '2. Habilite o gerenciamento de chaves de API das contas filhas/subcontas.',
+                ),
+                const Text(
+                  '3. Se houver restrição de IP, libere temporariamente o acesso da API Clubbar.',
+                ),
+                const Text(
+                  '4. Volte ao Clubbar e clique novamente em “Ativar subconta Asaas”.',
+                ),
+                if (detalhe.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Detalhe informado pelo Asaas:',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  SelectableText(detalhe),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _ativarSubcontaAsaas(Map<String, dynamic> titular) async {
@@ -233,12 +313,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
         }
         await _executarAsaasComTitular(atualizado);
       } catch (e) {
-        if (mounted) {
-          AppSnackBar.erro(
-            context,
-            e.toString().replaceFirst('Exception: ', ''),
-          );
-        }
+        await _mostrarErroAtivacaoAsaas(e);
       } finally {
         if (mounted) setState(() => _processandoId = null);
       }
