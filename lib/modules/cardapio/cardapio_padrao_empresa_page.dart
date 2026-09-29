@@ -509,13 +509,16 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
       setState(() {
         _itens = resultados[0];
         _categorias = resultados[1];
-        if (_categoriaSelecionada != null &&
-            !_categorias.any(
+        final categoriaSelecionadaExiste =
+            _categoriaSelecionada != null &&
+            _categorias.any(
               (categoria) =>
                   categoria['cardapiomodelocategoria_id'] ==
                   _categoriaSelecionada,
-            )) {
-          _categoriaSelecionada = null;
+            );
+        if (!categoriaSelecionadaExiste && _categorias.isNotEmpty) {
+          _categoriaSelecionada =
+              (_categorias.first['cardapiomodelocategoria_id'] as num).toInt();
         }
       });
     } catch (e) {
@@ -564,22 +567,81 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
         AppSnackBar.aviso(context, 'Não há produtos existentes disponíveis.');
         return;
       }
+      final pesquisa = TextEditingController();
       final escolhido = await showDialog<Map<String, dynamic>>(
         context: context,
-        builder: (dialogContext) => SimpleDialog(
-          title: const Text('Selecionar produto'),
-          children: [
-            for (final produto in disponiveis)
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(dialogContext, produto),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text('${produto['nmproduto']}'),
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, atualizarDialogo) {
+            final termo = pesquisa.text.trim().toLowerCase();
+            final filtrados = disponiveis
+                .where(
+                  (produto) => '${produto['nmproduto'] ?? ''}'
+                      .toLowerCase()
+                      .contains(termo),
+                )
+                .toList();
+            return AlertDialog(
+              title: Row(
+                children: [
+                  const Expanded(child: Text('Selecionar produto')),
+                  IconButton(
+                    tooltip: 'Fechar',
+                    onPressed: () => Navigator.pop(dialogContext),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 440,
+                height: 420,
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: pesquisa,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        labelText: 'Buscar produto pelo nome',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => atualizarDialogo(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: filtrados.isEmpty
+                          ? const Center(
+                              child: Text('Nenhum produto encontrado.'),
+                            )
+                          : ListView.separated(
+                              itemCount: filtrados.length,
+                              separatorBuilder: (_, _) => const Divider(),
+                              itemBuilder: (_, index) {
+                                final produto = filtrados[index];
+                                return ListTile(
+                                  title: Text('${produto['nmproduto']}'),
+                                  subtitle: Text(
+                                    'R\$ ${(double.tryParse('${produto['vrprecoprod']}') ?? 0).toStringAsFixed(2).replaceAll('.', ',')}',
+                                  ),
+                                  onTap: () =>
+                                      Navigator.pop(dialogContext, produto),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
               ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+              ],
+            );
+          },
         ),
       );
+      pesquisa.dispose();
       if (escolhido == null) return;
       await _repo.adicionarItemPadrao(widget.organizacaoId, widget.modeloId, {
         ...escolhido,
