@@ -24,7 +24,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
   bool _loading = true, _saving = false, _dadosCarregados = false;
   bool _salvamentoPendente = false;
   Timer? _descricaoTimer;
-  List<Map<String, dynamic>> _fotos = [], _videos = [], _posts = [];
+  List<Map<String, dynamic>> _fotos = [], _videos = [];
   @override
   void initState() {
     super.initState();
@@ -55,7 +55,6 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
         _descricao.text = x['dsdetalhadaloja']?.toString() ?? '';
         _fotos = _list(x['fotos']);
         _videos = _list(x['videos']);
-        _posts = _list(x['publicacoes']);
         _loading = false;
         _dadosCarregados = true;
       });
@@ -107,71 +106,6 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
     await _salvar();
   }
 
-  Future<void> _post([int? indice]) async {
-    final atual = indice == null ? null : _posts[indice];
-    final titulo = TextEditingController(text: atual?['titulo']?.toString()),
-        desc = TextEditingController(text: atual?['descricao']?.toString()),
-        imagem = TextEditingController(text: atual?['imagem']?.toString());
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: Text(indice == null ? 'Nova publicação' : 'Editar publicação'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titulo,
-              decoration: const InputDecoration(labelText: 'Título'),
-            ),
-            TextField(
-              controller: desc,
-              minLines: 3,
-              maxLines: 5,
-              decoration: const InputDecoration(labelText: 'Descrição'),
-            ),
-            TextField(
-              controller: imagem,
-              decoration: const InputDecoration(
-                labelText: 'URL da imagem (opcional)',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: Text(indice == null ? 'Adicionar' : 'Salvar'),
-          ),
-        ],
-      ),
-    );
-    if (ok == true && titulo.text.trim().isNotEmpty) {
-      final publicacao = {
-        'titulo': titulo.text.trim(),
-        'descricao': desc.text.trim(),
-        'imagem': imagem.text.trim(),
-        'data_publicacao':
-            atual?['data_publicacao'] ??
-            DateTime.now().toIso8601String().substring(0, 10),
-      };
-      setState(() {
-        if (indice == null) {
-          _posts.add(publicacao);
-        } else {
-          _posts[indice] = publicacao;
-        }
-      });
-      await _salvar();
-    }
-    titulo.dispose();
-    desc.dispose();
-    imagem.dispose();
-  }
-
   Future<void> _salvar() async {
     _salvamentoPendente = true;
     if (_saving) return;
@@ -183,12 +117,7 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
           'dsdetalhadaloja': _descricao.text.trim(),
           'fotos': _fotos,
           'videos': _videos,
-          'publicacoes': _posts,
-          'configuracoes': {
-            'mostrar_galeria': true,
-            'mostrar_videos': true,
-            'mostrar_publicacoes': true,
-          },
+          'configuracoes': {'mostrar_galeria': true, 'mostrar_videos': true},
         });
       } catch (e) {
         _salvamentoPendente = false;
@@ -209,18 +138,13 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
     await _salvar();
   }
 
-  Future<void> _removerPublicacao(int indice) async {
-    setState(() => _posts.removeAt(indice));
-    await _salvar();
-  }
-
   Future<void> _limparConteudo() async {
     final confirmou = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Limpar todo o conteúdo?'),
         content: const Text(
-          'Esta ação removerá a descrição, todas as fotos, vídeos e publicações do estabelecimento.',
+          'Esta ação removerá a descrição, todas as fotos e vídeos do estabelecimento.',
         ),
         actions: [
           TextButton(
@@ -245,7 +169,6 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
         _descricao.clear();
         _fotos = [];
         _videos = [];
-        _posts = [];
         _dadosCarregados = true;
       });
       AppSnackBar.sucesso(context, 'Conteúdo do estabelecimento removido.');
@@ -362,108 +285,6 @@ class _LojaConteudoPageState extends State<LojaConteudoPage> {
                             ),
                           ),
                         ),
-                      ]),
-                      _card('Publicações', [
-                        OutlinedButton.icon(
-                          onPressed: () => _post(),
-                          icon: const Icon(Icons.post_add),
-                          label: const Text('Nova publicação'),
-                        ),
-                        ..._posts.asMap().entries.map((e) {
-                          final imagem = (e.value['imagem'] ?? '')
-                              .toString()
-                              .trim();
-                          return Container(
-                            margin: const EdgeInsets.only(top: 10),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: ClubbarColors.borda),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (imagem.isNotEmpty) ...[
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Image.network(
-                                      _url(imagem),
-                                      width: double.infinity,
-                                      height: 180,
-                                      fit: BoxFit.contain,
-                                      errorBuilder:
-                                          (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) => Container(
-                                            height: 90,
-                                            color: ClubbarColors.fundo,
-                                            alignment: Alignment.center,
-                                            child: const Text(
-                                              'Não foi possível carregar a imagem deste link.',
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                ],
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            e.value['titulo']?.toString() ?? '',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                          if ((e.value['descricao'] ?? '')
-                                              .toString()
-                                              .trim()
-                                              .isNotEmpty) ...[
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              e.value['descricao'].toString(),
-                                              maxLines: 3,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    Column(
-                                      children: [
-                                        IconButton(
-                                          tooltip: 'Editar publicação',
-                                          onPressed: () => _post(e.key),
-                                          icon: const Icon(
-                                            Icons.edit_outlined,
-                                            color: Colors.blue,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'Excluir publicação',
-                                          onPressed: () =>
-                                              _removerPublicacao(e.key),
-                                          icon: const Icon(
-                                            Icons.delete_outline,
-                                            color: ClubbarColors.erro,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
                       ]),
                       const SizedBox(height: 8),
                     ],
