@@ -218,7 +218,6 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
       final organizacaoId = _organizacaoId;
       final titularId = titular['titularfinanceiro_id'] as int?;
       if (organizacaoId == null || titularId == null) return;
-      setState(() => _processandoId = titularId);
       try {
         final atualizado = await _repo.salvarDadosAtivacaoAsaas(
           organizacaoId,
@@ -226,6 +225,12 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
           dataNascimento: dados.dataNascimento,
           faturamentoMensal: dados.rendaMensal,
         );
+        if (mounted) {
+          AppSnackBar.info(
+            context,
+            'Dados salvos. Ativando a subconta Asaas...',
+          );
+        }
         await _executarAsaasComTitular(atualizado);
       } catch (e) {
         if (mounted) {
