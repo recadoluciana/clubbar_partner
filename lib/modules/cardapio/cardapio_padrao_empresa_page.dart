@@ -23,22 +23,43 @@ class CardapioPadraoEmpresaPage extends StatefulWidget {
       _CardapioPadraoEmpresaPageState();
 }
 
-class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
+class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage>
+    with SingleTickerProviderStateMixin {
   final _repo = CardapioRepository();
   List<Map<String, dynamic>> _padroes = [];
+  List<Map<String, dynamic>> _produtos = [];
   bool _carregando = true;
+  late final TabController _abas;
 
   @override
   void initState() {
     super.initState();
+    _abas = TabController(length: 2, vsync: this);
+    _abas.addListener(() {
+      if (!_abas.indexIsChanging) setState(() {});
+    });
     _carregar();
+  }
+
+  @override
+  void dispose() {
+    _abas.dispose();
+    super.dispose();
   }
 
   Future<void> _carregar() async {
     setState(() => _carregando = true);
     try {
-      final itens = await _repo.listarPadroes(widget.organizacaoId);
-      if (mounted) setState(() => _padroes = itens);
+      final resultados = await Future.wait([
+        _repo.listarPadroes(widget.organizacaoId),
+        _repo.listarProdutosPadraoOrganizacao(widget.organizacaoId),
+      ]);
+      if (mounted) {
+        setState(() {
+          _padroes = resultados[0];
+          _produtos = resultados[1];
+        });
+      }
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -46,6 +67,275 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
+  }
+
+  Future<void> _abrirProduto([Map<String, dynamic>? produto]) async {
+    final alterou = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProdutoPadraoFormPage(
+          organizacaoId: widget.organizacaoId,
+          item: produto,
+        ),
+      ),
+    );
+    if (alterou == true && mounted) await _carregar();
+  }
+
+  Future<void> _excluirProduto(Map<String, dynamic> produto) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir produto?'),
+        content: Text(
+          'O produto ${produto['nmproduto']} será excluído. Caso já esteja sendo usado em algum cardápio ou venda, inative-o em vez de excluí-lo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.delete_outline_rounded),
+            label: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    try {
+      await _repo.excluirProdutoPadraoOrganizacao(
+        int.parse('${produto['produto_id']}'),
+      );
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Produto excluído.');
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  String _moeda(Object? valor) {
+    final numero = double.tryParse('$valor') ?? 0;
+    return 'R\$ ${numero.toStringAsFixed(2).replaceAll('.', ',')}';
+  }
+
+  bool _temDesconto(Map<String, dynamic> produto) =>
+      '${produto['tipodesconto'] ?? 'NENHUM'}'.toUpperCase() != 'NENHUM' &&
+      (double.tryParse('${produto['vrdesconto']}') ?? 0) > 0;
+
+  Widget _cardProduto(Map<String, dynamic> produto) {
+    final foto = '${produto['urlfotoproduto'] ?? ''}'.trim();
+    final ativo = '${produto['sitproduto']}' == 'ATIVO';
+    final desconto = _temDesconto(produto);
+    final codigo = '${produto['skuproduto'] ?? ''}'.trim();
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: foto.isEmpty
+                      ? DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.inventory_2_outlined),
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(
+                            foto.startsWith('http')
+                                ? foto
+                                : ApiConfig.buildUrl(foto),
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, _, _) =>
+                                const Icon(Icons.image_not_supported_outlined),
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        codigo.isEmpty
+                            ? 'Código #${produto['produto_id']}'
+                            : 'Código: $codigo',
+                        style: const TextStyle(
+                          color: ClubbarColors.textoSecundario,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${produto['nmproduto']}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _moeda(produto['vrprecoprod']),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Editar produto',
+                  onPressed: () => _abrirProduto(produto),
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+                IconButton(
+                  tooltip: 'Excluir produto',
+                  onPressed: () => _excluirProduto(produto),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                Chip(
+                  avatar: Icon(
+                    ativo
+                        ? Icons.check_circle_outline
+                        : Icons.pause_circle_outline,
+                    size: 17,
+                  ),
+                  label: Text(ativo ? 'Ativo' : 'Inativo'),
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: ativo
+                      ? Colors.green.shade50
+                      : Colors.grey.shade200,
+                ),
+                Chip(
+                  avatar: Icon(Icons.sell_outlined, size: 17),
+                  label: Text(desconto ? 'Com desconto' : 'Sem desconto'),
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: desconto
+                      ? Colors.orange.shade50
+                      : Colors.grey.shade100,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _abaProdutos() {
+    if (_carregando) return const Center(child: CircularProgressIndicator());
+    return RefreshIndicator(
+      onRefresh: _carregar,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final largura = constraints.maxWidth;
+          final colunas = largura < 600
+              ? 1
+              : largura < 900
+              ? 2
+              : largura < 1250
+              ? 3
+              : 4;
+          return GridView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            itemCount: _produtos.isEmpty ? 1 : _produtos.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: colunas,
+              mainAxisExtent: 185,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemBuilder: (context, index) => _produtos.isEmpty
+                ? const Card(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'Nenhum produto cadastrado. Adicione o primeiro produto da empresa.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  )
+                : _cardProduto(_produtos[index]),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _abaCardapios() {
+    if (_carregando) return const Center(child: CircularProgressIndicator());
+    return RefreshIndicator(
+      onRefresh: _carregar,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+        children: [
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Organize os produtos da empresa em cardápios. Ao usar um padrão em uma loja, o conteúdo é copiado para o cardápio dela; alterações posteriores no padrão não modificam lojas já configuradas.',
+              ),
+            ),
+          ),
+          if (_padroes.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'A empresa ainda não possui cardápio padrão. Crie o primeiro para disponibilizá-lo aos estabelecimentos.',
+                ),
+              ),
+            ),
+          for (final padrao in _padroes)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.menu_book_rounded),
+                title: Text('${padrao['nmcardapio']}'),
+                subtitle: Text(
+                  '${padrao['tipocardapio']} • ${padrao['quantidade_produtos']} produtos',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => _ItensPadraoPage(
+                        organizacaoId: widget.organizacaoId,
+                        modeloId: int.parse('${padrao['cardapiomodelo_id']}'),
+                        nome: '${padrao['nmcardapio']}',
+                      ),
+                    ),
+                  );
+                  if (mounted) await _carregar();
+                },
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _novo() async {
@@ -128,67 +418,30 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
             fontWeight: FontWeight.w900,
           ),
         ),
+        Material(
+          color: Colors.white,
+          child: TabBar(
+            controller: _abas,
+            tabs: const [
+              Tab(text: 'Produtos'),
+              Tab(text: 'Cardápios'),
+            ],
+          ),
+        ),
         Expanded(
-          child: _carregando
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _carregar,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      const Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text(
-                            'Cadastre os produtos aqui, sem escolher estabelecimento. Ao usar um padrão em uma loja, o conteúdo é copiado para o cardápio dela; alterações posteriores no padrão não modificam lojas já configuradas.',
-                          ),
-                        ),
-                      ),
-                      if (_padroes.isEmpty)
-                        const Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text(
-                              'A empresa ainda não possui cardápio padrão. Crie o primeiro para disponibilizá-lo aos estabelecimentos.',
-                            ),
-                          ),
-                        ),
-                      for (final padrao in _padroes)
-                        Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.menu_book_rounded),
-                            title: Text('${padrao['nmcardapio']}'),
-                            subtitle: Text(
-                              '${padrao['tipocardapio']} • ${padrao['quantidade_produtos']} produtos',
-                            ),
-                            trailing: const Icon(Icons.chevron_right_rounded),
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => _ItensPadraoPage(
-                                    organizacaoId: widget.organizacaoId,
-                                    modeloId: int.parse(
-                                      '${padrao['cardapiomodelo_id']}',
-                                    ),
-                                    nome: '${padrao['nmcardapio']}',
-                                  ),
-                                ),
-                              );
-                              if (mounted) await _carregar();
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+          child: TabBarView(
+            controller: _abas,
+            children: [_abaProdutos(), _abaCardapios()],
+          ),
         ),
       ],
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: _novo,
+      onPressed: () => _abas.index == 0 ? _abrirProduto() : _novo(),
       icon: const Icon(Icons.add),
-      label: const Text('Adicionar cardápio'),
+      label: Text(
+        _abas.index == 0 ? 'Adicionar produto' : 'Adicionar cardápio',
+      ),
     ),
   );
 }
@@ -314,7 +567,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
       final escolhido = await showDialog<Map<String, dynamic>>(
         context: context,
         builder: (dialogContext) => SimpleDialog(
-          title: const Text('Usar produto existente'),
+          title: const Text('Selecionar produto'),
           children: [
             for (final produto in disponiveis)
               SimpleDialogOption(
@@ -778,7 +1031,7 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
                   TextButton.icon(
                     onPressed: _vincularProdutoExistente,
                     icon: const Icon(Icons.link_rounded),
-                    label: const Text('Usar existente'),
+                    label: const Text('Selecionar produto'),
                   ),
                 ],
               ),
@@ -833,13 +1086,6 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
           ),
         ],
       ),
-      floatingActionButton: _categorias.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _abrirFormulario(),
-              icon: const Icon(Icons.add),
-              label: const Text('Adicionar produto'),
-            ),
     );
   }
 }
