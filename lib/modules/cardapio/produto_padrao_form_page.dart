@@ -12,14 +12,14 @@ import '../../core/widgets/clubbar_page_header.dart';
 
 class ProdutoPadraoFormPage extends StatefulWidget {
   final int organizacaoId;
-  final int modeloId;
+  final int? modeloId;
   final int? categoriaPadraoIdInicial;
   final Map<String, dynamic>? item;
 
   const ProdutoPadraoFormPage({
     super.key,
     required this.organizacaoId,
-    required this.modeloId,
+    this.modeloId,
     this.categoriaPadraoIdInicial,
     this.item,
   });
@@ -92,11 +92,15 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
   }
 
   Future<void> _carregarCategorias() async {
+    if (widget.modeloId == null) {
+      setState(() => _carregando = false);
+      return;
+    }
     setState(() => _carregando = true);
     try {
       final categorias = await _repo.listarCategoriasPadrao(
         widget.organizacaoId,
-        widget.modeloId,
+        widget.modeloId!,
       );
       if (!mounted) return;
       setState(() {
@@ -241,16 +245,20 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     setState(() => _salvando = true);
     try {
       if (_fotoSelecionada != null) {
-        _fotoUrl = await _repo.enviarFotoProdutoPadrao(
-          widget.organizacaoId,
-          widget.modeloId,
-          _fotoSelecionada!,
-        );
+        _fotoUrl = widget.modeloId == null
+            ? await _repo.enviarFotoProdutoPadraoOrganizacao(
+                widget.organizacaoId,
+                _fotoSelecionada!,
+              )
+            : await _repo.enviarFotoProdutoPadrao(
+                widget.organizacaoId,
+                widget.modeloId!,
+                _fotoSelecionada!,
+              );
       }
       final dados = <String, dynamic>{
-        'cardapiomodelocategoria_id': _categoriaId,
-        if (widget.item != null)
-          'produto_id': widget.item!['produto_id'],
+        if (widget.modeloId != null) 'cardapiomodelocategoria_id': _categoriaId,
+        if (widget.item != null) 'produto_id': widget.item!['produto_id'],
         'nmproduto': _nome.text.trim(),
         'dsproduto': _descricao.text.trim().isEmpty
             ? null
@@ -272,16 +280,29 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
             ? null
             : _fimDesconto?.toIso8601String(),
       };
-      if (widget.item == null) {
+      if (widget.modeloId == null) {
+        if (widget.item == null) {
+          await _repo.criarProdutoPadraoOrganizacao(
+            widget.organizacaoId,
+            dados,
+          );
+        } else {
+          await _repo.alterarProdutoPadraoOrganizacao(
+            widget.organizacaoId,
+            int.parse('${widget.item!['produto_id']}'),
+            dados,
+          );
+        }
+      } else if (widget.item == null) {
         await _repo.adicionarItemPadrao(
           widget.organizacaoId,
-          widget.modeloId,
+          widget.modeloId!,
           dados,
         );
       } else {
         await _repo.alterarProdutoPadrao(
           widget.organizacaoId,
-          widget.modeloId,
+          widget.modeloId!,
           int.parse('${widget.item!['cardapiomodeloproduto_id']}'),
           dados,
         );
@@ -337,7 +358,9 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
       children: [
         ClubbarPageHeader(
           titulo: widget.item == null ? 'Novo produto' : 'Editar produto',
-          subtitulo: 'Cardápio padrão da empresa',
+          subtitulo: widget.modeloId == null
+              ? 'Produtos da empresa'
+              : 'Cardápio padrão da empresa',
         ),
         if (widget.item != null)
           const Padding(
@@ -354,32 +377,35 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      DropdownButtonFormField<int>(
-                        key: ValueKey(_categoriaId),
-                        initialValue: _categoriaId,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Categoria da organização',
-                          border: OutlineInputBorder(),
+                      if (widget.modeloId != null) ...[
+                        DropdownButtonFormField<int>(
+                          key: ValueKey(_categoriaId),
+                          initialValue: _categoriaId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Categoria do cardápio',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _categorias
+                              .map(
+                                (c) => DropdownMenuItem<int>(
+                                  value:
+                                      (c['cardapiomodelocategoria_id'] as num)
+                                          .toInt(),
+                                  child: Text('${c['nmcategoria']}'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (id) => setState(() => _categoriaId = id),
+                          validator: (id) =>
+                              id == null ? 'Selecione uma categoria.' : null,
                         ),
-                        items: _categorias
-                            .map(
-                              (c) => DropdownMenuItem<int>(
-                                value: (c['cardapiomodelocategoria_id'] as num)
-                                    .toInt(),
-                                child: Text('${c['nmcategoria']}'),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (id) => setState(() => _categoriaId = id),
-                        validator: (id) =>
-                            id == null ? 'Selecione uma categoria.' : null,
-                      ),
-                      if (_categorias.isEmpty)
-                        const Text(
-                          'Inclua uma categoria neste cardápio antes de cadastrar produtos.',
-                        ),
-                      const SizedBox(height: 8),
+                        if (_categorias.isEmpty)
+                          const Text(
+                            'Inclua uma categoria neste cardápio antes de cadastrar produtos.',
+                          ),
+                        const SizedBox(height: 8),
+                      ],
                       TextFormField(
                         controller: _nome,
                         maxLength: 100,

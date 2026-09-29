@@ -174,6 +174,42 @@ class CardapioRepository {
         .toList();
   }
 
+  Future<Map<String, dynamic>> criarProdutoPadraoOrganizacao(
+    int organizacaoId,
+    Map<String, dynamic> dados,
+  ) async {
+    final response = await ApiService.post(
+      '/organizacoes/$organizacaoId/produtos',
+      dados,
+    );
+    if (response.statusCode != 201) {
+      throw _erro(response, 'Não foi possível cadastrar o produto.');
+    }
+    return Map<String, dynamic>.from(_json(response));
+  }
+
+  Future<Map<String, dynamic>> alterarProdutoPadraoOrganizacao(
+    int organizacaoId,
+    int produtoId,
+    Map<String, dynamic> dados,
+  ) async {
+    final response = await ApiService.put(
+      '/organizacoes/$organizacaoId/produtos/$produtoId',
+      dados,
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível alterar o produto.');
+    }
+    return Map<String, dynamic>.from(_json(response));
+  }
+
+  Future<void> excluirProdutoPadraoOrganizacao(int produtoId) async {
+    final response = await ApiService.delete('/produtos/$produtoId');
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível excluir o produto.');
+    }
+  }
+
   Future<String> enviarFotoProdutoPadrao(
     int organizacaoId,
     int modeloId,
@@ -183,6 +219,43 @@ class CardapioRepository {
       'POST',
       Uri.parse(
         '${ApiConfig.baseUrl}/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/foto',
+      ),
+    );
+    final token = await StorageService.getToken();
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    final mime = lookupMimeType(imagem.name) ?? 'image/jpeg';
+    final partes = mime.split('/');
+    request.files.add(
+      kIsWeb
+          ? http.MultipartFile.fromBytes(
+              'foto',
+              await imagem.readAsBytes(),
+              filename: imagem.name,
+              contentType: MediaType(partes[0], partes[1]),
+            )
+          : await http.MultipartFile.fromPath(
+              'foto',
+              imagem.path,
+              contentType: MediaType(partes[0], partes[1]),
+            ),
+    );
+    final response = await http.Response.fromStream(await request.send());
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível enviar a foto.');
+    }
+    return '${_json(response)['urlfotoproduto']}';
+  }
+
+  Future<String> enviarFotoProdutoPadraoOrganizacao(
+    int organizacaoId,
+    XFile imagem,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse(
+        '${ApiConfig.baseUrl}/organizacoes/$organizacaoId/produtos/foto',
       ),
     );
     final token = await StorageService.getToken();
