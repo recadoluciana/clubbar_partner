@@ -29,11 +29,11 @@ class AgendaMensalPage extends StatefulWidget {
 
 class _AgendaMensalPageState extends State<AgendaMensalPage> {
   final _repo = AtracaoRepository();
+  final _eventoRepo = EventoRepository();
   DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
   List<AgendaEvento> _eventos = [];
   bool _loading = true;
   String? _erro;
-  String _statusAgenda = 'INATIVA';
   late Loja _loja;
 
   @override
@@ -70,16 +70,10 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       _erro = null;
     });
     try {
-      final resultados = await Future.wait([
-        _repo.agenda(_loja.lojaId, _mes),
-        _repo.statusAgenda(_loja.lojaId, _mes),
-      ]);
-      final es = resultados[0] as List<AgendaEvento>;
-      final status = resultados[1] as Map<String, dynamic>;
+      final es = await _repo.agenda(_loja.lojaId, _mes);
       if (mounted) {
         setState(() {
           _eventos = es;
-          _statusAgenda = (status['statusagenda'] ?? 'INATIVA').toString();
           _loading = false;
         });
       }
@@ -98,28 +92,97 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     _carregar();
   }
 
-  Future<void> _alternarPublicacao() async {
+  Future<void> _publicarEventos() async {
+    final candidatos =
+        _eventos
+            .where(
+              (evento) =>
+                  !_diaPassado(evento.inicio) &&
+                  !{
+                    'ATIVO',
+                    'CANCELADO',
+                    'ENCERRADO',
+                  }.contains(evento.status.toUpperCase()),
+            )
+            .toList()
+          ..sort((a, b) => a.inicio.compareTo(b.inicio));
+
+    if (candidatos.isEmpty) {
+      AppSnackBar.aviso(context, 'Não há eventos em rascunho para publicar.');
+      return;
+    }
+
+    final selecionados = <int>{};
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, atualizar) => AlertDialog(
+          title: const Text('Publicar eventos'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Selecione os eventos que devem aparecer para os clientes.',
+                  ),
+                  const SizedBox(height: 8),
+                  ...candidatos.map(
+                    (evento) => CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: selecionados.contains(evento.eventoId),
+                      onChanged: (marcado) => atualizar(() {
+                        if (marcado ?? false) {
+                          selecionados.add(evento.eventoId);
+                        } else {
+                          selecionados.remove(evento.eventoId);
+                        }
+                      }),
+                      title: Text(evento.titulo),
+                      subtitle: Text(
+                        DateFormat(
+                          "dd/MM/yyyy 'às' HH:mm",
+                        ).format(evento.inicio),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: selecionados.isEmpty
+                  ? null
+                  : () => Navigator.pop(dialogContext, true),
+              child: const Text('Publicar selecionados'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+
     try {
-      final publicada =
-          _statusAgenda == 'PUBLICADA' || _statusAgenda == 'AGUARDANDO_ASAAS';
-      final mensagem = publicada
-          ? await _repo.despublicarAgenda(_loja.lojaId, _mes)
-          : await _repo.publicarAgenda(_loja.lojaId, _mes);
+      final mensagem = await _eventoRepo.publicarEventos(selecionados.toList());
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, mensagem);
-    } catch (e) {
-      if (mounted) {
-        final texto = e.toString();
-        if (erroIndicaPendenteAsaas(e)) {
-          await mostrarDialogoAsaasPendente(context, recurso: 'esta agenda');
-        } else {
-          AppSnackBar.erro(
-            context,
-            texto.replaceFirst('Exception: ', ''),
-            duration: const Duration(seconds: 10),
-            mostrarFechar: true,
-          );
-        }
+    } catch (erro) {
+      if (!mounted) return;
+      if (erroIndicaPendenteAsaas(erro)) {
+        await mostrarDialogoAsaasPendente(context, recurso: 'estes eventos');
+      } else {
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+          duration: const Duration(seconds: 10),
+          mostrarFechar: true,
+        );
       }
     }
   }
@@ -646,7 +709,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
         children: [
           ClubbarPageHeader(
             titulo: _loja.nmloja,
-            subtitulo: 'Agenda Mensal',
+            subtitulo: 'Agenda de eventos',
             tituloWidget: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -710,30 +773,17 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             child: Row(
               children: [
-                Chip(
-                  avatar: Icon(
-                    _statusAgenda == 'PUBLICADA'
-                        ? Icons.public
-                        : Icons.public_off,
-                    size: 17,
+                const Expanded(
+                  child: Text(
+                    'Cada evento é publicado separadamente.',
+                    style: TextStyle(color: ClubbarColors.textoSecundario),
                   ),
-                  label: Text(_statusAgenda.replaceAll('_', ' ')),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 OutlinedButton.icon(
-                  onPressed: _loading ? null : _alternarPublicacao,
-                  icon: Icon(
-                    _statusAgenda == 'PUBLICADA' ||
-                            _statusAgenda == 'AGUARDANDO_ASAAS'
-                        ? Icons.visibility_off_outlined
-                        : Icons.publish_outlined,
-                  ),
-                  label: Text(
-                    _statusAgenda == 'PUBLICADA' ||
-                            _statusAgenda == 'AGUARDANDO_ASAAS'
-                        ? 'Retirar publicação'
-                        : 'Publicar agenda',
-                  ),
+                  onPressed: _loading ? null : _publicarEventos,
+                  icon: const Icon(Icons.publish_outlined),
+                  label: const Text('Publicar eventos'),
                 ),
               ],
             ),

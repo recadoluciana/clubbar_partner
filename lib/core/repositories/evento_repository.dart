@@ -93,6 +93,48 @@ class EventoRepository {
     }
   }
 
+  Future<String> publicarEvento(int eventoId) async {
+    final response = await ApiService.post('/eventos/$eventoId/publicar', {});
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(response.body, 'Não foi possível publicar o evento.'),
+      );
+    }
+    return (jsonDecode(response.body)['mensagem'] ?? 'Evento publicado.')
+        .toString();
+  }
+
+  Future<String> despublicarEvento(int eventoId) async {
+    final response = await ApiService.post(
+      '/eventos/$eventoId/despublicar',
+      {},
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(
+          response.body,
+          'Não foi possível retirar a publicação do evento.',
+        ),
+      );
+    }
+    return (jsonDecode(response.body)['mensagem'] ??
+            'Publicação do evento retirada.')
+        .toString();
+  }
+
+  Future<String> publicarEventos(List<int> eventoIds) async {
+    final response = await ApiService.post('/eventos/publicar', {
+      'evento_ids': eventoIds,
+    });
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(response.body, 'Não foi possível publicar os eventos.'),
+      );
+    }
+    return (jsonDecode(response.body)['mensagem'] ?? 'Eventos publicados.')
+        .toString();
+  }
+
   Future<void> atualizarPoliticaEventoAgendado({
     required int eventoId,
     required String politicaCancelamento,

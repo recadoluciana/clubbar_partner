@@ -10,6 +10,7 @@ import '../../core/repositories/evento_lote_repository.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
@@ -64,6 +65,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   late String _eventoTitulo;
   late String? _eventoBanner;
   Uint8List? _bannerPreview;
+  bool _alterandoPublicacao = false;
 
   @override
   void initState() {
@@ -193,6 +195,35 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   }
 
   int get _capacidadeEvento => _capacidade?.capacidadeTotal ?? 0;
+  bool get _eventoPublicado =>
+      (_evento?.statusevento ?? '').trim().toUpperCase() == 'ATIVO';
+
+  Future<void> _alternarPublicacao() async {
+    if (_alterandoPublicacao) return;
+    setState(() => _alterandoPublicacao = true);
+    try {
+      final mensagem = _eventoPublicado
+          ? await _eventoRepo.despublicarEvento(widget.eventoId)
+          : await _eventoRepo.publicarEvento(widget.eventoId);
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, mensagem);
+    } catch (erro) {
+      if (!mounted) return;
+      if (erroIndicaPendenteAsaas(erro)) {
+        await mostrarDialogoAsaasPendente(context, recurso: 'este evento');
+      } else {
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+          duration: const Duration(seconds: 10),
+          mostrarFechar: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _alterandoPublicacao = false);
+    }
+  }
+
   int get _capacidadeSetores => _setores
       .where((setor) => setor.situacao == 'ATIVO')
       .fold(0, (total, setor) => total + setor.capacidade);
@@ -2026,10 +2057,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         children: [
           ClubbarPageHeader(
             titulo: 'Nome Evento: $_eventoTitulo',
-            subtitulo: 'Gerenciar evento, setores, lotes e preços',
-            trailing: IconButton(
-              onPressed: _carregar,
-              icon: const Icon(Icons.refresh_rounded),
+            subtitulo:
+                '${_eventoPublicado ? 'Publicado' : 'Rascunho'} — gerencie evento, setores, lotes e preços',
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Atualizar',
+                  onPressed: _carregar,
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+              ],
             ),
           ),
           TabBar(
@@ -2058,6 +2096,24 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
       bottomNavigationBar: ClubbarActionBar(
         actions: [
+          if (!widget.somenteConsulta && _aba == 0)
+            FilledButton.icon(
+              onPressed: _carregando || _alterandoPublicacao
+                  ? null
+                  : _alternarPublicacao,
+              icon: Icon(
+                _eventoPublicado
+                    ? Icons.visibility_off_outlined
+                    : Icons.publish_outlined,
+              ),
+              label: Text(
+                _alterandoPublicacao
+                    ? 'Salvando...'
+                    : _eventoPublicado
+                    ? 'Retirar publicação'
+                    : 'Publicar evento',
+              ),
+            ),
           if (!widget.somenteConsulta && _aba == 0)
             OutlinedButton.icon(
               onPressed: _excluirData,
