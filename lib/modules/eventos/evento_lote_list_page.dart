@@ -198,6 +198,21 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   bool get _eventoPublicado =>
       (_evento?.statusevento ?? '').trim().toUpperCase() == 'ATIVO';
 
+  bool get _eventoPassado {
+    final data = DateTime.tryParse(
+      _evento?.dtinicioevento ?? _eventoInicio ?? '',
+    );
+    if (data == null) return false;
+    final hoje = DateTime.now();
+    return DateTime(
+      data.year,
+      data.month,
+      data.day,
+    ).isBefore(DateTime(hoje.year, hoje.month, hoje.day));
+  }
+
+  bool get _somenteConsulta => widget.somenteConsulta || _eventoPassado;
+
   Future<void> _alternarPublicacao() async {
     if (_alterandoPublicacao) return;
     setState(() => _alterandoPublicacao = true);
@@ -1252,7 +1267,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             'Capacidade autorizada',
             '$_capacidadeEvento',
             Icons.groups_outlined,
-            onEditar: _alterarCapacidade,
+            onEditar: _somenteConsulta ? null : _alterarCapacidade,
           ),
           _numero(
             'Capacidade distribuída',
@@ -1290,11 +1305,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 ],
               ),
             ),
-            IconButton(
-              onPressed: _editarNomeEvento,
-              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-              tooltip: 'Editar nome do evento',
-            ),
+            if (!_somenteConsulta)
+              IconButton(
+                onPressed: _editarNomeEvento,
+                icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                tooltip: 'Editar nome do evento',
+              ),
           ],
         ),
       ),
@@ -1334,11 +1350,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 ],
               ),
             ),
-            IconButton(
-              onPressed: _editarLocalEvento,
-              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-              tooltip: 'Editar local do evento',
-            ),
+            if (!_somenteConsulta)
+              IconButton(
+                onPressed: _editarLocalEvento,
+                icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                tooltip: 'Editar local do evento',
+              ),
           ],
         ),
       ),
@@ -1383,11 +1400,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 ],
               ),
             ),
-            IconButton(
-              onPressed: _editarFotoEvento,
-              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-              tooltip: 'Editar foto do evento',
-            ),
+            if (!_somenteConsulta)
+              IconButton(
+                onPressed: _editarFotoEvento,
+                icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                tooltip: 'Editar foto do evento',
+              ),
           ],
         ),
       ),
@@ -1415,11 +1433,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 ],
               ),
             ),
-            IconButton(
-              onPressed: _alterarHorarioEvento,
-              icon: const Icon(Icons.access_time_rounded, color: Colors.blue),
-              tooltip: 'Alterar horário do evento',
-            ),
+            if (!_somenteConsulta)
+              IconButton(
+                onPressed: _alterarHorarioEvento,
+                icon: const Icon(Icons.access_time_rounded, color: Colors.blue),
+                tooltip: 'Alterar horário do evento',
+              ),
           ],
         ),
       ),
@@ -1606,7 +1625,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   ],
                 ),
               ),
-              if (!widget.somenteConsulta) ...[
+              if (!_somenteConsulta) ...[
                 IconButton(
                   onPressed: () => _editarSetor(setor),
                   icon: const Icon(Icons.edit_rounded, color: Colors.blue),
@@ -1777,20 +1796,24 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             ],
           ),
         ),
-        Column(
-          children: [
-            IconButton(
-              onPressed: () => _editarAtracao(atracao),
-              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-              tooltip: 'Editar atração',
-            ),
-            IconButton(
-              onPressed: () => _removerAtracao(atracao),
-              icon: const Icon(Icons.delete_outline, color: ClubbarColors.erro),
-              tooltip: 'Remover atração',
-            ),
-          ],
-        ),
+        if (!_somenteConsulta)
+          Column(
+            children: [
+              IconButton(
+                onPressed: () => _editarAtracao(atracao),
+                icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                tooltip: 'Editar atração',
+              ),
+              IconButton(
+                onPressed: () => _removerAtracao(atracao),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: ClubbarColors.erro,
+                ),
+                tooltip: 'Remover atração',
+              ),
+            ],
+          ),
       ],
     ),
   );
@@ -1835,11 +1858,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   ? Colors.green.shade50
                   : null,
             ),
-            IconButton(
-              onPressed: () => _editarLoteGlobal(lote),
-              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-              tooltip: 'Editar lote global',
-            ),
+            if (!_somenteConsulta)
+              IconButton(
+                onPressed: () => _editarLoteGlobal(lote),
+                icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                tooltip: 'Editar lote global',
+              ),
           ],
         ),
         const SizedBox(height: 14),
@@ -1851,7 +1875,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                       Icons.play_circle_outline,
                       'Início das vendas',
                       _data(lote.inicioVendas),
-                      onEditar: () => _editarDataGlobal(lote, inicio: true),
+                      onEditar: _somenteConsulta
+                          ? null
+                          : () => _editarDataGlobal(lote, inicio: true),
                     )
                   : _dataCard(
                       Icons.auto_mode_rounded,
@@ -1865,7 +1891,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 Icons.stop_circle_outlined,
                 'Fim / virada',
                 _data(lote.fimVendas),
-                onEditar: () => _editarDataGlobal(lote, inicio: false),
+                onEditar: _somenteConsulta
+                    ? null
+                    : () => _editarDataGlobal(lote, inicio: false),
               ),
             ),
           ],
@@ -1884,13 +1912,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         ...lote.setores.map((configuracao) => _setorNoLote(configuracao)),
-        if (_setores.any(
-          (setor) =>
-              setor.situacao == 'ATIVO' &&
-              !lote.setores.any(
-                (configuracao) => configuracao.eventoSetorId == setor.id,
-              ),
-        ))
+        if (!_somenteConsulta &&
+            _setores.any(
+              (setor) =>
+                  setor.situacao == 'ATIVO' &&
+                  !lote.setores.any(
+                    (configuracao) => configuracao.eventoSetorId == setor.id,
+                  ),
+            ))
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: SizedBox(
@@ -1903,17 +1932,18 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             ),
           ),
         const SizedBox(height: 6),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: () => _excluirGlobal(lote),
-            icon: const Icon(Icons.delete_outline, color: ClubbarColors.erro),
-            label: const Text(
-              'Excluir lote',
-              style: TextStyle(color: ClubbarColors.erro),
+        if (!_somenteConsulta)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _excluirGlobal(lote),
+              icon: const Icon(Icons.delete_outline, color: ClubbarColors.erro),
+              label: const Text(
+                'Excluir lote',
+                style: TextStyle(color: ClubbarColors.erro),
+              ),
             ),
           ),
-        ),
       ],
     ),
   );
@@ -1978,16 +2008,18 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             ),
           ),
           const SizedBox(width: 4),
-          IconButton(
-            onPressed: () => _editarConfiguracao(configuracao),
-            icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-            tooltip: 'Editar setor neste lote',
-          ),
-          IconButton(
-            onPressed: () => _excluirSetorDoLote(configuracao),
-            icon: const Icon(Icons.delete_outline, color: ClubbarColors.erro),
-            tooltip: 'Excluir setor deste lote',
-          ),
+          if (!_somenteConsulta)
+            IconButton(
+              onPressed: () => _editarConfiguracao(configuracao),
+              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+              tooltip: 'Editar setor neste lote',
+            ),
+          if (!_somenteConsulta)
+            IconButton(
+              onPressed: () => _excluirSetorDoLote(configuracao),
+              icon: const Icon(Icons.delete_outline, color: ClubbarColors.erro),
+              tooltip: 'Excluir setor deste lote',
+            ),
         ],
       ),
       children: [
@@ -2017,15 +2049,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                                 ),
                               ),
                             ),
-                            IconButton(
-                              onPressed: () =>
-                                  _editarModalidade(configuracao, preco),
-                              icon: const Icon(
-                                Icons.edit_rounded,
-                                color: Colors.blue,
+                            if (!_somenteConsulta)
+                              IconButton(
+                                onPressed: () =>
+                                    _editarModalidade(configuracao, preco),
+                                icon: const Icon(
+                                  Icons.edit_rounded,
+                                  color: Colors.blue,
+                                ),
+                                tooltip: 'Editar modalidade',
                               ),
-                              tooltip: 'Editar modalidade',
-                            ),
                           ],
                         ),
                         Text('Preço: ${_moeda.format(preco.valor)}'),
@@ -2057,8 +2090,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         children: [
           ClubbarPageHeader(
             titulo: 'Nome Evento: $_eventoTitulo',
-            subtitulo:
-                '${_eventoPublicado ? 'Publicado' : 'Rascunho'} — gerencie evento, setores, lotes e preços',
+            subtitulo: _somenteConsulta
+                ? 'Evento realizado — disponível somente para consulta'
+                : '${_eventoPublicado ? 'Publicado' : 'Rascunho'} — gerencie evento, setores, lotes e preços',
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -2096,7 +2130,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
       bottomNavigationBar: ClubbarActionBar(
         actions: [
-          if (!widget.somenteConsulta && _aba == 0)
+          if (!_somenteConsulta && _aba == 0)
             FilledButton.icon(
               onPressed: _carregando || _alterandoPublicacao
                   ? null
@@ -2114,7 +2148,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     : 'Publicar evento',
               ),
             ),
-          if (!widget.somenteConsulta && _aba == 0)
+          if (!_somenteConsulta && _aba == 0)
             OutlinedButton.icon(
               onPressed: _excluirData,
               icon: const Icon(Icons.delete_outline),
@@ -2123,17 +2157,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 foregroundColor: ClubbarColors.erro,
               ),
             ),
-          if (!widget.somenteConsulta && _aba == 3)
+          if (!_somenteConsulta && _aba == 3)
             ClubbarAddButton(
               label: 'Adicionar lote global',
               onPressed: _novoLote,
             ),
-          if (!widget.somenteConsulta && _aba == 1)
+          if (!_somenteConsulta && _aba == 1)
             ClubbarAddButton(
               label: 'Adicionar atração',
               onPressed: () => _editarAtracao(),
             ),
-          if (!widget.somenteConsulta && _aba == 2)
+          if (!_somenteConsulta && _aba == 2)
             ClubbarAddButton(
               label: 'Adicionar setor',
               onPressed: () => _editarSetor(null),
