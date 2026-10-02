@@ -106,12 +106,16 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         _produtosOrganizacao = List<Map<String, dynamic>>.from(
           resultados[2] as List,
         );
-        if (_categoriaSelecionadaId != null &&
-            !categorias.any(
+        final categoriaSelecionadaExiste =
+            _categoriaSelecionadaId != null &&
+            categorias.any(
               (categoria) =>
                   _id(categoria['categoria_id']) == _categoriaSelecionadaId,
-            )) {
-          _categoriaSelecionadaId = null;
+            );
+        if (!categoriaSelecionadaExiste) {
+          _categoriaSelecionadaId = categorias.isEmpty
+              ? null
+              : _id(categorias.first['categoria_id']);
         }
         _alterado = false;
       });
@@ -186,6 +190,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         'dsicone': selecionada['dsicone'],
         'itens': <Map<String, dynamic>>[],
       });
+      _categoriaSelecionadaId = _id(selecionada['categoria_id']);
       _alterado = true;
     });
   }
@@ -482,7 +487,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     setState(() {
       _categorias.removeAt(indice);
       if (_categoriaSelecionadaId == categoriaId) {
-        _categoriaSelecionadaId = null;
+        _categoriaSelecionadaId = _categorias.isEmpty
+            ? null
+            : _id(_categorias.first['categoria_id']);
       }
       _alterado = true;
     });
@@ -503,12 +510,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
       children: [
-        ChoiceChip(
-          label: const Text('Todas'),
-          selected: _categoriaSelecionadaId == null,
-          onSelected: (_) => setState(() => _categoriaSelecionadaId = null),
-        ),
-        const SizedBox(width: 8),
         for (final categoria in _categorias) ...[
           ChoiceChip(
             label: Text('${categoria['nmcategoria']}'),
@@ -540,23 +541,43 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   }
 
   Future<void> _reajustarPrecos() async {
+    final categoriaSelecionada = _categorias
+        .cast<Map<String, dynamic>?>()
+        .firstWhere(
+          (categoria) =>
+              _id(categoria?['categoria_id']) == _categoriaSelecionadaId,
+          orElse: () => null,
+        );
+    if (categoriaSelecionada == null) {
+      AppSnackBar.aviso(context, 'Selecione uma categoria para reajustar.');
+      return;
+    }
+    final nomeCategoria = '${categoriaSelecionada['nmcategoria']}';
     final controlador = TextEditingController();
     final percentual = await showDialog<double>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Reajustar preços'),
-        content: TextField(
-          controller: controlador,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(
-            decimal: true,
-            signed: true,
-          ),
-          decoration: const InputDecoration(
-            labelText: 'Percentual (use - para reduzir)',
-            suffixText: '%',
-            border: OutlineInputBorder(),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Categoria que será reajustada: $nomeCategoria'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controlador,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Percentual (use - para reduzir)',
+                suffixText: '%',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -578,21 +599,19 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
 
     var quantidade = 0;
     setState(() {
-      for (final categoria in _categorias) {
-        final itens = _itens(categoria);
-        for (final item in itens) {
-          final reajustado = (_valor(item['vrpreco']) * (1 + percentual / 100))
-              .clamp(0, double.infinity);
-          item['vrpreco'] = double.parse(reajustado.toStringAsFixed(2));
-          quantidade++;
-        }
-        categoria['itens'] = itens;
+      final itens = _itens(categoriaSelecionada);
+      for (final item in itens) {
+        final reajustado = (_valor(item['vrpreco']) * (1 + percentual / 100))
+            .clamp(0, double.infinity);
+        item['vrpreco'] = double.parse(reajustado.toStringAsFixed(2));
+        quantidade++;
       }
+      categoriaSelecionada['itens'] = itens;
       _alterado = true;
     });
     AppSnackBar.sucesso(
       context,
-      '$quantidade ${quantidade == 1 ? 'preço reajustado' : 'preços reajustados'}. Salve ou publique quando estiver pronto.',
+      '$quantidade ${quantidade == 1 ? 'preço reajustado' : 'preços reajustados'} na categoria $nomeCategoria. Salve ou publique quando estiver pronto.',
     );
   }
 
@@ -1024,16 +1043,16 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
               const PopupMenuItem(
                 value: 'subir',
                 child: ListTile(
-                  leading: Icon(Icons.arrow_upward),
-                  title: Text('Mover para cima'),
+                  leading: Icon(Icons.arrow_back),
+                  title: Text('Mover para a esquerda'),
                 ),
               ),
             if (indice < _categorias.length - 1)
               const PopupMenuItem(
                 value: 'descer',
                 child: ListTile(
-                  leading: Icon(Icons.arrow_downward),
-                  title: Text('Mover para baixo'),
+                  leading: Icon(Icons.arrow_forward),
+                  title: Text('Mover para a direita'),
                 ),
               ),
             const PopupMenuItem(
