@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
@@ -27,6 +28,8 @@ class EventoFormPage extends StatefulWidget {
 }
 
 class _EventoFormPageState extends State<EventoFormPage> {
+  static const int _limiteTitulo = 120;
+
   final _formKey = GlobalKey<FormState>();
   final _repo = EventoRepository();
   final _localidadeRepository = LocalidadeRepository();
@@ -376,6 +379,8 @@ class _EventoFormPageState extends State<EventoFormPage> {
           TextFormField(
             controller: _tituloController,
             textCapitalization: TextCapitalization.words,
+            maxLength: _limiteTitulo,
+            inputFormatters: [LengthLimitingTextInputFormatter(_limiteTitulo)],
             decoration: _decoracaoCampo(
               label: 'Título',
               icone: Icons.celebration_outlined,
@@ -384,6 +389,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
             validator: (value) {
               if ((value ?? '').trim().isEmpty) {
                 return 'Informe o título do evento';
+              }
+              if (value!.trim().length > _limiteTitulo) {
+                return 'O título deve ter no máximo $_limiteTitulo caracteres';
               }
               return null;
             },
