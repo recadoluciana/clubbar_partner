@@ -125,6 +125,15 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
         .replaceFirst('Exception:', '')
         .trim();
 
+    final detalhe = RegExp(
+      r'"detail"\s*:\s*"([^"]+)"',
+      caseSensitive: false,
+    ).firstMatch(texto);
+
+    if (detalhe != null) {
+      return detalhe.group(1)!.trim();
+    }
+
     return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
   }
 
@@ -378,7 +387,12 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
     } catch (e) {
       if (!mounted) return;
 
-      AppSnackBar.erro(context, _mensagemErro(e));
+      final mensagem = _mensagemErro(e);
+      if (mensagem.toLowerCase().contains('já existe um usuário')) {
+        AppSnackBar.aviso(context, mensagem);
+      } else {
+        AppSnackBar.erro(context, mensagem);
+      }
     } finally {
       if (mounted) {
         setState(() {
