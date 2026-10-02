@@ -87,14 +87,19 @@ class _CardapiosPageState extends State<CardapiosPage> {
         .where(
           (item) =>
               item['sitcardapio'] == 'ATIVO' &&
-              (item['quantidade_produtos'] as num? ?? 0) > 0,
+              (item['quantidade_produtos'] as num? ?? 0) > 0 &&
+              !(_itensPorLoja[loja.lojaId] ?? const []).any(
+                (cardapio) =>
+                    '${cardapio['cardapiomodelo_id']}' ==
+                    '${item['cardapiomodelo_id']}',
+              ),
         )
         .toList();
     if (padroes.isEmpty) {
       if (mounted) {
         AppSnackBar.aviso(
           context,
-          'Crie um cardápio padrão com produtos no menu da empresa antes de utilizá-lo nesta loja.',
+          'Não há outro cardápio padrão ativo com produtos disponível para esta loja.',
         );
       }
       return;
@@ -102,7 +107,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
     final selecionado = await showDialog<int>(
       context: context,
       builder: (dialogContext) => SimpleDialog(
-        title: const Text('Escolher cardápio padrão da empresa'),
+        title: const Text('Adicionar cardápio à loja'),
         children: padroes
             .map(
               (padrao) => SimpleDialogOption(
@@ -370,28 +375,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
 
   Future<void> _gerenciar(Loja loja, Map<String, dynamic> cardapio) async {
     try {
-      final rascunho = _rascunho(cardapio);
-      final versoes = cardapio['versoes'] as List? ?? const [];
-      Map<String, dynamic>? origem = rascunho;
-      final publicadas = versoes
-          .map((item) => Map<String, dynamic>.from(item as Map))
-          .where(
-            (versao) =>
-                versao['statusversao'] == 'PUBLICADA' ||
-                versao['statusversao'] == 'PROGRAMADA',
-          )
-          .toList();
-      if (origem == null && publicadas.isNotEmpty) {
-        origem = publicadas.first;
-      }
-      if (origem == null) {
-        AppSnackBar.aviso(
-          context,
-          'Publique uma versão do cardápio antes de gerenciá-lo.',
-        );
-        return;
-      }
-      final versaoOrigem = origem;
+      final versaoId = await _garantirRascunho(cardapio);
       if (!mounted) return;
       await Navigator.push<bool>(
         context,
@@ -399,12 +383,46 @@ class _CardapiosPageState extends State<CardapiosPage> {
           builder: (_) => CardapioLojaEditorPage(
             loja: loja,
             cardapioId: int.parse('${cardapio['cardapio_id']}'),
-            versaoId: int.parse('${versaoOrigem['cardapioversao_id']}'),
+            versaoId: versaoId,
             nomeCardapio: '${cardapio['nmcardapio']}',
           ),
         ),
       );
       await _carregar();
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  Future<void> _excluirCardapio(Map<String, dynamic> cardapio) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir cardápio da loja?'),
+        content: Text(
+          '“${cardapio['nmcardapio']}” será removido somente desta loja. O cardápio padrão da empresa e seus produtos serão mantidos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.delete_outline_rounded),
+            label: const Text('Excluir cardápio'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    try {
+      await _repo.excluirCardapio(int.parse('${cardapio['cardapio_id']}'));
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Cardápio excluído da loja.');
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -463,7 +481,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Cardápio padrão - ${loja.nmloja}',
+                    'Cardápios do Estabelecimento - ${loja.nmloja}',
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
@@ -473,7 +491,38 @@ class _CardapiosPageState extends State<CardapiosPage> {
                 ),
               ],
             ),
-            const Divider(height: 22),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ClubbarColors.infoClaro,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 20),
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'O cardápio principal fica disponível continuamente. Cardápios especiais substituem o principal somente durante os períodos programados.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                onPressed: () => _novo(loja),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Adicionar cardápio à loja'),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (cardapios.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
@@ -483,17 +532,8 @@ class _CardapiosPageState extends State<CardapiosPage> {
               ),
             for (var i = 0; i < cardapios.length; i++) ...[
               _conteudoCardapio(loja, cardapios[i]),
-              if (i < cardapios.length - 1) const Divider(height: 24),
+              if (i < cardapios.length - 1) const SizedBox(height: 12),
             ],
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: () => _novo(loja),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Usar cardápio padrão'),
-              ),
-            ),
           ],
         ),
       ),
@@ -513,138 +553,241 @@ class _CardapiosPageState extends State<CardapiosPage> {
         .toList();
     final publicado = publicadas.isNotEmpty || programadas.isNotEmpty;
     final rascunho = _rascunho(cardapio);
-    final sazonal = cardapio['tipocardapio'] != 'PRINCIPAL';
+    final especial = cardapio['tipocardapio'] == 'ESPECIAL';
     final programacoes = (cardapio['programacoes'] as List? ?? const [])
         .map((item) => Map<String, dynamic>.from(item as Map))
         .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${cardapio['nmcardapio']}',
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-            Chip(label: Text('${cardapio['tipocardapio']}')),
-          ],
-        ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            if (publicadas.isEmpty)
-              const Chip(
-                avatar: Icon(Icons.visibility_off_outlined, size: 18),
-                label: Text('Não publicado'),
-              ),
-            for (final versao in publicadas)
-              Chip(
-                backgroundColor: Colors.green.shade50,
-                avatar: Icon(
-                  Icons.check_circle,
-                  color: Colors.green.shade800,
-                  size: 18,
-                ),
-                label: Text(
-                  'Publicado — versão ${versao['nrversao']}',
-                  style: TextStyle(
-                    color: Colors.green.shade800,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            for (final versao in rascunhos)
-              Chip(
-                backgroundColor: ClubbarColors.primariaClaro,
-                avatar: const Icon(Icons.edit_note, size: 18),
-                label: Text(
-                  'Alterações em rascunho — versão ${versao['nrversao']}',
-                ),
-              ),
-            for (final versao in programadas)
-              Chip(
-                avatar: const Icon(Icons.schedule, size: 18),
-                label: Text(
-                  'Publicação programada — versão ${versao['nrversao']}',
-                ),
-              ),
-          ],
-        ),
-        if (sazonal && programacoes.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade100),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Este cardápio será exibido neste intervalo de datas.',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 6),
-                for (final programacao in programacoes)
-                  Row(
-                    children: [
-                      const Icon(Icons.schedule_outlined, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _intervaloProgramacao(programacao),
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Remover programação',
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () =>
-                            _removerProgramacao(cardapio, programacao),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FilledButton.icon(
-              onPressed: () => _gerenciar(loja, cardapio),
-              icon: const Icon(Icons.restaurant_menu_outlined),
-              label: const Text('Gerenciar cardápio'),
-            ),
-            FilledButton.icon(
-              onPressed: rascunho == null ? null : () => _publicar(cardapio),
-              icon: const Icon(Icons.publish),
-              label: const Text('Publicar alterações'),
-            ),
-            if (publicado)
-              OutlinedButton.icon(
-                onPressed: () => _retirarPublicacao(cardapio),
-                icon: const Icon(Icons.visibility_off_outlined),
-                label: const Text('Retirar publicação'),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: especial
+                      ? Colors.purple.shade50
+                      : Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  especial ? Icons.auto_awesome_rounded : Icons.home_rounded,
+                  color: especial
+                      ? Colors.purple.shade700
+                      : Colors.green.shade700,
+                ),
               ),
-            if (sazonal && publicado)
-              FilledButton.icon(
-                onPressed: () => _programarExibicao(cardapio),
-                icon: const Icon(Icons.schedule_outlined),
-                label: const Text('Programar exibição'),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${cardapio['nmcardapio']}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      especial
+                          ? 'Exibido somente durante a programação definida'
+                          : 'Cardápio permanente do estabelecimento',
+                      style: const TextStyle(
+                        color: ClubbarColors.textoSecundario,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: especial
+                      ? Colors.purple.shade50
+                      : Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: especial
+                        ? Colors.purple.shade200
+                        : Colors.green.shade200,
+                  ),
+                ),
+                child: Text(
+                  especial ? 'ESPECIAL' : 'PRINCIPAL',
+                  style: TextStyle(
+                    color: especial
+                        ? Colors.purple.shade800
+                        : Colors.green.shade800,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (publicadas.isEmpty)
+                const Chip(
+                  avatar: Icon(Icons.visibility_off_outlined, size: 18),
+                  label: Text('Não publicado'),
+                ),
+              for (final versao in publicadas)
+                Chip(
+                  backgroundColor: Colors.green.shade50,
+                  avatar: Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade800,
+                    size: 18,
+                  ),
+                  label: Text(
+                    'Publicado — versão ${versao['nrversao']}',
+                    style: TextStyle(
+                      color: Colors.green.shade800,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              for (final versao in rascunhos)
+                Chip(
+                  backgroundColor: ClubbarColors.primariaClaro,
+                  avatar: const Icon(Icons.edit_note, size: 18),
+                  label: Text(
+                    'Alterações em rascunho — versão ${versao['nrversao']}',
+                  ),
+                ),
+              for (final versao in programadas)
+                Chip(
+                  avatar: const Icon(Icons.schedule, size: 18),
+                  label: Text(
+                    'Publicação programada — versão ${versao['nrversao']}',
+                  ),
+                ),
+            ],
+          ),
+          if (especial) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade100),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    programacoes.isEmpty
+                        ? 'Programação ainda não definida'
+                        : 'Período de exibição do cardápio especial',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 6),
+                  if (programacoes.isEmpty)
+                    const Text(
+                      'Defina a data e a hora antes de publicar este cardápio.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  for (final programacao in programacoes)
+                    Row(
+                      children: [
+                        const Icon(Icons.schedule_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _intervaloProgramacao(programacao),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Remover programação',
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () =>
+                              _removerProgramacao(cardapio, programacao),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
           ],
-        ),
-      ],
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: () => _gerenciar(loja, cardapio),
+                icon: const Icon(Icons.restaurant_menu_outlined),
+                label: const Text('Editar cardápio'),
+              ),
+              FilledButton.icon(
+                onPressed:
+                    rascunho == null || (especial && programacoes.isEmpty)
+                    ? null
+                    : () => _publicar(cardapio),
+                icon: const Icon(Icons.publish),
+                label: const Text('Publicar alterações'),
+              ),
+              if (publicado)
+                OutlinedButton.icon(
+                  onPressed: () => _retirarPublicacao(cardapio),
+                  icon: const Icon(Icons.visibility_off_outlined),
+                  label: const Text('Retirar publicação'),
+                ),
+              if (especial)
+                FilledButton.icon(
+                  onPressed: () => _programarExibicao(cardapio),
+                  icon: const Icon(Icons.schedule_outlined),
+                  label: Text(
+                    programacoes.isEmpty
+                        ? 'Definir programação'
+                        : 'Alterar programação',
+                  ),
+                ),
+              OutlinedButton.icon(
+                onPressed: () => _excluirCardapio(cardapio),
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('Excluir cardápio'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red.shade700,
+                  side: BorderSide(color: Colors.red.shade700),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

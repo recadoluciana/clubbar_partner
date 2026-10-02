@@ -395,7 +395,10 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage>
 
   Future<void> _novo() async {
     final nome = TextEditingController();
-    var tipo = 'PRINCIPAL';
+    final possuiPrincipal = _padroes.any(
+      (item) => item['tipocardapio'] == 'PRINCIPAL',
+    );
+    var tipo = possuiPrincipal ? 'ESPECIAL' : 'PRINCIPAL';
     final resultado = await showDialog<(String, String)>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -415,16 +418,25 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage>
               DropdownButtonFormField<String>(
                 initialValue: tipo,
                 decoration: const InputDecoration(labelText: 'Tipo'),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: 'PRINCIPAL',
+                    enabled: !possuiPrincipal,
                     child: Text('Principal'),
                   ),
-                  DropdownMenuItem(value: 'ESPECIAL', child: Text('Especial')),
-                  DropdownMenuItem(value: 'SAZONAL', child: Text('Sazonal')),
-                  DropdownMenuItem(value: 'EVENTO', child: Text('Evento')),
+                  const DropdownMenuItem(
+                    value: 'ESPECIAL',
+                    child: Text('Especial'),
+                  ),
                 ],
                 onChanged: (valor) => atualizar(() => tipo = valor ?? tipo),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                possuiPrincipal
+                    ? 'A empresa já possui um cardápio principal. Os demais devem ser especiais.'
+                    : 'O principal é permanente. Cardápios especiais são exibidos somente nos períodos programados.',
+                style: const TextStyle(fontSize: 13),
               ),
             ],
           ),
@@ -1021,15 +1033,30 @@ class _ItensPadraoPageState extends State<_ItensPadraoPage> {
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
+                          child: OutlinedButton.icon(
                             onPressed: () => _abrirFormulario(item),
-                            child: const Text('Editar'),
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: const Text('Editar'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.blue.shade700,
+                              side: BorderSide(color: Colors.blue.shade700),
+                            ),
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => _remover(item),
-                          tooltip: 'Remover produto',
-                          icon: const Icon(Icons.delete_outline_rounded),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _remover(item),
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                            ),
+                            label: const Text('Excluir'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red.shade700,
+                              side: BorderSide(color: Colors.red.shade700),
+                            ),
+                          ),
                         ),
                       ],
                     ),

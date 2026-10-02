@@ -259,8 +259,8 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           enableSuggestions: false,
-          maxLength: 255,
-          inputFormatters: [LengthLimitingTextInputFormatter(255)],
+          maxLength: 254,
+          inputFormatters: [LengthLimitingTextInputFormatter(254)],
           decoration: _decoracao(
             label: 'E-mail',
             hint: 'contato@empresa.com.br',
@@ -271,6 +271,10 @@ class _OrganizacaoFormPageState extends State<OrganizacaoFormPage> {
 
             if (texto.isEmpty) {
               return 'Informe o e-mail.';
+            }
+
+            if (texto.length > 254) {
+              return 'O e-mail deve ter no máximo 254 caracteres.';
             }
 
             if (!Validators.emailValido(texto)) {

@@ -352,6 +352,13 @@ class CardapioRepository {
     return Map<String, dynamic>.from(_json(response));
   }
 
+  Future<void> excluirCardapio(int cardapioId) async {
+    final response = await ApiService.delete('/cardapios/$cardapioId');
+    if (response.statusCode != 204) {
+      throw _erro(response, 'Não foi possível excluir o cardápio.');
+    }
+  }
+
   Future<Map<String, dynamic>> consultarVersao(int versaoId) async {
     final response = await ApiService.get('/cardapios/versoes/$versaoId');
     if (response.statusCode != 200) {
