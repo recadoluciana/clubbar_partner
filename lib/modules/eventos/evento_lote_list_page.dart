@@ -215,6 +215,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   Future<void> _alternarPublicacao() async {
     if (_alterandoPublicacao) return;
+    if (!_eventoPublicado && _globais.isEmpty) {
+      setState(() => _aba = 3);
+      AppSnackBar.erro(
+        context,
+        'Cadastre ao menos um lote global ativo e configurado para venda antes de publicar o evento.',
+      );
+      return;
+    }
     setState(() => _alterandoPublicacao = true);
     try {
       final mensagem = _eventoPublicado
@@ -1264,7 +1272,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             Icons.stadium_outlined,
           ),
           _numero(
-            'Capacidade autorizada',
+            'Capacidade evento',
             '$_capacidadeEvento',
             Icons.groups_outlined,
             onEditar: _somenteConsulta ? null : _alterarCapacidade,
