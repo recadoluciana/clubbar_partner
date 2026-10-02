@@ -16,7 +16,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.mostrarSair = false,
     this.onVoltar,
     this.onSair,
-    this.logoPath = 'assets/images/clubbar_partner_topbar.png',
+    this.logoPath = 'assets/images/corujao.png',
     this.centralizarLogo = false,
     this.alturaLogo = 52,
     this.actions,
@@ -52,21 +52,26 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
         bottom: false,
         child: IgnorePointer(
           child: Center(
-            child: Image.asset(
-              logoPath,
-              height: alturaLogo,
-              fit: BoxFit.contain,
-              errorBuilder: (_, _, _) {
-                return const Text(
-                  'CLUBBAR',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  logoPath,
+                  height: alturaLogo.clamp(36.0, 44.0).toDouble(),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Clubbar Partner',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 21,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
+                    letterSpacing: -0.8,
                   ),
-                );
-              },
+                ),
+              ],
             ),
           ),
         ),

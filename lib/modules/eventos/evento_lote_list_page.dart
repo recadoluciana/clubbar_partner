@@ -1229,6 +1229,15 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   }
 
   Future<void> _excluirGlobal(EventoLoteGlobal lote) async {
+    if (_eventoPublicado && _globais.length <= 1) {
+      AppSnackBar.erro(
+        context,
+        'Não é possível excluir o último lote global de um evento publicado. Retire a publicação do evento antes de excluir este lote.',
+        duration: const Duration(seconds: 8),
+        mostrarFechar: true,
+      );
+      return;
+    }
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
