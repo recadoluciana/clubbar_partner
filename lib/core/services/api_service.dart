@@ -31,7 +31,16 @@ class ApiService {
       headers: await _headers(),
       body: jsonEncode(body),
     );
-    return _tratarRespostaDeAutenticacao(response);
+    return _tratarRespostaDeAutenticacao(
+      response,
+      invalidarSessao: !_endpointPublicoAutenticacao(endpoint),
+    );
+  }
+
+  static bool _endpointPublicoAutenticacao(String endpoint) {
+    return endpoint == '/auth/loginuser' ||
+        endpoint == '/auth/esqueci-senha-user' ||
+        endpoint == '/auth/redefinir-senha-user';
   }
 
   static Future<http.Response> put(String endpoint, Object body) async {
@@ -66,9 +75,10 @@ class ApiService {
   /// Remove dados locais quando a API informa que a sessão não é mais válida.
   /// O app observa essa alteração e retorna o usuário à tela de login.
   static Future<http.Response> _tratarRespostaDeAutenticacao(
-    http.Response response,
-  ) async {
-    if (response.statusCode == 401) {
+    http.Response response, {
+    bool invalidarSessao = true,
+  }) async {
+    if (invalidarSessao && response.statusCode == 401) {
       await StorageService.clearToken();
     }
     return response;
