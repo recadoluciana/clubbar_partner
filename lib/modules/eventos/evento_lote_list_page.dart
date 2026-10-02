@@ -1126,12 +1126,13 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     EventoLote configuracao,
     EventoLotePreco atual,
   ) async {
+    final ingressoInteira = atual.tipo.trim().toUpperCase() == 'INTEIRA';
     final nome = TextEditingController(text: atual.nome);
     final valor = TextEditingController(
       text: atual.valor.toStringAsFixed(2).replaceAll('.', ','),
     );
-    var usaCota = atual.aplicaCotaLegal;
-    var exigeComprovante = atual.exigeComprovante;
+    var usaCota = ingressoInteira ? false : atual.aplicaCotaLegal;
+    var exigeComprovante = ingressoInteira ? false : atual.exigeComprovante;
     final salvou = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -1153,19 +1154,22 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   ),
                   decoration: const InputDecoration(labelText: 'Preço'),
                 ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: usaCota,
-                  onChanged: (novo) => atualizar(() => usaCota = novo ?? false),
-                  title: const Text('Usa a cota legal de meia-entrada'),
-                ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: exigeComprovante,
-                  onChanged: (novo) =>
-                      atualizar(() => exigeComprovante = novo ?? false),
-                  title: const Text('Exige comprovante'),
-                ),
+                if (!ingressoInteira) ...[
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: usaCota,
+                    onChanged: (novo) =>
+                        atualizar(() => usaCota = novo ?? false),
+                    title: const Text('Usa a cota legal de meia-entrada'),
+                  ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: exigeComprovante,
+                    onChanged: (novo) =>
+                        atualizar(() => exigeComprovante = novo ?? false),
+                    title: const Text('Exige comprovante'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1190,8 +1194,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                                 nome: nome.text.trim(),
                                 tipo: item.tipo,
                                 valor: preco,
-                                aplicaCotaLegal: usaCota,
-                                exigeComprovante: exigeComprovante,
+                                aplicaCotaLegal: ingressoInteira
+                                    ? false
+                                    : usaCota,
+                                exigeComprovante: ingressoInteira
+                                    ? false
+                                    : exigeComprovante,
                                 situacao: item.situacao,
                                 ordem: item.ordem,
                               )
@@ -1858,20 +1866,28 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 ),
               ),
             ),
-            Chip(
-              label: Text(
-                lote.disponivelGlobalmente ? 'Em venda' : lote.situacao,
+            if (!_somenteConsulta) ...[
+              OutlinedButton.icon(
+                onPressed: () => _excluirGlobal(lote),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Excluir lote'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ClubbarColors.erro,
+                  side: const BorderSide(color: ClubbarColors.erro),
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                ),
               ),
-              backgroundColor: lote.disponivelGlobalmente
-                  ? Colors.green.shade50
-                  : null,
-            ),
-            if (!_somenteConsulta)
+              const SizedBox(width: 4),
               IconButton(
                 onPressed: () => _editarLoteGlobal(lote),
                 icon: const Icon(Icons.edit_rounded, color: Colors.blue),
                 tooltip: 'Editar lote global',
               ),
+            ],
           ],
         ),
         const SizedBox(height: 14),
@@ -1936,19 +1952,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 onPressed: () => _adicionarSetorAoLoteGlobal(lote),
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Adicionar setor a este lote'),
-              ),
-            ),
-          ),
-        const SizedBox(height: 6),
-        if (!_somenteConsulta)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => _excluirGlobal(lote),
-              icon: const Icon(Icons.delete_outline, color: ClubbarColors.erro),
-              label: const Text(
-                'Excluir lote',
-                style: TextStyle(color: ClubbarColors.erro),
               ),
             ),
           ),
