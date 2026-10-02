@@ -28,6 +28,22 @@ class _LoginPageState extends State<LoginPage> {
   bool _corujaOlhoFechado = false;
   Timer? _timerCoruja;
 
+  void _liberarFocoSenha() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _senhaFocusNode.unfocus();
+  }
+
+  void _preservarCredenciais(String email, String senha) {
+    _emailController.value = TextEditingValue(
+      text: email,
+      selection: TextSelection.collapsed(offset: email.length),
+    );
+    _senhaController.value = TextEditingValue(
+      text: senha,
+      selection: TextSelection.collapsed(offset: senha.length),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -76,9 +92,7 @@ class _LoginPageState extends State<LoginPage> {
           .toUpperCase();
       if (!mounted) return;
       Widget? destino;
-      if (cargo == 'SUPERADMIN' ||
-          cargo == 'ADMIN' ||
-          cargo == 'MANAGER') {
+      if (cargo == 'SUPERADMIN' || cargo == 'ADMIN' || cargo == 'MANAGER') {
         destino = const DashboardPage();
       }
       if (destino == null) {
@@ -93,6 +107,7 @@ class _LoginPageState extends State<LoginPage> {
         context,
       ).pushReplacement(MaterialPageRoute(builder: (_) => destino!));
     } catch (e) {
+      _preservarCredenciais(email, senha);
       _mensagem(e.toString(), erro: true);
       _senhaFocusNode.requestFocus();
     } finally {
@@ -287,8 +302,11 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _recuperarSenha() async {
     if (_recuperando) return;
+    _liberarFocoSenha();
     final email = await _dialogoEmail();
-    if (email == null || !mounted) return;
+    if (!mounted) return;
+    _liberarFocoSenha();
+    if (email == null) return;
     setState(() => _recuperando = true);
     try {
       final mensagem = await AuthService.solicitarRecuperacao(email);
@@ -307,7 +325,10 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       _mensagem(e.toString(), erro: true);
     } finally {
-      if (mounted) setState(() => _recuperando = false);
+      if (mounted) {
+        _liberarFocoSenha();
+        setState(() => _recuperando = false);
+      }
     }
   }
 
