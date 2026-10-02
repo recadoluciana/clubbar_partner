@@ -44,7 +44,7 @@ class EventoLoteRepository {
     required int lojaId,
     required String nome,
     String? inicioVendas,
-    required String fimVendas,
+    String? fimVendas,
     required String gatilhoVirada,
     required List<Map<String, dynamic>> setores,
   }) async {
@@ -89,14 +89,12 @@ class EventoLoteRepository {
     required int limite,
     required double precoInteira,
   }) async {
-    final response = await ApiService.post(
-      '/eventos/lotes-globais/$loteGlobalId/setores',
-      {
-        'eventosetor_id': setorId,
-        'qtlimite': limite,
-        'precos': _precosPadrao(precoInteira),
-      },
-    );
+    final response =
+        await ApiService.post('/eventos/lotes-globais/$loteGlobalId/setores', {
+          'eventosetor_id': setorId,
+          'qtlimite': limite,
+          'precos': _precosPadrao(precoInteira),
+        });
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw _erro(response, 'Não foi possível adicionar o setor ao lote.');
     }
@@ -347,10 +345,11 @@ class EventoLoteRepository {
     required EventoSetor setor,
     required String nome,
     required int capacidade,
+    required String descricao,
   }) async {
     final response = await ApiService.put('/eventos/setores/${setor.id}', {
       'nmsetor': nome.trim(),
-      'dssetor': setor.descricao,
+      'dssetor': descricao,
       'qtcapacidade': capacidade,
       'nrordem': setor.ordem,
       'sitsetor': setor.situacao,

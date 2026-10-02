@@ -678,6 +678,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   Future<void> _editarSetor(EventoSetor? existente) async {
     final nome = TextEditingController(text: existente?.nome ?? '');
+    final descricao = TextEditingController(text: existente?.descricao ?? '');
     final capacidade = TextEditingController(
       text: existente?.capacidade.toString() ?? '',
     );
@@ -691,6 +692,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             TextField(
               controller: nome,
               decoration: const InputDecoration(labelText: 'Nome do setor'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descricao,
+              maxLength: 255,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Descrição do setor',
+                hintText: 'Ex.: área próxima ao palco, sem assentos marcados',
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -720,12 +731,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     eventoId: widget.eventoId,
                     nome: nome.text.trim(),
                     capacidade: quantidade,
+                    descricao: descricao.text.trim(),
                   );
                 } else {
                   await _repo.atualizarSetor(
                     setor: existente,
                     nome: nome.text.trim(),
                     capacidade: quantidade,
+                    descricao: descricao.text.trim(),
                   );
                 }
                 if (context.mounted) Navigator.pop(context, true);
@@ -851,7 +864,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               controller: limite,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Quantidade neste lote',
+                labelText: 'Quantidade vendida por este preço',
               ),
             ),
             const SizedBox(height: 12),
@@ -991,7 +1004,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                       controller: quantidade,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Máximo de ingressos neste lote',
+                        labelText: 'Quantidade vendida por este preço',
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1295,12 +1308,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             onEditar: _somenteConsulta ? null : _alterarCapacidade,
           ),
           _numero(
-            'Capacidade distribuída',
+            'Capacidade dos setores',
             '$_capacidadeSetores',
             Icons.pie_chart_outline,
           ),
           _numero(
-            'Lotes globais',
+            'Faixas de preço',
             _globais.length.toString(),
             Icons.confirmation_number_outlined,
           ),
@@ -1486,9 +1499,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   }
 
   Widget _matrizCapacidade() => _cardMatriz(
-    titulo: 'Matriz de capacidade',
+    titulo: 'Quantidade por preço e setor',
     subtitulo:
-        'Consulta da quantidade programada de cada setor em cada lote global.',
+        'Cada coluna mostra quantos ingressos do setor serão vendidos pelo preço daquele lote. A capacidade física permanece definida no setor.',
     child: _setoresAtivos.isEmpty || _globais.isEmpty
         ? const Text(
             'Cadastre setores e lotes globais para visualizar a matriz.',
@@ -1504,17 +1517,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 const DataColumn(label: Text('Setor')),
                 const DataColumn(label: Text('Capacidade')),
                 ..._globais.map((lote) => DataColumn(label: Text(lote.nome))),
-                const DataColumn(label: Text('Programado')),
               ],
               rows: _setoresAtivos.map((setor) {
                 final configuracoes = _globais
                     .map((lote) => _configuracaoDoSetor(setor, lote))
                     .toList();
-                final programado = configuracoes.fold<int>(
-                  0,
-                  (total, configuracao) =>
-                      total + (configuracao?.qttotallote ?? 0),
-                );
                 return DataRow(
                   cells: [
                     DataCell(Text(setor.nome)),
@@ -1530,7 +1537,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         ),
                       ),
                     ),
-                    DataCell(Text('$programado')),
                   ],
                 );
               }).toList(),
@@ -1540,8 +1546,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   Widget _matrizPrecos() => _cardMatriz(
     titulo: 'Matriz de preços',
-    subtitulo:
-        'Consulta dos preços por modalidade em cada setor e lote global.',
+    subtitulo: 'Preços de cada modalidade em cada faixa de preço e setor.',
     child: _setoresAtivos.isEmpty || _globais.isEmpty
         ? const Text(
             'Cadastre setores e lotes globais para visualizar a matriz.',
@@ -1625,7 +1630,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
       const SizedBox(height: 6),
       const Text(
-        'A capacidade de cada setor define o máximo distribuível entre todos os lotes globais.',
+        'A capacidade de cada setor é o limite real de ingressos. Os lotes apenas dividem essa venda em preços diferentes.',
       ),
       const SizedBox(height: 12),
       ..._setores.map(
@@ -1647,6 +1652,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                       ),
                     ),
                     Text('Capacidade máxima: ${setor.capacidade} pessoas'),
+                    if (setor.descricao.trim().isNotEmpty)
+                      Text(
+                        setor.descricao.trim(),
+                        style: const TextStyle(color: Colors.black54),
+                      ),
                   ],
                 ),
               ),
@@ -1719,12 +1729,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     padding: const EdgeInsets.all(16),
     children: [
       const Text(
-        'Lotes globais do evento',
+        'Faixas de preço do evento',
         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
       ),
       const SizedBox(height: 6),
       const Text(
-        'Cada lote abre ou encerra ao mesmo tempo para todos os setores. Um setor esgotado fica indisponível, sem mudar sozinho de lote.',
+        'O primeiro lote começa quando o evento é publicado. O próximo preço entra automaticamente quando as quantidades do lote atual terminarem ou na data limite, o que ocorrer primeiro.',
       ),
       const SizedBox(height: 14),
       if (_globais.isEmpty)
@@ -1732,7 +1742,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           child: Center(
             child: Padding(
               padding: EdgeInsets.all(18),
-              child: Text('Nenhum lote global programado.'),
+              child: Text('Nenhuma faixa de preço cadastrada.'),
             ),
           ),
         ),
@@ -1900,44 +1910,19 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           ],
         ),
         const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: lote.numero == 1
-                  ? _dataCard(
-                      Icons.play_circle_outline,
-                      'Início das vendas',
-                      _data(lote.inicioVendas),
-                      onEditar: _somenteConsulta
-                          ? null
-                          : () => _editarDataGlobal(lote, inicio: true),
-                    )
-                  : _dataCard(
-                      Icons.auto_mode_rounded,
-                      'Início das vendas',
-                      'Automático na virada do Lote ${lote.numero - 1}',
-                    ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _dataCard(
-                Icons.stop_circle_outlined,
-                'Fim / virada',
-                _data(lote.fimVendas),
-                onEditar: _somenteConsulta
-                    ? null
-                    : () => _editarDataGlobal(lote, inicio: false),
-              ),
-            ),
-          ],
+        _dataCard(
+          Icons.schedule_rounded,
+          'Data limite deste preço',
+          lote.fimVendas == null || lote.fimVendas!.isEmpty
+              ? 'Sem data: muda quando a quantidade terminar'
+              : _data(lote.fimVendas),
+          onEditar: _somenteConsulta
+              ? null
+              : () => _editarDataGlobal(lote, inicio: false),
         ),
         const SizedBox(height: 10),
         Text(
-          'Virada: ${lote.gatilhoVirada == 'DATA'
-              ? 'na data final'
-              : lote.gatilhoVirada == 'ESGOTAMENTO'
-              ? 'quando todos os setores esgotarem'
-              : 'na primeira condição: data final ou esgotamento global'}',
+          'Mudança de preço: quando a quantidade desta etapa terminar ou na data limite, o que ocorrer primeiro.',
         ),
         const SizedBox(height: 10),
         const Text(
