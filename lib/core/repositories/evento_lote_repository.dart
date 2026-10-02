@@ -74,7 +74,7 @@ class EventoLoteRepository {
         await ApiService.put('/eventos/lotes-globais/$loteGlobalId', {
           'nmlote': ?nome,
           'dtiniciovenda': ?inicioVendas,
-          'dtfimvenda': ?fimVendas,
+          'dtfimvenda': fimVendas,
           'gatilhovirada': ?gatilhoVirada,
           'situacao': ?situacao,
         });
@@ -86,7 +86,7 @@ class EventoLoteRepository {
   Future<void> adicionarSetorAoGlobal({
     required int loteGlobalId,
     required int setorId,
-    required int limite,
+    int? limite,
     required double precoInteira,
   }) async {
     final response =
@@ -103,10 +103,11 @@ class EventoLoteRepository {
   Future<void> atualizarConfiguracaoSetor({
     required int loteId,
     int? limite,
+    bool alterarLimite = false,
     List<EventoLotePreco>? precos,
   }) async {
     final response = await ApiService.put('/eventos/lotes/$loteId', {
-      'qtlimite': ?limite,
+      if (alterarLimite) 'qtlimite': limite,
       if (precos != null)
         'precos': precos
             .map(
@@ -140,6 +141,16 @@ class EventoLoteRepository {
     );
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw _erro(response, 'Não foi possível excluir o lote global.');
+    }
+  }
+
+  Future<void> avancarGlobal(int loteGlobalId) async {
+    final response = await ApiService.post(
+      '/eventos/lotes-globais/$loteGlobalId/avancar',
+      const {},
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível iniciar o próximo lote.');
     }
   }
 

@@ -63,7 +63,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           .firstOrNull;
       _venderNesteLote[setor.id] = _editando ? configuracao != null : true;
       _quantidades[setor.id] = TextEditingController(
-        text: configuracao == null ? '' : '${configuracao.qttotallote}',
+        text: configuracao?.qttotallote?.toString() ?? '',
       );
       final inteira = configuracao?.precos
           .where((preco) => preco.tipo == 'INTEIRA')
@@ -131,7 +131,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
         final meia = inteira / 2;
         return {
           'eventosetor_id': setor.id,
-          'qtlimite': int.tryParse(_quantidades[setor.id]!.text.trim()) ?? 0,
+          'qtlimite': int.tryParse(_quantidades[setor.id]!.text.trim()),
           'precos': [
             {
               'nmpreco': 'Inteira',
@@ -174,14 +174,9 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
     }
     if (!_editando &&
         setoresSelecionados.any(
-          (setor) =>
-              (setor['qtlimite'] as int) <= 0 ||
-              ((setor['precos'] as List).first['vrpreco'] as double) < 0,
+          (setor) => ((setor['precos'] as List).first['vrpreco'] as double) < 0,
         )) {
-      AppSnackBar.aviso(
-        context,
-        'Informe uma quantidade e um preço válidos para cada setor.',
-      );
+      AppSnackBar.aviso(context, 'Informe um preço válido para cada setor.');
       return;
     }
     setState(() => _salvando = true);
@@ -246,7 +241,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'O lote define somente o preço e quantos ingressos cada setor poderá vender por esse preço. A capacidade real continua pertencendo ao setor.',
+                        'O lote define o preço. A meta de vendas é opcional e nunca separa ou prende ingressos; a capacidade real continua pertencendo ao setor.',
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
@@ -265,7 +260,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                         leading: Icon(Icons.auto_mode_rounded),
                         title: Text('Início automático'),
                         subtitle: Text(
-                          'O Lote 1 começa com a publicação do evento. Os próximos começam quando as quantidades configuradas do lote anterior terminarem ou na data limite.',
+                          'O Lote 1 começa com a publicação. Os próximos começam quando a meta do anterior for atingida, na data limite ou por mudança manual.',
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -276,10 +271,22 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                         decoration: const InputDecoration(
                           labelText: 'Data limite deste preço (opcional)',
                           helperText:
-                              'Sem data, o próximo lote começa quando a quantidade deste preço terminar.',
+                              'Sem data, use uma meta ou faça a mudança manual. O último lote pode ficar sem os dois.',
                           suffixIcon: Icon(Icons.calendar_month_outlined),
                         ),
                       ),
+                      if (_fimSelecionado != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () => setState(() {
+                              _fimSelecionado = null;
+                              _fim.clear();
+                            }),
+                            icon: const Icon(Icons.clear_rounded),
+                            label: const Text('Remover data limite'),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -291,7 +298,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Defina quantos ingressos de cada setor serão vendidos por este preço. Essa quantidade não cria novos lugares: todas as vendas continuam consumindo a capacidade única do setor.',
+                    'A meta é opcional. Se ficar vazia, este preço utiliza todo o saldo disponível do setor até a data limite ou uma mudança manual.',
                   ),
                   const SizedBox(height: 10),
                   ...widget.setores.map(
@@ -326,14 +333,17 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
                               decoration: InputDecoration(
-                                labelText: 'Quantidade vendida por este preço',
+                                labelText: 'Meta máxima neste preço (opcional)',
                                 helperText:
-                                    'Capacidade do setor: ${setor.capacidade}. O sistema nunca venderá além do saldo restante.',
+                                    'Vazio = todo o saldo restante. Capacidade do setor: ${setor.capacidade}.',
                               ),
-                              validator: (valor) =>
-                                  (int.tryParse(valor ?? '') ?? 0) <= 0
-                                  ? 'Informe a quantidade deste preço'
-                                  : null,
+                              validator: (valor) {
+                                final texto = valor?.trim() ?? '';
+                                if (texto.isEmpty) return null;
+                                return (int.tryParse(texto) ?? 0) <= 0
+                                    ? 'Informe uma meta válida'
+                                    : null;
+                              },
                             ),
                             const SizedBox(height: 12),
                             TextFormField(

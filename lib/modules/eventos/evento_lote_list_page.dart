@@ -843,7 +843,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   Future<void> _editarConfiguracao(EventoLote configuracao) async {
     final limite = TextEditingController(
-      text: configuracao.qttotallote.toString(),
+      text: configuracao.qttotallote?.toString() ?? '',
     );
     final precoInteira = configuracao.precos
         .where((preco) => preco.tipo == 'INTEIRA')
@@ -864,7 +864,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               controller: limite,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Quantidade vendida por este preço',
+                labelText: 'Meta máxima neste preço (opcional)',
+                helperText: 'Vazio = usar todo o saldo restante do setor.',
               ),
             ),
             const SizedBox(height: 12),
@@ -889,7 +890,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           FilledButton(
             onPressed: () async {
               final quantidade = int.tryParse(limite.text.trim());
-              if (quantidade == null || quantidade <= 0) return;
+              if (limite.text.trim().isNotEmpty &&
+                  (quantidade == null || quantidade <= 0))
+                return;
               try {
                 final valor = double.tryParse(
                   preco.text.replaceAll('.', '').replaceAll(',', '.'),
@@ -910,6 +913,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 await _repo.atualizarConfiguracaoSetor(
                   loteId: configuracao.loteId,
                   limite: quantidade,
+                  alterarLimite: true,
                   precos: modalidades,
                 );
                 if (context.mounted) Navigator.pop(context, true);
@@ -948,9 +952,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     }
 
     var setorId = setoresDisponiveis.first.id;
-    final quantidade = TextEditingController(
-      text: setoresDisponiveis.first.capacidade.toString(),
-    );
+    final quantidade = TextEditingController();
     final preco = TextEditingController(text: '0,00');
     var salvando = false;
     final salvo = await showDialog<bool>(
@@ -983,12 +985,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                           .toList(),
                       onChanged: (valor) {
                         if (valor == null) return;
-                        final selecionado = setoresDisponiveis.firstWhere(
-                          (item) => item.id == valor,
-                        );
                         atualizar(() {
                           setorId = valor;
-                          quantidade.text = selecionado.capacidade.toString();
+                          quantidade.clear();
                         });
                       },
                     ),
@@ -1004,7 +1003,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                       controller: quantidade,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Quantidade vendida por este preço',
+                        labelText: 'Meta máxima neste preço (opcional)',
+                        helperText: 'Vazio = usar todo o saldo restante.',
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1040,17 +1040,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         final inteira = double.tryParse(
                           preco.text.replaceAll('.', '').replaceAll(',', '.'),
                         );
-                        if (limite == null ||
-                            limite <= 0 ||
+                        if ((quantidade.text.trim().isNotEmpty &&
+                                (limite == null || limite <= 0)) ||
                             inteira == null ||
                             inteira < 0) {
                           AppSnackBar.aviso(
                             context,
-                            'Informe a quantidade e o preço da inteira.',
+                            'Informe uma meta válida ou deixe-a vazia, e confira o preço.',
                           );
                           return;
                         }
-                        if (limite > setor.capacidade) {
+                        if (limite != null && limite > setor.capacidade) {
                           AppSnackBar.aviso(
                             context,
                             'A quantidade não pode superar a capacidade do setor.',
@@ -1275,6 +1275,42 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       await _repo.excluirGlobal(lote.id);
       if (mounted) {
         AppSnackBar.sucesso(context, 'Lote global excluído.');
+        _carregar();
+      }
+    } catch (erro) {
+      if (mounted)
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+        );
+    }
+  }
+
+  Future<void> _avancarGlobal(EventoLoteGlobal lote) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Iniciar o próximo lote?'),
+        content: Text(
+          '${lote.nome} será encerrado agora. Os ingressos não vendidos continuarão disponíveis no próximo preço.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Iniciar próximo lote'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    try {
+      await _repo.avancarGlobal(lote.id);
+      if (mounted) {
+        AppSnackBar.sucesso(context, 'Próximo lote iniciado.');
         _carregar();
       }
     } catch (erro) {
@@ -1909,12 +1945,25 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             ],
           ],
         ),
+        if (!_somenteConsulta &&
+            lote.disponivelGlobalmente &&
+            _globais.any((item) => item.numero > lote.numero)) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _avancarGlobal(lote),
+              icon: const Icon(Icons.skip_next_rounded),
+              label: const Text('Encerrar este preço e iniciar o próximo'),
+            ),
+          ),
+        ],
         const SizedBox(height: 14),
         _dataCard(
           Icons.schedule_rounded,
           'Data limite deste preço',
           lote.fimVendas == null || lote.fimVendas!.isEmpty
-              ? 'Sem data: muda quando a quantidade terminar'
+              ? 'Sem data limite'
               : _data(lote.fimVendas),
           onEditar: _somenteConsulta
               ? null
@@ -1922,7 +1971,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Mudança de preço: quando a quantidade desta etapa terminar ou na data limite, o que ocorrer primeiro.',
+          'Mudança de preço: ao atingir a meta, na data limite ou manualmente, o que ocorrer primeiro. Sem meta, vende todo o saldo disponível.',
         ),
         const SizedBox(height: 10),
         const Text(
@@ -2000,7 +2049,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
       subtitle: Text(
-        '${configuracao.qttotallote} ingressos neste lote · ${configuracao.qtvendidalote} vendidos · ${configuracao.qtReservadaLote} reservados',
+        '${configuracao.qttotallote == null ? 'Todo o saldo restante' : 'Meta de ${configuracao.qttotallote}'} · ${configuracao.qtvendidalote} vendidos · ${configuracao.qtReservadaLote} reservados',
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,

@@ -14,7 +14,7 @@ class EventoLote {
   final int cotaLegal;
   final int quantidadeVendidaCotaLegal;
   final int quantidadeReservadaCotaLegal;
-  final int qttotallote;
+  final int? qttotallote;
   final bool usarCapacidadeRestante;
   final int qtvendidalote;
   final int qtReservadaLote;
@@ -76,7 +76,7 @@ class EventoLote {
           (json['qtvendidacotalegal'] as num?)?.toInt() ?? 0,
       quantidadeReservadaCotaLegal:
           (json['qtreservadacotalegal'] as num?)?.toInt() ?? 0,
-      qttotallote: (json['qttotallote'] as num?)?.toInt() ?? 0,
+      qttotallote: (json['qttotallote'] as num?)?.toInt(),
       usarCapacidadeRestante: json['usarcapacidaderestante'] == true,
       qtvendidalote: (json['qtvendidalote'] as num?)?.toInt() ?? 0,
       qtReservadaLote: (json['qtreservadalote'] as num?)?.toInt() ?? 0,
