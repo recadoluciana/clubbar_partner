@@ -410,6 +410,13 @@ class _EventoFormPageState extends State<EventoFormPage> {
           const SizedBox(height: 14),
           TextFormField(
             controller: _precoController,
+            onTap: () {
+              if (_valorPreco() != 0) return;
+              _precoController.selection = TextSelection(
+                baseOffset: 0,
+                extentOffset: _precoController.text.length,
+              );
+            },
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: const [
               DecimalInputFormatter(

@@ -91,6 +91,19 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         : DateFormat("dd/MM/yyyy 'às' HH:mm").format(data);
   }
 
+  void _selecionarPrecoZero(TextEditingController controller) {
+    final valor =
+        double.tryParse(
+          controller.text.replaceAll('.', '').replaceAll(',', '.'),
+        ) ??
+        0;
+    if (valor != 0) return;
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: controller.text.length,
+    );
+  }
+
   Future<DateTime?> _selecionarDataHora(DateTime? atual) async {
     final data = await showDatePicker(
       context: context,
@@ -892,6 +905,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             const SizedBox(height: 12),
             TextField(
               controller: preco,
+              onTap: () => _selecionarPrecoZero(preco),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -1032,6 +1046,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: preco,
+                      onTap: () => _selecionarPrecoZero(preco),
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
