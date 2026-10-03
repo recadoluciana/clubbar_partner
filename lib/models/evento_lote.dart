@@ -12,6 +12,8 @@ class EventoLote {
   final double vrprecolote;
   final List<EventoLotePreco> precos;
   final int cotaLegal;
+  final double percentualCotaLegal;
+  final int quantidadeCotaLegalLote;
   final int quantidadeVendidaCotaLegal;
   final int quantidadeReservadaCotaLegal;
   final int? qttotallote;
@@ -39,6 +41,8 @@ class EventoLote {
     required this.vrprecolote,
     this.precos = const [],
     this.cotaLegal = 0,
+    this.percentualCotaLegal = 40,
+    this.quantidadeCotaLegalLote = 0,
     this.quantidadeVendidaCotaLegal = 0,
     this.quantidadeReservadaCotaLegal = 0,
     required this.qttotallote,
@@ -72,6 +76,10 @@ class EventoLote {
       vrprecolote: inteira?.valor ?? (precos.isEmpty ? 0 : precos.first.valor),
       precos: precos,
       cotaLegal: (json['cotalegal'] as num?)?.toInt() ?? 0,
+      percentualCotaLegal:
+          (json['percentualcotalegal'] as num?)?.toDouble() ?? 40,
+      quantidadeCotaLegalLote:
+          (json['qtlimitecotalegal'] as num?)?.toInt() ?? 0,
       quantidadeVendidaCotaLegal:
           (json['qtvendidacotalegal'] as num?)?.toInt() ?? 0,
       quantidadeReservadaCotaLegal:
