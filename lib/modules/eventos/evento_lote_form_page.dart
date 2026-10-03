@@ -145,6 +145,14 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       ) ??
       0;
 
+  void _selecionarZero(TextEditingController controller) {
+    if (_valor(controller) != 0) return;
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: controller.text.length,
+    );
+  }
+
   List<Map<String, dynamic>> _setoresPayload() => widget.setores
       .where((setor) => _venderNesteLote[setor.id] ?? false)
       .map((setor) {
@@ -363,6 +371,8 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: _inteiras[setor.id],
+                              onTap: () =>
+                                  _selecionarZero(_inteiras[setor.id]!),
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
