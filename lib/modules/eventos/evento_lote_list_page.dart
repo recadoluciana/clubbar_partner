@@ -131,6 +131,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     );
     final escolhida = await _selecionarDataHora(atual);
     if (escolhida == null) return;
+    final inicioEvento = DateTime.tryParse(_eventoInicio ?? '');
+    if (!inicio && inicioEvento != null && escolhida.isAfter(inicioEvento)) {
+      if (mounted) {
+        AppSnackBar.aviso(
+          context,
+          'A data limite deste preço não pode ser posterior ao início do evento.',
+        );
+      }
+      return;
+    }
     final inicioAtual = inicio
         ? escolhida
         : DateTime.tryParse(lote.inicioVendas ?? '');

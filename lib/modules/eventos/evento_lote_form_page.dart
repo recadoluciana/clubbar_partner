@@ -132,11 +132,21 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
 
   Future<void> _selecionarFim() async {
     final data = await _selecionar(_fimSelecionado);
-    if (data != null && mounted)
+    if (data == null || !mounted) return;
+    final inicioEvento = DateTime.tryParse(widget.eventoInicio ?? '');
+    if (inicioEvento != null && data.isAfter(inicioEvento)) {
+      AppSnackBar.aviso(
+        context,
+        'A data limite deste preço não pode ser posterior ao início do evento.',
+      );
+      return;
+    }
+    if (mounted) {
       setState(() {
         _fimSelecionado = data;
         _fim.text = _br(data);
       });
+    }
   }
 
   double _valor(TextEditingController controller) =>
