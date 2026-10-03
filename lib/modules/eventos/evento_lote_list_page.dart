@@ -2067,7 +2067,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
       subtitle: Text(
-        '${configuracao.qttotallote == null ? 'Todo o saldo restante' : 'Meta de ${configuracao.qttotallote}'} · ${configuracao.qtvendidalote} vendidos · ${configuracao.qtReservadaLote} reservados',
+        configuracao.qttotallote == null
+            ? 'Todo o saldo restante'
+            : 'Meta de ${configuracao.qttotallote} ingressos',
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2114,11 +2116,27 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                preco.nome,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    preco.nome,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    configuracao.qttotallote == null
+                                        ? 'Saldo restante para ${configuracao.nomeSetor ?? 'Setor'} ${preco.nome}'
+                                        : '${configuracao.qttotallote} ingresso${configuracao.qttotallote == 1 ? '' : 's'} para ${configuracao.nomeSetor ?? 'Setor'} ${preco.nome}',
+                                    style: const TextStyle(
+                                      color: Colors.blue,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             if (!_somenteConsulta)
