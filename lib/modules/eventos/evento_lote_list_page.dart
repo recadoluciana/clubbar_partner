@@ -347,10 +347,31 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       hora.hour,
       hora.minute,
     );
+    final fimAtual =
+        DateTime.tryParse(_evento?.dtfimevento ?? '') ??
+        nova.add(const Duration(hours: 4));
+    if (!mounted) return;
+    final horaFim = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(fimAtual),
+      helpText: 'HORÁRIO DE TÉRMINO',
+    );
+    if (horaFim == null) return;
+    var novoFim = DateTime(
+      nova.year,
+      nova.month,
+      nova.day,
+      horaFim.hour,
+      horaFim.minute,
+    );
+    if (!novoFim.isAfter(nova)) {
+      novoFim = novoFim.add(const Duration(days: 1));
+    }
     try {
       await _eventoRepo.atualizarHorarioEventoAgendado(
         eventoId: widget.eventoId,
         inicio: nova,
+        fim: novoFim,
       );
       if (!mounted) return;
       setState(() => _eventoInicio = nova.toIso8601String());

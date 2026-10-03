@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/evento_repository.dart';
@@ -234,6 +235,28 @@ class _EventoListPageState extends State<EventoListPage> {
       initialTime: const TimeOfDay(hour: 20, minute: 0),
     );
     if (hora == null || !mounted) return;
+    final inicio = DateTime(
+      data.year,
+      data.month,
+      data.day,
+      hora.hour,
+      hora.minute,
+    );
+    final fimSugerido = inicio.add(const Duration(hours: 4));
+    final horaFim = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(fimSugerido),
+      helpText: 'HORÁRIO DE TÉRMINO',
+    );
+    if (horaFim == null || !mounted) return;
+    var fim = DateTime(
+      data.year,
+      data.month,
+      data.day,
+      horaFim.hour,
+      horaFim.minute,
+    );
+    if (!fim.isAfter(inicio)) fim = fim.add(const Duration(days: 1));
     var recorrencia = 'UNICA';
     var repeticoes = 1;
     final loja = _lojas.where((x) => x.lojaId == lojaId).firstOrNull;
@@ -257,6 +280,15 @@ class _EventoListPageState extends State<EventoListPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.schedule_rounded),
+                  title: const Text('Período do evento'),
+                  subtitle: Text(
+                    '${DateFormat("dd/MM/yyyy 'às' HH:mm").format(inicio)} até '
+                    '${DateFormat("dd/MM/yyyy 'às' HH:mm").format(fim)}',
+                  ),
+                ),
                 DropdownButtonFormField<int>(
                   initialValue: lojaId,
                   isExpanded: true,
@@ -424,13 +456,8 @@ class _EventoListPageState extends State<EventoListPage> {
       await _repository.agendar(
         modeloId: evento.eventoId,
         lojaId: lojaId!,
-        inicio: DateTime(
-          data.year,
-          data.month,
-          data.day,
-          hora.hour,
-          hora.minute,
-        ),
+        inicio: inicio,
+        fim: fim,
         capacidade: capacidade,
         nomeSetorInicial: nomeSetor,
         precoInteira: preco,
