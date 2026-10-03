@@ -190,6 +190,7 @@ class EventoRepository {
   Future<void> atualizarHorarioEventoAgendado({
     required int eventoId,
     required DateTime inicio,
+    required DateTime fim,
   }) async {
     final request = http.MultipartRequest(
       'PUT',
@@ -200,6 +201,7 @@ class EventoRepository {
       request.headers['Authorization'] = 'Bearer $token';
     }
     request.fields['dtinicioevento'] = inicio.toIso8601String();
+    request.fields['dtfimevento'] = fim.toIso8601String();
 
     final response = await request.send();
     final body = await response.stream.bytesToString();
@@ -214,6 +216,7 @@ class EventoRepository {
     required int modeloId,
     required int lojaId,
     required DateTime inicio,
+    required DateTime fim,
     required int capacidade,
     required String nomeSetorInicial,
     required double precoInteira,
@@ -225,6 +228,7 @@ class EventoRepository {
     final response =
         await ApiService.post('/eventos-modelos/$modeloId/agendar', {
           'dtinicio': inicio.toIso8601String(),
+          'dtfim': fim.toIso8601String(),
           'loja_id': lojaId,
           'capacidade': capacidade,
           'nome_setor_inicial': nomeSetorInicial.trim(),
