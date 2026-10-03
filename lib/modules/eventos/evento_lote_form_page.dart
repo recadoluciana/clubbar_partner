@@ -44,6 +44,8 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   final Map<int, TextEditingController> _quantidades = {};
   final Map<int, TextEditingController> _inteiras = {};
   final Map<int, bool> _venderNesteLote = {};
+  List<ModalidadeIngressoCatalogo> _modalidades = [];
+  bool _carregandoModalidades = true;
   DateTime? _fimSelecionado;
   bool _salvando = false;
 
@@ -53,6 +55,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   @override
   void initState() {
     super.initState();
+    _carregarModalidades();
     final lote = widget.loteGlobal;
     _nome.text = lote?.nome ?? 'Lote $_numero';
     _fimSelecionado = DateTime.tryParse(lote?.fimVendas ?? '');
@@ -71,6 +74,24 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       _inteiras[setor.id] = TextEditingController(
         text: (inteira?.valor ?? 0).toStringAsFixed(2).replaceAll('.', ','),
       );
+    }
+  }
+
+  Future<void> _carregarModalidades() async {
+    try {
+      final itens = await _repo.listarModalidades(
+        organizacaoId: widget.organizacaoId,
+      );
+      if (mounted) setState(() => _modalidades = itens);
+    } catch (erro) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _carregandoModalidades = false);
     }
   }
 
@@ -128,42 +149,36 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       .where((setor) => _venderNesteLote[setor.id] ?? false)
       .map((setor) {
         final inteira = _valor(_inteiras[setor.id]!);
-        final meia = inteira / 2;
+        final modalidadesPadrao = _modalidades
+            .where((item) => item.tipo == 'PADRAO' || item.tipo == 'LEGAL')
+            .toList();
         return {
           'eventosetor_id': setor.id,
           'qtlimite': int.tryParse(_quantidades[setor.id]!.text.trim()),
-          'precos': [
-            {
-              'nmpreco': 'Inteira',
-              'tipopreco': 'INTEIRA',
-              'vrpreco': inteira,
-              'aplicacotalegal': false,
-              'exigecomprovante': false,
-              'nrordem': 1,
-            },
-            {
-              'nmpreco': 'Meia-entrada',
-              'tipopreco': 'MEIA_LEGAL',
-              'vrpreco': meia,
-              'aplicacotalegal': true,
-              'exigecomprovante': true,
-              'nrordem': 2,
-            },
-            {
-              'nmpreco': 'Pessoa idosa',
-              'tipopreco': 'MEIA_IDOSO',
-              'vrpreco': meia,
-              'aplicacotalegal': false,
-              'exigecomprovante': true,
-              'nrordem': 3,
-            },
-          ],
+          'precos': modalidadesPadrao
+              .map(
+                (item) => {
+                  'modalidade_id': item.id,
+                  'nmpreco': item.nome,
+                  'tipopreco': item.codigo,
+                  'vrpreco': item.tipo == 'LEGAL' ? inteira / 2 : inteira,
+                  'nrordem': item.ordem,
+                },
+              )
+              .toList(),
         };
       })
       .toList();
 
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_carregandoModalidades || _modalidades.isEmpty) {
+      AppSnackBar.aviso(
+        context,
+        'Aguarde o carregamento do catálogo de modalidades.',
+      );
+      return;
+    }
     final setoresSelecionados = _setoresPayload();
     if (!_editando && setoresSelecionados.isEmpty) {
       AppSnackBar.aviso(

@@ -131,6 +131,7 @@ class EventoLoteGlobal {
 
 class EventoLotePreco {
   final int id;
+  final int modalidadeId;
   final String nome;
   final String tipo;
   final double valor;
@@ -140,6 +141,7 @@ class EventoLotePreco {
   final int ordem;
   const EventoLotePreco({
     required this.id,
+    required this.modalidadeId,
     required this.nome,
     required this.tipo,
     required this.valor,
@@ -150,6 +152,7 @@ class EventoLotePreco {
   });
   factory EventoLotePreco.fromJson(Map<String, dynamic> j) => EventoLotePreco(
     id: (j['lotepreco_id'] as num?)?.toInt() ?? 0,
+    modalidadeId: (j['modalidade_id'] as num?)?.toInt() ?? 0,
     nome: '${j['nmpreco'] ?? ''}',
     tipo: '${j['tipopreco'] ?? ''}',
     valor: (j['vrpreco'] as num?)?.toDouble() ?? 0,
@@ -158,6 +161,43 @@ class EventoLotePreco {
     situacao: '${j['situacao'] ?? 'ATIVO'}',
     ordem: (j['nrordem'] as num?)?.toInt() ?? 0,
   );
+}
+
+class ModalidadeIngressoCatalogo {
+  final int id;
+  final String codigo;
+  final String nome;
+  final String tipo;
+  final bool aplicaCotaLegal;
+  final bool exigeBeneficio;
+  final bool exigeComprovante;
+  final bool permitePersonalizarNome;
+  final int ordem;
+
+  const ModalidadeIngressoCatalogo({
+    required this.id,
+    required this.codigo,
+    required this.nome,
+    required this.tipo,
+    required this.aplicaCotaLegal,
+    required this.exigeBeneficio,
+    required this.exigeComprovante,
+    required this.permitePersonalizarNome,
+    required this.ordem,
+  });
+
+  factory ModalidadeIngressoCatalogo.fromJson(Map<String, dynamic> json) =>
+      ModalidadeIngressoCatalogo(
+        id: (json['modalidade_id'] as num?)?.toInt() ?? 0,
+        codigo: '${json['cdmodalidade'] ?? ''}',
+        nome: '${json['nmmodalidade'] ?? ''}',
+        tipo: '${json['tipomodalidade'] ?? 'COMERCIAL'}',
+        aplicaCotaLegal: json['aplicacotalegal'] == true,
+        exigeBeneficio: json['exigebeneficio'] == true,
+        exigeComprovante: json['exigecomprovante'] == true,
+        permitePersonalizarNome: json['permitepersonalizarnome'] == true,
+        ordem: (json['nrordem'] as num?)?.toInt() ?? 0,
+      );
 }
 
 class EventoSetor {

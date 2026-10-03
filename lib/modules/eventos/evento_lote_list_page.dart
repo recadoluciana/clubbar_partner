@@ -901,6 +901,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   if (item.tipo != 'INTEIRA' || valor == null) return item;
                   return EventoLotePreco(
                     id: item.id,
+                    modalidadeId: item.modalidadeId,
                     nome: item.nome,
                     tipo: item.tipo,
                     valor: valor,
@@ -1139,103 +1140,84 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     EventoLote configuracao,
     EventoLotePreco atual,
   ) async {
-    final ingressoInteira = atual.tipo.trim().toUpperCase() == 'INTEIRA';
     final nome = TextEditingController(text: atual.nome);
     final valor = TextEditingController(
       text: atual.valor.toStringAsFixed(2).replaceAll('.', ','),
     );
-    var usaCota = ingressoInteira ? false : atual.aplicaCotaLegal;
-    var exigeComprovante = ingressoInteira ? false : atual.exigeComprovante;
     final salvou = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, atualizar) => AlertDialog(
-          title: Text('Editar ${atual.nome}'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nome,
-                  decoration: const InputDecoration(labelText: 'Modalidade'),
+      builder: (context) => AlertDialog(
+        title: Text('Editar ${atual.nome}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nome,
+                decoration: const InputDecoration(labelText: 'Modalidade'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: valor,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: valor,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(labelText: 'Preço'),
-                ),
-                if (!ingressoInteira) ...[
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: usaCota,
-                    onChanged: (novo) =>
-                        atualizar(() => usaCota = novo ?? false),
-                    title: const Text('Usa a cota legal de meia-entrada'),
-                  ),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: exigeComprovante,
-                    onChanged: (novo) =>
-                        atualizar(() => exigeComprovante = novo ?? false),
-                    title: const Text('Exige comprovante'),
-                  ),
-                ],
-              ],
-            ),
+                decoration: const InputDecoration(labelText: 'Preço'),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'As regras de cota legal, benefício e comprovante são definidas pelo catálogo do Clubbar.',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final preco = double.tryParse(
-                  valor.text.replaceAll('.', '').replaceAll(',', '.'),
-                );
-                if (nome.text.trim().isEmpty || preco == null || preco < 0)
-                  return;
-                try {
-                  final modalidades = configuracao.precos
-                      .map(
-                        (item) => item.id == atual.id
-                            ? EventoLotePreco(
-                                id: item.id,
-                                nome: nome.text.trim(),
-                                tipo: item.tipo,
-                                valor: preco,
-                                aplicaCotaLegal: ingressoInteira
-                                    ? false
-                                    : usaCota,
-                                exigeComprovante: ingressoInteira
-                                    ? false
-                                    : exigeComprovante,
-                                situacao: item.situacao,
-                                ordem: item.ordem,
-                              )
-                            : item,
-                      )
-                      .toList();
-                  await _repo.atualizarConfiguracaoSetor(
-                    loteId: configuracao.loteId,
-                    precos: modalidades,
-                  );
-                  if (context.mounted) Navigator.pop(context, true);
-                } catch (erro) {
-                  if (context.mounted)
-                    AppSnackBar.erro(
-                      context,
-                      erro.toString().replaceFirst('Exception: ', ''),
-                    );
-                }
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final preco = double.tryParse(
+                valor.text.replaceAll('.', '').replaceAll(',', '.'),
+              );
+              if (nome.text.trim().isEmpty || preco == null || preco < 0)
+                return;
+              try {
+                final modalidades = configuracao.precos
+                    .map(
+                      (item) => item.id == atual.id
+                          ? EventoLotePreco(
+                              id: item.id,
+                              modalidadeId: item.modalidadeId,
+                              nome: nome.text.trim(),
+                              tipo: item.tipo,
+                              valor: preco,
+                              aplicaCotaLegal: item.aplicaCotaLegal,
+                              exigeComprovante: item.exigeComprovante,
+                              situacao: item.situacao,
+                              ordem: item.ordem,
+                            )
+                          : item,
+                    )
+                    .toList();
+                await _repo.atualizarConfiguracaoSetor(
+                  loteId: configuracao.loteId,
+                  precos: modalidades,
+                );
+                if (context.mounted) Navigator.pop(context, true);
+              } catch (erro) {
+                if (context.mounted)
+                  AppSnackBar.erro(
+                    context,
+                    erro.toString().replaceFirst('Exception: ', ''),
+                  );
+              }
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
       ),
     );
     if (salvou == true && mounted) _carregar();

@@ -15,6 +15,27 @@ class EventoLoteRepository {
     return Exception(mensagemPadrao);
   }
 
+  Future<List<ModalidadeIngressoCatalogo>> listarModalidades({
+    int? organizacaoId,
+  }) async {
+    final sufixo = organizacaoId == null
+        ? ''
+        : '?organizacao_id=$organizacaoId';
+    final response = await ApiService.get(
+      '/ingressos-catalogo/modalidades$sufixo',
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível carregar as modalidades.');
+    }
+    return (jsonDecode(response.body) as List)
+        .map(
+          (item) => ModalidadeIngressoCatalogo.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .toList(growable: false);
+  }
+
   Future<List<EventoLote>> listar(int eventoId) async {
     final response = await ApiService.get('/eventos/$eventoId/lotes_todos');
 
@@ -93,7 +114,7 @@ class EventoLoteRepository {
         await ApiService.post('/eventos/lotes-globais/$loteGlobalId/setores', {
           'eventosetor_id': setorId,
           'qtlimite': limite,
-          'precos': _precosPadrao(precoInteira),
+          'precos': await _precosPadrao(precoInteira),
         });
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw _erro(response, 'Não foi possível adicionar o setor ao lote.');
@@ -112,6 +133,7 @@ class EventoLoteRepository {
         'precos': precos
             .map(
               (preco) => {
+                'modalidade_id': preco.modalidadeId,
                 'nmpreco': preco.nome.trim(),
                 'tipopreco': preco.tipo,
                 'vrpreco': preco.valor,
@@ -209,7 +231,7 @@ class EventoLoteRepository {
       'nrlote': numeroLote,
       'qttotallote': usarCapacidadeRestante ? null : quantidadeTotal,
       'usarcapacidaderestante': usarCapacidadeRestante,
-      'precos': _precosPadrao(preco),
+      'precos': await _precosPadrao(preco, organizacaoId: organizacaoId),
       'dtiniciovenda': dtInicioVenda,
       'dtfimvenda': dtFimVenda,
       'statuslote': status,
@@ -243,7 +265,8 @@ class EventoLoteRepository {
       'nrlote': numeroLote,
       'qttotallote': usarCapacidadeRestante == true ? null : quantidadeTotal,
       'usarcapacidaderestante': usarCapacidadeRestante,
-      if (preco != null) 'precos': _precosPadrao(preco),
+      if (preco != null)
+        'precos': await _precosPadrao(preco, organizacaoId: organizacaoId),
       'dtiniciovenda': dtInicioVenda,
       'dtfimvenda': dtFimVenda,
       'statuslote': status,
@@ -277,6 +300,7 @@ class EventoLoteRepository {
       'precos': precos
           .map(
             (preco) => {
+              'modalidade_id': preco.modalidadeId,
               'nmpreco': preco.nome.trim(),
               'tipopreco': preco.tipo,
               'vrpreco': preco.valor,
@@ -294,32 +318,29 @@ class EventoLoteRepository {
     }
   }
 
-  List<Map<String, dynamic>> _precosPadrao(double inteira) => [
-    {
-      'nmpreco': 'Inteira',
-      'tipopreco': 'INTEIRA',
-      'vrpreco': inteira,
-      'aplicacotalegal': false,
-      'exigecomprovante': false,
-      'nrordem': 1,
-    },
-    {
-      'nmpreco': 'Meia-entrada',
-      'tipopreco': 'MEIA_LEGAL',
-      'vrpreco': inteira / 2,
-      'aplicacotalegal': true,
-      'exigecomprovante': true,
-      'nrordem': 2,
-    },
-    {
-      'nmpreco': 'Pessoa idosa',
-      'tipopreco': 'MEIA_IDOSO',
-      'vrpreco': inteira / 2,
-      'aplicacotalegal': false,
-      'exigecomprovante': true,
-      'nrordem': 3,
-    },
-  ];
+  Future<List<Map<String, dynamic>>> _precosPadrao(
+    double inteira, {
+    int? organizacaoId,
+  }) async {
+    final modalidades = await listarModalidades(organizacaoId: organizacaoId);
+    final padroes = modalidades
+        .where((item) => item.tipo == 'PADRAO' || item.tipo == 'LEGAL')
+        .toList();
+    if (padroes.isEmpty) {
+      throw Exception('O catálogo de modalidades padrão está vazio.');
+    }
+    return padroes
+        .map(
+          (item) => {
+            'modalidade_id': item.id,
+            'nmpreco': item.nome,
+            'tipopreco': item.codigo,
+            'vrpreco': item.tipo == 'LEGAL' ? inteira / 2 : inteira,
+            'nrordem': item.ordem,
+          },
+        )
+        .toList(growable: false);
+  }
 
   Future<List<EventoSetor>> listarSetores(int eventoId) async {
     final response = await ApiService.get('/eventos/$eventoId/setores');
