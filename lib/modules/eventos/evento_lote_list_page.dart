@@ -1553,7 +1553,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   }
 
   Widget _matrizCapacidade() => _cardMatriz(
-    titulo: 'Quantidade por preço e setor',
+    titulo: 'Quantidade por lote e setor',
     subtitulo:
         'Cada coluna mostra quantos ingressos do setor serão vendidos pelo preço daquele lote. A capacidade física permanece definida no setor.',
     child: _setoresAtivos.isEmpty || _globais.isEmpty
@@ -1600,7 +1600,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   Widget _matrizPrecos() => _cardMatriz(
     titulo: 'Matriz de preços',
-    subtitulo: 'Preços de cada modalidade em cada faixa de preço e setor.',
+    subtitulo: 'Preços de cada modalidade por lote e setor.',
     child: _setoresAtivos.isEmpty || _globais.isEmpty
         ? const Text(
             'Cadastre setores e lotes globais para visualizar a matriz.',
@@ -2055,6 +2055,26 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     ),
   );
 
+  String _capacidadeDaModalidade(
+    EventoLote configuracao,
+    EventoLotePreco preco,
+  ) {
+    final setor = configuracao.nomeSetor ?? 'Setor';
+    if (preco.aplicaCotaLegal) {
+      final quantidade = configuracao.quantidadeCotaLegalLote;
+      final percentual = configuracao.percentualCotaLegal;
+      final percentualFormatado = percentual == percentual.roundToDouble()
+          ? percentual.toInt().toString()
+          : percentual.toStringAsFixed(1).replaceAll('.', ',');
+      return '$quantidade ingresso${quantidade == 1 ? '' : 's'} ($percentualFormatado%) para $setor ${preco.nome}';
+    }
+    if (configuracao.qttotallote == null) {
+      return 'Saldo restante para $setor ${preco.nome}';
+    }
+    final quantidade = configuracao.qttotallote!;
+    return '$quantidade ingresso${quantidade == 1 ? '' : 's'} para $setor ${preco.nome}';
+  }
+
   Widget _setorNoLote(EventoLote configuracao) => Container(
     margin: const EdgeInsets.only(top: 10),
     decoration: BoxDecoration(
@@ -2127,9 +2147,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    configuracao.qttotallote == null
-                                        ? 'Saldo restante para ${configuracao.nomeSetor ?? 'Setor'} ${preco.nome}'
-                                        : '${configuracao.qttotallote} ingresso${configuracao.qttotallote == 1 ? '' : 's'} para ${configuracao.nomeSetor ?? 'Setor'} ${preco.nome}',
+                                    _capacidadeDaModalidade(
+                                      configuracao,
+                                      preco,
+                                    ),
                                     style: const TextStyle(
                                       color: Colors.blue,
                                       fontSize: 12,
@@ -2197,10 +2218,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           TabBar(
             onTap: (indice) => setState(() => _aba = indice),
             tabs: const [
-              Tab(text: 'Resumo'),
+              Tab(text: 'Evento'),
               Tab(text: 'Atrações'),
               Tab(text: 'Setores'),
-              Tab(text: 'Lotes globais'),
+              Tab(text: 'Lotes'),
             ],
           ),
           Expanded(
