@@ -66,7 +66,6 @@ class _CatalogoIngressosPartnerPageState
       );
       return;
     }
-    final codigo = TextEditingController(text: item?.codigo ?? '');
     final nome = TextEditingController(text: item?.nome ?? '');
     var comprovante = item?.exigeComprovante ?? true;
     var ativo = true;
@@ -80,13 +79,10 @@ class _CatalogoIngressosPartnerPageState
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  controller: codigo,
-                  decoration: const InputDecoration(labelText: 'Código'),
-                ),
-                TextField(
                   controller: nome,
                   decoration: const InputDecoration(labelText: 'Nome'),
                 ),
+                const SizedBox(height: 16),
                 SwitchListTile(
                   value: comprovante,
                   onChanged: (v) => setDialog(() => comprovante = v),
@@ -107,11 +103,10 @@ class _CatalogoIngressosPartnerPageState
             ),
             ElevatedButton(
               onPressed: () {
-                if (codigo.text.trim().length < 2 ||
-                    nome.text.trim().length < 2) {
+                if (nome.text.trim().length < 2) {
                   AppSnackBar.aviso(
                     context,
-                    'Informe código e nome com pelo menos 2 caracteres.',
+                    'Informe um nome com pelo menos 2 caracteres.',
                   );
                   return;
                 }
@@ -127,7 +122,6 @@ class _CatalogoIngressosPartnerPageState
       try {
         await _repo.salvarBeneficio(
           atual: item,
-          codigo: codigo.text,
           nome: nome.text,
           exigeComprovante: comprovante,
           situacao: ativo ? 'ATIVO' : 'INATIVO',
@@ -141,7 +135,6 @@ class _CatalogoIngressosPartnerPageState
           );
       }
     }
-    codigo.dispose();
     nome.dispose();
   }
 
@@ -153,7 +146,6 @@ class _CatalogoIngressosPartnerPageState
       );
       return;
     }
-    final codigo = TextEditingController(text: item?.codigo ?? '');
     final nome = TextEditingController(text: item?.nome ?? '');
     var tipo = item?.tipo ?? 'COMERCIAL';
     var exigeBeneficio = item?.exigeBeneficio ?? false;
@@ -172,13 +164,10 @@ class _CatalogoIngressosPartnerPageState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
-                    controller: codigo,
-                    decoration: const InputDecoration(labelText: 'Código'),
-                  ),
-                  TextField(
                     controller: nome,
                     decoration: const InputDecoration(labelText: 'Nome'),
                   ),
+                  const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     initialValue: tipo,
                     items: const [
@@ -241,11 +230,10 @@ class _CatalogoIngressosPartnerPageState
             ),
             ElevatedButton(
               onPressed: () {
-                if (codigo.text.trim().length < 2 ||
-                    nome.text.trim().length < 2) {
+                if (nome.text.trim().length < 2) {
                   AppSnackBar.aviso(
                     context,
-                    'Informe código e nome com pelo menos 2 caracteres.',
+                    'Informe um nome com pelo menos 2 caracteres.',
                   );
                   return;
                 }
@@ -268,7 +256,6 @@ class _CatalogoIngressosPartnerPageState
       try {
         await _repo.salvarModalidade(
           atual: item,
-          codigo: codigo.text,
           nome: nome.text,
           tipo: tipo,
           exigeBeneficio: exigeBeneficio,
@@ -285,7 +272,6 @@ class _CatalogoIngressosPartnerPageState
           );
       }
     }
-    codigo.dispose();
     nome.dispose();
   }
 
