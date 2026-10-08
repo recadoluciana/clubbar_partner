@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/evento_repository.dart';
+import '../../core/repositories/catalogo_ingresso_partner_repository.dart';
 import '../../core/repositories/localidade_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
@@ -16,6 +17,7 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento.dart';
+import '../../models/evento_lote.dart';
 
 class EventoFormPage extends StatefulWidget {
   final int organizacaoId;
@@ -32,6 +34,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
   final _formKey = GlobalKey<FormState>();
   final _repo = EventoRepository();
+  final _catalogoRepo = CatalogoIngressoPartnerRepository();
   final _localidadeRepository = LocalidadeRepository();
   final _picker = ImagePicker();
 
@@ -51,6 +54,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
   String _statusSelecionado = 'ATIVO';
   String _tipoLocalSelecionado = 'ESTABELECIMENTO';
   String _nomeEmpresa = 'Empresa';
+  bool _carregandoModalidades = true;
+  List<ModalidadeIngressoCatalogo> _modalidades = [];
+  final Map<int, Set<int>> _beneficiosPorModalidade = {};
 
   bool get editando => widget.evento != null;
 
@@ -58,6 +64,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
   void initState() {
     super.initState();
     _carregarNomeEmpresa();
+    _carregarModalidades();
 
     final evento = widget.evento;
     if (evento != null) {
@@ -71,6 +78,39 @@ class _EventoFormPageState extends State<EventoFormPage> {
       _precoController.text = evento.vrPrecoPadrao
           .toStringAsFixed(2)
           .replaceAll('.', ',');
+    }
+  }
+
+  Future<void> _carregarModalidades() async {
+    try {
+      final modalidades = await _catalogoRepo.listarModalidades();
+      if (editando) {
+        final configuradas = await _repo.listarModalidadesPadrao(
+          widget.evento!.eventoId,
+        );
+        for (final item in configuradas) {
+          final id = (item['modalidade_id'] as num?)?.toInt();
+          if (id != null) {
+            _beneficiosPorModalidade[id] =
+                (item['beneficios_ids'] as List? ?? const [])
+                    .map((e) => (e as num).toInt())
+                    .toSet();
+          }
+        }
+      } else {
+        for (final item in modalidades.where(
+          (m) => m.tipo == 'PADRAO' || m.tipo == 'LEGAL',
+        )) {
+          _beneficiosPorModalidade[item.id] = item.beneficios
+              .map((e) => e.id)
+              .toSet();
+        }
+      }
+      if (mounted) setState(() => _modalidades = modalidades);
+    } catch (e) {
+      if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
+    } finally {
+      if (mounted) setState(() => _carregandoModalidades = false);
     }
   }
 
@@ -214,6 +254,13 @@ class _EventoFormPageState extends State<EventoFormPage> {
     _formatarPreco();
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
+    if (_carregandoModalidades || _beneficiosPorModalidade.isEmpty) {
+      AppSnackBar.aviso(
+        context,
+        'Selecione pelo menos uma modalidade para o evento.',
+      );
+      return;
+    }
 
     setState(() => _salvando = true);
     final preco = _valorPreco();
@@ -238,8 +285,12 @@ class _EventoFormPageState extends State<EventoFormPage> {
           precoPadrao: preco,
           imagem: _imagemSelecionada,
         );
+        await _repo.salvarModalidadesPadrao(
+          modeloId: widget.evento!.eventoId,
+          beneficiosPorModalidade: _beneficiosPorModalidade,
+        );
       } else {
-        await _repo.criar(
+        final modeloId = await _repo.criar(
           organizacaoId: widget.organizacaoId,
           produtoIdIngresso: 1,
           titulo: _tituloController.text.trim(),
@@ -257,6 +308,10 @@ class _EventoFormPageState extends State<EventoFormPage> {
           status: _statusSelecionado,
           precoPadrao: preco,
           imagem: _imagemSelecionada,
+        );
+        await _repo.salvarModalidadesPadrao(
+          modeloId: modeloId,
+          beneficiosPorModalidade: _beneficiosPorModalidade,
         );
       }
 
@@ -586,6 +641,101 @@ class _EventoFormPageState extends State<EventoFormPage> {
     );
   }
 
+  Widget _cardModalidades() {
+    if (_carregandoModalidades) {
+      return const ClubbarCard(
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    return ClubbarCard(
+      elevation: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Modalidades do evento',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Escolha as opções que o cliente poderá comprar nesta data.',
+          ),
+          const SizedBox(height: 10),
+          ..._modalidades.map((modalidade) {
+            final selecionada = _beneficiosPorModalidade.containsKey(
+              modalidade.id,
+            );
+            return Column(
+              children: [
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: selecionada,
+                  title: Text(
+                    modalidade.nome,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text(
+                    modalidade.propria
+                        ? 'Modalidade da empresa'
+                        : 'Modalidade padrão Clubbar',
+                  ),
+                  onChanged: _salvando
+                      ? null
+                      : (valor) => setState(() {
+                          if (valor == true)
+                            _beneficiosPorModalidade[modalidade.id] = modalidade
+                                .beneficios
+                                .map((e) => e.id)
+                                .toSet();
+                          else
+                            _beneficiosPorModalidade.remove(modalidade.id);
+                        }),
+                ),
+                if (selecionada && modalidade.exigeBeneficio)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 18, bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Benefícios aceitos',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        ...modalidade.beneficios.map(
+                          (beneficio) => CheckboxListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            value: _beneficiosPorModalidade[modalidade.id]!
+                                .contains(beneficio.id),
+                            title: Text(beneficio.nome),
+                            onChanged: _salvando
+                                ? null
+                                : (valor) => setState(() {
+                                    final selecionados =
+                                        _beneficiosPorModalidade[modalidade
+                                            .id]!;
+                                    if (valor == true)
+                                      selecionados.add(beneficio.id);
+                                    else
+                                      selecionados.remove(beneficio.id);
+                                  }),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const Divider(height: 1),
+              ],
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _botaoSalvar() {
     return SizedBox(
       width: double.infinity,
@@ -652,6 +802,8 @@ class _EventoFormPageState extends State<EventoFormPage> {
                     _cardBanner(),
                     const SizedBox(height: 16),
                     _cardDados(),
+                    const SizedBox(height: 16),
+                    _cardModalidades(),
                     const SizedBox(height: 16),
                     _cardAvisoLotes(),
                     const SizedBox(height: 20),
