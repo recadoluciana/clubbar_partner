@@ -270,10 +270,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     }
   }
 
-  int get _capacidadeSetores => _setores
-      .where((setor) => setor.situacao == 'ATIVO')
-      .fold(0, (total, setor) => total + setor.capacidade);
-
   Future<void> _alterarCapacidade() async {
     final controller = TextEditingController(
       text: _capacidadeEvento.toString(),
@@ -1371,66 +1367,76 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   Widget _resumo() => ListView(
     padding: const EdgeInsets.all(16),
     children: [
-      Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          _numero(
-            'Setores',
-            _setores
-                .where((setor) => setor.situacao == 'ATIVO')
-                .length
-                .toString(),
-            Icons.stadium_outlined,
-          ),
-          _numero(
-            'Capacidade evento',
-            '$_capacidadeEvento',
-            Icons.groups_outlined,
-            onEditar: _somenteConsulta ? null : _alterarCapacidade,
-          ),
-          _numero(
-            'Capacidade dos setores',
-            '$_capacidadeSetores',
-            Icons.pie_chart_outline,
-          ),
-          _numero(
-            'Faixas de preço',
-            _globais.length.toString(),
-            Icons.confirmation_number_outlined,
-          ),
-        ],
-      ),
-      const SizedBox(height: 18),
       ClubbarCard(
-        child: Row(
+        child: Column(
           children: [
-            const Icon(
-              Icons.title_rounded,
-              color: ClubbarColors.primariaEscuro,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Nome do evento', style: TextStyle(fontSize: 12)),
-                  Text(
-                    _eventoTitulo,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
+            Row(
+              children: [
+                const Icon(
+                  Icons.title_rounded,
+                  color: ClubbarColors.primariaEscuro,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Nome do evento',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      Text(
+                        _eventoTitulo,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                if (!_somenteConsulta)
+                  IconButton(
+                    onPressed: _editarNomeEvento,
+                    icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                    tooltip: 'Editar nome do evento',
+                  ),
+              ],
             ),
-            if (!_somenteConsulta)
-              IconButton(
-                onPressed: _editarNomeEvento,
-                icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-                tooltip: 'Editar nome do evento',
-              ),
+            const Divider(height: 24),
+            Row(
+              children: [
+                const Icon(
+                  Icons.groups_outlined,
+                  color: ClubbarColors.primariaEscuro,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Capacidade máxima de pessoas do evento',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      Text(
+                        '$_capacidadeEvento pessoas',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!_somenteConsulta)
+                  IconButton(
+                    onPressed: _alterarCapacidade,
+                    icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                    tooltip: 'Editar capacidade máxima',
+                  ),
+              ],
+            ),
           ],
         ),
       ),
@@ -1760,49 +1766,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         ),
       ),
     ],
-  );
-
-  Widget _numero(
-    String titulo,
-    String valor,
-    IconData icone, {
-    VoidCallback? onEditar,
-  }) => SizedBox(
-    width: 205,
-    child: ClubbarCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Icon(icone, color: ClubbarColors.primariaEscuro),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(titulo, style: const TextStyle(fontSize: 11)),
-                Text(
-                  valor,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (onEditar != null)
-            IconButton(
-              onPressed: onEditar,
-              icon: const Icon(
-                Icons.edit_rounded,
-                size: 19,
-                color: Colors.blue,
-              ),
-              tooltip: 'Editar capacidade autorizada',
-            ),
-        ],
-      ),
-    ),
   );
 
   Widget _lotes() => ListView(
