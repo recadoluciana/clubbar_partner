@@ -128,13 +128,28 @@ class EventoLoteRepository {
     required int setorId,
     required int limite,
     required double precoInteira,
+    required List<ModalidadeIngressoCatalogo> modalidades,
   }) async {
-    final response =
-        await ApiService.post('/eventos/lotes-globais/$loteGlobalId/setores', {
-          'eventosetor_id': setorId,
-          'qtlimite': limite,
-          'precos': await _precosPadrao(precoInteira),
-        });
+    final response = await ApiService.post(
+      '/eventos/lotes-globais/$loteGlobalId/setores',
+      {
+        'eventosetor_id': setorId,
+        'qtlimite': limite,
+        'precos': modalidades
+            .map(
+              (item) => {
+                'modalidade_id': item.id,
+                'nmpreco': item.nome,
+                'tipopreco': item.codigo,
+                'vrpreco': item.tipo == 'LEGAL'
+                    ? precoInteira / 2
+                    : precoInteira,
+                'nrordem': item.ordem,
+              },
+            )
+            .toList(),
+      },
+    );
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw _erro(response, 'Não foi possível adicionar o setor ao lote.');
     }

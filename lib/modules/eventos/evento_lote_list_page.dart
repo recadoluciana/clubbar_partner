@@ -58,6 +58,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   int _aba = 0;
   List<EventoSetor> _setores = [];
   List<EventoLoteGlobal> _globais = [];
+  List<ModalidadeIngressoCatalogo> _modalidadesEvento = [];
   List<EventoAtracao> _atracoes = [];
   CapacidadeEvento? _capacidade;
   Evento? _evento;
@@ -190,6 +191,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _repo.listarSetores(widget.eventoId),
         _repo.listarGlobais(widget.eventoId),
         _repo.obterCapacidadeEvento(widget.eventoId),
+        _repo.listarModalidadesDoEvento(widget.eventoId),
         _atracaoRepo.agenda(
           widget.lojaId,
           DateTime.tryParse(_eventoInicio ?? '') ?? DateTime.now(),
@@ -197,15 +199,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _eventoRepo.obterEventoAgendado(widget.eventoId),
       ]);
       if (!mounted) return;
-      final eventos = respostas[3] as List<AgendaEvento>;
+      final eventos = respostas[4] as List<AgendaEvento>;
       final evento = eventos.where((item) => item.eventoId == widget.eventoId);
       setState(() {
         _setores = respostas[0] as List<EventoSetor>;
         _globais = respostas[1] as List<EventoLoteGlobal>;
         _capacidade = respostas[2] as CapacidadeEvento;
+        _modalidadesEvento = respostas[3] as List<ModalidadeIngressoCatalogo>;
         _atracoes = evento.expand((item) => item.atracoes).toList()
           ..sort((a, b) => a.inicio.compareTo(b.inicio));
-        _evento = respostas[4] as Evento;
+        _evento = respostas[5] as Evento;
         _carregando = false;
       });
     } catch (erro) {
@@ -892,96 +895,161 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     final preco = TextEditingController(
       text: (precoInteira?.valor ?? 0).toStringAsFixed(2).replaceAll('.', ','),
     );
+    final modalidadesSelecionadas = configuracao.precos
+        .map((item) => item.modalidadeId)
+        .toSet();
     final salvou = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Lote ${configuracao.numeroLote} · ${configuracao.nomeSetor ?? 'Setor'}',
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: limite,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Quantidade máxima neste lote',
-                helperText: configuracao.qtCapacidadeSetor == null
-                    ? null
-                    : 'Capacidade do setor: ${configuracao.qtCapacidadeSetor} pessoas.',
+      builder: (context) => StatefulBuilder(
+        builder: (context, atualizarDialogo) => AlertDialog(
+          title: Text(
+            'Lote ${configuracao.numeroLote} · ${configuracao.nomeSetor ?? 'Setor'}',
+          ),
+          content: SizedBox(
+            width: 460,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: limite,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Quantidade máxima neste lote',
+                      helperText: configuracao.qtCapacidadeSetor == null
+                          ? null
+                          : 'Capacidade do setor: ${configuracao.qtCapacidadeSetor} pessoas.',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: preco,
+                    onTap: () => _selecionarPrecoZero(preco),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Preço da inteira',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Modalidades vendidas neste setor',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'As opções exibidas foram definidas no evento. Marque somente as que estarão disponíveis neste setor e lote.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  ..._modalidadesEvento.map(
+                    (modalidade) => CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: modalidadesSelecionadas.contains(modalidade.id),
+                      title: Text(modalidade.nome),
+                      subtitle: Text(
+                        modalidade.exigeBeneficio
+                            ? 'Exige benefício configurado no evento'
+                            : 'Sem exigência de benefício',
+                      ),
+                      onChanged: (valor) => atualizarDialogo(() {
+                        if (valor == true) {
+                          modalidadesSelecionadas.add(modalidade.id);
+                        } else {
+                          modalidadesSelecionadas.remove(modalidade.id);
+                        }
+                      }),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: preco,
-              onTap: () => _selecionarPrecoZero(preco),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(labelText: 'Preço da inteira'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'Ao alterar a inteira, as modalidades existentes são mantidas. Edite cada modalidade no painel abaixo para alterar suas regras.',
+            FilledButton(
+              onPressed: () async {
+                final quantidade = int.tryParse(limite.text.trim());
+                if (quantidade == null || quantidade <= 0) {
+                  AppSnackBar.aviso(context, 'Informe uma quantidade válida.');
+                  return;
+                }
+                if (configuracao.qtCapacidadeSetor != null &&
+                    quantidade > configuracao.qtCapacidadeSetor!) {
+                  AppSnackBar.aviso(
+                    context,
+                    'A quantidade não pode superar a capacidade do setor.',
+                  );
+                  return;
+                }
+                if (modalidadesSelecionadas.isEmpty) {
+                  AppSnackBar.aviso(
+                    context,
+                    'Selecione ao menos uma modalidade para este setor.',
+                  );
+                  return;
+                }
+                try {
+                  final valor = double.tryParse(
+                    preco.text.replaceAll('.', '').replaceAll(',', '.'),
+                  );
+                  final existentes = {
+                    for (final item in configuracao.precos)
+                      item.modalidadeId: item,
+                  };
+                  final modalidades = _modalidadesEvento
+                      .where(
+                        (item) => modalidadesSelecionadas.contains(item.id),
+                      )
+                      .map((item) {
+                        final existente = existentes[item.id];
+                        final valorPadrao = item.tipo == 'LEGAL'
+                            ? (valor ?? 0) / 2
+                            : (valor ?? 0);
+                        return EventoLotePreco(
+                          id: existente?.id ?? 0,
+                          modalidadeId: item.id,
+                          nome: existente?.nome ?? item.nome,
+                          tipo: item.codigo,
+                          valor: existente == null || valor != null
+                              ? valorPadrao
+                              : existente.valor,
+                          aplicaCotaLegal: item.aplicaCotaLegal,
+                          exigeComprovante: item.exigeComprovante,
+                          situacao: existente?.situacao ?? 'ATIVO',
+                          ordem: item.ordem,
+                        );
+                      })
+                      .toList();
+                  await _repo.atualizarConfiguracaoSetor(
+                    loteId: configuracao.loteId,
+                    limite: quantidade,
+                    alterarLimite: true,
+                    precos: modalidades,
+                  );
+                  if (context.mounted) Navigator.pop(context, true);
+                } catch (erro) {
+                  if (context.mounted)
+                    AppSnackBar.erro(
+                      context,
+                      erro.toString().replaceFirst('Exception: ', ''),
+                    );
+                }
+              },
+              child: const Text('Salvar'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final quantidade = int.tryParse(limite.text.trim());
-              if (quantidade == null || quantidade <= 0) {
-                AppSnackBar.aviso(context, 'Informe uma quantidade válida.');
-                return;
-              }
-              if (configuracao.qtCapacidadeSetor != null &&
-                  quantidade > configuracao.qtCapacidadeSetor!) {
-                AppSnackBar.aviso(
-                  context,
-                  'A quantidade não pode superar a capacidade do setor.',
-                );
-                return;
-              }
-              try {
-                final valor = double.tryParse(
-                  preco.text.replaceAll('.', '').replaceAll(',', '.'),
-                );
-                final modalidades = configuracao.precos.map((item) {
-                  if (item.tipo != 'INTEIRA' || valor == null) return item;
-                  return EventoLotePreco(
-                    id: item.id,
-                    modalidadeId: item.modalidadeId,
-                    nome: item.nome,
-                    tipo: item.tipo,
-                    valor: valor,
-                    aplicaCotaLegal: item.aplicaCotaLegal,
-                    exigeComprovante: item.exigeComprovante,
-                    situacao: item.situacao,
-                    ordem: item.ordem,
-                  );
-                }).toList();
-                await _repo.atualizarConfiguracaoSetor(
-                  loteId: configuracao.loteId,
-                  limite: quantidade,
-                  alterarLimite: true,
-                  precos: modalidades,
-                );
-                if (context.mounted) Navigator.pop(context, true);
-              } catch (erro) {
-                if (context.mounted)
-                  AppSnackBar.erro(
-                    context,
-                    erro.toString().replaceFirst('Exception: ', ''),
-                  );
-              }
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
       ),
     );
     if (salvou == true && mounted) _carregar();
@@ -1010,6 +1078,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       text: setoresDisponiveis.first.capacidade.toString(),
     );
     final preco = TextEditingController(text: '0,00');
+    final modalidadesSelecionadas = _modalidadesEvento
+        .map((item) => item.id)
+        .toSet();
     var salvando = false;
     final salvo = await showDialog<bool>(
       context: context,
@@ -1080,7 +1151,22 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Meia-entrada e Pessoa idosa serão criadas automaticamente a 50% do valor da inteira.',
+                      'Selecione as modalidades que serão vendidas neste setor.',
+                    ),
+                    ..._modalidadesEvento.map(
+                      (modalidade) => CheckboxListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: modalidadesSelecionadas.contains(modalidade.id),
+                        title: Text(modalidade.nome),
+                        onChanged: (valor) => atualizar(() {
+                          if (valor == true) {
+                            modalidadesSelecionadas.add(modalidade.id);
+                          } else {
+                            modalidadesSelecionadas.remove(modalidade.id);
+                          }
+                        }),
+                      ),
                     ),
                   ],
                 ),
@@ -1111,6 +1197,13 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                           );
                           return;
                         }
+                        if (modalidadesSelecionadas.isEmpty) {
+                          AppSnackBar.aviso(
+                            context,
+                            'Selecione ao menos uma modalidade para este setor.',
+                          );
+                          return;
+                        }
                         if (limite > setor.capacidade) {
                           AppSnackBar.aviso(
                             context,
@@ -1125,6 +1218,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                             setorId: setorId,
                             limite: limite,
                             precoInteira: inteira,
+                            modalidades: _modalidadesEvento
+                                .where(
+                                  (item) =>
+                                      modalidadesSelecionadas.contains(item.id),
+                                )
+                                .toList(),
                           );
                           if (dialogContext.mounted) {
                             Navigator.pop(dialogContext, true);
