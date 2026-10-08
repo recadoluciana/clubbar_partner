@@ -44,6 +44,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   final Map<int, TextEditingController> _quantidades = {};
   final Map<int, TextEditingController> _inteiras = {};
   final Map<int, bool> _venderNesteLote = {};
+  final Map<int, Set<int>> _modalidadesPorSetor = {};
   List<ModalidadeIngressoCatalogo> _modalidades = [];
   bool _carregandoModalidades = true;
   DateTime? _fimSelecionado;
@@ -76,13 +77,26 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       _inteiras[setor.id] = TextEditingController(
         text: (inteira?.valor ?? 0).toStringAsFixed(2).replaceAll('.', ','),
       );
+      _modalidadesPorSetor[setor.id] =
+          configuracao?.precos.map((preco) => preco.modalidadeId).toSet() ??
+          <int>{};
     }
   }
 
   Future<void> _carregarModalidades() async {
     try {
       final itens = await _repo.listarModalidadesDoEvento(widget.eventoId);
-      if (mounted) setState(() => _modalidades = itens);
+      if (!mounted) return;
+      setState(() {
+        _modalidades = itens;
+        for (final setor in widget.setores) {
+          if ((_modalidadesPorSetor[setor.id] ?? {}).isEmpty && !_editando) {
+            _modalidadesPorSetor[setor.id] = itens
+                .map((item) => item.id)
+                .toSet();
+          }
+        }
+      });
     } catch (erro) {
       if (mounted) {
         AppSnackBar.erro(
@@ -167,13 +181,16 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       .where((setor) => _venderNesteLote[setor.id] ?? false)
       .map((setor) {
         final inteira = _valor(_inteiras[setor.id]!);
-        final modalidadesPadrao = _modalidades
-            .where((item) => item.tipo == 'PADRAO' || item.tipo == 'LEGAL')
+        final modalidadesDoSetor = _modalidades
+            .where(
+              (item) =>
+                  (_modalidadesPorSetor[setor.id] ?? {}).contains(item.id),
+            )
             .toList();
         return {
           'eventosetor_id': setor.id,
           'qtlimite': int.tryParse(_quantidades[setor.id]!.text.trim()),
-          'precos': modalidadesPadrao
+          'precos': modalidadesDoSetor
               .map(
                 (item) => {
                   'modalidade_id': item.id,
@@ -206,8 +223,18 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       return;
     }
     if (!_editando &&
+        setoresSelecionados.any((setor) => (setor['precos'] as List).isEmpty)) {
+      AppSnackBar.aviso(
+        context,
+        'Selecione pelo menos uma modalidade para cada setor deste lote.',
+      );
+      return;
+    }
+    if (!_editando &&
         setoresSelecionados.any(
-          (setor) => ((setor['precos'] as List).first['vrpreco'] as double) < 0,
+          (setor) => (setor['precos'] as List).any(
+            (preco) => (preco['vrpreco'] as double) < 0,
+          ),
         )) {
       AppSnackBar.aviso(context, 'Informe um preço válido para cada setor.');
       return;
@@ -402,11 +429,51 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                                   ? 'Preço inválido'
                                   : null,
                             ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Modalidades disponíveis neste setor',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
                             const SizedBox(height: 4),
                             const Text(
-                              'A inteira cria automaticamente Meia-entrada e Pessoa idosa a 50%.',
+                              'Selecione apenas as modalidades deste evento que poderão ser vendidas neste setor.',
                               style: TextStyle(fontSize: 12),
                             ),
+                            const SizedBox(height: 4),
+                            if (_carregandoModalidades)
+                              const Padding(
+                                padding: EdgeInsets.all(8),
+                                child: CircularProgressIndicator(),
+                              )
+                            else
+                              ..._modalidades.map(
+                                (modalidade) => CheckboxListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  value: (_modalidadesPorSetor[setor.id] ?? {})
+                                      .contains(modalidade.id),
+                                  title: Text(modalidade.nome),
+                                  subtitle: Text(
+                                    modalidade.exigeBeneficio
+                                        ? 'Exige benefício definido no evento'
+                                        : 'Sem exigência de benefício',
+                                  ),
+                                  onChanged: _salvando
+                                      ? null
+                                      : (valor) => setState(() {
+                                          final selecionadas =
+                                              _modalidadesPorSetor[setor.id] ??
+                                              <int>{};
+                                          if (valor == true) {
+                                            selecionadas.add(modalidade.id);
+                                          } else {
+                                            selecionadas.remove(modalidade.id);
+                                          }
+                                          _modalidadesPorSetor[setor.id] =
+                                              selecionadas;
+                                        }),
+                                ),
+                              ),
                           ] else
                             const Padding(
                               padding: EdgeInsets.only(top: 4),
