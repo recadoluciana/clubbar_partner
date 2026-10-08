@@ -52,13 +52,11 @@ class CatalogoIngressoPartnerRepository {
 
   Future<void> salvarBeneficio({
     BeneficioIngressoCatalogo? atual,
-    required String codigo,
     required String nome,
     required bool exigeComprovante,
     required String situacao,
   }) async {
     final dados = {
-      'cdbeneficio': codigo.trim().toUpperCase(),
       'nmbeneficio': nome.trim(),
       'exigecomprovante': exigeComprovante,
       'situacao': situacao,
@@ -80,7 +78,6 @@ class CatalogoIngressoPartnerRepository {
 
   Future<void> salvarModalidade({
     ModalidadeIngressoCatalogo? atual,
-    required String codigo,
     required String nome,
     required String tipo,
     required bool exigeBeneficio,
@@ -89,7 +86,6 @@ class CatalogoIngressoPartnerRepository {
     required String situacao,
   }) async {
     final dados = {
-      'cdmodalidade': codigo.trim().toUpperCase(),
       'nmmodalidade': nome.trim(),
       'tipomodalidade': tipo,
       'aplicacotalegal': false,
