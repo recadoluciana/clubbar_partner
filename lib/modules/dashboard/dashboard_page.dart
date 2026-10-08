@@ -26,6 +26,7 @@ import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
 import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
 import '../eventos/evento_list_page.dart';
+import '../ingressos/catalogo_ingressos_partner_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -146,6 +147,12 @@ class _DashboardPageState extends State<DashboardPage> {
       MaterialPageRoute(
         builder: (_) => EventoListPage(organizacaoId: organizacaoId),
       ),
+    );
+  }
+
+  Future<void> _abrirCatalogoIngressos() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const CatalogoIngressosPartnerPage()),
     );
   }
 
@@ -443,6 +450,16 @@ class _DashboardPageState extends State<DashboardPage> {
                           icone: Icons.event_note_rounded,
                           onTap: _podeGerenciarAtracoes
                               ? _abrirGerenciarEventos
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Modalidades e benefícios',
+                          subtitulo:
+                              'Crie modalidades e benefícios próprios para usar nos seus eventos.',
+                          icone: Icons.confirmation_number_outlined,
+                          onTap: _podeGerenciarAtracoes
+                              ? _abrirCatalogoIngressos
                               : null,
                         ),
                         const SizedBox(height: 14),

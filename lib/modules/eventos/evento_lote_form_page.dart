@@ -81,9 +81,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
 
   Future<void> _carregarModalidades() async {
     try {
-      final itens = await _repo.listarModalidades(
-        organizacaoId: widget.organizacaoId,
-      );
+      final itens = await _repo.listarModalidadesDoEvento(widget.eventoId);
       if (mounted) setState(() => _modalidades = itens);
     } catch (erro) {
       if (mounted) {

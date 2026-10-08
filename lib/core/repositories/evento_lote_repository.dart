@@ -36,6 +36,25 @@ class EventoLoteRepository {
         .toList(growable: false);
   }
 
+  Future<List<ModalidadeIngressoCatalogo>> listarModalidadesDoEvento(
+    int eventoId,
+  ) async {
+    final response = await ApiService.get('/eventos/$eventoId/modalidades');
+    if (response.statusCode != 200) {
+      throw _erro(
+        response,
+        'Não foi possível carregar as modalidades do evento.',
+      );
+    }
+    return (jsonDecode(response.body) as List)
+        .map(
+          (item) => ModalidadeIngressoCatalogo.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList(growable: false);
+  }
+
   Future<List<EventoLote>> listar(int eventoId) async {
     final response = await ApiService.get('/eventos/$eventoId/lotes_todos');
 

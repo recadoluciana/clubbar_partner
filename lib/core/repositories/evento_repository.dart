@@ -84,6 +84,52 @@ class EventoRepository {
     }
   }
 
+  Future<List<Map<String, dynamic>>> listarModalidadesPadrao(
+    int modeloId,
+  ) async {
+    final response = await ApiService.get(
+      '/eventos-modelos/$modeloId/modalidades',
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        _mensagemErro(
+          response.body,
+          'Não foi possível carregar as modalidades do evento.',
+        ),
+      );
+    }
+    return (jsonDecode(response.body) as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList(growable: false);
+  }
+
+  Future<void> salvarModalidadesPadrao({
+    required int modeloId,
+    required Map<int, Set<int>> beneficiosPorModalidade,
+  }) async {
+    final response = await ApiService.put(
+      '/eventos-modelos/$modeloId/modalidades',
+      {
+        'modalidades': beneficiosPorModalidade.entries
+            .map(
+              (entry) => {
+                'modalidade_id': entry.key,
+                'beneficios_ids': entry.value.toList(),
+              },
+            )
+            .toList(),
+      },
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _mensagemErro(
+          response.body,
+          'Não foi possível salvar as modalidades do evento.',
+        ),
+      );
+    }
+  }
+
   Future<void> excluirOcorrencia(int eventoId) async {
     final response = await ApiService.delete('/eventos/$eventoId');
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -328,7 +374,7 @@ class EventoRepository {
     }
   }
 
-  Future<void> criar({
+  Future<int> criar({
     required int organizacaoId,
     required int produtoIdIngresso,
     required String titulo,
@@ -386,6 +432,10 @@ class EventoRepository {
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception(_mensagemErro(body, 'Não foi possível criar o evento.'));
     }
+    final dados = Map<String, dynamic>.from(jsonDecode(body) as Map);
+    return (dados['eventomodelo_id'] as num?)?.toInt() ??
+        (dados['evento_id'] as num?)?.toInt() ??
+        0;
   }
 
   Future<void> atualizar({

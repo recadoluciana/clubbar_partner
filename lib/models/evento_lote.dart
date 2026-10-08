@@ -178,6 +178,8 @@ class ModalidadeIngressoCatalogo {
   final bool exigeComprovante;
   final bool permitePersonalizarNome;
   final int ordem;
+  final bool propria;
+  final List<BeneficioIngressoCatalogo> beneficios;
 
   const ModalidadeIngressoCatalogo({
     required this.id,
@@ -189,6 +191,8 @@ class ModalidadeIngressoCatalogo {
     required this.exigeComprovante,
     required this.permitePersonalizarNome,
     required this.ordem,
+    this.propria = false,
+    this.beneficios = const [],
   });
 
   factory ModalidadeIngressoCatalogo.fromJson(Map<String, dynamic> json) =>
@@ -202,6 +206,42 @@ class ModalidadeIngressoCatalogo {
         exigeComprovante: json['exigecomprovante'] == true,
         permitePersonalizarNome: json['permitepersonalizarnome'] == true,
         ordem: (json['nrordem'] as num?)?.toInt() ?? 0,
+        propria: json['organizacao_id'] != null,
+        beneficios: (json['beneficios'] as List? ?? const [])
+            .map(
+              (item) => BeneficioIngressoCatalogo.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList(growable: false),
+      );
+}
+
+class BeneficioIngressoCatalogo {
+  final int id;
+  final String codigo;
+  final String nome;
+  final bool exigeComprovante;
+  final bool propria;
+  final int ordem;
+
+  const BeneficioIngressoCatalogo({
+    required this.id,
+    required this.codigo,
+    required this.nome,
+    required this.exigeComprovante,
+    required this.ordem,
+    this.propria = false,
+  });
+
+  factory BeneficioIngressoCatalogo.fromJson(Map<String, dynamic> json) =>
+      BeneficioIngressoCatalogo(
+        id: (json['beneficio_id'] as num?)?.toInt() ?? 0,
+        codigo: '${json['cdbeneficio'] ?? ''}',
+        nome: '${json['nmbeneficio'] ?? ''}',
+        exigeComprovante: json['exigecomprovante'] == true,
+        ordem: (json['nrordem'] as num?)?.toInt() ?? 0,
+        propria: json['organizacao_id'] != null,
       );
 }
 
