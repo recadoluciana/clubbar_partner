@@ -106,7 +106,17 @@ class _CatalogoIngressosPartnerPageState
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(dialog, true),
+              onPressed: () {
+                if (codigo.text.trim().length < 2 ||
+                    nome.text.trim().length < 2) {
+                  AppSnackBar.aviso(
+                    context,
+                    'Informe código e nome com pelo menos 2 caracteres.',
+                  );
+                  return;
+                }
+                Navigator.pop(dialog, true);
+              },
               child: const Text('Salvar'),
             ),
           ],
@@ -230,7 +240,24 @@ class _CatalogoIngressosPartnerPageState
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(dialog, true),
+              onPressed: () {
+                if (codigo.text.trim().length < 2 ||
+                    nome.text.trim().length < 2) {
+                  AppSnackBar.aviso(
+                    context,
+                    'Informe código e nome com pelo menos 2 caracteres.',
+                  );
+                  return;
+                }
+                if (exigeBeneficio && selecionados.isEmpty) {
+                  AppSnackBar.aviso(
+                    context,
+                    'Selecione ao menos um benefício para esta modalidade.',
+                  );
+                  return;
+                }
+                Navigator.pop(dialog, true);
+              },
               child: const Text('Salvar'),
             ),
           ],
