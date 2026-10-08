@@ -107,7 +107,7 @@ class EventoLoteRepository {
   Future<void> adicionarSetorAoGlobal({
     required int loteGlobalId,
     required int setorId,
-    int? limite,
+    required int limite,
     required double precoInteira,
   }) async {
     final response =

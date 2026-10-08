@@ -887,7 +887,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   Future<void> _editarConfiguracao(EventoLote configuracao) async {
     final limite = TextEditingController(
-      text: configuracao.qttotallote?.toString() ?? '',
+      text: (configuracao.qttotallote ?? configuracao.qtCapacidadeSetor ?? 0)
+          .toString(),
     );
     final precoInteira = configuracao.precos
         .where((preco) => preco.tipo == 'INTEIRA')
@@ -907,9 +908,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             TextField(
               controller: limite,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Meta máxima neste preço (opcional)',
-                helperText: 'Vazio = usar todo o saldo restante do setor.',
+              decoration: InputDecoration(
+                labelText: 'Quantidade máxima neste lote',
+                helperText: configuracao.qtCapacidadeSetor == null
+                    ? null
+                    : 'Capacidade do setor: ${configuracao.qtCapacidadeSetor} pessoas.',
               ),
             ),
             const SizedBox(height: 12),
@@ -935,9 +938,18 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           FilledButton(
             onPressed: () async {
               final quantidade = int.tryParse(limite.text.trim());
-              if (limite.text.trim().isNotEmpty &&
-                  (quantidade == null || quantidade <= 0))
+              if (quantidade == null || quantidade <= 0) {
+                AppSnackBar.aviso(context, 'Informe uma quantidade válida.');
                 return;
+              }
+              if (configuracao.qtCapacidadeSetor != null &&
+                  quantidade > configuracao.qtCapacidadeSetor!) {
+                AppSnackBar.aviso(
+                  context,
+                  'A quantidade não pode superar a capacidade do setor.',
+                );
+                return;
+              }
               try {
                 final valor = double.tryParse(
                   preco.text.replaceAll('.', '').replaceAll(',', '.'),
@@ -998,7 +1010,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     }
 
     var setorId = setoresDisponiveis.first.id;
-    final quantidade = TextEditingController();
+    final quantidade = TextEditingController(
+      text: setoresDisponiveis.first.capacidade.toString(),
+    );
     final preco = TextEditingController(text: '0,00');
     var salvando = false;
     final salvo = await showDialog<bool>(
@@ -1033,7 +1047,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         if (valor == null) return;
                         atualizar(() {
                           setorId = valor;
-                          quantidade.clear();
+                          quantidade.text = setoresDisponiveis
+                              .firstWhere((item) => item.id == valor)
+                              .capacidade
+                              .toString();
                         });
                       },
                     ),
@@ -1048,9 +1065,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     TextField(
                       controller: quantidade,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Meta máxima neste preço (opcional)',
-                        helperText: 'Vazio = usar todo o saldo restante.',
+                      decoration: InputDecoration(
+                        labelText: 'Quantidade máxima neste lote',
+                        helperText:
+                            'Capacidade do setor: ${setor.capacidade} pessoas.',
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1087,17 +1105,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         final inteira = double.tryParse(
                           preco.text.replaceAll('.', '').replaceAll(',', '.'),
                         );
-                        if ((quantidade.text.trim().isNotEmpty &&
-                                (limite == null || limite <= 0)) ||
+                        if (limite == null ||
+                            limite <= 0 ||
                             inteira == null ||
                             inteira < 0) {
                           AppSnackBar.aviso(
                             context,
-                            'Informe uma meta válida ou deixe-a vazia, e confira o preço.',
+                            'Informe uma quantidade válida e confira o preço.',
                           );
                           return;
                         }
-                        if (limite != null && limite > setor.capacidade) {
+                        if (limite > setor.capacidade) {
                           AppSnackBar.aviso(
                             context,
                             'A quantidade não pode superar a capacidade do setor.',
@@ -1595,9 +1613,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         Text(
                           configuracao == null
                               ? '—'
-                              : configuracao.usarCapacidadeRestante
-                              ? 'Saldo'
-                              : '${configuracao.qttotallote}',
+                              : '${configuracao.qttotallote ?? configuracao.qtCapacidadeSetor ?? 0}',
                         ),
                       ),
                     ),
@@ -1999,7 +2015,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Mudança de preço: ao atingir a meta, na data limite ou manualmente, o que ocorrer primeiro. Sem meta, vende todo o saldo disponível.',
+          'Mudança de preço: ao atingir a quantidade deste lote, na data limite ou manualmente, o que ocorrer primeiro. A sobra permanece no mesmo setor para o próximo lote.',
         ),
         const SizedBox(height: 10),
         const Text(
@@ -2078,10 +2094,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           : percentual.toStringAsFixed(1).replaceAll('.', ',');
       return '$quantidade ingresso${quantidade == 1 ? '' : 's'} ($percentualFormatado%) para $setor ${preco.nome}';
     }
-    if (configuracao.qttotallote == null) {
-      return 'Saldo restante para $setor ${preco.nome}';
-    }
-    final quantidade = configuracao.qttotallote!;
+    final quantidade =
+        configuracao.qttotallote ?? configuracao.qtCapacidadeSetor ?? 0;
     return '$quantidade ingresso${quantidade == 1 ? '' : 's'} para $setor ${preco.nome}';
   }
 
@@ -2097,9 +2111,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
       subtitle: Text(
-        configuracao.qttotallote == null
-            ? 'Todo o saldo restante'
-            : 'Meta de ${configuracao.qttotallote} ingressos',
+        'Capacidade deste lote: ${configuracao.qttotallote ?? configuracao.qtCapacidadeSetor ?? 0} ingressos',
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,

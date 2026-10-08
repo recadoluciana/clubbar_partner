@@ -66,7 +66,9 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
           .firstOrNull;
       _venderNesteLote[setor.id] = _editando ? configuracao != null : true;
       _quantidades[setor.id] = TextEditingController(
-        text: configuracao?.qttotallote?.toString() ?? '',
+        text:
+            configuracao?.qttotallote?.toString() ??
+            setor.capacidade.toString(),
       );
       final inteira = configuracao?.precos
           .where((preco) => preco.tipo == 'INTEIRA')
@@ -274,7 +276,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'O lote define o preço. A meta de vendas é opcional e nunca separa ou prende ingressos; a capacidade real continua pertencendo ao setor.',
+                        'O lote define o preço. Cada setor mantém sua própria capacidade e nunca compartilha ingressos com outro setor.',
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
@@ -293,7 +295,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                         leading: Icon(Icons.auto_mode_rounded),
                         title: Text('Início automático'),
                         subtitle: Text(
-                          'O Lote 1 começa com a publicação. Os próximos começam quando a meta do anterior for atingida, na data limite ou por mudança manual.',
+                          'O Lote 1 começa com a publicação. Os próximos começam quando a quantidade do anterior for atingida, na data limite ou por mudança manual.',
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -304,7 +306,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                         decoration: const InputDecoration(
                           labelText: 'Data limite deste preço (opcional)',
                           helperText:
-                              'Sem data, use uma meta ou faça a mudança manual. O último lote pode ficar sem os dois.',
+                              'Sem data, a mudança pode ser feita pela quantidade ou manualmente. O último lote pode ficar sem os dois.',
                           suffixIcon: Icon(Icons.calendar_month_outlined),
                         ),
                       ),
@@ -331,7 +333,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'A meta é opcional. Se ficar vazia, este preço utiliza todo o saldo disponível do setor até a data limite ou uma mudança manual.',
+                    'Informe a quantidade máxima de cada setor neste lote. A sobra só poderá seguir para o próximo lote do mesmo setor.',
                   ),
                   const SizedBox(height: 10),
                   ...widget.setores.map(
@@ -366,16 +368,23 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
                               decoration: InputDecoration(
-                                labelText: 'Meta máxima neste preço (opcional)',
+                                labelText: 'Quantidade máxima neste lote',
                                 helperText:
-                                    'Vazio = todo o saldo restante. Capacidade do setor: ${setor.capacidade}.',
+                                    'Capacidade do setor: ${setor.capacidade} pessoas.',
                               ),
                               validator: (valor) {
                                 final texto = valor?.trim() ?? '';
-                                if (texto.isEmpty) return null;
-                                return (int.tryParse(texto) ?? 0) <= 0
-                                    ? 'Informe uma meta válida'
-                                    : null;
+                                if (texto.isEmpty) {
+                                  return 'Informe a quantidade deste lote';
+                                }
+                                final quantidade = int.tryParse(texto) ?? 0;
+                                if (quantidade <= 0) {
+                                  return 'Informe uma quantidade válida';
+                                }
+                                if (quantidade > setor.capacidade) {
+                                  return 'A quantidade não pode superar a capacidade do setor';
+                                }
+                                return null;
                               },
                             ),
                             const SizedBox(height: 12),
