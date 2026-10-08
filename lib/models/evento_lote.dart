@@ -17,7 +17,6 @@ class EventoLote {
   final int quantidadeVendidaCotaLegal;
   final int quantidadeReservadaCotaLegal;
   final int? qttotallote;
-  final bool usarCapacidadeRestante;
   final int qtvendidalote;
   final int qtReservadaLote;
   final int? qtCapacidadeSetor;
@@ -46,7 +45,6 @@ class EventoLote {
     this.quantidadeVendidaCotaLegal = 0,
     this.quantidadeReservadaCotaLegal = 0,
     required this.qttotallote,
-    this.usarCapacidadeRestante = false,
     required this.qtvendidalote,
     this.qtReservadaLote = 0,
     this.qtCapacidadeSetor,
@@ -85,7 +83,6 @@ class EventoLote {
       quantidadeReservadaCotaLegal:
           (json['qtreservadacotalegal'] as num?)?.toInt() ?? 0,
       qttotallote: (json['qttotallote'] as num?)?.toInt(),
-      usarCapacidadeRestante: json['usarcapacidaderestante'] == true,
       qtvendidalote: (json['qtvendidalote'] as num?)?.toInt() ?? 0,
       qtReservadaLote: (json['qtreservadalote'] as num?)?.toInt() ?? 0,
       qtCapacidadeSetor: (json['qtcapacidade_setor'] as num?)?.toInt(),
