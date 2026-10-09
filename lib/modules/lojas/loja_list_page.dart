@@ -858,10 +858,6 @@ class _LojaListPageState extends State<LojaListPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (acao) {
         switch (acao) {
-          case 'editar':
-            _abrirEdicao(loja);
-          case 'excluir':
-            _excluirLoja(loja);
           case 'produtos':
             _abrirConfiguracaoProdutos(loja);
           case 'imagens':
@@ -873,15 +869,6 @@ class _LojaListPageState extends State<LojaListPage> {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'editar',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.edit_rounded, color: ClubbarColors.info),
-            title: Text('Editar estabelecimento'),
-          ),
-        ),
         const PopupMenuItem(
           value: 'produtos',
           child: ListTile(
@@ -918,23 +905,86 @@ class _LojaListPageState extends State<LojaListPage> {
             title: Text('Conteúdo do estabelecimento'),
           ),
         ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'excluir',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              Icons.delete_outline_rounded,
-              color: ClubbarColors.erro,
+      ],
+    );
+  }
+
+  Widget _acaoLoja({
+    required String tooltip,
+    required IconData icone,
+    required Color cor,
+    required VoidCallback acao,
+  }) {
+    return IconButton(
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+      onPressed: acao,
+      icon: Icon(icone, color: cor, size: 22),
+    );
+  }
+
+  String _urlImagem(String? valor) => (valor ?? '').trim();
+
+  Widget _miniaturaImagemLoja({
+    required String rotulo,
+    required String url,
+    required IconData iconeAusente,
+    required double largura,
+  }) {
+    final temImagem = url.isNotEmpty;
+
+    return Semantics(
+      label: temImagem ? '$rotulo cadastrado' : '$rotulo não cadastrado',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: largura,
+            height: 58,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: ClubbarColors.fundo,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: temImagem
+                    ? ClubbarColors.borda
+                    : ClubbarColors.textoSecundario.withValues(alpha: 0.45),
+              ),
             ),
-            title: Text(
-              'Excluir estabelecimento',
-              style: TextStyle(color: ClubbarColors.erro),
+            child: temImagem
+                ? Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Center(
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: ClubbarColors.textoSecundario,
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Icon(
+                      iconeAusente,
+                      color: ClubbarColors.textoSecundario,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            temImagem ? rotulo : '$rotulo não enviado',
+            style: TextStyle(
+              fontSize: 11,
+              color: temImagem
+                  ? ClubbarColors.textoSecundario
+                  : ClubbarColors.textoSecundario,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -993,7 +1043,39 @@ class _LojaListPageState extends State<LojaListPage> {
                           ),
                         ),
                         const SizedBox(width: 8),
+                        _acaoLoja(
+                          tooltip: 'Editar estabelecimento',
+                          icone: Icons.edit_rounded,
+                          cor: ClubbarColors.info,
+                          acao: () => _abrirEdicao(loja),
+                        ),
+                        _acaoLoja(
+                          tooltip: 'Excluir estabelecimento',
+                          icone: Icons.delete_outline_rounded,
+                          cor: ClubbarColors.erro,
+                          acao: () => _excluirLoja(loja),
+                        ),
                         _menuAcoesLoja(loja),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        _miniaturaImagemLoja(
+                          rotulo: 'Logo',
+                          url: _urlImagem(loja.urllogoloja),
+                          iconeAusente: Icons.storefront_outlined,
+                          largura: 58,
+                        ),
+                        _miniaturaImagemLoja(
+                          rotulo: 'Foto da fachada',
+                          url: _urlImagem(loja.urlfachadaloja),
+                          iconeAusente: Icons.add_a_photo_outlined,
+                          largura: 104,
+                        ),
                       ],
                     ),
 
