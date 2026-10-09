@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/config/api_config.dart';
 import '../../core/repositories/acompanhamento_vendas_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -62,6 +63,25 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
       MaterialPageRoute<void>(
         builder: (_) => DetalheVendasEventoPage(evento: evento),
       ),
+    );
+  }
+
+  Widget _imagemEvento(EventoVendaResumo evento) {
+    final imagem = evento.imagemEvento.trim();
+    final fallback = Container(
+      color: Colors.deepPurple.withValues(alpha: .10),
+      child: const Icon(
+        Icons.event_rounded,
+        size: 30,
+        color: Colors.deepPurple,
+      ),
+    );
+    if (imagem.isEmpty) return fallback;
+
+    return Image.network(
+      ApiConfig.buildUrl(imagem),
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => fallback,
     );
   }
 
@@ -272,10 +292,13 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
               onTap: () => _detalhar(evento),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.event_rounded,
-                    size: 36,
-                    color: Colors.deepPurple,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: _imagemEvento(evento),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

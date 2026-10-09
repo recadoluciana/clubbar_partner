@@ -52,6 +52,7 @@ class EventoVendaResumo {
   final int eventoId;
   final String nome;
   final String loja;
+  final String imagemEvento;
   final DateTime dataHora;
   final String status;
   final int quantidade;
@@ -61,6 +62,7 @@ class EventoVendaResumo {
     required this.eventoId,
     required this.nome,
     required this.loja,
+    required this.imagemEvento,
     required this.dataHora,
     required this.status,
     required this.quantidade,
@@ -72,6 +74,7 @@ class EventoVendaResumo {
         eventoId: (json['evento_id'] as num).toInt(),
         nome: json['nmtituloevento']?.toString() ?? '',
         loja: json['nmloja']?.toString() ?? '',
+        imagemEvento: json['urlbannerevento']?.toString() ?? '',
         dataHora: DateTime.parse(json['dtinicioevento'].toString()),
         status: json['statusevento']?.toString() ?? '',
         quantidade: (json['quantidade_vendida'] as num?)?.toInt() ?? 0,
