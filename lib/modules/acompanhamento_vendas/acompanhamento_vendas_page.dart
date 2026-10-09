@@ -85,6 +85,21 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
     );
   }
 
+  Widget _imagemProduto(ProdutoPendente produto) {
+    final imagem = produto.imagemProduto.trim();
+    final fallback = Container(
+      color: Colors.blue.withValues(alpha: .10),
+      child: const Icon(Icons.local_drink_rounded, color: Colors.blue),
+    );
+    if (imagem.isEmpty) return fallback;
+
+    return Image.network(
+      ApiConfig.buildUrl(imagem),
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => fallback,
+    );
+  }
+
   Widget _resumo(String titulo, String valor, IconData icone, Color cor) =>
       Container(
         padding: const EdgeInsets.all(13),
@@ -189,16 +204,12 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
             (item) => ClubbarCard(
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: .1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.local_drink_rounded,
-                      color: Colors.blue,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: _imagemProduto(item),
                     ),
                   ),
                   const SizedBox(width: 12),
