@@ -263,6 +263,27 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
     }
   }
 
+  IconData _iconeDoEstilo(String nome) {
+    final estilo = nome.trim().toLowerCase();
+    if (estilo.contains('axé')) return Icons.celebration_rounded;
+    if (estilo.contains('brega funk')) return Icons.headphones_rounded;
+    if (estilo.contains('country')) return Icons.agriculture_rounded;
+    if (estilo.contains('pé de serra')) return Icons.terrain_rounded;
+    if (estilo.contains('eletr')) return Icons.bolt_rounded;
+    if (estilo.contains('forró')) return Icons.music_note_rounded;
+    if (estilo.contains('sertanej')) return Icons.piano_rounded;
+    if (estilo.contains('pagode') || estilo.contains('samba')) {
+      return Icons.album_rounded;
+    }
+    if (estilo.contains('rock')) return Icons.star_rounded;
+    if (estilo.contains('reggae')) return Icons.waves_rounded;
+    if (estilo.contains('rap') || estilo.contains('hip hop')) {
+      return Icons.mic_rounded;
+    }
+    if (estilo.contains('gospel')) return Icons.church_rounded;
+    return Icons.graphic_eq_rounded;
+  }
+
   @override
   Widget build(BuildContext context) {
     final itens = _filtrados;
@@ -274,7 +295,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
           ClubbarAddButton(
             onPressed: _importarDoCatalogo,
             icon: Icons.library_music_outlined,
-            label: 'Estilos do catálogo',
+            label: '+ Estilos do catálogo',
             primary: false,
           ),
           ClubbarAddButton(
@@ -346,7 +367,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
                                 backgroundColor: ativo
                                     ? ClubbarColors.ambarClaro
                                     : ClubbarColors.borda,
-                                child: const Icon(Icons.music_note_rounded),
+                                child: Icon(_iconeDoEstilo(estilo.nome)),
                               ),
                               title: Text(
                                 estilo.nome,
