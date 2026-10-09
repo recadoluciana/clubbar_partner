@@ -343,7 +343,7 @@ class _EventoListPageState extends State<EventoListPage> {
                     decimal: true,
                   ),
                   decoration: const InputDecoration(
-                    labelText: 'Preço da inteira nesta data',
+                    labelText: 'Preço padrão do lote nesta data',
                     prefixText: 'R\$ ',
                   ),
                 ),

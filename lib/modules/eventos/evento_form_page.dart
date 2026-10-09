@@ -97,14 +97,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
                     .toSet();
           }
         }
-      } else {
-        for (final item in modalidades.where(
-          (m) => m.tipo == 'PADRAO' || m.tipo == 'LEGAL',
-        )) {
-          _beneficiosPorModalidade[item.id] = item.beneficios
-              .map((e) => e.id)
-              .toSet();
-        }
       }
       if (mounted) setState(() => _modalidades = modalidades);
     } catch (e) {
@@ -251,6 +243,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
   }
 
   Future<void> _salvar() async {
+    if (_salvando) return;
     _formatarPreco();
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
@@ -290,7 +283,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
           beneficiosPorModalidade: _beneficiosPorModalidade,
         );
       } else {
-        final modeloId = await _repo.criar(
+        await _repo.criar(
           organizacaoId: widget.organizacaoId,
           produtoIdIngresso: 1,
           titulo: _tituloController.text.trim(),
@@ -308,9 +301,6 @@ class _EventoFormPageState extends State<EventoFormPage> {
           status: _statusSelecionado,
           precoPadrao: preco,
           imagem: _imagemSelecionada,
-        );
-        await _repo.salvarModalidadesPadrao(
-          modeloId: modeloId,
           beneficiosPorModalidade: _beneficiosPorModalidade,
         );
       }
@@ -482,7 +472,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
             onEditingComplete: _formatarPreco,
             onTapOutside: (_) => _formatarPreco(),
             decoration: _decoracaoCampo(
-              label: 'Preço padrão da inteira',
+              label: 'Preço padrão do lote',
               icone: Icons.payments_outlined,
               prefixText: 'R\$ ',
               hint: '0,00',
@@ -625,9 +615,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
           Expanded(
             child: Text(
               'Ao agendar uma data, informe o primeiro setor, como Pista, '
-              'Camarote ou Área VIP. O sistema criará o Lote 1 com Inteira '
-              'e Meia-entrada; a meia inicia com 50% do preço da inteira e '
-              'poderá ser ajustada depois.',
+              'Camarote ou Área VIP. O sistema criará o Lote 1 com as '
+              'modalidades selecionadas para este evento. Os preços poderão '
+              'ser ajustados depois.',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.4,
@@ -685,13 +675,14 @@ class _EventoFormPageState extends State<EventoFormPage> {
                   onChanged: _salvando
                       ? null
                       : (valor) => setState(() {
-                          if (valor == true)
+                          if (valor == true) {
                             _beneficiosPorModalidade[modalidade.id] = modalidade
                                 .beneficios
                                 .map((e) => e.id)
                                 .toSet();
-                          else
+                          } else {
                             _beneficiosPorModalidade.remove(modalidade.id);
+                          }
                         }),
                 ),
                 if (selecionada && modalidade.exigeBeneficio)
@@ -717,10 +708,11 @@ class _EventoFormPageState extends State<EventoFormPage> {
                                     final selecionados =
                                         _beneficiosPorModalidade[modalidade
                                             .id]!;
-                                    if (valor == true)
+                                    if (valor == true) {
                                       selecionados.add(beneficio.id);
-                                    else
+                                    } else {
                                       selecionados.remove(beneficio.id);
+                                    }
                                   }),
                           ),
                         ),

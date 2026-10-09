@@ -389,6 +389,7 @@ class EventoRepository {
     String? status,
     double precoPadrao = 0,
     XFile? imagem,
+    Map<int, Set<int>>? beneficiosPorModalidade,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/eventos-modelos');
 
@@ -421,6 +422,18 @@ class EventoRepository {
       request.fields['statusevento'] = status;
     }
     request.fields['vrprecolote'] = precoPadrao.toStringAsFixed(2);
+    if (beneficiosPorModalidade != null) {
+      request.fields['modalidades_json'] = jsonEncode({
+        'modalidades': beneficiosPorModalidade.entries
+            .map(
+              (entry) => {
+                'modalidade_id': entry.key,
+                'beneficios_ids': entry.value.toList(),
+              },
+            )
+            .toList(),
+      });
+    }
 
     if (imagem != null) {
       request.files.add(await _montarArquivoImagem('urlbannerevento', imagem));

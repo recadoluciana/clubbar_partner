@@ -520,14 +520,14 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                       decimal: true,
                     ),
                     decoration: const InputDecoration(
-                      labelText: 'Preço da inteira',
+                      labelText: 'Preço padrão do lote',
                       prefixText: 'R\$ ',
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'O evento será criado com Pista Inteira e Pista Meia Entrada. A meia entrada iniciará com 50% do preço informado.',
+                    'O evento será criado com as modalidades configuradas no evento padrão.',
                     style: TextStyle(color: ClubbarColors.textoSecundario),
                   ),
                 ],
