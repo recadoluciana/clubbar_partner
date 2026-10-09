@@ -2,6 +2,7 @@ class ProdutoPendente {
   final int lojaId;
   final String loja;
   final String produto;
+  final String imagemProduto;
   final int quantidade;
   final double valorTotal;
 
@@ -9,6 +10,7 @@ class ProdutoPendente {
     required this.lojaId,
     required this.loja,
     required this.produto,
+    required this.imagemProduto,
     required this.quantidade,
     required this.valorTotal,
   });
@@ -18,6 +20,7 @@ class ProdutoPendente {
         lojaId: (json['loja_id'] as num).toInt(),
         loja: json['nmloja']?.toString() ?? '',
         produto: json['nmproduto']?.toString() ?? '',
+        imagemProduto: json['urlfotoproduto']?.toString() ?? '',
         quantidade: (json['quantidade_pendente'] as num?)?.toInt() ?? 0,
         valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
       );
