@@ -217,7 +217,9 @@ class _EventoListPageState extends State<EventoListPage> {
   }
 
   Future<void> _agendarEvento(Evento evento) async {
-    int? lojaId = widget.fixarLoja ? _lojaIdSelecionada : null;
+    int? lojaId = widget.fixarLoja
+        ? _lojaIdSelecionada
+        : _lojas.firstOrNull?.lojaId;
     final hoje = DateTime.now();
     final hojeSemHora = DateTime(hoje.year, hoje.month, hoje.day);
     final sugestao = widget.dataInicialAgendamento;
@@ -283,20 +285,31 @@ class _EventoListPageState extends State<EventoListPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
+                  dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.schedule_rounded),
-                  title: const Text('Período do evento'),
+                  title: const Text(
+                    'Período do evento',
+                    style: TextStyle(fontSize: 15),
+                  ),
                   subtitle: Text(
                     '${DateFormat("dd/MM/yyyy 'às' HH:mm").format(inicio)} até '
                     '${DateFormat("dd/MM/yyyy 'às' HH:mm").format(fim)}',
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
                 DropdownButtonFormField<int>(
                   initialValue: lojaId,
                   isExpanded: true,
+                  style: const TextStyle(fontSize: 14),
                   decoration: const InputDecoration(
                     labelText: 'Estabelecimento',
                     prefixIcon: Icon(Icons.storefront_rounded),
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                   items: _lojas
                       .map(
@@ -320,53 +333,92 @@ class _EventoListPageState extends State<EventoListPage> {
                               selecionada?.capacidadeTotal?.toString() ?? '';
                         }),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: capacidadeController,
                   keyboardType: TextInputType.number,
+                  style: const TextStyle(fontSize: 14),
                   decoration: const InputDecoration(
                     labelText: 'Capacidade deste evento',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: setorController,
                   textCapitalization: TextCapitalization.words,
+                  style: const TextStyle(fontSize: 14),
                   decoration: const InputDecoration(
                     labelText: 'Primeiro setor',
                     hintText: 'Ex.: Pista, Camarote ou Área VIP',
                     helperText: 'O sistema criará o Lote 1 para este setor.',
+                    helperStyle: TextStyle(fontSize: 11),
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: precoController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  style: const TextStyle(fontSize: 14),
                   decoration: const InputDecoration(
                     labelText: 'Preço padrão do lote nesta data',
                     prefixText: 'R\$ ',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: localController,
+                  style: const TextStyle(fontSize: 14),
                   decoration: const InputDecoration(
                     labelText: 'Local (opcional)',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: enderecoController,
+                  style: const TextStyle(fontSize: 14),
                   decoration: const InputDecoration(
                     labelText: 'Endereço (opcional)',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   initialValue: recorrencia,
-                  decoration: const InputDecoration(labelText: 'Repetição'),
+                  style: const TextStyle(fontSize: 14),
+                  decoration: const InputDecoration(
+                    labelText: 'Repetição',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
                   items: const [
                     DropdownMenuItem(
                       value: 'UNICA',
@@ -388,12 +440,18 @@ class _EventoListPageState extends State<EventoListPage> {
                   }),
                 ),
                 if (recorrencia != 'UNICA') ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   TextFormField(
                     initialValue: '$repeticoes',
                     keyboardType: TextInputType.number,
+                    style: const TextStyle(fontSize: 14),
                     decoration: const InputDecoration(
                       labelText: 'Quantidade de datas',
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                     ),
                     onChanged: (v) => repeticoes = int.tryParse(v) ?? 1,
                   ),
@@ -404,6 +462,7 @@ class _EventoListPageState extends State<EventoListPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Cancelar'),
             ),
             FilledButton(
