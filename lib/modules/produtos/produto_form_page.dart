@@ -11,6 +11,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/categoria.dart';
@@ -223,6 +224,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
       initialDate: dataInicial,
       firstDate: DateTime(2024),
       lastDate: DateTime(2100),
+      calendarDelegate: const ClubbarCalendarDelegate(),
       helpText: 'SELECIONE A DATA',
       cancelText: 'CANCELAR',
       confirmText: 'CONFIRMAR',

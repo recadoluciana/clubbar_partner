@@ -10,6 +10,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'titular_financeiro_repository.dart';
@@ -244,6 +245,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       initialDate: inicial,
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
+      calendarDelegate: const ClubbarCalendarDelegate(),
       helpText: 'Data de nascimento',
       cancelText: 'Cancelar',
       confirmText: 'Confirmar',

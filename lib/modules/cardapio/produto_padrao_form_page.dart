@@ -8,6 +8,7 @@ import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 
 class ProdutoPadraoFormPage extends StatefulWidget {
@@ -144,6 +145,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
       initialDate: atual ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      calendarDelegate: const ClubbarCalendarDelegate(),
     );
     if (data == null || !mounted) return;
     final hora = await showTimePicker(
