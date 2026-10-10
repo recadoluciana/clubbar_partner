@@ -237,6 +237,7 @@ class _EventoListPageState extends State<EventoListPage> {
     final hora = await showTimePicker(
       context: context,
       initialTime: const TimeOfDay(hour: 20, minute: 0),
+      helpText: 'Horário de início',
     );
     if (hora == null || !mounted) return;
     final inicio = DateTime(
@@ -250,7 +251,7 @@ class _EventoListPageState extends State<EventoListPage> {
     final horaFim = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(fimSugerido),
-      helpText: 'HORÁRIO DE TÉRMINO',
+      helpText: 'Horário de término',
     );
     if (horaFim == null || !mounted) return;
     var fim = DateTime(
