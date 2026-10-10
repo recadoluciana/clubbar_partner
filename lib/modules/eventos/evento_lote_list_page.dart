@@ -13,6 +13,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento.dart';
@@ -111,6 +112,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       initialDate: atual ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
+      calendarDelegate: const ClubbarCalendarDelegate(),
     );
     if (data == null || !mounted) return null;
     final hora = await showTimePicker(

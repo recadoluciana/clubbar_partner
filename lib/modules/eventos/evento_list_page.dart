@@ -11,6 +11,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
+import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento.dart';
 import '../../models/loja.dart';
@@ -228,6 +229,7 @@ class _EventoListPageState extends State<EventoListPage> {
       initialDate: dataSugerida,
       firstDate: hojeSemHora,
       lastDate: DateTime(hoje.year + 5),
+      calendarDelegate: const ClubbarCalendarDelegate(),
     );
     if (data == null || !mounted) return;
     final hora = await showTimePicker(

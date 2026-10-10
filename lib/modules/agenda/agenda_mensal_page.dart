@@ -8,6 +8,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/atracao.dart';
 import '../../models/loja.dart';
@@ -254,17 +255,23 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
 
   DateTime _horarioNoDia(AgendaEvento evento) => evento.inicio;
 
-  Future<DateTime?> _dataHora(DateTime inicial) async {
+  Future<DateTime?> _dataHora(
+    DateTime inicial, {
+    required String tituloHorario,
+  }) async {
     final d = await showDatePicker(
       context: context,
       initialDate: inicial,
       firstDate: DateTime(2020),
       lastDate: DateTime(2200),
+      calendarDelegate: const ClubbarCalendarDelegate(),
+      helpText: tituloHorario,
     );
     if (d == null || !mounted) return null;
     final t = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(inicial),
+      helpText: tituloHorario,
     );
     return t == null
         ? null
@@ -321,10 +328,13 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                 ListTile(
                   tileColor: ClubbarColors.fundo,
                   leading: const Icon(Icons.play_arrow),
-                  title: const Text('Início'),
+                  title: const Text('Horário de início'),
                   subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(inicio)),
                   onTap: () async {
-                    final x = await _dataHora(inicio);
+                    final x = await _dataHora(
+                      inicio,
+                      tituloHorario: 'Horário de início',
+                    );
                     if (x != null) setLocal(() => inicio = x);
                   },
                 ),
@@ -332,12 +342,15 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                 ListTile(
                   tileColor: ClubbarColors.fundo,
                   leading: const Icon(Icons.stop),
-                  title: const Text('Fim'),
+                  title: const Text('Horário de término'),
                   subtitle: Text(
                     '${DateFormat('dd/MM/yyyy HH:mm').format(fim)}${fim.day != inicio.day ? ' • dia seguinte' : ''}',
                   ),
                   onTap: () async {
-                    final x = await _dataHora(fim);
+                    final x = await _dataHora(
+                      fim,
+                      tituloHorario: 'Horário de término',
+                    );
                     if (x != null) setLocal(() => fim = x);
                   },
                 ),
@@ -493,12 +506,15 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                   ListTile(
                     tileColor: ClubbarColors.fundo,
                     leading: const Icon(Icons.play_arrow),
-                    title: const Text('Início'),
+                    title: const Text('Horário de início'),
                     subtitle: Text(
                       DateFormat('dd/MM/yyyy HH:mm').format(inicio),
                     ),
                     onTap: () async {
-                      final valor = await _dataHora(inicio);
+                      final valor = await _dataHora(
+                        inicio,
+                        tituloHorario: 'Horário de início',
+                      );
                       if (valor != null) setLocal(() => inicio = valor);
                     },
                   ),
@@ -506,10 +522,13 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                   ListTile(
                     tileColor: ClubbarColors.fundo,
                     leading: const Icon(Icons.stop),
-                    title: const Text('Fim'),
+                    title: const Text('Horário de término'),
                     subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(fim)),
                     onTap: () async {
-                      final valor = await _dataHora(fim);
+                      final valor = await _dataHora(
+                        fim,
+                        tituloHorario: 'Horário de término',
+                      );
                       if (valor != null) setLocal(() => fim = valor);
                     },
                   ),

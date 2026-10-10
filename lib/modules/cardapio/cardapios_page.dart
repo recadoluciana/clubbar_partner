@@ -5,6 +5,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../core/services/storage_service.dart';
 import '../../models/loja.dart';
@@ -255,6 +256,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
       initialDate: hoje,
       firstDate: DateTime(hoje.year - 1),
       lastDate: DateTime(hoje.year + 5),
+      calendarDelegate: const ClubbarCalendarDelegate(),
       helpText: 'Início da exibição da temporada',
     );
     if (inicio == null || !mounted) return;
@@ -295,6 +297,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
         initialDate: inicio,
         firstDate: inicio,
         lastDate: DateTime(inicio.year + 5),
+        calendarDelegate: const ClubbarCalendarDelegate(),
         helpText: 'Fim da exibição',
       );
       if (fim == null || !mounted) return;

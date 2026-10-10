@@ -7,6 +7,7 @@ import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'dados_financeiros_page.dart';
 import 'titular_financeiro_repository.dart';
@@ -375,6 +376,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                             initialDate: nascimento ?? DateTime(1990, 1, 1),
                             firstDate: DateTime(1900),
                             lastDate: DateTime.now(),
+                            calendarDelegate: const ClubbarCalendarDelegate(),
                             helpText: 'Data de nascimento',
                             cancelText: 'Cancelar',
                             confirmText: 'Confirmar',
