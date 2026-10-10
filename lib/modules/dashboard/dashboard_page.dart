@@ -417,9 +417,18 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
+                          titulo: 'Meus estabelecimentos',
+                          subtitulo: _cargo == 'MANAGER'
+                              ? 'Consulte e edite os dados do seu estabelecimento.'
+                              : 'Cadastre e administre os estabelecimentos da empresa.',
+                          icone: Icons.storefront_rounded,
+                          onTap: _abrirLojas,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
                           titulo: 'Cardápio padrão empresa',
                           subtitulo:
-                              'Crie os cardápios da empresa para uso em uma ou mais lojas.',
+                              'Crie os cardápios da empresa para uso em um ou mais estabelecimentos.',
                           icone: Icons.menu_book_rounded,
                           onTap: _cargo == 'SUPERADMIN' || _cargo == 'ADMIN'
                               ? _abrirCardapioPadraoEmpresa
@@ -435,12 +444,13 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Meus estabelecimentos',
-                          subtitulo: _cargo == 'MANAGER'
-                              ? 'Consulte e edite os dados do seu estabelecimento.'
-                              : 'Cadastre e administre os estabelecimentos da empresa.',
-                          icone: Icons.storefront_rounded,
-                          onTap: _abrirLojas,
+                          titulo: 'Modalidades e benefícios',
+                          subtitulo:
+                              'Crie modalidades e benefícios próprios para usar nos seus eventos.',
+                          icone: Icons.confirmation_number_outlined,
+                          onTap: _podeGerenciarAtracoes
+                              ? _abrirCatalogoIngressos
+                              : null,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
@@ -450,16 +460,6 @@ class _DashboardPageState extends State<DashboardPage> {
                           icone: Icons.event_note_rounded,
                           onTap: _podeGerenciarAtracoes
                               ? _abrirGerenciarEventos
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Modalidades e benefícios',
-                          subtitulo:
-                              'Crie modalidades e benefícios próprios para usar nos seus eventos.',
-                          icone: Icons.confirmation_number_outlined,
-                          onTap: _podeGerenciarAtracoes
-                              ? _abrirCatalogoIngressos
                               : null,
                         ),
                         const SizedBox(height: 14),
