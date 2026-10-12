@@ -17,6 +17,7 @@ class Loja {
   final String? tipoloja;
   final String vendaprodutos;
   final String vendaingressos;
+  final String permiteentrega;
   final String? dsbairroloja;
   final String? nrtelloja;
   final int? nrdiavalidade;
@@ -55,6 +56,7 @@ class Loja {
     this.tipoloja,
     this.vendaprodutos = 'N',
     this.vendaingressos = 'N',
+    this.permiteentrega = 'N',
     this.dsbairroloja,
     this.nrtelloja,
     this.nrdiavalidade,
@@ -93,6 +95,7 @@ class Loja {
       tipoloja: json['tipoloja']?.toString(),
       vendaprodutos: _normalizarSimNao(json['vendaprodutos']),
       vendaingressos: _normalizarSimNao(json['vendaingressos']),
+      permiteentrega: _normalizarSimNao(json['permiteentrega']),
       dsbairroloja: json['dsbairroloja']?.toString(),
       nrtelloja: json['nrtelloja']?.toString(),
       nrdiavalidade: json['nrdiavalidade'],
@@ -140,6 +143,7 @@ class Loja {
       'tipoloja': tipoloja,
       'vendaprodutos': vendaprodutos,
       'vendaingressos': vendaingressos,
+      'permiteentrega': permiteentrega,
       'dsbairroloja': dsbairroloja,
       'nrtelloja': nrtelloja,
       'nrdiavalidade': nrdiavalidade,
@@ -185,6 +189,7 @@ class Loja {
     String? tipoloja,
     String? vendaprodutos,
     String? vendaingressos,
+    String? permiteentrega,
     String? dsbairroloja,
     String? nrtelloja,
     int? nrdiavalidade,
@@ -221,6 +226,7 @@ class Loja {
       tipoloja: tipoloja ?? this.tipoloja,
       vendaprodutos: vendaprodutos ?? this.vendaprodutos,
       vendaingressos: vendaingressos ?? this.vendaingressos,
+      permiteentrega: permiteentrega ?? this.permiteentrega,
       dsbairroloja: dsbairroloja ?? this.dsbairroloja,
       nrtelloja: nrtelloja ?? this.nrtelloja,
       nrdiavalidade: nrdiavalidade ?? this.nrdiavalidade,
@@ -288,6 +294,7 @@ class Loja {
             other.vrtaxaing == vrtaxaing &&
             other.aberto24x7 == aberto24x7 &&
             other.idvalidadeprod == idvalidadeprod &&
+            other.permiteentrega == permiteentrega &&
             other.capacidadeTotal == capacidadeTotal &&
             other.usacashback == usacashback &&
             other.pccashback == pccashback;
@@ -320,6 +327,7 @@ class Loja {
     vrtaxaing,
     aberto24x7,
     idvalidadeprod,
+    permiteentrega,
     capacidadeTotal,
     usacashback,
     pccashback,

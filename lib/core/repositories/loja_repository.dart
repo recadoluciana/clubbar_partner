@@ -63,6 +63,7 @@ class LojaRepository {
     int? capacidadeTotal,
     String usacashback = 'N',
     double pccashback = 0,
+    String permiteentrega = 'N',
     List<int> estilosIds = const [],
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas');
@@ -92,6 +93,7 @@ class LojaRepository {
     }
     request.fields['usacashback'] = usacashback == 'S' ? 'S' : 'N';
     request.fields['pccashback'] = pccashback.toStringAsFixed(2);
+    request.fields['permiteentrega'] = permiteentrega == 'S' ? 'S' : 'N';
     request.fields['estilos_ids'] = jsonEncode(estilosIds);
 
     if (diasValidade != null) {
@@ -156,6 +158,7 @@ class LojaRepository {
     int? capacidadeTotal,
     String usacashback = 'N',
     double pccashback = 0,
+    String permiteentrega = 'N',
     List<int>? estilosIds,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/lojas/$lojaId');
@@ -193,6 +196,7 @@ class LojaRepository {
     }
     request.fields['usacashback'] = usacashback == 'S' ? 'S' : 'N';
     request.fields['pccashback'] = pccashback.toStringAsFixed(2);
+    request.fields['permiteentrega'] = permiteentrega == 'S' ? 'S' : 'N';
     if (estilosIds != null) {
       request.fields['estilos_ids'] = jsonEncode(estilosIds);
     }
