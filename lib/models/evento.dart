@@ -6,6 +6,8 @@ class Evento {
 
   final String? dsdescevento;
   final String? dspoliticacancelamento;
+  final String? emailContatoEvento;
+  final String? whatsappEvento;
   final String tipoLocalEvento;
   final String? nrCepLocalEvento;
   final String? dtinicioevento;
@@ -25,6 +27,8 @@ class Evento {
     required this.nmtituloevento,
     this.dsdescevento,
     this.dspoliticacancelamento,
+    this.emailContatoEvento,
+    this.whatsappEvento,
     this.tipoLocalEvento = 'ESTABELECIMENTO',
     this.nrCepLocalEvento,
     this.dtinicioevento,
@@ -46,6 +50,8 @@ class Evento {
 
       dsdescevento: json['dsdescevento']?.toString(),
       dspoliticacancelamento: json['dspoliticacancelamento']?.toString(),
+      emailContatoEvento: json['emailcontatoevento']?.toString(),
+      whatsappEvento: json['whatsappevento']?.toString(),
       tipoLocalEvento: json['tipolocalevento']?.toString() ?? 'ESTABELECIMENTO',
       nrCepLocalEvento: json['nrceplocalevento']?.toString(),
       dtinicioevento: json['dtinicioevento']?.toString(),

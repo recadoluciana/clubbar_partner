@@ -380,6 +380,8 @@ class EventoRepository {
     required String titulo,
     String? descricao,
     String? politicaCancelamento,
+    String? emailContatoEvento,
+    String? whatsappEvento,
     String tipoLocal = 'ESTABELECIMENTO',
     String? cep,
     String? dataInicio,
@@ -409,6 +411,12 @@ class EventoRepository {
     }
     if (politicaCancelamento != null) {
       request.fields['dspoliticacancelamento'] = politicaCancelamento;
+    }
+    if (emailContatoEvento != null && emailContatoEvento.isNotEmpty) {
+      request.fields['emailcontatoevento'] = emailContatoEvento;
+    }
+    if (whatsappEvento != null && whatsappEvento.isNotEmpty) {
+      request.fields['whatsappevento'] = whatsappEvento;
     }
     request.fields['tipolocalevento'] = tipoLocal;
     if (cep != null && cep.isNotEmpty) request.fields['nrceplocalevento'] = cep;
@@ -456,6 +464,8 @@ class EventoRepository {
     String? titulo,
     String? descricao,
     String? politicaCancelamento,
+    String? emailContatoEvento,
+    String? whatsappEvento,
     String? tipoLocal,
     String? cep,
     String? dataInicio,
@@ -483,6 +493,12 @@ class EventoRepository {
     }
     if (politicaCancelamento != null) {
       request.fields['dspoliticacancelamento'] = politicaCancelamento;
+    }
+    if (emailContatoEvento != null) {
+      request.fields['emailcontatoevento'] = emailContatoEvento;
+    }
+    if (whatsappEvento != null) {
+      request.fields['whatsappevento'] = whatsappEvento;
     }
     if (tipoLocal != null) request.fields['tipolocalevento'] = tipoLocal;
     if (cep != null) request.fields['nrceplocalevento'] = cep;
