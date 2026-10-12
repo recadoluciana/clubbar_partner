@@ -61,6 +61,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   String _idValidadeProd = 'S';
   String? _tipoEstabelecimento;
   bool _usaCashback = false;
+  bool _permiteEntrega = false;
   bool _carregandoEstilos = true;
   bool _carregandoTitulares = true;
   List<EstiloMusical> _estilosDisponiveis = const [];
@@ -209,6 +210,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       _capacidadeController.text =
           widget.loja!.capacidadeTotal?.toString() ?? '';
       _usaCashback = widget.loja!.usacashback == 'S';
+      _permiteEntrega = widget.loja!.permiteentrega == 'S';
       _percentualCashbackController.text = widget.loja!.pccashback
           .toStringAsFixed(2)
           .replaceAll('.', ',');
@@ -437,6 +439,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           pccashback: double.parse(
             _percentualCashbackController.text.replaceAll(',', '.'),
           ),
+          permiteentrega: _permiteEntrega ? 'S' : 'N',
           estilosIds: _estilosSelecionados.toList(),
         );
 
@@ -463,6 +466,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           pccashback: double.parse(
             _percentualCashbackController.text.replaceAll(',', '.'),
           ),
+          permiteentrega: _permiteEntrega ? 'S' : 'N',
           estilosIds: _estilosSelecionados.toList(),
         );
 
@@ -489,6 +493,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           pccashback: double.parse(
             _percentualCashbackController.text.replaceAll(',', '.'),
           ),
+          permiteentrega: _permiteEntrega ? 'S' : 'N',
         );
 
         final horariosSalvos = await Navigator.of(context).push<bool>(
@@ -1034,6 +1039,34 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     }
                                     return null;
                                   },
+                                ),
+                                const SizedBox(height: 14),
+                                SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  value: _permiteEntrega,
+                                  onChanged: _salvando
+                                      ? null
+                                      : (value) => setState(
+                                          () => _permiteEntrega = value,
+                                        ),
+                                  activeTrackColor: ClubbarColors.ambar,
+                                  title: const Text(
+                                    'Permitir delivery',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    _permiteEntrega
+                                        ? 'Produtos poderão ser enviados ao endereço do cliente, inclusive em pagamentos por PIX e cartão.'
+                                        : 'As vendas de produtos permanecem apenas para retirada no estabelecimento.',
+                                  ),
+                                  secondary: Icon(
+                                    Icons.delivery_dining_rounded,
+                                    color: _permiteEntrega
+                                        ? ClubbarColors.ambarEscuro
+                                        : ClubbarColors.textoSecundario,
+                                  ),
                                 ),
                                 const SizedBox(height: 14),
                                 SwitchListTile(
