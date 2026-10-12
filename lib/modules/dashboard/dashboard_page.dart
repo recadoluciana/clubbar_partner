@@ -27,6 +27,7 @@ import '../extrato_asaas/extrato_asaas_page.dart';
 import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
 import '../eventos/evento_list_page.dart';
 import '../ingressos/catalogo_ingressos_partner_page.dart';
+import '../entregas/pedidos_entrega_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -213,6 +214,12 @@ class _DashboardPageState extends State<DashboardPage> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const AcompanhamentoVendasPage()),
     );
+  }
+
+  Future<void> _abrirPedidosEntrega() async {
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const PedidosEntregaPage()));
   }
 
   Future<void> _sair() async {
@@ -511,6 +518,16 @@ class _DashboardPageState extends State<DashboardPage> {
                           icone: Icons.monitor_heart_rounded,
                           onTap: _podeVerGerencial
                               ? _abrirAcompanhamentoVendas
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Pedidos para entrega',
+                          subtitulo:
+                              'Aceite pedidos, acompanhe o despacho e a confirmação pelo QR Code.',
+                          icone: Icons.delivery_dining_rounded,
+                          onTap: _podeVerGerencial
+                              ? _abrirPedidosEntrega
                               : null,
                         ),
                         const SizedBox(height: 14),

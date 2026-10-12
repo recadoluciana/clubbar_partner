@@ -66,6 +66,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
     'BARMAN',
     'WAITER',
     'TICKETMAN',
+    'MOTOBOY',
   ];
 
   bool get _cargoSemLoja => _cargoSelecionado == 'ADMIN';
@@ -78,6 +79,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
     'BARMAN',
     'WAITER',
     'TICKETMAN',
+    'MOTOBOY',
   }.contains(_cargoSelecionado);
 
   @override
@@ -159,6 +161,9 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
 
       case 'TICKETMAN':
         return 'Ticketman';
+
+      case 'MOTOBOY':
+        return 'Motoboy';
 
       default:
         return cargo;
@@ -345,7 +350,7 @@ class _UsuarioFormPageState extends State<UsuarioFormPage> {
       if (_cargoExigeLoja && _lojaIdSelecionada == null) {
         AppSnackBar.aviso(
           context,
-          'Cashier, Barman, Waiter e Ticketman devem estar vinculados a um estabelecimento.',
+          'Cashier, Barman, Waiter, Ticketman e Motoboy devem estar vinculados a um estabelecimento.',
         );
         setState(() => _salvando = false);
         return;
