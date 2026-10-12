@@ -40,6 +40,8 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
+  final _emailContatoController = TextEditingController();
+  final _whatsappContatoController = TextEditingController();
   final _localController = TextEditingController();
   final _cepController = TextEditingController();
   final _enderecoController = TextEditingController();
@@ -70,6 +72,8 @@ class _EventoFormPageState extends State<EventoFormPage> {
     if (evento != null) {
       _tituloController.text = evento.nmtituloevento;
       _descricaoController.text = evento.dsdescevento ?? '';
+      _emailContatoController.text = evento.emailContatoEvento ?? '';
+      _whatsappContatoController.text = evento.whatsappEvento ?? '';
       _tipoLocalSelecionado = evento.tipoLocalEvento;
       _cepController.text = evento.nrCepLocalEvento ?? '';
       _localController.text = evento.nmlocalevento ?? '';
@@ -115,6 +119,8 @@ class _EventoFormPageState extends State<EventoFormPage> {
   void dispose() {
     _tituloController.dispose();
     _descricaoController.dispose();
+    _emailContatoController.dispose();
+    _whatsappContatoController.dispose();
     _localController.dispose();
     _cepController.dispose();
     _enderecoController.dispose();
@@ -264,6 +270,8 @@ class _EventoFormPageState extends State<EventoFormPage> {
           eventoId: widget.evento!.eventoId,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
+          emailContatoEvento: _emailContatoController.text.trim(),
+          whatsappEvento: _whatsappContatoController.text.trim(),
           tipoLocal: _tipoLocalSelecionado,
           cep: _tipoLocalSelecionado == 'OUTRO'
               ? _cepController.text.trim()
@@ -288,6 +296,8 @@ class _EventoFormPageState extends State<EventoFormPage> {
           produtoIdIngresso: 1,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
+          emailContatoEvento: _emailContatoController.text.trim(),
+          whatsappEvento: _whatsappContatoController.text.trim(),
           tipoLocal: _tipoLocalSelecionado,
           cep: _tipoLocalSelecionado == 'OUTRO'
               ? _cepController.text.trim()
@@ -450,6 +460,33 @@ class _EventoFormPageState extends State<EventoFormPage> {
               label: 'Descrição',
               icone: Icons.description_outlined,
               hint: 'Descreva o evento',
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _emailContatoController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: _decoracaoCampo(
+              label: 'E-mail de contato do evento',
+              icone: Icons.email_outlined,
+              hint: 'contato@evento.com.br',
+            ),
+            validator: (value) {
+              final email = (value ?? '').trim();
+              if (email.isNotEmpty && !email.contains('@')) {
+                return 'Informe um e-mail válido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _whatsappContatoController,
+            keyboardType: TextInputType.phone,
+            decoration: _decoracaoCampo(
+              label: 'WhatsApp de contato do evento',
+              icone: Icons.chat_outlined,
+              hint: '(00) 00000-0000',
             ),
           ),
           const SizedBox(height: 14),
