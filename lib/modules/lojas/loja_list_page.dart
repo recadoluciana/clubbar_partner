@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../core/repositories/loja_repository.dart';
+import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/formatters.dart';
@@ -925,7 +926,7 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  String _urlImagem(String? valor) => (valor ?? '').trim();
+  String _urlImagem(String? valor) => ApiConfig.buildUrl(valor ?? '');
 
   Widget _miniaturaImagemLoja({
     required String rotulo,
