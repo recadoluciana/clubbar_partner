@@ -340,6 +340,55 @@ class _PedidosEntregaPageState extends State<PedidosEntregaPage> {
                                   const SizedBox(height: 6),
                                   Text('Obs.: ${pedido['observacao']}'),
                                 ],
+                                if (situacao == 'ENTREGUE') ...[
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE1F5E8),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle_rounded,
+                                          color: Color(0xFF18763B),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Entregue em ${pedido['dtrecebimento_fmt'] ?? 'data não informada'}',
+                                                style: const TextStyle(
+                                                  color: Color(0xFF18763B),
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                              if ('${pedido['nmusuariorecebimento'] ?? ''}'
+                                                  .trim()
+                                                  .isNotEmpty)
+                                                Text(
+                                                  'Responsável: ${pedido['nmusuariorecebimento']}',
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF18763B),
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                                 if (situacao == 'AGUARDANDO_ACEITE' ||
                                     situacao == 'ACEITO') ...[
                                   const SizedBox(height: 14),
