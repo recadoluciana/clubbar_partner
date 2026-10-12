@@ -15,6 +15,18 @@ import '../../models/loja.dart';
 import '../../models/usuario.dart';
 import 'usuario_form_page.dart';
 
+class _CargoVisual {
+  final IconData icon;
+  final Color color;
+  final Color backgroundColor;
+
+  const _CargoVisual({
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+  });
+}
+
 class UsuarioListPage extends StatefulWidget {
   final int organizacaoId;
 
@@ -168,8 +180,76 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       case 'TICKETMAN':
         return 'Ticketman';
 
+      case 'MOTOBOY':
+        return 'Motoboy';
+
       default:
         return cargo;
+    }
+  }
+
+  _CargoVisual _visualCargo(String cargo) {
+    switch (cargo.trim().toUpperCase()) {
+      case 'SUPERADMIN':
+        return const _CargoVisual(
+          icon: Icons.workspace_premium_rounded,
+          color: Color(0xFF9A6700),
+          backgroundColor: Color(0xFFFFF3CD),
+        );
+      case 'ADMIN':
+        return const _CargoVisual(
+          icon: Icons.admin_panel_settings_rounded,
+          color: Color(0xFF5E35B1),
+          backgroundColor: Color(0xFFEDE7F6),
+        );
+      case 'MANAGER':
+        return const _CargoVisual(
+          icon: Icons.manage_accounts_rounded,
+          color: Color(0xFF1565C0),
+          backgroundColor: Color(0xFFE3F2FD),
+        );
+      case 'CASHIER':
+        return const _CargoVisual(
+          icon: Icons.point_of_sale_rounded,
+          color: Color(0xFFE65100),
+          backgroundColor: Color(0xFFFFEDE0),
+        );
+      case 'TOTEM':
+        return const _CargoVisual(
+          icon: Icons.touch_app_rounded,
+          color: Color(0xFF00796B),
+          backgroundColor: Color(0xFFE0F2F1),
+        );
+      case 'BARMAN':
+        return const _CargoVisual(
+          icon: Icons.local_bar_rounded,
+          color: Color(0xFF00838F),
+          backgroundColor: Color(0xFFE0F7FA),
+        );
+      case 'WAITER':
+        return const _CargoVisual(
+          icon: Icons.room_service_rounded,
+          color: Color(0xFF2E7D32),
+          backgroundColor: Color(0xFFE8F5E9),
+        );
+      case 'TICKETMAN':
+        return const _CargoVisual(
+          icon: Icons.confirmation_number_rounded,
+          color: Color(0xFF1976D2),
+          backgroundColor: Color(0xFFE3F2FD),
+        );
+      case 'MOTOBOY':
+        return const _CargoVisual(
+          icon: Icons.pedal_bike_rounded,
+          color: Color(0xFFC62828),
+          backgroundColor: Color(0xFFFFEBEE),
+        );
+      default:
+        return const _CargoVisual(
+          icon: Icons.person_rounded,
+          color: Color(0xFF546E7A),
+          backgroundColor: Color(0xFFECEFF1),
+        );
     }
   }
 
@@ -365,23 +445,25 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   }
 
   Widget _badgeCargo(Usuario usuario) {
-    final principal = usuario.dscargo.trim().toUpperCase() == 'SUPERADMIN';
+    final visual = _visualCargo(usuario.dscargo);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: principal ? ClubbarColors.ambarClaro : ClubbarColors.infoClaro,
+        color: visual.backgroundColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(visual.icon, size: 13, color: visual.color),
+          const SizedBox(width: 4),
           Flexible(
             child: Text(
               _nomeCargo(usuario.dscargo),
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: principal ? ClubbarColors.preto : ClubbarColors.info,
+                color: visual.color,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
               ),
@@ -398,6 +480,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
     final ativo = status == 'ATIVO' || status == 'ATIVA';
 
     final principal = usuario.dscargo.trim().toUpperCase() == 'SUPERADMIN';
+    final visual = _visualCargo(usuario.dscargo);
 
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 14),
@@ -415,26 +498,11 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                     width: 58,
                     height: 58,
                     decoration: BoxDecoration(
-                      color: principal
-                          ? ClubbarColors.ambar
-                          : ClubbarColors.ambarClaro,
+                      color: visual.backgroundColor,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
-                    child: principal
-                        ? const Icon(
-                            Icons.admin_panel_settings_rounded,
-                            size: 29,
-                          )
-                        : Text(
-                            usuario.nmusuario.trim().isEmpty
-                                ? '?'
-                                : usuario.nmusuario.trim()[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
+                    child: Icon(visual.icon, size: 29, color: visual.color),
                   ),
                   if (principal)
                     Positioned(
@@ -575,6 +643,10 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                       : () => _abrirEdicao(usuario),
                   icon: const Icon(Icons.edit_rounded),
                   label: const Text('Editar'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1976D2),
+                    side: const BorderSide(color: Color(0xFF1976D2)),
+                  ),
                 ),
               ),
 
