@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../core/repositories/loja_repository.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../models/loja.dart';
 
 class PedidosEntregaPage extends StatefulWidget {
   const PedidosEntregaPage({super.key});
@@ -16,37 +18,82 @@ class PedidosEntregaPage extends StatefulWidget {
 }
 
 class _PedidosEntregaPageState extends State<PedidosEntregaPage> {
+  final LojaRepository _lojaRepository = LojaRepository();
+
   List<Map<String, dynamic>> _pedidos = const [];
+  List<Loja> _lojas = const [];
   bool _carregando = true;
+  bool _selecionandoEstabelecimento = false;
+  int? _lojaIdSelecionada;
 
   @override
   void initState() {
     super.initState();
-    _carregar();
+    _inicializar();
+  }
+
+  Future<void> _inicializar() async {
+    try {
+      final dados = await Future.wait([
+        StorageService.getLojaId(),
+        StorageService.getOrganizacaoId(),
+      ]);
+      final lojaVinculadaId = dados[0];
+      final organizacaoId = dados[1];
+
+      if (lojaVinculadaId != null && lojaVinculadaId > 0) {
+        _lojaIdSelecionada = lojaVinculadaId;
+        await _carregar();
+        return;
+      }
+
+      if (organizacaoId == null || organizacaoId <= 0) {
+        throw Exception('A organização do usuário não foi identificada.');
+      }
+
+      final lojas = await _lojaRepository.listar(organizacaoId);
+      if (!mounted) return;
+      setState(() {
+        _lojas = lojas;
+        _selecionandoEstabelecimento = true;
+        _carregando = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _carregando = false);
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
   }
 
   Future<void> _carregar() async {
     setState(() => _carregando = true);
     try {
       final usuarioId = await StorageService.getUsuarioId();
-      if (usuarioId == null || usuarioId == 0)
+      if (usuarioId == null || usuarioId == 0) {
         throw Exception('Usuário não identificado.');
+      }
       final resposta = await ApiService.get(
-        '/entregas/pedidos-entrega?usuario_id=$usuarioId',
+        '/entregas/pedidos-entrega?usuario_id=$usuarioId'
+        '&loja_id=$_lojaIdSelecionada',
       );
       if (resposta.statusCode != 200) throw Exception(resposta.body);
       final dados = jsonDecode(resposta.body) as List<dynamic>;
-      if (mounted)
+      if (mounted) {
         setState(
           () => _pedidos = dados
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList(),
         );
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
-      if (mounted) setState(() => _carregando = false);
+      if (mounted) {
+        setState(() => _carregando = false);
+      }
     }
   }
 
@@ -58,11 +105,16 @@ class _PedidosEntregaPageState extends State<PedidosEntregaPage> {
       final usuarioId = await StorageService.getUsuarioId();
       final id = pedido['pedidoentrega_id'];
       final resposta = await ApiService.post(
-        '/entregas/pedidos-entrega/$id/situacao?usuario_id=$usuarioId',
+        '/entregas/pedidos-entrega/$id/situacao?usuario_id=$usuarioId'
+        '&loja_id=$_lojaIdSelecionada',
         {'situacao': situacao},
       );
-      if (resposta.statusCode != 200) throw Exception(resposta.body);
-      if (!mounted) return;
+      if (resposta.statusCode != 200) {
+        throw Exception(resposta.body);
+      }
+      if (!mounted) {
+        return;
+      }
       AppSnackBar.sucesso(
         context,
         situacao == 'ACEITO'
@@ -71,8 +123,9 @@ class _PedidosEntregaPageState extends State<PedidosEntregaPage> {
       );
       await _carregar();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 
@@ -93,6 +146,96 @@ class _PedidosEntregaPageState extends State<PedidosEntregaPage> {
     }
   }
 
+  Widget _seletorEstabelecimento() {
+    if (_lojas.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Nenhum estabelecimento está disponível para este usuário.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Card(
+          margin: const EdgeInsets.all(20),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.storefront_rounded),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Selecione o estabelecimento',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Escolha o estabelecimento cujos pedidos para entrega deseja acompanhar.',
+                ),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<int>(
+                  initialValue: _lojaIdSelecionada,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Estabelecimento',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _lojas
+                      .map(
+                        (loja) => DropdownMenuItem(
+                          value: loja.lojaId,
+                          child: Text(
+                            loja.nmloja,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (lojaId) {
+                    setState(() => _lojaIdSelecionada = lojaId);
+                  },
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _lojaIdSelecionada == null
+                        ? null
+                        : () {
+                            setState(
+                              () => _selecionandoEstabelecimento = false,
+                            );
+                            _carregar();
+                          },
+                    icon: const Icon(Icons.delivery_dining_rounded),
+                    label: const Text('Ver pedidos para entrega'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF6F6F6),
@@ -103,13 +246,30 @@ class _PedidosEntregaPageState extends State<PedidosEntregaPage> {
           titulo: 'Pedidos para entrega',
           subtitulo:
               'Aceite o pedido e informe quando ele sair para o cliente.',
-          trailing: IconButton(
-            onPressed: _carregando ? null : _carregar,
-            icon: const Icon(Icons.refresh_rounded),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_lojas.isNotEmpty)
+                IconButton(
+                  onPressed: _carregando
+                      ? null
+                      : () =>
+                            setState(() => _selecionandoEstabelecimento = true),
+                  icon: const Icon(Icons.storefront_rounded),
+                  tooltip: 'Trocar estabelecimento',
+                ),
+              IconButton(
+                onPressed: _carregando ? null : _carregar,
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'Atualizar pedidos',
+              ),
+            ],
           ),
         ),
         Expanded(
-          child: _carregando
+          child: _selecionandoEstabelecimento
+              ? _seletorEstabelecimento()
+              : _carregando
               ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(
                   onRefresh: _carregar,
