@@ -150,6 +150,13 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
     final mensagem = TextEditingController(text: '${atual?['mensagem'] ?? ''}');
     var ativa = '${atual?['situacao'] ?? 'ATIVA'}'.toUpperCase() == 'ATIVA';
     var eventoId = (atual?['evento_id'] as num?)?.toInt() ?? -1;
+    InputDecoration decoracaoCampo(String rotulo) => InputDecoration(
+      labelText: rotulo,
+      isDense: true,
+      labelStyle: const TextStyle(fontSize: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+    const estiloCampo = TextStyle(fontSize: 14);
 
     final salvou = await showDialog<bool>(
       context: context,
@@ -168,45 +175,49 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                   children: [
                     TextFormField(
                       controller: nome,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome da campanha',
-                      ),
+                      style: estiloCampo,
+                      decoration: decoracaoCampo('Nome da campanha'),
                       validator: (valor) => (valor ?? '').trim().length < 3
                           ? 'Informe o nome da campanha.'
                           : null,
                     ),
+                    const SizedBox(height: 10),
                     TextFormField(
                       controller: beneficiario,
-                      decoration: const InputDecoration(
-                        labelText: 'Beneficiário / destino',
-                      ),
+                      style: estiloCampo,
+                      decoration: decoracaoCampo('Beneficiário / destino'),
                       validator: (valor) => (valor ?? '').trim().length < 3
                           ? 'Informe quem receberá a doação.'
                           : null,
                     ),
+                    const SizedBox(height: 10),
                     TextFormField(
                       controller: pix,
-                      decoration: const InputDecoration(
-                        labelText: 'Chave PIX (para identificação)',
+                      style: estiloCampo,
+                      decoration: decoracaoCampo(
+                        'Chave PIX (para identificação)',
                       ),
                       validator: (valor) => (valor ?? '').trim().length < 3
                           ? 'Informe a chave PIX.'
                           : null,
                     ),
+                    const SizedBox(height: 10),
                     TextFormField(
                       controller: wallet,
-                      decoration: const InputDecoration(
-                        labelText: 'Wallet ID Asaas do beneficiário',
+                      style: estiloCampo,
+                      decoration: decoracaoCampo(
+                        'Wallet ID Asaas do beneficiário',
                       ),
                       validator: (valor) => (valor ?? '').trim().length < 8
                           ? 'Informe o Wallet ID Asaas.'
                           : null,
                     ),
+                    const SizedBox(height: 10),
                     DropdownButtonFormField<int>(
                       initialValue: eventoId,
-                      decoration: const InputDecoration(
-                        labelText: 'Aplicar em',
-                      ),
+                      style: estiloCampo,
+                      isDense: true,
+                      decoration: decoracaoCampo('Aplicar em'),
                       items: [
                         const DropdownMenuItem(
                           value: -1,
@@ -222,13 +233,15 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                       onChanged: (valor) =>
                           atualizar(() => eventoId = valor ?? -1),
                     ),
+                    const SizedBox(height: 10),
                     TextFormField(
                       controller: percentual,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: const InputDecoration(
-                        labelText: 'Percentual destinado à campanha',
+                      style: estiloCampo,
+                      decoration: decoracaoCampo(
+                        'Percentual destinado à campanha',
                       ),
                       validator: (valor) {
                         final numero = double.tryParse(
@@ -239,18 +252,25 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                             : null;
                       },
                     ),
+                    const SizedBox(height: 10),
                     TextFormField(
                       controller: mensagem,
                       maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Mensagem para o cliente (opcional)',
+                      style: estiloCampo,
+                      decoration: decoracaoCampo(
+                        'Mensagem para o cliente (opcional)',
                       ),
                     ),
+                    const SizedBox(height: 8),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Campanha ativa'),
+                      title: const Text(
+                        'Campanha ativa',
+                        style: TextStyle(fontSize: 14),
+                      ),
                       subtitle: const Text(
                         'Somente uma campanha ativa é aplicada por estabelecimento.',
+                        style: TextStyle(fontSize: 12),
                       ),
                       value: ativa,
                       onChanged: (valor) => atualizar(() => ativa = valor),
