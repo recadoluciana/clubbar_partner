@@ -173,9 +173,16 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
       text: '${atual?['beneficiario'] ?? ''}',
     );
     final pix = TextEditingController(text: '${atual?['chave_pix'] ?? ''}');
-    final wallet = TextEditingController(
-      text: '${atual?['asaas_wallet_id'] ?? ''}',
-    );
+    final documento = TextEditingController();
+    final emailAsaas = TextEditingController();
+    final celularAsaas = TextEditingController();
+    final nascimentoAsaas = TextEditingController();
+    final faturamentoAsaas = TextEditingController();
+    final enderecoAsaas = TextEditingController();
+    final numeroAsaas = TextEditingController();
+    final complementoAsaas = TextEditingController();
+    final bairroAsaas = TextEditingController();
+    final cepAsaas = TextEditingController();
     final percentual = TextEditingController(
       text: '${atual?['percentual_doacao'] ?? ''}',
     );
@@ -183,7 +190,8 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
     XFile? logoSelecionada;
     Uint8List? logoBytes;
     final logoAtual = '${atual?['url_logo'] ?? ''}'.trim();
-    var ativa = '${atual?['situacao'] ?? 'ATIVA'}'.toUpperCase() == 'ATIVA';
+    var ativa = atual != null &&
+        '${atual['situacao']}'.toUpperCase() == 'ATIVA';
     var eventoId = (atual?['evento_id'] as num?)?.toInt() ?? -1;
     InputDecoration decoracaoCampo(String rotulo, {String? ajuda}) =>
         InputDecoration(
@@ -293,21 +301,140 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                           : null,
                     ),
                     const SizedBox(height: 10),
-                    TextFormField(
-                      controller: wallet,
-                      style: estiloCampo,
-                      decoration: decoracaoCampo(
-                        'Wallet ID Asaas do beneficiário',
-                        ajuda:
-                            'Use o Wallet ID do Asaas; não informe a chave PIX.',
+                    if (atual == null) ...[
+                      const SizedBox(height: 14),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Conta de recebimento do beneficiário',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
                       ),
-                      validator: (valor) =>
-                          RegExp(
-                            r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-                          ).hasMatch((valor ?? '').trim())
-                          ? null
-                          : 'Informe o Wallet ID Asaas, não a chave PIX.',
-                    ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'O Clubbar criará uma subconta Asaas. Informe os dados reais da entidade; a campanha só poderá ser ativada após aprovação do Asaas.',
+                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: documento,
+                        style: estiloCampo,
+                        keyboardType: TextInputType.number,
+                        decoration: decoracaoCampo('CPF ou CNPJ do beneficiário'),
+                        validator: (valor) => (valor ?? '').replaceAll(RegExp(r'\\D'), '').length == 11 ||
+                                (valor ?? '').replaceAll(RegExp(r'\\D'), '').length == 14
+                            ? null
+                            : 'Informe um CPF ou CNPJ válido.',
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: emailAsaas,
+                        style: estiloCampo,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: decoracaoCampo('E-mail do beneficiário'),
+                        validator: (valor) => (valor ?? '').contains('@')
+                            ? null
+                            : 'Informe o e-mail do beneficiário.',
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: celularAsaas,
+                        style: estiloCampo,
+                        keyboardType: TextInputType.phone,
+                        decoration: decoracaoCampo('Celular do beneficiário'),
+                        validator: (valor) => (valor ?? '').replaceAll(RegExp(r'\\D'), '').length >= 10
+                            ? null
+                            : 'Informe um celular válido.',
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: nascimentoAsaas,
+                        style: estiloCampo,
+                        keyboardType: TextInputType.datetime,
+                        decoration: decoracaoCampo(
+                          'Nascimento do responsável (somente CPF)',
+                          ajuda: 'Use AAAA-MM-DD quando o beneficiário for pessoa física.',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: faturamentoAsaas,
+                        style: estiloCampo,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: decoracaoCampo('Faturamento/renda mensal estimada'),
+                        validator: (valor) => (double.tryParse((valor ?? '').replaceAll(',', '.')) ?? 0) > 0
+                            ? null
+                            : 'Informe um valor maior que zero.',
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: cepAsaas,
+                        style: estiloCampo,
+                        keyboardType: TextInputType.number,
+                        decoration: decoracaoCampo('CEP'),
+                        validator: (valor) => (valor ?? '').replaceAll(RegExp(r'\\D'), '').length == 8
+                            ? null
+                            : 'Informe um CEP válido.',
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: enderecoAsaas,
+                        style: estiloCampo,
+                        decoration: decoracaoCampo('Logradouro'),
+                        validator: (valor) => (valor ?? '').trim().length >= 2
+                            ? null
+                            : 'Informe o logradouro.',
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: numeroAsaas,
+                        style: estiloCampo,
+                        decoration: decoracaoCampo('Número'),
+                        validator: (valor) => (valor ?? '').trim().isNotEmpty
+                            ? null
+                            : 'Informe o número.',
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: bairroAsaas,
+                        style: estiloCampo,
+                        decoration: decoracaoCampo('Bairro'),
+                        validator: (valor) => (valor ?? '').trim().length >= 2
+                            ? null
+                            : 'Informe o bairro.',
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: complementoAsaas,
+                        style: estiloCampo,
+                        decoration: decoracaoCampo('Complemento (opcional)'),
+                      ),
+                    ] else ...[
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F8F3),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.account_balance_rounded, color: Color(0xFF18743A)),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Subconta Asaas: ${atual['status_asaas'] ?? 'PENDENTE'}',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     DropdownButtonFormField<int>(
                       initialValue: eventoId,
@@ -364,12 +491,16 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                         'Campanha ativa',
                         style: TextStyle(fontSize: 14),
                       ),
-                      subtitle: const Text(
-                        'Somente uma campanha ativa é aplicada por estabelecimento.',
+                      subtitle: Text(
+                        atual == null
+                            ? 'A campanha começa inativa e só é liberada após a aprovação da subconta no Asaas.'
+                            : 'Somente uma campanha ativa é aplicada por estabelecimento.',
                         style: TextStyle(fontSize: 12),
                       ),
                       value: ativa,
-                      onChanged: (valor) => atualizar(() => ativa = valor),
+                      onChanged: atual == null
+                          ? null
+                          : (valor) => atualizar(() => ativa = valor),
                     ),
                   ],
                 ),
@@ -388,7 +519,9 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                   'nmcampanha': nome.text.trim(),
                   'nmbeficiario': beneficiario.text.trim(),
                   'chavepix': pix.text.trim(),
-                  'asaas_wallet_id': wallet.text.trim(),
+                  'asaas_wallet_id': atual == null
+                      ? null
+                      : '${atual['asaas_wallet_id'] ?? ''}',
                   'percentual_doacao': double.parse(
                     percentual.text.replaceAll(',', '.'),
                   ),
@@ -398,6 +531,26 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                   'evento_id': eventoId > 0 ? eventoId : null,
                   'sitcampanha': ativa ? 'ATIVA' : 'INATIVA',
                 };
+                if (atual == null) {
+                  dados['beneficiario_asaas'] = {
+                    'cpf_cnpj': documento.text.trim(),
+                    'email': emailAsaas.text.trim(),
+                    'celular': celularAsaas.text.trim(),
+                    'data_nascimento': nascimentoAsaas.text.trim().isEmpty
+                        ? null
+                        : nascimentoAsaas.text.trim(),
+                    'faturamento_mensal': double.parse(
+                      faturamentoAsaas.text.replaceAll(',', '.'),
+                    ),
+                    'endereco': enderecoAsaas.text.trim(),
+                    'numero': numeroAsaas.text.trim(),
+                    'complemento': complementoAsaas.text.trim().isEmpty
+                        ? null
+                        : complementoAsaas.text.trim(),
+                    'bairro': bairroAsaas.text.trim(),
+                    'cep': cepAsaas.text.trim(),
+                  };
+                }
                 try {
                   final resposta = atual == null
                       ? _resposta(
@@ -442,7 +595,16 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
     nome.dispose();
     beneficiario.dispose();
     pix.dispose();
-    wallet.dispose();
+    documento.dispose();
+    emailAsaas.dispose();
+    celularAsaas.dispose();
+    nascimentoAsaas.dispose();
+    faturamentoAsaas.dispose();
+    enderecoAsaas.dispose();
+    numeroAsaas.dispose();
+    complementoAsaas.dispose();
+    bairroAsaas.dispose();
+    cepAsaas.dispose();
     percentual.dispose();
     mensagem.dispose();
     if (salvou == true) await _carregarCampanhas();
@@ -478,6 +640,31 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
       );
       await _carregarCampanhas();
       if (mounted) AppSnackBar.sucesso(context, 'Campanha inativada.');
+    } catch (erro) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    }
+  }
+
+  Future<void> _ativar(Map<String, dynamic> campanha) async {
+    try {
+      _resposta(
+        await ApiService.post(
+          '/campanhas-doacao/${campanha['campanha_doacao_id']}/ativar',
+          const <String, dynamic>{},
+        ),
+      );
+      await _carregarCampanhas();
+      if (mounted) {
+        AppSnackBar.sucesso(
+          context,
+          'Subconta aprovada. A campanha já está disponível no Clubbar Client.',
+        );
+      }
     } catch (erro) {
       if (mounted) {
         AppSnackBar.erro(
@@ -545,6 +732,8 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                         final campanha = _campanhas[indice];
                         final ativa =
                             '${campanha['situacao']}'.toUpperCase() == 'ATIVA';
+                        final statusAsaas =
+                            '${campanha['status_asaas'] ?? 'PENDENTE'}';
                         final percentual =
                             double.tryParse(
                               '${campanha['percentual_doacao']}',
@@ -600,18 +789,29 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                               ),
                             ),
                             subtitle: Text(
-                              '${campanha['beneficiario']}\n${percentual.toStringAsFixed(percentual % 1 == 0 ? 0 : 2)}% do valor líquido • ${evento == null ? 'Toda a loja' : 'Evento: ${evento['nmtituloevento']}'} • ${ativa ? 'Ativa' : 'Inativa'}',
+                              '${campanha['beneficiario']}\n${percentual.toStringAsFixed(percentual % 1 == 0 ? 0 : 2)}% do valor líquido • ${evento == null ? 'Toda a loja' : 'Evento: ${evento['nmtituloevento']}'}\n${ativa ? 'Ativa' : 'Inativa'} • Asaas: $statusAsaas',
                             ),
                             isThreeLine: true,
                             trailing: PopupMenuButton<String>(
-                              onSelected: (acao) => acao == 'editar'
-                                  ? _editar(campanha)
-                                  : _inativar(campanha),
+                              onSelected: (acao) {
+                                if (acao == 'editar') {
+                                  _editar(campanha);
+                                } else if (acao == 'ativar') {
+                                  _ativar(campanha);
+                                } else {
+                                  _inativar(campanha);
+                                }
+                              },
                               itemBuilder: (_) => [
                                 const PopupMenuItem(
                                   value: 'editar',
                                   child: Text('Editar'),
                                 ),
+                                if (!ativa)
+                                  const PopupMenuItem(
+                                    value: 'ativar',
+                                    child: Text('Verificar e ativar'),
+                                  ),
                                 if (ativa)
                                   const PopupMenuItem(
                                     value: 'inativar',
