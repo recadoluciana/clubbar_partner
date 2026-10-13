@@ -299,8 +299,8 @@ class _DashboardPageState extends State<DashboardPage> {
       'Cardápio padrão empresa': Color(0xFFEF6C00),
       'Cardápio digital estabelecimento': Color(0xFFF57C00),
       'Modalidades e benefícios': Color(0xFF9A6700),
-      'Gerenciar eventos': Color(0xFF00838F),
-      'Agenda Mensal': Color(0xFF00897B),
+      'Eventos': Color(0xFF00838F),
+      'Agenda': Color(0xFF00897B),
       'Titular financeiro': Color(0xFF2E7D32),
       'Para quem doar?': Color(0xFF388E3C),
       'Extrato Asaas': Color(0xFF00796B),
@@ -491,7 +491,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Gerenciar eventos',
+                          titulo: 'Eventos',
                           subtitulo:
                               'Cadastre e configure os eventos padrão que serão usados na agenda.',
                           icone: Icons.event_note_rounded,
@@ -501,7 +501,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Agenda Mensal',
+                          titulo: 'Agenda',
                           subtitulo:
                               'Associe eventos padrão às datas de cada estabelecimento.',
                           icone: Icons.calendar_month_rounded,
