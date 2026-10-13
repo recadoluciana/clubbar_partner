@@ -410,7 +410,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         _opcao(
                           titulo: 'Categorias dos produtos',
                           subtitulo:
-                              'Importe das padrão ou crie suas categorias.',
+                              'Importe das categorias padrão ou crie suas categorias.',
                           icone: Icons.category_rounded,
                           onTap: _organizacaoId == null
                               ? null
