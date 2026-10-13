@@ -383,7 +383,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                           ? [
                               const ListTile(
                                 title: Text(
-                                  'Nenhuma categoria. Importe das padrão ou crie uma.',
+                                  'Nenhuma categoria. Importe das categorias padrão ou crie uma.',
                                 ),
                               ),
                             ]
