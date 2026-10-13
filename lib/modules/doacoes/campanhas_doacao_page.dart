@@ -1,7 +1,10 @@
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
+import '../../core/config/api_config.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
@@ -132,6 +135,35 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
     }
   }
 
+  Future<void> _enviarLogoCampanha(int campanhaId, XFile logo) async {
+    final requisicao = http.MultipartRequest(
+      'POST',
+      Uri.parse('${ApiConfig.baseUrl}/campanhas-doacao/$campanhaId/logo'),
+    );
+    final token = await StorageService.getToken();
+    if (token?.isNotEmpty == true) {
+      requisicao.headers['Authorization'] = 'Bearer $token';
+    }
+    requisicao.files.add(
+      kIsWeb
+          ? http.MultipartFile.fromBytes(
+              'logo',
+              await logo.readAsBytes(),
+              filename: logo.name,
+            )
+          : await http.MultipartFile.fromPath('logo', logo.path),
+    );
+    final resposta = await requisicao.send();
+    final corpo = await resposta.stream.bytesToString();
+    if (resposta.statusCode < 200 || resposta.statusCode >= 300) {
+      throw Exception(
+        corpo.trim().isEmpty
+            ? 'Não foi possível enviar a logo da campanha.'
+            : corpo,
+      );
+    }
+  }
+
   Future<void> _editar([Map<String, dynamic>? atual]) async {
     final lojaId = _lojaId;
     if (lojaId == null) return;
@@ -148,6 +180,9 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
       text: '${atual?['percentual_doacao'] ?? ''}',
     );
     final mensagem = TextEditingController(text: '${atual?['mensagem'] ?? ''}');
+    XFile? logoSelecionada;
+    Uint8List? logoBytes;
+    final logoAtual = '${atual?['url_logo'] ?? ''}'.trim();
     var ativa = '${atual?['situacao'] ?? 'ATIVA'}'.toUpperCase() == 'ATIVA';
     var eventoId = (atual?['evento_id'] as num?)?.toInt() ?? -1;
     InputDecoration decoracaoCampo(String rotulo, {String? ajuda}) =>
@@ -178,6 +213,57 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Row(
+                      children: [
+                        ClipOval(
+                          child: SizedBox(
+                            width: 58,
+                            height: 58,
+                            child: logoBytes != null
+                                ? Image.memory(logoBytes!, fit: BoxFit.cover)
+                                : logoAtual.isNotEmpty
+                                ? Image.network(
+                                    ApiConfig.buildUrl(logoAtual),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => const Icon(
+                                      Icons.volunteer_activism_rounded,
+                                    ),
+                                  )
+                                : const ColoredBox(
+                                    color: Color(0xFFFFF3CD),
+                                    child: Icon(
+                                      Icons.volunteer_activism_rounded,
+                                      color: Color(0xFF9A6700),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final arquivo = await ImagePicker().pickImage(
+                                source: ImageSource.gallery,
+                                imageQuality: 88,
+                              );
+                              if (arquivo == null) return;
+                              final bytes = await arquivo.readAsBytes();
+                              atualizar(() {
+                                logoSelecionada = arquivo;
+                                logoBytes = bytes;
+                              });
+                            },
+                            icon: const Icon(Icons.image_outlined),
+                            label: Text(
+                              logoSelecionada == null
+                                  ? 'Escolher logo da campanha'
+                                  : 'Trocar logo da campanha',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
                     TextFormField(
                       controller: nome,
                       style: estiloCampo,
@@ -313,20 +399,29 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                   'sitcampanha': ativa ? 'ATIVA' : 'INATIVA',
                 };
                 try {
-                  if (atual == null) {
-                    _resposta(
-                      await ApiService.post(
-                        '/campanhas-doacao/lojas/$lojaId',
-                        dados,
-                      ),
+                  final resposta = atual == null
+                      ? _resposta(
+                          await ApiService.post(
+                            '/campanhas-doacao/lojas/$lojaId',
+                            dados,
+                          ),
+                        )
+                      : _resposta(
+                          await ApiService.put(
+                            '/campanhas-doacao/${atual['campanha_doacao_id']}',
+                            dados,
+                          ),
+                        );
+                  if (logoSelecionada != null) {
+                    final campanhaId = int.tryParse(
+                      '${(resposta as Map)['campanha_doacao_id'] ?? ''}',
                     );
-                  } else {
-                    _resposta(
-                      await ApiService.put(
-                        '/campanhas-doacao/${atual['campanha_doacao_id']}',
-                        dados,
-                      ),
-                    );
+                    if (campanhaId == null) {
+                      throw Exception(
+                        'A campanha não retornou um identificador.',
+                      );
+                    }
+                    await _enviarLogoCampanha(campanhaId, logoSelecionada!);
                   }
                   if (dialogContext.mounted) Navigator.pop(dialogContext, true);
                 } catch (erro) {
@@ -465,15 +560,37 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                               );
                         return Card(
                           child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: ativa
-                                  ? const Color(0xFFE4F5E8)
-                                  : Colors.grey.shade200,
-                              child: Icon(
-                                Icons.volunteer_activism_outlined,
-                                color: ativa
-                                    ? const Color(0xFF18743A)
-                                    : Colors.grey,
+                            leading: ClipOval(
+                              child: SizedBox(
+                                width: 42,
+                                height: 42,
+                                child:
+                                    '${campanha['url_logo'] ?? ''}'
+                                        .trim()
+                                        .isEmpty
+                                    ? CircleAvatar(
+                                        backgroundColor: ativa
+                                            ? const Color(0xFFE4F5E8)
+                                            : Colors.grey.shade200,
+                                        child: Icon(
+                                          Icons.volunteer_activism_outlined,
+                                          color: ativa
+                                              ? const Color(0xFF18743A)
+                                              : Colors.grey,
+                                        ),
+                                      )
+                                    : Image.network(
+                                        ApiConfig.buildUrl(
+                                          '${campanha['url_logo']}',
+                                        ),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) => Icon(
+                                          Icons.volunteer_activism_outlined,
+                                          color: ativa
+                                              ? const Color(0xFF18743A)
+                                              : Colors.grey,
+                                        ),
+                                      ),
                               ),
                             ),
                             title: Text(
