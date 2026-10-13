@@ -287,6 +287,32 @@ class _DashboardPageState extends State<DashboardPage> {
     return '$_nomeUsuario • ${_nomeCargo()} • $dataHora';
   }
 
+  Color _corDoAtalho(String titulo) {
+    // Tons progressivos, todos com a mesma intensidade visual. O fundo do
+    // ícone é derivado da própria cor para manter a tela leve e legível.
+    const cores = <String, Color>{
+      'Minha empresa': Color(0xFF1565C0),
+      'Estilos musicais': Color(0xFF3949AB),
+      'Atrações': Color(0xFF7B1FA2),
+      'Categorias dos produtos': Color(0xFFAD1457),
+      'Meus estabelecimentos': Color(0xFFC62828),
+      'Cardápio padrão empresa': Color(0xFFEF6C00),
+      'Cardápio digital estabelecimento': Color(0xFFF57C00),
+      'Modalidades e benefícios': Color(0xFF9A6700),
+      'Gerenciar eventos': Color(0xFF00838F),
+      'Agenda Mensal': Color(0xFF00897B),
+      'Titular financeiro': Color(0xFF2E7D32),
+      'Para quem doar?': Color(0xFF388E3C),
+      'Extrato Asaas': Color(0xFF00796B),
+      'Usuários e permissões': Color(0xFF0277BD),
+      'Painel Gerencial': Color(0xFF4527A0),
+      'Acompanhamento de vendas': Color(0xFF5E35B1),
+      'Pedidos para entrega': Color(0xFF6D4C41),
+      'Auditoria': Color(0xFF546E7A),
+    };
+    return cores[titulo] ?? ClubbarColors.primaria;
+  }
+
   Widget _opcao({
     required String titulo,
     required String subtitulo,
@@ -294,6 +320,7 @@ class _DashboardPageState extends State<DashboardPage> {
     required VoidCallback? onTap,
   }) {
     final habilitado = onTap != null;
+    final cor = _corDoAtalho(titulo);
     return ClubbarCard(
       onTap: onTap,
       elevation: 1,
@@ -303,16 +330,12 @@ class _DashboardPageState extends State<DashboardPage> {
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: habilitado
-                  ? ClubbarColors.ambarClaro
-                  : ClubbarColors.borda,
+              color: habilitado ? cor.withValues(alpha: 0.12) : ClubbarColors.borda,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
               icone,
-              color: habilitado
-                  ? ClubbarColors.preto
-                  : ClubbarColors.textoSecundario,
+              color: habilitado ? cor : ClubbarColors.textoSecundario,
             ),
           ),
           const SizedBox(width: 14),
