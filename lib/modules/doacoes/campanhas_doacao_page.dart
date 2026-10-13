@@ -150,12 +150,17 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
     final mensagem = TextEditingController(text: '${atual?['mensagem'] ?? ''}');
     var ativa = '${atual?['situacao'] ?? 'ATIVA'}'.toUpperCase() == 'ATIVA';
     var eventoId = (atual?['evento_id'] as num?)?.toInt() ?? -1;
-    InputDecoration decoracaoCampo(String rotulo) => InputDecoration(
-      labelText: rotulo,
-      isDense: true,
-      labelStyle: const TextStyle(fontSize: 12),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    );
+    InputDecoration decoracaoCampo(String rotulo, {String? ajuda}) =>
+        InputDecoration(
+          labelText: rotulo,
+          helperText: ajuda,
+          isDense: true,
+          labelStyle: const TextStyle(fontSize: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
+        );
     const estiloCampo = TextStyle(fontSize: 14);
 
     final salvou = await showDialog<bool>(
@@ -207,10 +212,15 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                       style: estiloCampo,
                       decoration: decoracaoCampo(
                         'Wallet ID Asaas do beneficiário',
+                        ajuda:
+                            'Use o Wallet ID do Asaas; não informe a chave PIX.',
                       ),
-                      validator: (valor) => (valor ?? '').trim().length < 8
-                          ? 'Informe o Wallet ID Asaas.'
-                          : null,
+                      validator: (valor) =>
+                          RegExp(
+                            r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+                          ).hasMatch((valor ?? '').trim())
+                          ? null
+                          : 'Informe o Wallet ID Asaas, não a chave PIX.',
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<int>(
