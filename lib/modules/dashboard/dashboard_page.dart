@@ -28,6 +28,7 @@ import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
 import '../eventos/evento_list_page.dart';
 import '../ingressos/catalogo_ingressos_partner_page.dart';
 import '../entregas/pedidos_entrega_page.dart';
+import '../doacoes/campanhas_doacao_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -201,6 +202,12 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _abrirFinanceiro() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const TitularesFinanceirosPage()),
+    );
+  }
+
+  Future<void> _abrirCampanhasDoacao() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const CampanhasDoacaoPage()),
     );
   }
 
@@ -484,6 +491,16 @@ class _DashboardPageState extends State<DashboardPage> {
                               'Pessoa física ou jurídica responsável pelos recebimentos.',
                           icone: Icons.account_balance_wallet_rounded,
                           onTap: () => _abrirFinanceiro(),
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Para quem doar?',
+                          subtitulo:
+                              'Destine parte das vendas a entidades ou campanhas emergenciais.',
+                          icone: Icons.volunteer_activism_rounded,
+                          onTap: _podeVerGerencial
+                              ? _abrirCampanhasDoacao
+                              : null,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
