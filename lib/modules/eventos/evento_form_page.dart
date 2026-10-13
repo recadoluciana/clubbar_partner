@@ -387,30 +387,53 @@ class _EventoFormPageState extends State<EventoFormPage> {
           const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: SizedBox(
-              width: double.infinity,
-              height: 210,
-              child: _imagemBanner(),
-            ),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: _salvando ? null : _selecionarImagem,
-              icon: const Icon(Icons.photo_library_rounded),
-              label: Text(
-                _imagemSelecionada != null || editando
-                    ? 'Alterar banner'
-                    : 'Selecionar banner',
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ClubbarColors.textoPrincipal,
-                side: const BorderSide(color: ClubbarColors.borda),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _salvando ? null : _selecionarImagem,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 210,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _imagemBanner(),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          margin: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 9,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.68),
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.photo_library_rounded,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 7),
+                              Text(
+                                _imagemSelecionada != null || editando
+                                    ? 'Toque para alterar o banner'
+                                    : 'Toque para selecionar o banner',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
