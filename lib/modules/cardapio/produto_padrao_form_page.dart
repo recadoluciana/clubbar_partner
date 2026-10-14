@@ -111,32 +111,9 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     }
   }
 
-  double? _numero(String texto) {
-    final valor = texto.trim();
-    final normalizado = valor.contains(',')
-        ? valor.replaceAll('.', '').replaceAll(',', '.')
-        : valor;
-    return double.tryParse(normalizado);
-  }
-
   String _dataRegistro(Object? valor) {
     final data = DateTime.tryParse('${valor ?? ''}');
     return data == null ? '—' : DateFormat('dd/MM/yyyy HH:mm').format(data);
-  }
-
-  String? _validarNumero(
-    String? texto, {
-    bool positivo = false,
-    double? maximo,
-  }) {
-    final valor = _numero(texto ?? '');
-    if (valor == null || (positivo ? valor <= 0 : valor < 0)) {
-      return positivo
-          ? 'Informe um valor maior que zero.'
-          : 'Informe um valor válido.';
-    }
-    if (maximo != null && valor > maximo) return 'O máximo é $maximo.';
-    return null;
   }
 
   Future<void> _salvar() async {

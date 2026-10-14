@@ -37,7 +37,9 @@ class _CardapiosEmpresaPageState extends State<CardapiosEmpresaPage> {
       final cardapios = await _repo.listarCardapiosEmpresa(
         widget.organizacaoId,
       );
-      if (mounted) setState(() => _cardapios = cardapios);
+      if (mounted) {
+        setState(() => _cardapios = cardapios);
+      }
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -108,7 +110,9 @@ class _CardapiosEmpresaPageState extends State<CardapiosEmpresaPage> {
       ),
     );
     nome.dispose();
-    if (resultado == null || !mounted) return;
+    if (resultado == null || !mounted) {
+      return;
+    }
     try {
       await _repo.criarPadrao(widget.organizacaoId, resultado.$1, resultado.$2);
       await _carregar();
