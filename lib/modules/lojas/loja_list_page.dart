@@ -346,7 +346,7 @@ class _LojaListPageState extends State<LojaListPage> {
       return;
     }
 
-    var selecionadoId = cardapios.first['cardapiomodelo_id'] as int;
+    var selecionadoId = cardapios.first['cardapio_id'] as int;
     final selecionado = await showDialog<int>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -371,7 +371,7 @@ class _LojaListPageState extends State<LojaListPage> {
                   items: cardapios
                       .map(
                         (item) => DropdownMenuItem<int>(
-                          value: item['cardapiomodelo_id'] as int,
+                          value: item['cardapio_id'] as int,
                           child: Text(
                             item['nmcardapio']?.toString() ?? 'Cardápio',
                             overflow: TextOverflow.ellipsis,
@@ -409,7 +409,7 @@ class _LojaListPageState extends State<LojaListPage> {
     if (selecionado == null || !mounted) return;
     try {
       final cardapio = cardapios.firstWhere(
-        (item) => item['cardapiomodelo_id'] == selecionado,
+        (item) => item['cardapio_id'] == selecionado,
       );
       await _cardapioRepository.associar(loja.lojaId, selecionado);
       if (!mounted) return;

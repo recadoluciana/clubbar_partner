@@ -84,24 +84,6 @@ class CardapioRepository {
     return Map<String, dynamic>.from(_json(response));
   }
 
-  Future<List<Map<String, dynamic>>> listarItensPadrao(
-    int organizacaoId,
-    int modeloId,
-  ) async {
-    final response = await ApiService.get(
-      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens',
-    );
-    if (response.statusCode != 200) {
-      throw _erro(
-        response,
-        'Não foi possível carregar os produtos do cardápio.',
-      );
-    }
-    return (_json(response) as List)
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
-  }
-
   Future<List<Map<String, dynamic>>> listarCategoriasOrganizacao(
     int organizacaoId,
   ) async {
@@ -118,52 +100,6 @@ class CardapioRepository {
         .map((e) => Map<String, dynamic>.from(e))
         .where((e) => e['sitcategoria'] == 'ATIVA')
         .toList();
-  }
-
-  Future<List<Map<String, dynamic>>> listarCategoriasPadrao(
-    int organizacaoId,
-    int modeloId,
-  ) async {
-    final response = await ApiService.get(
-      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/categorias',
-    );
-    if (response.statusCode != 200) {
-      throw _erro(
-        response,
-        'Não foi possível carregar as categorias do cardápio.',
-      );
-    }
-    return (_json(response) as List)
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
-  }
-
-  Future<void> adicionarCategoriaPadrao(
-    int organizacaoId,
-    int modeloId,
-    int categoriaId,
-  ) async {
-    final response = await ApiService.post(
-      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/categorias',
-      {'categoria_id': categoriaId},
-    );
-    if (response.statusCode != 201) {
-      throw _erro(response, 'Não foi possível adicionar a categoria.');
-    }
-  }
-
-  Future<Map<String, dynamic>> removerCategoriaPadrao(
-    int organizacaoId,
-    int modeloId,
-    int categoriaPadraoId,
-  ) async {
-    final response = await ApiService.delete(
-      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/categorias/$categoriaPadraoId',
-    );
-    if (response.statusCode != 200) {
-      throw _erro(response, 'Não foi possível excluir a categoria.');
-    }
-    return Map<String, dynamic>.from(_json(response));
   }
 
   Future<List<Map<String, dynamic>>> listarProdutosPadraoOrganizacao(
@@ -219,44 +155,6 @@ class CardapioRepository {
     }
   }
 
-  Future<String> enviarFotoProdutoPadrao(
-    int organizacaoId,
-    int modeloId,
-    XFile imagem,
-  ) async {
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse(
-        '${ApiConfig.baseUrl}/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/foto',
-      ),
-    );
-    final token = await StorageService.getToken();
-    if (token != null && token.isNotEmpty) {
-      request.headers['Authorization'] = 'Bearer $token';
-    }
-    final mime = lookupMimeType(imagem.name) ?? 'image/jpeg';
-    final partes = mime.split('/');
-    request.files.add(
-      kIsWeb
-          ? http.MultipartFile.fromBytes(
-              'foto',
-              await imagem.readAsBytes(),
-              filename: imagem.name,
-              contentType: MediaType(partes[0], partes[1]),
-            )
-          : await http.MultipartFile.fromPath(
-              'foto',
-              imagem.path,
-              contentType: MediaType(partes[0], partes[1]),
-            ),
-    );
-    final response = await http.Response.fromStream(await request.send());
-    if (response.statusCode != 200) {
-      throw _erro(response, 'Não foi possível enviar a foto.');
-    }
-    return '${_json(response)['urlfotoproduto']}';
-  }
-
   Future<String> enviarFotoProdutoPadraoOrganizacao(
     int organizacaoId,
     XFile imagem,
@@ -292,48 +190,6 @@ class CardapioRepository {
       throw _erro(response, 'Não foi possível enviar a foto.');
     }
     return '${_json(response)['urlfotoproduto']}';
-  }
-
-  Future<void> adicionarItemPadrao(
-    int organizacaoId,
-    int modeloId,
-    Map<String, dynamic> dados,
-  ) async {
-    final response = await ApiService.post(
-      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens',
-      dados,
-    );
-    if (response.statusCode != 201) {
-      throw _erro(response, 'Não foi possível adicionar o produto.');
-    }
-  }
-
-  Future<void> removerItemPadrao(
-    int organizacaoId,
-    int modeloId,
-    int itemId,
-  ) async {
-    final response = await ApiService.delete(
-      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens/$itemId',
-    );
-    if (response.statusCode != 204) {
-      throw _erro(response, 'Não foi possível remover o produto.');
-    }
-  }
-
-  Future<void> alterarProdutoPadrao(
-    int organizacaoId,
-    int modeloId,
-    int itemId,
-    Map<String, dynamic> dados,
-  ) async {
-    final response = await ApiService.put(
-      '/organizacoes/$organizacaoId/cardapios-padrao/$modeloId/itens/$itemId',
-      dados,
-    );
-    if (response.statusCode != 200) {
-      throw _erro(response, 'Não foi possível alterar o produto.');
-    }
   }
 
   Future<Map<String, dynamic>> associar(int lojaId, int cardapioId) async {
