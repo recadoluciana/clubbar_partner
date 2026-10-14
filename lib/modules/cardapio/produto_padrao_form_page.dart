@@ -1,11 +1,12 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_calendar_delegate.dart';
@@ -35,7 +36,6 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
   late final TextEditingController _nome;
   late final TextEditingController _descricao;
   late final TextEditingController _preco;
-  late final TextEditingController _sku;
   String? _fotoUrl;
   XFile? _fotoSelecionada;
   Uint8List? _fotoBytes;
@@ -56,10 +56,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     final item = widget.item ?? const <String, dynamic>{};
     _nome = TextEditingController(text: '${item['nmproduto'] ?? ''}');
     _descricao = TextEditingController(text: '${item['dsproduto'] ?? ''}');
-    _preco = TextEditingController(
-      text: '${item['vrprecoprod'] ?? ''}'.replaceAll('.', ','),
-    );
-    _sku = TextEditingController(text: '${item['skuproduto'] ?? ''}');
+    _preco = TextEditingController(text: _formatarPreco(item['vrprecoprod']));
     _fotoUrl = item['urlfotoproduto']?.toString();
     _desconto = TextEditingController(
       text: '${item['vrdesconto'] ?? ''}'.replaceAll('.', ','),
@@ -83,7 +80,6 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
       _nome,
       _descricao,
       _preco,
-      _sku,
       _desconto,
       _cashback,
     ]) {
@@ -169,8 +165,18 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     });
   }
 
-  double? _numero(String texto) =>
-      double.tryParse(texto.trim().replaceAll(',', '.'));
+  double? _numero(String texto) {
+    final valor = texto.trim();
+    final normalizado = valor.contains(',')
+        ? valor.replaceAll('.', '').replaceAll(',', '.')
+        : valor;
+    return double.tryParse(normalizado);
+  }
+
+  String _formatarPreco(Object? valor) {
+    final numero = double.tryParse('${valor ?? ''}'.replaceAll(',', '.'));
+    return numero == null ? '' : NumberFormat('0.00', 'pt_BR').format(numero);
+  }
 
   String _dataRegistro(Object? valor) {
     final data = DateTime.tryParse('${valor ?? ''}');
@@ -268,7 +274,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
         'vrprecoprod': preco,
         'atualizar_preco_lojas': atualizarPrecoLojas,
         'sitproduto': _situacao,
-        'skuproduto': _sku.text.trim().isEmpty ? null : _sku.text.trim(),
+        if (widget.item != null) 'skuproduto': widget.item!['skuproduto'],
         'urlfotoproduto': _fotoUrl,
         'tipodesconto': _tipoDesconto,
         'vrdesconto': desconto ?? 0,
@@ -435,8 +441,12 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        inputFormatters: const [
+                          DecimalInputFormatter(usarSeparadorMilhar: true),
+                        ],
                         decoration: const InputDecoration(
                           labelText: 'Preço do produto (R\$)',
+                          hintText: '0,00',
                           border: OutlineInputBorder(),
                         ),
                         validator: (v) => _validarNumero(v),
@@ -460,15 +470,6 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                         ],
                         onChanged: (v) =>
                             setState(() => _situacao = v ?? 'ATIVO'),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _sku,
-                        maxLength: 100,
-                        decoration: const InputDecoration(
-                          labelText: 'SKU (opcional)',
-                          border: OutlineInputBorder(),
-                        ),
                       ),
                       const SizedBox(height: 8),
                       InkWell(
