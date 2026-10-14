@@ -139,15 +139,9 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
         'dsproduto': _descricao.text.trim().isEmpty
             ? null
             : _descricao.text.trim(),
-        'vrprecoprod': 0,
         'sitproduto': _situacao,
         if (widget.item != null) 'skuproduto': widget.item!['skuproduto'],
         'urlfotoproduto': _fotoUrl,
-        'tipodesconto': 'NENHUM',
-        'vrdesconto': 0,
-        'pccashback': null,
-        'dtinidesconto': null,
-        'dtfimdesconto': null,
       };
       if (widget.modeloId == null) {
         if (widget.item == null) {

@@ -110,43 +110,9 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
     }
   }
 
-  String _moeda(Object? valor) {
-    final numero = double.tryParse('$valor') ?? 0;
-    return 'R\$ ${numero.toStringAsFixed(2).replaceAll('.', ',')}';
-  }
-
-  bool _temDesconto(Map<String, dynamic> produto) =>
-      '${produto['tipodesconto'] ?? 'NENHUM'}'.toUpperCase() != 'NENHUM' &&
-      (double.tryParse('${produto['vrdesconto']}') ?? 0) > 0;
-
-  bool _descontoEstaVigente(Map<String, dynamic> produto) {
-    if (!_temDesconto(produto)) return false;
-    final agora = DateTime.now();
-    final inicio = DateTime.tryParse('${produto['dtinidesconto'] ?? ''}');
-    final fim = DateTime.tryParse('${produto['dtfimdesconto'] ?? ''}');
-    return (inicio == null || !agora.isBefore(inicio)) &&
-        (fim == null || !agora.isAfter(fim));
-  }
-
-  double _precoComDesconto(Map<String, dynamic> produto) {
-    final preco = double.tryParse('${produto['vrprecoprod']}') ?? 0;
-    if (!_descontoEstaVigente(produto)) return preco;
-    final valorDesconto = double.tryParse('${produto['vrdesconto']}') ?? 0;
-    final precoFinal =
-        '${produto['tipodesconto']}'.toUpperCase() == 'PERCENTUAL'
-        ? preco * (1 - valorDesconto / 100)
-        : preco - valorDesconto;
-    return precoFinal < 0 ? 0 : precoFinal;
-  }
-
   Widget _cardProduto(Map<String, dynamic> produto) {
     final foto = '${produto['urlfotoproduto'] ?? ''}'.trim();
     final ativo = '${produto['sitproduto']}' == 'ATIVO';
-    final desconto = _temDesconto(produto);
-    final preco = double.tryParse('${produto['vrprecoprod']}') ?? 0;
-    final precoFinal = _precoComDesconto(produto);
-    final descontoAplicado = precoFinal < preco;
-    final codigo = '${produto['skuproduto'] ?? ''}'.trim();
     final descricao = '${produto['dsproduto'] ?? ''}'.trim();
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -187,46 +153,10 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        codigo.isEmpty
-                            ? 'Código #${produto['produto_id']}'
-                            : 'Código: $codigo',
-                        style: const TextStyle(
-                          color: ClubbarColors.textoSecundario,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
                         '${produto['nmproduto']}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          if (descontoAplicado) ...[
-                            Text(
-                              _moeda(preco),
-                              style: const TextStyle(
-                                color: ClubbarColors.textoSecundario,
-                                decoration: TextDecoration.lineThrough,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                          ],
-                          Text(
-                            _moeda(precoFinal),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                              color: descontoAplicado
-                                  ? ClubbarColors.primaria
-                                  : null,
-                            ),
-                          ),
-                        ],
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -273,14 +203,6 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
                   backgroundColor: ativo
                       ? Colors.green.shade50
                       : Colors.grey.shade200,
-                ),
-                Chip(
-                  avatar: Icon(Icons.sell_outlined, size: 17),
-                  label: Text(desconto ? 'Com desconto' : 'Sem desconto'),
-                  visualDensity: VisualDensity.compact,
-                  backgroundColor: desconto
-                      ? Colors.orange.shade50
-                      : Colors.grey.shade100,
                 ),
               ],
             ),
