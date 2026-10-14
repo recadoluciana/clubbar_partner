@@ -1395,6 +1395,162 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     if (salvou == true && mounted) _carregar();
   }
 
+  double _precoSugeridoParaModalidade(
+    EventoLote configuracao,
+    ModalidadeIngressoCatalogo modalidade,
+  ) {
+    if (modalidade.codigo.toUpperCase() == 'CORTESIA') return 0;
+    final inteira = configuracao.precos
+        .where((preco) => preco.tipo.toUpperCase() == 'INTEIRA')
+        .firstOrNull;
+    final valorInteira = inteira?.valor ?? 0;
+    return modalidade.tipo.toUpperCase() == 'LEGAL'
+        ? valorInteira / 2
+        : valorInteira;
+  }
+
+  Future<void> _incluirModalidade(EventoLote configuracao) async {
+    final idsConfigurados = configuracao.precos
+        .map((preco) => preco.modalidadeId)
+        .toSet();
+    List<ModalidadeIngressoCatalogo> catalogo;
+    try {
+      catalogo = await _repo.listarModalidades(
+        organizacaoId: widget.organizacaoId,
+      );
+    } catch (erro) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    final modalidadesDisponiveis = catalogo
+        .where((modalidade) => !idsConfigurados.contains(modalidade.id))
+        .toList();
+    if (modalidadesDisponiveis.isEmpty) {
+      AppSnackBar.aviso(
+        context,
+        'Todas as modalidades disponíveis para este evento já estão neste setor.',
+      );
+      return;
+    }
+
+    var modalidadeSelecionada = modalidadesDisponiveis.first;
+    final valor = TextEditingController(
+      text: _precoSugeridoParaModalidade(
+        configuracao,
+        modalidadeSelecionada,
+      ).toStringAsFixed(2).replaceAll('.', ','),
+    );
+    final salvou = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, atualizarDialogo) => AlertDialog(
+          title: const Text('Incluir modalidade'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<ModalidadeIngressoCatalogo>(
+                  key: ValueKey(modalidadeSelecionada.id),
+                  initialValue: modalidadeSelecionada,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Modalidade'),
+                  items: modalidadesDisponiveis
+                      .map(
+                        (modalidade) => DropdownMenuItem(
+                          value: modalidade,
+                          child: Text(modalidade.nome),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (modalidade) {
+                    if (modalidade == null) return;
+                    atualizarDialogo(() {
+                      modalidadeSelecionada = modalidade;
+                      valor.text = _precoSugeridoParaModalidade(
+                        configuracao,
+                        modalidade,
+                      ).toStringAsFixed(2).replaceAll('.', ',');
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: valor,
+                  onTap: () => _selecionarPrecoZero(valor),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(labelText: 'Preço'),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'As regras de benefício e comprovante são aplicadas automaticamente conforme a modalidade.',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                final preco = double.tryParse(
+                  valor.text.replaceAll('.', '').replaceAll(',', '.'),
+                );
+                if (preco == null || preco < 0) {
+                  AppSnackBar.aviso(context, 'Informe um preço válido.');
+                  return;
+                }
+                try {
+                  await _repo.adicionarModalidadeAoSetor(
+                    loteId: configuracao.loteId,
+                    preco: EventoLotePreco(
+                      id: 0,
+                      modalidadeId: modalidadeSelecionada.id,
+                      nome: modalidadeSelecionada.nome,
+                      tipo: modalidadeSelecionada.codigo,
+                      valor:
+                          modalidadeSelecionada.codigo.toUpperCase() ==
+                              'CORTESIA'
+                          ? 0
+                          : preco,
+                      aplicaCotaLegal: modalidadeSelecionada.aplicaCotaLegal,
+                      exigeComprovante: modalidadeSelecionada.exigeComprovante,
+                      situacao: 'ATIVO',
+                      ordem: modalidadeSelecionada.ordem,
+                    ),
+                  );
+                  if (context.mounted) Navigator.pop(context, true);
+                } catch (erro) {
+                  if (context.mounted) {
+                    AppSnackBar.erro(
+                      context,
+                      erro.toString().replaceFirst('Exception: ', ''),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Incluir'),
+            ),
+          ],
+        ),
+      ),
+    );
+    valor.dispose();
+    if (salvou == true && mounted) _carregar();
+  }
+
   Future<void> _excluirGlobal(EventoLoteGlobal lote) async {
     if (_eventoPublicado && _globais.length <= 1) {
       AppSnackBar.erro(
@@ -2189,6 +2345,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       borderRadius: BorderRadius.circular(12),
     ),
     child: ExpansionTile(
+      initiallyExpanded: true,
       title: Text(
         configuracao.nomeSetor ?? 'Setor',
         style: const TextStyle(fontWeight: FontWeight.w800),
@@ -2225,71 +2382,80 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
           child: Column(
-            children: configuracao.precos
-                .map(
-                  (preco) => Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: ClubbarColors.fundo,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    preco.nome,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                    ),
+            children: [
+              ...configuracao.precos.map(
+                (preco) => Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: ClubbarColors.fundo,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  preco.nome,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    _capacidadeDaModalidade(
-                                      configuracao,
-                                      preco,
-                                    ),
-                                    style: const TextStyle(
-                                      color: Colors.blue,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (!_somenteConsulta)
-                              IconButton(
-                                onPressed: () =>
-                                    _editarModalidade(configuracao, preco),
-                                icon: const Icon(
-                                  Icons.edit_rounded,
-                                  color: Colors.blue,
                                 ),
-                                tooltip: 'Editar modalidade',
+                                const SizedBox(height: 3),
+                                Text(
+                                  _capacidadeDaModalidade(configuracao, preco),
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!_somenteConsulta)
+                            IconButton(
+                              onPressed: () =>
+                                  _editarModalidade(configuracao, preco),
+                              icon: const Icon(
+                                Icons.edit_rounded,
+                                color: Colors.blue,
                               ),
-                          ],
-                        ),
-                        Text('Preço: ${_moeda.format(preco.valor)}'),
-                        Text(
-                          preco.aplicaCotaLegal
-                              ? 'Regra: usa a cota legal de meia-entrada'
-                              : preco.exigeComprovante
-                              ? 'Regra: comprovante obrigatório'
-                              : 'Regra: sem exigência',
-                        ),
-                      ],
+                              tooltip: 'Editar modalidade',
+                            ),
+                        ],
+                      ),
+                      Text('Preço: ${_moeda.format(preco.valor)}'),
+                      Text(
+                        preco.aplicaCotaLegal
+                            ? 'Regra: usa a cota legal de meia-entrada'
+                            : preco.exigeComprovante
+                            ? 'Regra: comprovante obrigatório'
+                            : 'Regra: sem exigência',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (!_somenteConsulta)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _incluirModalidade(configuracao),
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Incluir modalidade'),
                     ),
                   ),
-                )
-                .toList(),
+                ),
+            ],
           ),
         ),
       ],

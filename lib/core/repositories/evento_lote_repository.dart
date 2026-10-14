@@ -352,6 +352,26 @@ class EventoLoteRepository {
     }
   }
 
+  Future<void> adicionarModalidadeAoSetor({
+    required int loteId,
+    required EventoLotePreco preco,
+  }) async {
+    final response =
+        await ApiService.post('/eventos/lotes/$loteId/modalidades', {
+          'modalidade_id': preco.modalidadeId,
+          'nmpreco': preco.nome.trim(),
+          'tipopreco': preco.tipo,
+          'vrpreco': preco.valor,
+          'aplicacotalegal': preco.aplicaCotaLegal,
+          'exigecomprovante': preco.exigeComprovante,
+          'situacao': preco.situacao,
+          'nrordem': preco.ordem,
+        });
+    if (response.statusCode != 201) {
+      throw _erro(response, 'Não foi possível incluir a modalidade no setor.');
+    }
+  }
+
   Future<List<Map<String, dynamic>>> _precosPadrao(
     double inteira, {
     int? organizacaoId,
