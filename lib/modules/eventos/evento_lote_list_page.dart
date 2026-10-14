@@ -86,6 +86,15 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         : DateFormat("dd/MM/yyyy 'às' HH:mm 'horas'").format(data);
   }
 
+  DateTime? get _fimEvento => DateTime.tryParse(_evento?.dtfimevento ?? '');
+
+  String get _dataFimEvento {
+    final data = _fimEvento;
+    return data == null
+        ? 'Não informado'
+        : DateFormat("dd/MM/yyyy 'às' HH:mm 'horas'").format(data);
+  }
+
   String _data(String? valor) {
     final data = DateTime.tryParse(valor ?? '');
     return data == null
@@ -134,12 +143,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     );
     final escolhida = await _selecionarDataHora(atual);
     if (escolhida == null) return;
-    final inicioEvento = DateTime.tryParse(_eventoInicio ?? '');
-    if (!inicio && inicioEvento != null && escolhida.isAfter(inicioEvento)) {
+    final fimEvento = _fimEvento;
+    if (!inicio && fimEvento != null && escolhida.isAfter(fimEvento)) {
       if (mounted) {
         AppSnackBar.aviso(
           context,
-          'A data limite deste preço não pode ser posterior ao início do evento.',
+          'A data limite deste preço não pode ser posterior ao término do evento.',
         );
       }
       return;
@@ -856,6 +865,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           lojaId: widget.lojaId,
           eventoTitulo: _eventoTitulo,
           eventoInicio: _eventoInicio,
+          eventoFim: _evento?.dtfimevento,
           setores: _setores
               .where((setor) => setor.situacao == 'ATIVO')
               .toList(),
@@ -875,6 +885,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           lojaId: widget.lojaId,
           eventoTitulo: _eventoTitulo,
           eventoInicio: _eventoInicio,
+          eventoFim: _evento?.dtfimevento,
           setores: _setores
               .where((setor) => setor.situacao == 'ATIVO')
               .toList(),
@@ -1651,12 +1662,20 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 children: [
                   const Text('Agendado para', style: TextStyle(fontSize: 12)),
                   Text(
-                    _dataEvento,
+                    'Início: $_dataEvento',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
+                  if (_fimEvento != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        'Término: $_dataFimEvento',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
                 ],
               ),
             ),

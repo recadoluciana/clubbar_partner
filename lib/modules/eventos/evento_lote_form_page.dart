@@ -17,6 +17,7 @@ class EventoLoteFormPage extends StatefulWidget {
   final int lojaId;
   final String eventoTitulo;
   final String? eventoInicio;
+  final String? eventoFim;
   final List<EventoSetor> setores;
   final int proximoNumeroLote;
   final EventoLoteGlobal? loteGlobal;
@@ -30,6 +31,7 @@ class EventoLoteFormPage extends StatefulWidget {
     required this.setores,
     required this.proximoNumeroLote,
     this.eventoInicio,
+    this.eventoFim,
     this.loteGlobal,
   });
 
@@ -149,11 +151,11 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   Future<void> _selecionarFim() async {
     final data = await _selecionar(_fimSelecionado);
     if (data == null || !mounted) return;
-    final inicioEvento = DateTime.tryParse(widget.eventoInicio ?? '');
-    if (inicioEvento != null && data.isAfter(inicioEvento)) {
+    final fimEvento = DateTime.tryParse(widget.eventoFim ?? '');
+    if (fimEvento != null && data.isAfter(fimEvento)) {
       AppSnackBar.aviso(
         context,
-        'A data limite deste preço não pode ser posterior ao início do evento.',
+        'A data limite deste preço não pode ser posterior ao término do evento.',
       );
       return;
     }
