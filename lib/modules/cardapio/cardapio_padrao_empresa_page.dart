@@ -23,27 +23,20 @@ class CardapioPadraoEmpresaPage extends StatefulWidget {
       _CardapioPadraoEmpresaPageState();
 }
 
-class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage>
-    with SingleTickerProviderStateMixin {
+class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
   final _repo = CardapioRepository();
   List<Map<String, dynamic>> _padroes = [];
   List<Map<String, dynamic>> _produtos = [];
   bool _carregando = true;
-  late final TabController _abas;
 
   @override
   void initState() {
     super.initState();
-    _abas = TabController(length: 2, vsync: this);
-    _abas.addListener(() {
-      if (!_abas.indexIsChanging) setState(() {});
-    });
     _carregar();
   }
 
   @override
   void dispose() {
-    _abas.dispose();
     super.dispose();
   }
 
@@ -478,37 +471,20 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage>
       children: [
         ClubbarPageHeader(
           titulo: widget.nomeOrganizacao,
-          subtitulo: 'Cardápio padrão empresa',
+          subtitulo: 'Produtos da empresa',
           tituloStyle: const TextStyle(
             color: ClubbarColors.info,
             fontSize: 17,
             fontWeight: FontWeight.w900,
           ),
         ),
-        Material(
-          color: Colors.white,
-          child: TabBar(
-            controller: _abas,
-            tabs: const [
-              Tab(text: 'Produtos'),
-              Tab(text: 'Cardápios'),
-            ],
-          ),
-        ),
-        Expanded(
-          child: TabBarView(
-            controller: _abas,
-            children: [_abaProdutos(), _abaCardapios()],
-          ),
-        ),
+        Expanded(child: _abaProdutos()),
       ],
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: () => _abas.index == 0 ? _abrirProduto() : _novo(),
+      onPressed: _abrirProduto,
       icon: const Icon(Icons.add),
-      label: Text(
-        _abas.index == 0 ? 'Adicionar produto' : 'Adicionar cardápio',
-      ),
+      label: Text('Adicionar produto'),
     ),
   );
 }

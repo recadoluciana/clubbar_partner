@@ -47,6 +47,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
               }
               final programacoes = await _repo.listarProgramacoes(
                 int.parse('${cardapio['cardapio_id']}'),
+                lojaId: loja.lojaId,
               );
               return {...cardapio, 'programacoes': programacoes};
             }),
@@ -88,11 +89,9 @@ class _CardapiosPageState extends State<CardapiosPage> {
         .where(
           (item) =>
               item['sitcardapio'] == 'ATIVO' &&
-              (item['quantidade_produtos'] as num? ?? 0) > 0 &&
               !(_itensPorLoja[loja.lojaId] ?? const []).any(
                 (cardapio) =>
-                    '${cardapio['cardapiomodelo_id']}' ==
-                    '${item['cardapiomodelo_id']}',
+                    '${cardapio['cardapio_id']}' == '${item['cardapio_id']}',
               ),
         )
         .toList();
@@ -100,7 +99,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
       if (mounted) {
         AppSnackBar.aviso(
           context,
-          'Não há outro cardápio padrão ativo com produtos disponível para esta loja.',
+          'Não há outro cardápio da empresa ativo com produtos disponível para esta loja.',
         );
       }
       return;
@@ -114,7 +113,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
               (padrao) => SimpleDialogOption(
                 onPressed: () => Navigator.pop(
                   dialogContext,
-                  int.parse('${padrao['cardapiomodelo_id']}'),
+                  int.parse('${padrao['cardapio_id']}'),
                 ),
                 child: Text(
                   '${padrao['nmcardapio']} • ${padrao['quantidade_produtos']} produtos',
@@ -249,7 +248,10 @@ class _CardapiosPageState extends State<CardapiosPage> {
     return '$inicioCompleto até $fimCompleto';
   }
 
-  Future<void> _programarExibicao(Map<String, dynamic> cardapio) async {
+  Future<void> _programarExibicao(
+    Loja loja,
+    Map<String, dynamic> cardapio,
+  ) async {
     final hoje = DateTime.now();
     final inicio = await showDatePicker(
       context: context,
@@ -344,6 +346,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
     try {
       await _repo.programarExibicao(
         int.parse('${cardapio['cardapio_id']}'),
+        lojaId: loja.lojaId,
         inicio: inicio,
         horaInicio: horaInicio,
         fim: fim,
@@ -359,6 +362,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
   }
 
   Future<void> _removerProgramacao(
+    Loja loja,
     Map<String, dynamic> cardapio,
     Map<String, dynamic> programacao,
   ) async {
@@ -366,6 +370,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
       await _repo.removerProgramacao(
         int.parse('${cardapio['cardapio_id']}'),
         int.parse('${programacao['cardapioprogramacao_id']}'),
+        lojaId: loja.lojaId,
       );
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, 'Programação removida.');
@@ -399,7 +404,10 @@ class _CardapiosPageState extends State<CardapiosPage> {
     }
   }
 
-  Future<void> _excluirCardapio(Map<String, dynamic> cardapio) async {
+  Future<void> _excluirCardapio(
+    Loja loja,
+    Map<String, dynamic> cardapio,
+  ) async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -423,7 +431,10 @@ class _CardapiosPageState extends State<CardapiosPage> {
     );
     if (confirmar != true || !mounted) return;
     try {
-      await _repo.excluirCardapio(int.parse('${cardapio['cardapio_id']}'));
+      await _repo.removerAssociacao(
+        loja.lojaId,
+        int.parse('${cardapio['cardapio_id']}'),
+      );
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, 'Cardápio excluído da loja.');
     } catch (e) {
@@ -736,7 +747,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
                           tooltip: 'Remover programação',
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () =>
-                              _removerProgramacao(cardapio, programacao),
+                              _removerProgramacao(loja, cardapio, programacao),
                         ),
                       ],
                     ),
@@ -770,7 +781,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
                 ),
               if (especial)
                 FilledButton.icon(
-                  onPressed: () => _programarExibicao(cardapio),
+                  onPressed: () => _programarExibicao(loja, cardapio),
                   icon: const Icon(Icons.schedule_outlined),
                   label: Text(
                     programacoes.isEmpty
@@ -779,7 +790,7 @@ class _CardapiosPageState extends State<CardapiosPage> {
                   ),
                 ),
               OutlinedButton.icon(
-                onPressed: () => _excluirCardapio(cardapio),
+                onPressed: () => _excluirCardapio(loja, cardapio),
                 icon: const Icon(Icons.delete_outline_rounded),
                 label: const Text('Excluir cardápio'),
                 style: OutlinedButton.styleFrom(

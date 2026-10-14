@@ -49,11 +49,20 @@ class CardapioRepository {
   }
 
   Future<List<Map<String, dynamic>>> listarPadroes(int organizacaoId) async {
+    return listarCardapiosEmpresa(organizacaoId);
+  }
+
+  Future<List<Map<String, dynamic>>> listarCardapiosEmpresa(
+    int organizacaoId,
+  ) async {
     final response = await ApiService.get(
-      '/organizacoes/$organizacaoId/cardapios-padrao',
+      '/organizacoes/$organizacaoId/cardapios',
     );
     if (response.statusCode != 200) {
-      throw _erro(response, 'Não foi possível carregar os cardápios padrão.');
+      throw _erro(
+        response,
+        'Não foi possível carregar os cardápios da empresa.',
+      );
     }
     return (_json(response) as List)
         .map((e) => Map<String, dynamic>.from(e))
@@ -66,11 +75,11 @@ class CardapioRepository {
     String tipo,
   ) async {
     final response = await ApiService.post(
-      '/organizacoes/$organizacaoId/cardapios-padrao',
+      '/organizacoes/$organizacaoId/cardapios',
       {'nmcardapio': nome, 'tipocardapio': tipo, 'prioridade': 0},
     );
     if (response.statusCode != 201) {
-      throw _erro(response, 'Não foi possível criar o cardápio padrão.');
+      throw _erro(response, 'Não foi possível criar o cardápio.');
     }
     return Map<String, dynamic>.from(_json(response));
   }
@@ -327,18 +336,24 @@ class CardapioRepository {
     }
   }
 
-  Future<Map<String, dynamic>> associar(
-    int lojaId,
-    int cardapioModeloId,
-  ) async {
+  Future<Map<String, dynamic>> associar(int lojaId, int cardapioId) async {
     final response = await ApiService.post(
       '/lojas/$lojaId/cardapios/associar',
-      {'cardapiomodelo_id': cardapioModeloId, 'prioridade': 10},
+      {'cardapio_id': cardapioId, 'prioridade': 10},
     );
     if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível usar o cardápio nesta loja.');
     }
     return Map<String, dynamic>.from(_json(response));
+  }
+
+  Future<void> removerAssociacao(int lojaId, int cardapioId) async {
+    final response = await ApiService.delete(
+      '/lojas/$lojaId/cardapios/$cardapioId/associacao',
+    );
+    if (response.statusCode != 204) {
+      throw _erro(response, 'Não foi possível remover o cardápio da loja.');
+    }
   }
 
   Future<Map<String, dynamic>> novaVersao(int cardapioId) async {
@@ -409,9 +424,14 @@ class CardapioRepository {
         .toString();
   }
 
-  Future<List<Map<String, dynamic>>> listarProgramacoes(int cardapioId) async {
+  Future<List<Map<String, dynamic>>> listarProgramacoes(
+    int cardapioId, {
+    int? lojaId,
+  }) async {
     final response = await ApiService.get(
-      '/cardapios/$cardapioId/programacoes',
+      lojaId == null
+          ? '/cardapios/$cardapioId/programacoes'
+          : '/lojas/$lojaId/cardapios/$cardapioId/programacoes',
     );
     if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível carregar as programações.');
@@ -423,18 +443,21 @@ class CardapioRepository {
 
   Future<void> programarExibicao(
     int cardapioId, {
+    int? lojaId,
     required DateTime inicio,
     required TimeOfDay horaInicio,
     DateTime? fim,
     TimeOfDay? horaFim,
   }) async {
-    final response =
-        await ApiService.post('/cardapios/$cardapioId/programacoes', {
-          'dtinicio': inicio.toIso8601String().substring(0, 10),
-          'dtfim': fim?.toIso8601String().substring(0, 10),
-          'hrinicio': _horaApi(horaInicio),
-          'hrfim': horaFim == null ? null : _horaApi(horaFim),
-        });
+    final caminho = lojaId == null
+        ? '/cardapios/$cardapioId/programacoes'
+        : '/lojas/$lojaId/cardapios/$cardapioId/programacoes';
+    final response = await ApiService.post(caminho, {
+      'dtinicio': inicio.toIso8601String().substring(0, 10),
+      'dtfim': fim?.toIso8601String().substring(0, 10),
+      'hrinicio': _horaApi(horaInicio),
+      'hrfim': horaFim == null ? null : _horaApi(horaFim),
+    });
     if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível programar a exibição.');
     }
@@ -443,9 +466,15 @@ class CardapioRepository {
   String _horaApi(TimeOfDay hora) =>
       '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}:00';
 
-  Future<void> removerProgramacao(int cardapioId, int programacaoId) async {
+  Future<void> removerProgramacao(
+    int cardapioId,
+    int programacaoId, {
+    int? lojaId,
+  }) async {
     final response = await ApiService.delete(
-      '/cardapios/$cardapioId/programacoes/$programacaoId',
+      lojaId == null
+          ? '/cardapios/$cardapioId/programacoes/$programacaoId'
+          : '/lojas/$lojaId/cardapios/$cardapioId/programacoes/$programacaoId',
     );
     if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível remover a programação.');

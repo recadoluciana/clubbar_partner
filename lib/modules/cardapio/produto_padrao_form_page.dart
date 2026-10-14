@@ -1,15 +1,14 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
-import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
-import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 
 class ProdutoPadraoFormPage extends StatefulWidget {
@@ -35,18 +34,12 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nome;
   late final TextEditingController _descricao;
-  late final TextEditingController _preco;
   String? _fotoUrl;
   XFile? _fotoSelecionada;
   Uint8List? _fotoBytes;
-  late final TextEditingController _desconto;
-  late final TextEditingController _cashback;
   List<Map<String, dynamic>> _categorias = [];
   int? _categoriaId;
   String _situacao = 'ATIVO';
-  String _tipoDesconto = 'NENHUM';
-  DateTime? _inicioDesconto;
-  DateTime? _fimDesconto;
   bool _carregando = true;
   bool _salvando = false;
 
@@ -56,33 +49,17 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     final item = widget.item ?? const <String, dynamic>{};
     _nome = TextEditingController(text: '${item['nmproduto'] ?? ''}');
     _descricao = TextEditingController(text: '${item['dsproduto'] ?? ''}');
-    _preco = TextEditingController(text: _formatarPreco(item['vrprecoprod']));
     _fotoUrl = item['urlfotoproduto']?.toString();
-    _desconto = TextEditingController(
-      text: '${item['vrdesconto'] ?? ''}'.replaceAll('.', ','),
-    );
-    _cashback = TextEditingController(
-      text: '${item['pccashback'] ?? ''}'.replaceAll('.', ','),
-    );
     _categoriaId =
         (item['cardapiomodelocategoria_id'] as num?)?.toInt() ??
         widget.categoriaPadraoIdInicial;
     _situacao = '${item['sitproduto'] ?? 'ATIVO'}';
-    _tipoDesconto = '${item['tipodesconto'] ?? 'NENHUM'}';
-    _inicioDesconto = DateTime.tryParse('${item['dtinidesconto'] ?? ''}');
-    _fimDesconto = DateTime.tryParse('${item['dtfimdesconto'] ?? ''}');
     _carregarCategorias();
   }
 
   @override
   void dispose() {
-    for (final controller in [
-      _nome,
-      _descricao,
-      _preco,
-      _desconto,
-      _cashback,
-    ]) {
+    for (final controller in [_nome, _descricao]) {
       controller.dispose();
     }
     super.dispose();
@@ -134,48 +111,12 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     }
   }
 
-  Future<void> _selecionarData(bool inicio) async {
-    final atual = inicio ? _inicioDesconto : _fimDesconto;
-    final data = await showDatePicker(
-      context: context,
-      initialDate: atual ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      calendarDelegate: const ClubbarCalendarDelegate(),
-    );
-    if (data == null || !mounted) return;
-    final hora = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(atual ?? DateTime.now()),
-    );
-    if (hora == null || !mounted) return;
-    final valor = DateTime(
-      data.year,
-      data.month,
-      data.day,
-      hora.hour,
-      hora.minute,
-    );
-    setState(() {
-      if (inicio) {
-        _inicioDesconto = valor;
-      } else {
-        _fimDesconto = valor;
-      }
-    });
-  }
-
   double? _numero(String texto) {
     final valor = texto.trim();
     final normalizado = valor.contains(',')
         ? valor.replaceAll('.', '').replaceAll(',', '.')
         : valor;
     return double.tryParse(normalizado);
-  }
-
-  String _formatarPreco(Object? valor) {
-    final numero = double.tryParse('${valor ?? ''}'.replaceAll(',', '.'));
-    return numero == null ? '' : NumberFormat('0.00', 'pt_BR').format(numero);
   }
 
   String _dataRegistro(Object? valor) {
@@ -200,56 +141,6 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
 
   Future<void> _salvar() async {
     if (_salvando || !_formKey.currentState!.validate()) return;
-    final preco = _numero(_preco.text)!;
-    final desconto = _tipoDesconto == 'NENHUM' ? 0.0 : _numero(_desconto.text);
-    if (_tipoDesconto != 'NENHUM' && desconto == null) {
-      AppSnackBar.aviso(context, 'Informe o valor do desconto.');
-      return;
-    }
-    if (_tipoDesconto == 'VALOR' && desconto! > preco) {
-      AppSnackBar.aviso(context, 'O desconto não pode superar o preço.');
-      return;
-    }
-    if (_inicioDesconto != null &&
-        _fimDesconto != null &&
-        _fimDesconto!.isBefore(_inicioDesconto!)) {
-      AppSnackBar.aviso(
-        context,
-        'O fim do desconto deve ser posterior ao início.',
-      );
-      return;
-    }
-    var atualizarPrecoLojas = false;
-    final precoAnterior = double.tryParse('${widget.item?['vrprecoprod']}');
-    if (widget.item != null &&
-        precoAnterior != null &&
-        preco.toStringAsFixed(2) != precoAnterior.toStringAsFixed(2)) {
-      final escolha = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Alterar preço nas lojas?'),
-          content: const Text(
-            'Este produto pode estar em cardápios de várias lojas. Deseja atualizar também o preço desses cardápios, inclusive os publicados?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Manter preços das lojas'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Atualizar lojas'),
-            ),
-          ],
-        ),
-      );
-      if (escolha == null || !mounted) return;
-      atualizarPrecoLojas = escolha;
-    }
     setState(() => _salvando = true);
     try {
       if (_fotoSelecionada != null) {
@@ -271,22 +162,15 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
         'dsproduto': _descricao.text.trim().isEmpty
             ? null
             : _descricao.text.trim(),
-        'vrprecoprod': preco,
-        'atualizar_preco_lojas': atualizarPrecoLojas,
+        'vrprecoprod': 0,
         'sitproduto': _situacao,
         if (widget.item != null) 'skuproduto': widget.item!['skuproduto'],
         'urlfotoproduto': _fotoUrl,
-        'tipodesconto': _tipoDesconto,
-        'vrdesconto': desconto ?? 0,
-        'pccashback': _cashback.text.trim().isEmpty
-            ? null
-            : _numero(_cashback.text),
-        'dtinidesconto': _tipoDesconto == 'NENHUM'
-            ? null
-            : _inicioDesconto?.toIso8601String(),
-        'dtfimdesconto': _tipoDesconto == 'NENHUM'
-            ? null
-            : _fimDesconto?.toIso8601String(),
+        'tipodesconto': 'NENHUM',
+        'vrdesconto': 0,
+        'pccashback': null,
+        'dtinidesconto': null,
+        'dtfimdesconto': null,
       };
       if (widget.modeloId == null) {
         if (widget.item == null) {
@@ -324,39 +208,6 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
       if (mounted) setState(() => _salvando = false);
     }
   }
-
-  Widget _campoData(String titulo, DateTime? valor, bool inicio) => ListTile(
-    contentPadding: EdgeInsets.zero,
-    title: Text(titulo),
-    subtitle: Text(
-      valor == null
-          ? 'Não definida'
-          : DateFormat('dd/MM/yyyy HH:mm').format(valor),
-    ),
-    trailing: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (valor != null)
-          IconButton(
-            icon: const Icon(Icons.close),
-            tooltip: 'Limpar',
-            onPressed: () => setState(() {
-              if (inicio) {
-                _inicioDesconto = null;
-              } else {
-                _fimDesconto = null;
-              }
-            }),
-          ),
-        IconButton(
-          icon: const Icon(Icons.calendar_month_outlined),
-          tooltip: 'Escolher data e hora',
-          onPressed: () => _selecionarData(inicio),
-        ),
-      ],
-    ),
-    onTap: () => _selecionarData(inicio),
-  );
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -436,22 +287,6 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _preco,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        inputFormatters: const [
-                          DecimalInputFormatter(usarSeparadorMilhar: true),
-                        ],
-                        decoration: const InputDecoration(
-                          labelText: 'Preço do produto (R\$)',
-                          hintText: '0,00',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) => _validarNumero(v),
-                      ),
-                      const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         initialValue: _situacao,
                         decoration: const InputDecoration(
@@ -509,64 +344,10 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: _tipoDesconto,
-                        decoration: const InputDecoration(
-                          labelText: 'Tipo de desconto',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'NENHUM',
-                            child: Text('Nenhum'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'PERCENTUAL',
-                            child: Text('Percentual'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'VALOR',
-                            child: Text('Valor fixo'),
-                          ),
-                        ],
-                        onChanged: (v) =>
-                            setState(() => _tipoDesconto = v ?? 'NENHUM'),
-                      ),
-                      if (_tipoDesconto != 'NENHUM') ...[
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _desconto,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: _tipoDesconto == 'PERCENTUAL'
-                                ? 'Desconto (%)'
-                                : 'Desconto (R\$)',
-                            border: const OutlineInputBorder(),
-                          ),
-                          validator: (v) => _validarNumero(
-                            v,
-                            maximo: _tipoDesconto == 'PERCENTUAL' ? 100 : null,
-                          ),
-                        ),
-                        _campoData('Início do desconto', _inicioDesconto, true),
-                        _campoData('Fim do desconto', _fimDesconto, false),
-                      ],
                       const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _cashback,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Cashback (%) — opcional',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) => (v ?? '').trim().isEmpty
-                            ? null
-                            : _validarNumero(v, maximo: 100),
+                      const Text(
+                        'Preço, promoção e cashback são definidos quando este produto for incluído em um cardápio.',
+                        style: TextStyle(color: ClubbarColors.textoSecundario),
                       ),
                       if (widget.item != null) ...[
                         const SizedBox(height: 16),

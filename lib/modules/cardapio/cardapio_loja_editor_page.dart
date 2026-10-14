@@ -282,11 +282,14 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       final itens = _itens(categoria);
       itens.add({
         ...produto,
-        'vrpreco': _valor(produto['vrprecoprod']),
-        'tipodesconto': produto['tipodesconto'] ?? 'NENHUM',
-        'vrdesconto': _valor(produto['vrdesconto']),
-        'dtinidesconto': produto['dtinidesconto'],
-        'dtfimdesconto': produto['dtfimdesconto'],
+        // Produto é cadastro mestre. Os valores comerciais pertencem
+        // exclusivamente a este item do cardápio.
+        'vrpreco': 0.0,
+        'tipodesconto': 'NENHUM',
+        'vrdesconto': 0.0,
+        'dtinidesconto': null,
+        'dtfimdesconto': null,
+        'pccashback': null,
         'sititem': 'ATIVO',
       });
       categoria['itens'] = itens;
@@ -453,6 +456,59 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         item['dtinidesconto'] = null;
         item['dtfimdesconto'] = null;
       }
+      _alterado = true;
+    });
+  }
+
+  Future<void> _editarCashback(Map<String, dynamic> item) async {
+    final controller = TextEditingController(
+      text: item['pccashback'] == null
+          ? ''
+          : _valor(item['pccashback']).toStringAsFixed(2).replaceAll('.', ','),
+    );
+    final valor = await showDialog<double?>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Cashback • ${item['nmproduto']}'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Cashback do item (%)',
+            hintText: 'Deixe vazio para usar a regra da loja',
+            suffixText: '%',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final texto = controller.text.trim();
+              if (texto.isEmpty) return Navigator.pop(dialogContext, null);
+              final numero = double.tryParse(texto.replaceAll(',', '.'));
+              if (numero == null || numero < 0 || numero > 100) {
+                AppSnackBar.aviso(
+                  context,
+                  'Informe um percentual entre 0 e 100.',
+                );
+                return;
+              }
+              Navigator.pop(dialogContext, numero);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (!mounted) return;
+    setState(() {
+      item['pccashback'] = valor;
       _alterado = true;
     });
   }
@@ -648,6 +704,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
               'dtfimdesconto': _itens(
                 _categorias[categoriaIndice],
               )[itemIndice]['dtfimdesconto'],
+              'pccashback': _itens(
+                _categorias[categoriaIndice],
+              )[itemIndice]['pccashback'],
               'sititem':
                   '${_itens(_categorias[categoriaIndice])[itemIndice]['sititem'] ?? 'ATIVO'}',
               'idorditem': itemIndice + 1,
@@ -871,6 +930,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                               if (acao == 'desconto') {
                                 _editarDesconto(item);
                               }
+                              if (acao == 'cashback') {
+                                _editarCashback(item);
+                              }
                               if (acao == 'subir') {
                                 _moverProduto(categoria, indice, -1);
                               }
@@ -904,6 +966,16 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                                     color: ClubbarColors.erro,
                                   ),
                                   title: Text('Desconto'),
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'cashback',
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.savings_outlined,
+                                    color: Colors.green,
+                                  ),
+                                  title: Text('Cashback'),
                                 ),
                               ),
                               if (indice > 0)
@@ -966,6 +1038,14 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                               : ClubbarColors.textoPrincipal,
                         ),
                       ),
+                      if (item['pccashback'] != null)
+                        Text(
+                          'Cashback: ${_valor(item['pccashback']).toStringAsFixed(2).replaceAll('.', ',')}%',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 12,
+                          ),
+                        ),
                       Row(
                         children: [
                           Icon(

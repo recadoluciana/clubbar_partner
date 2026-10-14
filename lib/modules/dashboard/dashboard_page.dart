@@ -21,6 +21,7 @@ import '../estilos_musicais/estilo_musical_list_page.dart';
 import '../auditoria/auditoria_page.dart';
 import '../cardapio/cardapio_loja_page.dart';
 import '../cardapio/cardapio_padrao_empresa_page.dart';
+import '../cardapio/cardapios_empresa_page.dart';
 import '../categorias/categorias_produtos_page.dart';
 import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
@@ -125,6 +126,19 @@ class _DashboardPageState extends State<DashboardPage> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => CardapioPadraoEmpresaPage(
+          organizacaoId: organizacaoId,
+          nomeOrganizacao: _nomeOrganizacao,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _abrirCardapiosEmpresa() async {
+    final organizacaoId = _organizacaoId;
+    if (organizacaoId == null || organizacaoId <= 0) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => CardapiosEmpresaPage(
           organizacaoId: organizacaoId,
           nomeOrganizacao: _nomeOrganizacao,
         ),
@@ -296,8 +310,9 @@ class _DashboardPageState extends State<DashboardPage> {
       'Atrações': Color(0xFF7B1FA2),
       'Categorias dos produtos': Color(0xFFAD1457),
       'Meus estabelecimentos': Color(0xFFC62828),
-      'Cardápio padrão empresa': Color(0xFFEF6C00),
-      'Cardápio estabelecimento': Color(0xFFF57C00),
+      'Produtos da empresa': Color(0xFFEF6C00),
+      'Cardápios da empresa': Color(0xFFF57C00),
+      'Associar cardápios às lojas': Color(0xFFF57C00),
       'Modalidades e benefícios': Color(0xFF9A6700),
       'Eventos': Color(0xFF00838F),
       'Agenda': Color(0xFF00897B),
@@ -330,7 +345,9 @@ class _DashboardPageState extends State<DashboardPage> {
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: habilitado ? cor.withValues(alpha: 0.12) : ClubbarColors.borda,
+              color: habilitado
+                  ? cor.withValues(alpha: 0.12)
+                  : ClubbarColors.borda,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
@@ -463,20 +480,30 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Cardápio padrão empresa',
+                          titulo: 'Produtos da empresa',
                           subtitulo:
-                              'Crie os cardápios da empresa para uso em um ou mais estabelecimentos.',
-                          icone: Icons.menu_book_rounded,
+                              'Cadastre nome, descrição, foto e situação dos produtos.',
+                          icone: Icons.local_drink_rounded,
                           onTap: _cargo == 'SUPERADMIN' || _cargo == 'ADMIN'
                               ? _abrirCardapioPadraoEmpresa
                               : null,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Cardápio estabelecimento',
+                          titulo: 'Cardápios da empresa',
                           subtitulo:
-                              'Gerencie produtos, categorias e preços por estabelecimento.',
-                          icone: Icons.restaurant_menu_rounded,
+                              'Crie cardápios compartilháveis e seus produtos, preços, promoções e cashback.',
+                          icone: Icons.menu_book_rounded,
+                          onTap: _cargo == 'SUPERADMIN' || _cargo == 'ADMIN'
+                              ? _abrirCardapiosEmpresa
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Associar cardápios às lojas',
+                          subtitulo:
+                              'Defina quais cardápios cada estabelecimento utiliza e sua programação.',
+                          icone: Icons.storefront_rounded,
                           onTap: _abrirCardapioDigital,
                         ),
                         const SizedBox(height: 14),
