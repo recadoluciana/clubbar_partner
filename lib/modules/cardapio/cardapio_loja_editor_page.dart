@@ -310,7 +310,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(
-            labelText: 'Preço neste estabelecimento',
+            labelText: 'Preço neste cardápio',
             prefixText: 'R\$ ',
             border: OutlineInputBorder(),
           ),
@@ -344,6 +344,8 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
 
   Future<void> _editarDesconto(Map<String, dynamic> item) async {
     var tipo = '${item['tipodesconto'] ?? 'NENHUM'}'.toUpperCase();
+    var inicio = DateTime.tryParse('${item['dtinidesconto'] ?? ''}');
+    var fim = DateTime.tryParse('${item['dtfimdesconto'] ?? ''}');
     final valorController = TextEditingController(
       text: _valor(item['vrdesconto']).toStringAsFixed(2).replaceAll('.', ','),
     );
@@ -407,6 +409,93 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                         color: ClubbarColors.textoSecundario,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Início da promoção'),
+                      subtitle: Text(
+                        inicio == null
+                            ? 'Imediato'
+                            : DateFormat('dd/MM/yyyy HH:mm').format(inicio!),
+                      ),
+                      trailing: const Icon(Icons.calendar_month_outlined),
+                      onTap: () async {
+                        final data = await showDatePicker(
+                          context: context,
+                          initialDate: inicio ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                        );
+                        if (data == null || !context.mounted) return;
+                        final hora = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(
+                            inicio ?? DateTime.now(),
+                          ),
+                        );
+                        if (hora != null) {
+                          atualizar(
+                            () => inicio = DateTime(
+                              data.year,
+                              data.month,
+                              data.day,
+                              hora.hour,
+                              hora.minute,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Fim da promoção'),
+                      subtitle: Text(
+                        fim == null
+                            ? 'Sem data final'
+                            : DateFormat('dd/MM/yyyy HH:mm').format(fim!),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (fim != null)
+                            IconButton(
+                              tooltip: 'Limpar fim',
+                              onPressed: () => atualizar(() => fim = null),
+                              icon: const Icon(Icons.close),
+                            ),
+                          IconButton(
+                            tooltip: 'Escolher data e hora',
+                            onPressed: () async {
+                              final data = await showDatePicker(
+                                context: context,
+                                initialDate: fim ?? inicio ?? DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2100),
+                              );
+                              if (data == null || !context.mounted) return;
+                              final hora = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.fromDateTime(
+                                  fim ?? inicio ?? DateTime.now(),
+                                ),
+                              );
+                              if (hora != null) {
+                                atualizar(
+                                  () => fim = DateTime(
+                                    data.year,
+                                    data.month,
+                                    data.day,
+                                    hora.hour,
+                                    hora.minute,
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_month_outlined),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -435,9 +524,18 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                     );
                     return;
                   }
+                  if (inicio != null && fim != null && !fim!.isAfter(inicio!)) {
+                    AppSnackBar.aviso(
+                      context,
+                      'O fim da promoção deve ser posterior ao início.',
+                    );
+                    return;
+                  }
                   Navigator.pop(dialogContext, {
                     'tipodesconto': tipo,
                     'vrdesconto': desconto,
+                    'dtinidesconto': inicio?.toIso8601String(),
+                    'dtfimdesconto': fim?.toIso8601String(),
                   });
                 },
                 child: const Text('Aplicar desconto'),
@@ -452,10 +550,12 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     setState(() {
       item['tipodesconto'] = resultado['tipodesconto'];
       item['vrdesconto'] = resultado['vrdesconto'];
-      if (resultado['tipodesconto'] == 'NENHUM') {
-        item['dtinidesconto'] = null;
-        item['dtfimdesconto'] = null;
-      }
+      item['dtinidesconto'] = resultado['tipodesconto'] == 'NENHUM'
+          ? null
+          : resultado['dtinidesconto'];
+      item['dtfimdesconto'] = resultado['tipodesconto'] == 'NENHUM'
+          ? null
+          : resultado['dtfimdesconto'];
       _alterado = true;
     });
   }
