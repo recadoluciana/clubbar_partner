@@ -297,7 +297,7 @@ class _DashboardPageState extends State<DashboardPage> {
       'Categorias dos produtos': Color(0xFFAD1457),
       'Meus estabelecimentos': Color(0xFFC62828),
       'Cardápio padrão empresa': Color(0xFFEF6C00),
-      'Cardápio digital estabelecimento': Color(0xFFF57C00),
+      'Cardápio estabelecimento': Color(0xFFF57C00),
       'Modalidades e benefícios': Color(0xFF9A6700),
       'Eventos': Color(0xFF00838F),
       'Agenda': Color(0xFF00897B),
@@ -473,7 +473,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Cardápio digital estabelecimento',
+                          titulo: 'Cardápio estabelecimento',
                           subtitulo:
                               'Gerencie produtos, categorias e preços por estabelecimento.',
                           icone: Icons.restaurant_menu_rounded,
