@@ -140,6 +140,7 @@ class EventoLotePreco {
   final String nome;
   final String tipo;
   final double valor;
+  final int? limiteModalidade;
   final bool aplicaCotaLegal;
   final bool exigeComprovante;
   final String situacao;
@@ -150,6 +151,7 @@ class EventoLotePreco {
     required this.nome,
     required this.tipo,
     required this.valor,
+    this.limiteModalidade,
     required this.aplicaCotaLegal,
     required this.exigeComprovante,
     this.situacao = 'ATIVO',
@@ -161,6 +163,7 @@ class EventoLotePreco {
     nome: '${j['nmpreco'] ?? ''}',
     tipo: '${j['tipopreco'] ?? ''}',
     valor: (j['vrpreco'] as num?)?.toDouble() ?? 0,
+    limiteModalidade: (j['qtlimitemodalidade'] as num?)?.toInt(),
     aplicaCotaLegal: j['aplicacotalegal'] == true,
     exigeComprovante: j['exigecomprovante'] == true,
     situacao: '${j['situacao'] ?? 'ATIVO'}',

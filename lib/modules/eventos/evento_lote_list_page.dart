@@ -1037,6 +1037,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                           valor: existente == null || valor != null
                               ? valorPadrao
                               : existente.valor,
+                          limiteModalidade: existente?.limiteModalidade,
                           aplicaCotaLegal: item.aplicaCotaLegal,
                           exigeComprovante: item.exigeComprovante,
                           situacao: existente?.situacao ?? 'ATIVO',
@@ -1316,6 +1317,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     final valor = TextEditingController(
       text: atual.valor.toStringAsFixed(2).replaceAll('.', ','),
     );
+    final limite = TextEditingController(
+      text: atual.limiteModalidade?.toString() ?? '',
+    );
     final salvou = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1337,6 +1341,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 decoration: const InputDecoration(labelText: 'Preço'),
               ),
               const SizedBox(height: 12),
+              TextField(
+                controller: limite,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Limite de ingressos desta modalidade',
+                  helperText:
+                      'Opcional: deixa vazia para usar o limite do setor.',
+                ),
+              ),
+              const SizedBox(height: 12),
               const Text(
                 'As regras de cota legal, benefício e comprovante são definidas pelo catálogo do Clubbar.',
                 style: TextStyle(fontSize: 12, color: Colors.black54),
@@ -1356,6 +1370,24 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               );
               if (nome.text.trim().isEmpty || preco == null || preco < 0)
                 return;
+              final textoLimite = limite.text.trim();
+              final limiteModalidade = textoLimite.isEmpty
+                  ? null
+                  : int.tryParse(textoLimite);
+              final capacidadeSetor =
+                  configuracao.qttotallote ??
+                  configuracao.qtCapacidadeSetor ??
+                  0;
+              if ((textoLimite.isNotEmpty && limiteModalidade == null) ||
+                  (limiteModalidade != null &&
+                      (limiteModalidade <= 0 ||
+                          limiteModalidade > capacidadeSetor))) {
+                AppSnackBar.aviso(
+                  context,
+                  'Informe um limite entre 1 e $capacidadeSetor ingressos.',
+                );
+                return;
+              }
               try {
                 final modalidades = configuracao.precos
                     .map(
@@ -1366,6 +1398,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                               nome: nome.text.trim(),
                               tipo: item.tipo,
                               valor: preco,
+                              limiteModalidade: limiteModalidade,
                               aplicaCotaLegal: item.aplicaCotaLegal,
                               exigeComprovante: item.exigeComprovante,
                               situacao: item.situacao,
@@ -1392,6 +1425,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         ],
       ),
     );
+    nome.dispose();
+    valor.dispose();
+    limite.dispose();
     if (salvou == true && mounted) _carregar();
   }
 
@@ -1446,6 +1482,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         modalidadeSelecionada,
       ).toStringAsFixed(2).replaceAll('.', ','),
     );
+    final limite = TextEditingController();
     final salvou = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -1490,6 +1527,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   decoration: const InputDecoration(labelText: 'Preço'),
                 ),
                 const SizedBox(height: 12),
+                TextField(
+                  controller: limite,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Limite de ingressos desta modalidade',
+                    helperText:
+                        'Opcional: deixa vazio para usar o limite do setor.',
+                  ),
+                ),
+                const SizedBox(height: 12),
                 const Text(
                   'As regras de benefício e comprovante são aplicadas automaticamente conforme a modalidade.',
                   style: TextStyle(fontSize: 12, color: Colors.black54),
@@ -1511,6 +1558,24 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   AppSnackBar.aviso(context, 'Informe um preço válido.');
                   return;
                 }
+                final textoLimite = limite.text.trim();
+                final limiteModalidade = textoLimite.isEmpty
+                    ? null
+                    : int.tryParse(textoLimite);
+                final capacidadeSetor =
+                    configuracao.qttotallote ??
+                    configuracao.qtCapacidadeSetor ??
+                    0;
+                if ((textoLimite.isNotEmpty && limiteModalidade == null) ||
+                    (limiteModalidade != null &&
+                        (limiteModalidade <= 0 ||
+                            limiteModalidade > capacidadeSetor))) {
+                  AppSnackBar.aviso(
+                    context,
+                    'Informe um limite entre 1 e $capacidadeSetor ingressos.',
+                  );
+                  return;
+                }
                 try {
                   await _repo.adicionarModalidadeAoSetor(
                     loteId: configuracao.loteId,
@@ -1524,6 +1589,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                               'CORTESIA'
                           ? 0
                           : preco,
+                      limiteModalidade: limiteModalidade,
                       aplicaCotaLegal: modalidadeSelecionada.aplicaCotaLegal,
                       exigeComprovante: modalidadeSelecionada.exigeComprovante,
                       situacao: 'ATIVO',
@@ -1548,6 +1614,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
     );
     valor.dispose();
+    limite.dispose();
     if (salvou == true && mounted) _carregar();
   }
 
@@ -2325,17 +2392,21 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     EventoLotePreco preco,
   ) {
     final setor = configuracao.nomeSetor ?? 'Setor';
+    if (preco.limiteModalidade != null) {
+      final quantidade = preco.limiteModalidade!;
+      return 'Limite desta modalidade: $quantidade ingresso${quantidade == 1 ? '' : 's'}';
+    }
     if (preco.aplicaCotaLegal) {
       final quantidade = configuracao.quantidadeCotaLegalLote;
       final percentual = configuracao.percentualCotaLegal;
       final percentualFormatado = percentual == percentual.roundToDouble()
           ? percentual.toInt().toString()
           : percentual.toStringAsFixed(1).replaceAll('.', ',');
-      return '$quantidade ingresso${quantidade == 1 ? '' : 's'} ($percentualFormatado%) para $setor ${preco.nome}';
+      return 'Cota legal: $quantidade ingresso${quantidade == 1 ? '' : 's'} ($percentualFormatado%)';
     }
     final quantidade =
         configuracao.qttotallote ?? configuracao.qtCapacidadeSetor ?? 0;
-    return '$quantidade ingresso${quantidade == 1 ? '' : 's'} para $setor ${preco.nome}';
+    return 'Capacidade compartilhada: $quantidade ingresso${quantidade == 1 ? '' : 's'} no setor $setor';
   }
 
   Widget _setorNoLote(EventoLote configuracao) => Container(
