@@ -168,3 +168,52 @@ class EventoVendaDetalhe {
         .toList(),
   );
 }
+
+class IngressoVendido {
+  final int id;
+  final int quantidade;
+  final double preco;
+  final double taxa;
+  final int vendaId;
+  final DateTime dataCompra;
+  final String cliente;
+  final String participante;
+  final String cpfParticipante;
+  final int numeroLote;
+  final String lote;
+  final String setor;
+  final String modalidade;
+
+  const IngressoVendido({
+    required this.id,
+    required this.quantidade,
+    required this.preco,
+    required this.taxa,
+    required this.vendaId,
+    required this.dataCompra,
+    required this.cliente,
+    required this.participante,
+    required this.cpfParticipante,
+    required this.numeroLote,
+    required this.lote,
+    required this.setor,
+    required this.modalidade,
+  });
+
+  factory IngressoVendido.fromJson(Map<String, dynamic> json) =>
+      IngressoVendido(
+        id: (json['itvenda_id'] as num).toInt(),
+        quantidade: (json['quantidade'] as num?)?.toInt() ?? 1,
+        preco: (json['preco'] as num?)?.toDouble() ?? 0,
+        taxa: (json['taxa'] as num?)?.toDouble() ?? 0,
+        vendaId: (json['venda_id'] as num).toInt(),
+        dataCompra: DateTime.parse(json['dtcompra'].toString()),
+        cliente: json['cliente']?.toString() ?? '',
+        participante: json['participante']?.toString() ?? '',
+        cpfParticipante: json['cpf_participante']?.toString() ?? '',
+        numeroLote: (json['numero_lote'] as num?)?.toInt() ?? 0,
+        lote: json['lote']?.toString() ?? '',
+        setor: json['setor']?.toString() ?? '',
+        modalidade: json['modalidade']?.toString() ?? '',
+      );
+}

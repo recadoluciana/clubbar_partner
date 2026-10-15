@@ -65,4 +65,24 @@ class AcompanhamentoVendasRepository {
       Map<String, dynamic>.from(jsonDecode(response.body) as Map),
     );
   }
+
+  Future<List<IngressoVendido>> ingressosVendidosEvento(int eventoId) async {
+    final response = await ApiService.get(
+      '/acompanhamento-vendas/eventos/$eventoId/ingressos',
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        _erro(
+          response.body,
+          'Não foi possível consultar os ingressos vendidos.',
+        ),
+      );
+    }
+    return (jsonDecode(response.body) as List)
+        .map(
+          (item) =>
+              IngressoVendido.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
+  }
 }

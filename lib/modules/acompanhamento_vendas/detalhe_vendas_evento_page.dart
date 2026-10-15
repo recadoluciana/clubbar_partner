@@ -6,6 +6,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/acompanhamento_vendas.dart';
+import 'ingressos_vendidos_evento_page.dart';
 
 class DetalheVendasEventoPage extends StatefulWidget {
   final EventoVendaResumo evento;
@@ -53,34 +54,51 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
       }[tipo] ??
       tipo;
 
-  Widget _resumo(String titulo, String valor, IconData icone, Color cor) =>
-      Container(
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: cor.withValues(alpha: .09),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: cor.withValues(alpha: .25)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _resumo(
+    String titulo,
+    String valor,
+    IconData icone,
+    Color cor, {
+    VoidCallback? onDetalhes,
+  }) => Container(
+    padding: const EdgeInsets.all(13),
+    decoration: BoxDecoration(
+      color: cor.withValues(alpha: .09),
+      borderRadius: BorderRadius.circular(15),
+      border: Border.all(color: cor.withValues(alpha: .25)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
             Icon(icone, color: cor),
-            const SizedBox(height: 7),
-            Text(
-              valor,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: cor,
+            const Spacer(),
+            if (onDetalhes != null)
+              IconButton(
+                tooltip: 'Ver ingressos vendidos',
+                onPressed: onDetalhes,
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.visibility_outlined, color: cor),
               ),
-            ),
-            Text(
-              titulo,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-            ),
           ],
         ),
-      );
+        const SizedBox(height: 7),
+        Text(
+          valor,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: cor,
+          ),
+        ),
+        Text(
+          titulo,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+        ),
+      ],
+    ),
+  );
 
   Widget _ocupacao(EventoVendaDetalhe detalhe) {
     final percentual = detalhe.percentualOcupacao.clamp(0, 100).toDouble();
@@ -241,6 +259,12 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
                   '${detalhe.quantidade}',
                   Icons.confirmation_number_rounded,
                   Colors.deepPurple,
+                  onDetalhes: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          IngressosVendidosEventoPage(evento: widget.evento),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
