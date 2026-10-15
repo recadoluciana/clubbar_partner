@@ -260,6 +260,79 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       );
       return;
     }
+    if (!_eventoPublicado) {
+      var revisado = false;
+      final confirmou = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, atualizar) => AlertDialog(
+            title: const Text('Publicar evento?'),
+            content: SizedBox(
+              width: 500,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Antes de disponibilizar ingressos, confira todos os detalhes do evento:',
+                    ),
+                    const SizedBox(height: 12),
+                    _itemRevisaoPublicacao(
+                      Icons.groups_rounded,
+                      'Quantidades e capacidade',
+                    ),
+                    _itemRevisaoPublicacao(
+                      Icons.sell_outlined,
+                      'Preços e limites das modalidades',
+                    ),
+                    _itemRevisaoPublicacao(
+                      Icons.stadium_outlined,
+                      'Setores e sua capacidade',
+                    ),
+                    _itemRevisaoPublicacao(
+                      Icons.confirmation_number_outlined,
+                      'Lotes, datas e regras de virada',
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Após a publicação, algumas alterações continuarão permitidas, desde que não prejudiquem clientes que já adquiriram ingressos nem a integridade do aplicativo.',
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: revisado,
+                      onChanged: (valor) =>
+                          atualizar(() => revisado = valor ?? false),
+                      title: const Text(
+                        'Revisei as informações do evento.',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                onPressed: revisado
+                    ? () => Navigator.pop(dialogContext, true)
+                    : null,
+                icon: const Icon(Icons.publish_outlined),
+                label: const Text('Publicar evento'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (confirmou != true || !mounted) return;
+    }
     setState(() => _alterandoPublicacao = true);
     try {
       final mensagem = _eventoPublicado
@@ -283,6 +356,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       if (mounted) setState(() => _alterandoPublicacao = false);
     }
   }
+
+  Widget _itemRevisaoPublicacao(IconData icone, String texto) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      children: [
+        Icon(icone, size: 18, color: Colors.green.shade700),
+        const SizedBox(width: 8),
+        Expanded(child: Text(texto)),
+      ],
+    ),
+  );
 
   Future<void> _alterarCapacidade() async {
     final controller = TextEditingController(

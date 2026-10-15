@@ -6,7 +6,6 @@ import '../../core/repositories/atracao_repository.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -30,7 +29,6 @@ class AgendaMensalPage extends StatefulWidget {
 
 class _AgendaMensalPageState extends State<AgendaMensalPage> {
   final _repo = AtracaoRepository();
-  final _eventoRepo = EventoRepository();
   DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
   List<AgendaEvento> _eventos = [];
   bool _loading = true;
@@ -91,101 +89,6 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   void _mudarMes(int delta) {
     setState(() => _mes = DateTime(_mes.year, _mes.month + delta));
     _carregar();
-  }
-
-  Future<void> _publicarEventos() async {
-    final candidatos =
-        _eventos
-            .where(
-              (evento) =>
-                  !_diaPassado(evento.inicio) &&
-                  !{
-                    'ATIVO',
-                    'CANCELADO',
-                    'ENCERRADO',
-                  }.contains(evento.status.toUpperCase()),
-            )
-            .toList()
-          ..sort((a, b) => a.inicio.compareTo(b.inicio));
-
-    if (candidatos.isEmpty) {
-      AppSnackBar.aviso(context, 'Não há eventos em rascunho para publicar.');
-      return;
-    }
-
-    final selecionados = <int>{};
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, atualizar) => AlertDialog(
-          title: const Text('Publicar eventos'),
-          content: SizedBox(
-            width: 480,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Selecione os eventos que devem aparecer para os clientes.',
-                  ),
-                  const SizedBox(height: 8),
-                  ...candidatos.map(
-                    (evento) => CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: selecionados.contains(evento.eventoId),
-                      onChanged: (marcado) => atualizar(() {
-                        if (marcado ?? false) {
-                          selecionados.add(evento.eventoId);
-                        } else {
-                          selecionados.remove(evento.eventoId);
-                        }
-                      }),
-                      title: Text(evento.titulo),
-                      subtitle: Text(
-                        DateFormat(
-                          "dd/MM/yyyy 'às' HH:mm",
-                        ).format(evento.inicio),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: selecionados.isEmpty
-                  ? null
-                  : () => Navigator.pop(dialogContext, true),
-              child: const Text('Publicar selecionados'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (confirmou != true || !mounted) return;
-
-    try {
-      final mensagem = await _eventoRepo.publicarEventos(selecionados.toList());
-      await _carregar();
-      if (mounted) AppSnackBar.sucesso(context, mensagem);
-    } catch (erro) {
-      if (!mounted) return;
-      if (erroIndicaPendenteAsaas(erro)) {
-        await mostrarDialogoAsaasPendente(context, recurso: 'estes eventos');
-      } else {
-        AppSnackBar.erro(
-          context,
-          erro.toString().replaceFirst('Exception: ', ''),
-          duration: const Duration(seconds: 10),
-          mostrarFechar: true,
-        );
-      }
-    }
   }
 
   Future<void> _compartilharAgenda() async {
@@ -788,23 +691,11 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Cada evento é publicado separadamente.',
-                    style: TextStyle(color: ClubbarColors.textoSecundario),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: _loading ? null : _publicarEventos,
-                  icon: const Icon(Icons.publish_outlined),
-                  label: const Text('Publicar eventos'),
-                ),
-              ],
+          const Padding(
+            padding: EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: Text(
+              'A publicação é feita dentro de cada evento, após a revisão dos detalhes.',
+              style: TextStyle(color: ClubbarColors.textoSecundario),
             ),
           ),
           Padding(
