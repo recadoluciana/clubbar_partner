@@ -308,8 +308,8 @@ class _DashboardPageState extends State<DashboardPage> {
       'Atrações': Color(0xFF7B1FA2),
       'Categorias dos produtos': Color(0xFFAD1457),
       'Meus estabelecimentos': Color(0xFFC62828),
-      'Produtos da empresa': Color(0xFFEF6C00),
-      'Cardápios da empresa': Color(0xFFF57C00),
+      'Produtos': Color(0xFFEF6C00),
+      'Cardápios': Color(0xFFF57C00),
       'Modalidades e benefícios': Color(0xFF9A6700),
       'Eventos': Color(0xFF00838F),
       'Agenda': Color(0xFF00897B),
@@ -477,7 +477,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Produtos da empresa',
+                          titulo: 'Produtos',
                           subtitulo:
                               'Cadastre nome, descrição, foto e situação dos produtos.',
                           icone: Icons.local_drink_rounded,
@@ -487,7 +487,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Cardápios da empresa',
+                          titulo: 'Cardápios',
                           subtitulo:
                               'Crie cardápios compartilháveis e seus produtos, preços, promoções e cashback.',
                           icone: Icons.menu_book_rounded,
