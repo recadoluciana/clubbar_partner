@@ -306,8 +306,8 @@ class _DashboardPageState extends State<DashboardPage> {
       'Minha empresa': Color(0xFF1565C0),
       'Estilos musicais': Color(0xFF3949AB),
       'Atrações': Color(0xFF7B1FA2),
-      'Categorias dos produtos': Color(0xFFAD1457),
-      'Meus estabelecimentos': Color(0xFFC62828),
+      'Categoria de produto': Color(0xFFAD1457),
+      'Estabelecimentos': Color(0xFFC62828),
       'Produtos': Color(0xFFEF6C00),
       'Cardápios': Color(0xFFF57C00),
       'Modalidades e benefícios': Color(0xFF9A6700),
@@ -452,7 +452,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Categorias dos produtos',
+                          titulo: 'Categoria de produto',
                           subtitulo:
                               'Importe das categorias padrão ou crie suas categorias.',
                           icone: Icons.category_rounded,
@@ -468,7 +468,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
-                          titulo: 'Meus estabelecimentos',
+                          titulo: 'Estabelecimentos',
                           subtitulo: _cargo == 'MANAGER'
                               ? 'Consulte e edite os dados do seu estabelecimento.'
                               : 'Cadastre e administre os estabelecimentos da empresa.',
