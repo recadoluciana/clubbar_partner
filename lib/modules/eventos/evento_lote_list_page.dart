@@ -1431,6 +1431,58 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     if (salvou == true && mounted) _carregar();
   }
 
+  Future<void> _excluirModalidadeDoSetor(
+    EventoLote configuracao,
+    EventoLotePreco modalidade,
+  ) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Excluir ${modalidade.nome}?'),
+        content: const Text(
+          'Esta modalidade deixará de estar disponível para venda neste setor e lote. Caso já existam vendas ou reservas, a exclusão não será permitida.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: ClubbarColors.erro),
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Excluir modalidade'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+
+    try {
+      final modalidadesRestantes = configuracao.precos
+          .where((item) => item.modalidadeId != modalidade.modalidadeId)
+          .toList(growable: false);
+      await _repo.atualizarConfiguracaoSetor(
+        loteId: configuracao.loteId,
+        precos: modalidadesRestantes,
+      );
+      if (mounted) {
+        AppSnackBar.sucesso(
+          context,
+          'Modalidade excluída deste setor do lote.',
+        );
+        _carregar();
+      }
+    } catch (erro) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    }
+  }
+
   double _precoSugeridoParaModalidade(
     EventoLote configuracao,
     ModalidadeIngressoCatalogo modalidade,
@@ -2499,6 +2551,18 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                                 color: Colors.blue,
                               ),
                               tooltip: 'Editar modalidade',
+                            ),
+                          if (!_somenteConsulta)
+                            IconButton(
+                              onPressed: () => _excluirModalidadeDoSetor(
+                                configuracao,
+                                preco,
+                              ),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: ClubbarColors.erro,
+                              ),
+                              tooltip: 'Excluir modalidade',
                             ),
                         ],
                       ),
