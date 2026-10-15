@@ -5,6 +5,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import 'cardapio_gestao_empresa_page.dart';
 
 class CardapiosEmpresaPage extends StatefulWidget {
   final int organizacaoId;
@@ -116,14 +117,16 @@ class _CardapiosEmpresaPageState extends State<CardapiosEmpresaPage> {
     try {
       await _repo.criarPadrao(widget.organizacaoId, resultado.$1, resultado.$2);
       await _carregar();
-      if (mounted)
+      if (mounted) {
         AppSnackBar.sucesso(
           context,
           'Cardápio criado. Associe-o a uma loja para configurar os itens.',
         );
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 
@@ -181,6 +184,21 @@ class _CardapiosEmpresaPageState extends State<CardapiosEmpresaPage> {
                               '${cardapio['tipocardapio']} • ${cardapio['quantidade_produtos'] ?? 0} produtos\n${_lojasTexto(cardapio)}',
                             ),
                             isThreeLine: true,
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () async {
+                              final alterado = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CardapioGestaoEmpresaPage(
+                                    organizacaoId: widget.organizacaoId,
+                                    cardapioId: int.parse(
+                                      '${cardapio['cardapio_id']}',
+                                    ),
+                                  ),
+                                ),
+                              );
+                              if (alterado == true && mounted) _carregar();
+                            },
                           ),
                         ),
                     ],

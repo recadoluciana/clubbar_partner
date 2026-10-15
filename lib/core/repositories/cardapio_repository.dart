@@ -191,10 +191,14 @@ class CardapioRepository {
     return '${_json(response)['urlfotoproduto']}';
   }
 
-  Future<Map<String, dynamic>> associar(int lojaId, int cardapioId) async {
+  Future<Map<String, dynamic>> associar(
+    int lojaId,
+    int cardapioId, {
+    int prioridade = 0,
+  }) async {
     final response = await ApiService.post(
       '/lojas/$lojaId/cardapios/associar',
-      {'cardapio_id': cardapioId, 'prioridade': 10},
+      {'cardapio_id': cardapioId, 'prioridade': prioridade},
     );
     if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível usar o cardápio nesta loja.');
@@ -227,6 +231,19 @@ class CardapioRepository {
     if (response.statusCode != 204) {
       throw _erro(response, 'Não foi possível excluir o cardápio.');
     }
+  }
+
+  Future<Map<String, dynamic>> renomearCardapio(
+    int cardapioId,
+    String nome,
+  ) async {
+    final response = await ApiService.put('/cardapios/$cardapioId', {
+      'nmcardapio': nome,
+    });
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível alterar o cardápio.');
+    }
+    return Map<String, dynamic>.from(_json(response));
   }
 
   Future<Map<String, dynamic>> consultarVersao(int versaoId) async {
