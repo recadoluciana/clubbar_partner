@@ -986,17 +986,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       text: (configuracao.qttotallote ?? configuracao.qtCapacidadeSetor ?? 0)
           .toString(),
     );
-    final precoInteira = configuracao.precos
-        .where((preco) => preco.tipo == 'INTEIRA')
-        .firstOrNull;
-    final preco = TextEditingController(
-      text: (precoInteira?.valor ?? 0).toStringAsFixed(2).replaceAll('.', ','),
-    );
-    final modalidadesSelecionadas = configuracao.precos
-        .map((item) => item.modalidadeId)
-        .toSet();
-    final modalidadesOriginais = Set<int>.from(modalidadesSelecionadas);
-    final valorInteiraOriginal = precoInteira?.valor ?? 0;
     final salvou = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -1021,52 +1010,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: preco,
-                    onTap: () => _selecionarPrecoZero(preco),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Preço da inteira',
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Modalidades vendidas neste setor',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'As opções exibidas foram definidas no evento. Marque somente as que estarão disponíveis neste setor e lote.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  ..._modalidadesEvento.map(
-                    (modalidade) => CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      value: modalidadesSelecionadas.contains(modalidade.id),
-                      title: Text(modalidade.nome),
-                      subtitle: Text(
-                        modalidade.exigeBeneficio
-                            ? 'Exige benefício configurado no evento'
-                            : 'Sem exigência de benefício',
-                      ),
-                      onChanged: (valor) => atualizarDialogo(() {
-                        if (valor == true) {
-                          modalidadesSelecionadas.add(modalidade.id);
-                        } else {
-                          modalidadesSelecionadas.remove(modalidade.id);
-                        }
-                      }),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -1091,75 +1034,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   );
                   return;
                 }
-                if (modalidadesSelecionadas.isEmpty) {
-                  AppSnackBar.aviso(
-                    context,
-                    'Selecione ao menos uma modalidade para este setor.',
-                  );
-                  return;
-                }
                 try {
-                  final valor = double.tryParse(
-                    preco.text.replaceAll('.', '').replaceAll(',', '.'),
-                  );
-                  if (valor == null || valor < 0) {
-                    AppSnackBar.aviso(
-                      context,
-                      'Informe um preço válido para a inteira.',
-                    );
-                    return;
-                  }
-                  final alterouPrecoInteira =
-                      (valor - valorInteiraOriginal).abs() > 0.001;
-                  final alterouModalidades =
-                      modalidadesSelecionadas.length !=
-                          modalidadesOriginais.length ||
-                      !modalidadesSelecionadas.containsAll(
-                        modalidadesOriginais,
-                      );
-                  final existentes = {
-                    for (final item in configuracao.precos)
-                      item.modalidadeId: item,
-                  };
-                  final modalidades = _modalidadesEvento
-                      .where(
-                        (item) => modalidadesSelecionadas.contains(item.id),
-                      )
-                      .map((item) {
-                        final existente = existentes[item.id];
-                        final codigo = item.codigo.toUpperCase();
-                        final valorPadrao = codigo == 'CORTESIA'
-                            ? 0.0
-                            : item.tipo == 'LEGAL'
-                            ? valor / 2
-                            : valor;
-                        return EventoLotePreco(
-                          id: existente?.id ?? 0,
-                          modalidadeId: item.id,
-                          nome: existente?.nome ?? item.nome,
-                          tipo: item.codigo,
-                          valor: existente == null
-                              ? valorPadrao
-                              : codigo == 'INTEIRA' && alterouPrecoInteira
-                              ? valorPadrao
-                              : codigo.startsWith('MEIA') && alterouPrecoInteira
-                              ? valorPadrao
-                              : existente.valor,
-                          limiteModalidade: existente?.limiteModalidade,
-                          aplicaCotaLegal: item.aplicaCotaLegal,
-                          exigeComprovante: item.exigeComprovante,
-                          situacao: existente?.situacao ?? 'ATIVO',
-                          ordem: item.ordem,
-                        );
-                      })
-                      .toList();
                   await _repo.atualizarConfiguracaoSetor(
                     loteId: configuracao.loteId,
                     limite: quantidade,
                     alterarLimite: true,
-                    precos: alterouPrecoInteira || alterouModalidades
-                        ? modalidades
-                        : null,
                   );
                   if (context.mounted) Navigator.pop(context, true);
                 } catch (erro) {
