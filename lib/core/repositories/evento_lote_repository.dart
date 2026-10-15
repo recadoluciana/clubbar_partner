@@ -375,6 +375,27 @@ class EventoLoteRepository {
     }
   }
 
+  Future<String> alterarSituacaoModalidade({
+    required int loteId,
+    required int lotePrecoId,
+    required bool ativa,
+  }) async {
+    final response = await ApiService.patch(
+      '/eventos/lotes/$loteId/modalidades/$lotePrecoId/situacao',
+      body: {'situacao': ativa ? 'ATIVO' : 'INATIVO'},
+    );
+    if (response.statusCode != 200) {
+      throw _erro(
+        response,
+        'Não foi possível alterar as vendas da modalidade.',
+      );
+    }
+    final dados = response.body.isEmpty
+        ? const <String, dynamic>{}
+        : Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    return '${dados['mensagem'] ?? 'Situação da modalidade atualizada.'}';
+  }
+
   Future<List<Map<String, dynamic>>> _precosPadrao(
     double inteira, {
     int? organizacaoId,

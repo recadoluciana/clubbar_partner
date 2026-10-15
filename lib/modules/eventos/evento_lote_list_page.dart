@@ -1483,6 +1483,64 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     }
   }
 
+  Future<void> _alterarVendasDaModalidade(
+    EventoLote configuracao,
+    EventoLotePreco modalidade,
+  ) async {
+    final ativar = modalidade.situacao != 'ATIVO';
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          ativar
+              ? 'Reativar vendas de ${modalidade.nome}?'
+              : 'Desativar vendas de ${modalidade.nome}?',
+        ),
+        content: Text(
+          ativar
+              ? 'A modalidade voltará a aceitar novas vendas neste setor e lote.'
+              : 'A modalidade deixará de aceitar novas vendas neste setor e lote. Ingressos já emitidos e reservas existentes serão preservados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: ativar
+                  ? ClubbarColors.primaria
+                  : ClubbarColors.erro,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            icon: Icon(ativar ? Icons.play_arrow_rounded : Icons.pause_rounded),
+            label: Text(ativar ? 'Reativar vendas' : 'Desativar vendas'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true) return;
+
+    try {
+      final mensagem = await _repo.alterarSituacaoModalidade(
+        loteId: configuracao.loteId,
+        lotePrecoId: modalidade.id,
+        ativa: ativar,
+      );
+      if (mounted) {
+        AppSnackBar.sucesso(context, mensagem);
+        _carregar();
+      }
+    } catch (erro) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    }
+  }
+
   double _precoSugeridoParaModalidade(
     EventoLote configuracao,
     ModalidadeIngressoCatalogo modalidade,
@@ -2512,7 +2570,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   margin: const EdgeInsets.only(top: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: ClubbarColors.fundo,
+                    color: preco.situacao == 'ATIVO'
+                        ? ClubbarColors.fundo
+                        : Colors.amber.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -2530,6 +2590,29 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
+                                if (preco.situacao != 'ATIVO') ...[
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.withValues(
+                                        alpha: 0.22,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      'Vendas desativadas',
+                                      style: TextStyle(
+                                        color: Colors.brown,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 3),
                                 Text(
                                   _capacidadeDaModalidade(configuracao, preco),
@@ -2574,6 +2657,28 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                             ? 'Regra: comprovante obrigatório'
                             : 'Regra: sem exigência',
                       ),
+                      if (!_somenteConsulta) ...[
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              _alterarVendasDaModalidade(configuracao, preco),
+                          icon: Icon(
+                            preco.situacao == 'ATIVO'
+                                ? Icons.pause_circle_outline_rounded
+                                : Icons.play_circle_outline_rounded,
+                          ),
+                          label: Text(
+                            preco.situacao == 'ATIVO'
+                                ? 'Desativar vendas'
+                                : 'Reativar vendas',
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: preco.situacao == 'ATIVO'
+                                ? ClubbarColors.erro
+                                : ClubbarColors.primaria,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
