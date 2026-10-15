@@ -111,21 +111,24 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
     final associadas = _lojas
         .where((loja) => _associacao(loja) != null)
         .toList(growable: false);
-    if (associadas.isEmpty) {
-      AppSnackBar.aviso(
-        context,
-        'Associe o cardápio a pelo menos uma loja antes de configurar os produtos.',
-      );
-      return;
-    }
     try {
       final versaoId = await _garantirRascunho();
       if (!mounted || _cardapio == null) return;
+      // O conteúdo pertence ao cardápio da empresa, portanto pode ser
+      // preparado antes de ele ser associado a uma loja. O editor usa a loja
+      // apenas como contexto visual e para obter a organização.
+      final contexto = associadas.isEmpty
+          ? Loja(
+              lojaId: 0,
+              organizacaoId: widget.organizacaoId,
+              nmloja: 'Cardápio da empresa',
+            )
+          : associadas.first;
       await Navigator.push<bool>(
         context,
         MaterialPageRoute(
           builder: (_) => CardapioLojaEditorPage(
-            loja: associadas.first,
+            loja: contexto,
             cardapioId: widget.cardapioId,
             versaoId: versaoId,
             nomeCardapio: '${_cardapio!['nmcardapio']}',
