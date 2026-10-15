@@ -187,60 +187,12 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
     }
   }
 
-  Future<int?> _selecionarPrioridade({required int atual}) async {
-    final controller = TextEditingController(text: '$atual');
-    final resultado = await showDialog<int>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Prioridade nesta loja'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Prioridade',
-            helperText: 'Quanto maior o número, maior a preferência.',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(
-              dialogContext,
-              int.tryParse(controller.text.trim()),
-            ),
-            child: const Text('Salvar'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return resultado == null || resultado < 0 || resultado > 999
-        ? null
-        : resultado;
-  }
-
-  Future<void> _associarOuAlterarPrioridade(Loja loja, {int? atual}) async {
-    final prioridade = await _selecionarPrioridade(atual: atual ?? 0);
-    if (prioridade == null) return;
+  Future<void> _associar(Loja loja) async {
     try {
-      await _repo.associar(
-        loja.lojaId,
-        widget.cardapioId,
-        prioridade: prioridade,
-      );
+      await _repo.associar(loja.lojaId, widget.cardapioId);
       await _carregar();
       if (mounted) {
-        AppSnackBar.sucesso(
-          context,
-          atual == null
-              ? 'Cardápio associado a ${loja.nmloja}.'
-              : 'Prioridade atualizada.',
-        );
+        AppSnackBar.sucesso(context, 'Cardápio associado a ${loja.nmloja}.');
       }
     } catch (e) {
       if (mounted) {
@@ -282,6 +234,105 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
       await _repo.removerAssociacao(loja.lojaId, widget.cardapioId);
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, 'Loja desassociada.');
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _programacoes(Map<String, dynamic> associacao) =>
+      ((associacao['programacoes'] as List?) ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+
+  String _dataHora(dynamic data, dynamic hora) {
+    final valor = DateTime.tryParse('$data');
+    final dataTexto = valor == null
+        ? '$data'
+        : '${valor.day.toString().padLeft(2, '0')}/${valor.month.toString().padLeft(2, '0')}/${valor.year}';
+    final partes = '$hora'.split(':');
+    final horaTexto = partes.length >= 2
+        ? '${partes[0]}:${partes[1]}'
+        : '$hora';
+    return '$dataTexto às $horaTexto';
+  }
+
+  Future<void> _programarExibicao(Loja loja) async {
+    final agora = DateTime.now();
+    final inicio = await showDatePicker(
+      context: context,
+      initialDate: agora,
+      firstDate: DateTime(agora.year - 1),
+      lastDate: DateTime(agora.year + 5),
+      helpText: 'Início da exibição',
+    );
+    if (inicio == null || !mounted) return;
+    final horaInicio = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(agora),
+      helpText: 'Horário de início',
+    );
+    if (horaInicio == null || !mounted) return;
+    final fim = await showDatePicker(
+      context: context,
+      initialDate: inicio,
+      firstDate: inicio,
+      lastDate: DateTime(inicio.year + 5),
+      helpText: 'Fim da exibição',
+    );
+    if (fim == null || !mounted) return;
+    final horaFim = await showTimePicker(
+      context: context,
+      initialTime: horaInicio,
+      helpText: 'Horário de fim',
+    );
+    if (horaFim == null || !mounted) return;
+    final inicioCompleto = DateTime(
+      inicio.year,
+      inicio.month,
+      inicio.day,
+      horaInicio.hour,
+      horaInicio.minute,
+    );
+    final fimCompleto = DateTime(
+      fim.year,
+      fim.month,
+      fim.day,
+      horaFim.hour,
+      horaFim.minute,
+    );
+    if (!fimCompleto.isAfter(inicioCompleto)) {
+      AppSnackBar.aviso(context, 'O fim deve ser posterior ao início.');
+      return;
+    }
+    try {
+      await _repo.programarExibicao(
+        widget.cardapioId,
+        lojaId: loja.lojaId,
+        inicio: inicio,
+        horaInicio: horaInicio,
+        fim: fim,
+        horaFim: horaFim,
+      );
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Período de exibição salvo.');
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  Future<void> _removerProgramacao(Loja loja, int programacaoId) async {
+    try {
+      await _repo.removerProgramacao(
+        widget.cardapioId,
+        programacaoId,
+        lojaId: loja.lojaId,
+      );
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Período removido.');
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -387,7 +438,7 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'Escolha onde este cardápio ficará disponível e defina a prioridade em cada loja.',
+                          'Escolha em quais lojas este cardápio ficará disponível.',
                           style: TextStyle(
                             color: ClubbarColors.textoSecundario,
                           ),
@@ -487,27 +538,80 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
   Widget _cardLoja(Loja loja) {
     final associacao = _associacao(loja);
     final associada = associacao != null;
-    final prioridade = associada ? _id(associacao['prioridade']) : 0;
+    final especial = _cardapio?['tipocardapio'] == 'ESPECIAL';
+    final programacoes = associacao == null
+        ? const <Map<String, dynamic>>[]
+        : _programacoes(associacao);
     return Card(
-      child: ListTile(
-        leading: Icon(
-          associada ? Icons.storefront_rounded : Icons.storefront_outlined,
-          color: associada
-              ? ClubbarColors.primaria
-              : ClubbarColors.textoSecundario,
-        ),
-        title: Text(loja.nmloja),
-        subtitle: associada
-            ? Text('Associado • prioridade $prioridade')
-            : const Text('Não associado'),
-        trailing: Switch(
-          value: associada,
-          onChanged: (value) =>
-              value ? _associarOuAlterarPrioridade(loja) : _desassociar(loja),
-        ),
-        onTap: associada
-            ? () => _associarOuAlterarPrioridade(loja, atual: prioridade)
-            : () => _associarOuAlterarPrioridade(loja),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(
+              associada ? Icons.storefront_rounded : Icons.storefront_outlined,
+              color: associada
+                  ? ClubbarColors.primaria
+                  : ClubbarColors.textoSecundario,
+            ),
+            title: Text(loja.nmloja),
+            subtitle: associada
+                ? const Text('Associado')
+                : const Text('Não associado'),
+            trailing: Switch(
+              value: associada,
+              onChanged: (value) =>
+                  value ? _associar(loja) : _desassociar(loja),
+            ),
+            onTap: associada ? null : () => _associar(loja),
+          ),
+          if (especial && associada)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(),
+                  const Text(
+                    'Período de exibição',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  if (programacoes.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Nenhum período definido.',
+                        style: TextStyle(color: ClubbarColors.textoSecundario),
+                      ),
+                    ),
+                  for (final programacao in programacoes)
+                    Row(
+                      children: [
+                        const Icon(Icons.schedule_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${_dataHora(programacao['dtinicio'], programacao['hrinicio'])} até ${_dataHora(programacao['dtfim'], programacao['hrfim'])}',
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Remover período',
+                          onPressed: () => _removerProgramacao(
+                            loja,
+                            _id(programacao['cardapioprogramacao_id']),
+                          ),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 6),
+                  OutlinedButton.icon(
+                    onPressed: () => _programarExibicao(loja),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Adicionar período'),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -191,14 +191,10 @@ class CardapioRepository {
     return '${_json(response)['urlfotoproduto']}';
   }
 
-  Future<Map<String, dynamic>> associar(
-    int lojaId,
-    int cardapioId, {
-    int prioridade = 0,
-  }) async {
+  Future<Map<String, dynamic>> associar(int lojaId, int cardapioId) async {
     final response = await ApiService.post(
       '/lojas/$lojaId/cardapios/associar',
-      {'cardapio_id': cardapioId, 'prioridade': prioridade},
+      {'cardapio_id': cardapioId},
     );
     if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível usar o cardápio nesta loja.');

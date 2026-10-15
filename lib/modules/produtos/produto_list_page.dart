@@ -632,7 +632,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                   ? 'Selecione um estabelecimento para consultar o cardápio.'
                   : temBusca
                   ? 'Tente pesquisar por outro nome, categoria ou situação.'
-                  : 'Cadastre o produto no cardápio padrão da empresa e utilize esse cardápio na loja.',
+                  : 'Cadastre o produto em um cardápio da empresa e associe-o às lojas desejadas.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
