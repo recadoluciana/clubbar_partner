@@ -29,6 +29,7 @@ import '../eventos/evento_list_page.dart';
 import '../ingressos/catalogo_ingressos_partner_page.dart';
 import '../entregas/pedidos_entrega_page.dart';
 import '../doacoes/campanhas_doacao_page.dart';
+import '../reconciliacao_cancelamentos/reconciliacao_cancelamentos_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -51,6 +52,8 @@ class _DashboardPageState extends State<DashboardPage> {
       _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'MANAGER';
   bool get _podeVerGerencial =>
       _cargo == 'SUPERADMIN' || _cargo == 'ADMIN' || _cargo == 'MANAGER';
+  bool get _podeReconciliarCancelamentos =>
+      _cargo == 'SUPERADMIN' || _cargo == 'ADMIN';
 
   @override
   void initState() {
@@ -230,6 +233,12 @@ class _DashboardPageState extends State<DashboardPage> {
     await Navigator.of(
       context,
     ).push<void>(MaterialPageRoute(builder: (_) => const PedidosEntregaPage()));
+  }
+
+  Future<void> _abrirReconciliacaoCancelamentos() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const ReconciliacaoCancelamentosPage()),
+    );
   }
 
   Future<void> _sair() async {
@@ -575,6 +584,17 @@ class _DashboardPageState extends State<DashboardPage> {
                           icone: Icons.delivery_dining_rounded,
                           onTap: _podeVerGerencial
                               ? _abrirPedidosEntrega
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Cancelamentos em processamento',
+                          subtitulo: _podeReconciliarCancelamentos
+                              ? 'Consulte o Asaas e conclua ou reverta cancelamentos pendentes.'
+                              : 'Disponível para administradores da empresa.',
+                          icone: Icons.currency_exchange_rounded,
+                          onTap: _podeReconciliarCancelamentos
+                              ? _abrirReconciliacaoCancelamentos
                               : null,
                         ),
                         const SizedBox(height: 14),
