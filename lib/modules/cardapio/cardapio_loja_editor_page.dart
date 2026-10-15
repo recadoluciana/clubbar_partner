@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/config/api_config.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/categoria_icon_utils.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
@@ -40,6 +41,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   bool _alterado = false;
   int? _numeroVersao;
   int? _categoriaSelecionadaId;
+  final Set<int> _produtosExpandidos = {};
   late int _versaoEdicaoId;
   bool _versaoEhRascunho = false;
 
@@ -668,6 +670,16 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       children: [
         for (final categoria in _categorias) ...[
           ChoiceChip(
+            avatar: Icon(
+              CategoriaIconUtils.porCategoria(
+                '${categoria['nmcategoria']}',
+                categoria['dsicone']?.toString(),
+              ),
+              size: 18,
+              color: CategoriaIconUtils.corPorNome(
+                '${categoria['nmcategoria']}',
+              ),
+            ),
             label: Text('${categoria['nmcategoria']}'),
             selected: _categoriaSelecionadaId == _id(categoria['categoria_id']),
             onSelected: (_) => setState(
@@ -943,18 +955,19 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     final temDesconto = _temDesconto(item);
     final foto = '${item['urlfotoproduto'] ?? ''}'.trim();
     final urlFoto = foto.isEmpty ? '' : ApiConfig.buildUrl(foto);
+    final produtoId = _id(item['produto_id']);
+    final expandido = _produtosExpandidos.contains(produtoId);
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: EdgeInsets.zero,
-        child: SizedBox(
-          height: 132,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
                 width: 124,
+                height: 132,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -1106,19 +1119,26 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                               ),
                             ],
                           ),
+                          IconButton(
+                            tooltip: expandido
+                                ? 'Recolher informações'
+                                : 'Ver informações completas',
+                            onPressed: () => setState(() {
+                              if (expandido) {
+                                _produtosExpandidos.remove(produtoId);
+                              } else {
+                                _produtosExpandidos.add(produtoId);
+                              }
+                            }),
+                            icon: Icon(
+                              expandido
+                                  ? Icons.expand_less_rounded
+                                  : Icons.expand_more_rounded,
+                            ),
+                          ),
                         ],
                       ),
-                      if ('${item['dsproduto'] ?? ''}'.trim().isNotEmpty)
-                        Text(
-                          '${item['dsproduto']}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: ClubbarColors.textoSecundario,
-                            fontSize: 12,
-                          ),
-                        ),
-                      const Spacer(),
+                      const SizedBox(height: 8),
                       if (temDesconto)
                         Text(
                           _moeda.format(_valor(item['vrpreco'])),
@@ -1138,14 +1158,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                               : ClubbarColors.textoPrincipal,
                         ),
                       ),
-                      if (item['pccashback'] != null)
-                        Text(
-                          'Cashback: ${_valor(item['pccashback']).toStringAsFixed(2).replaceAll('.', ',')}%',
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontSize: 12,
-                          ),
-                        ),
                       Row(
                         children: [
                           Icon(
@@ -1183,10 +1195,50 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
               ),
             ],
           ),
-        ),
+          if (expandido) _detalhesProduto(item, temDesconto),
+        ],
       ),
     );
   }
+
+  Widget _detalhesProduto(
+    Map<String, dynamic> item,
+    bool temDesconto,
+  ) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+    decoration: BoxDecoration(
+      color: ClubbarColors.fundo,
+      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if ('${item['dsproduto'] ?? ''}'.trim().isNotEmpty) ...[
+          Text(
+            '${item['dsproduto']}',
+            style: const TextStyle(color: ClubbarColors.textoSecundario),
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (temDesconto) ...[
+          Text(
+            'Desconto: ${_seloDesconto(item)}',
+            style: const TextStyle(
+              color: ClubbarColors.erro,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+        ],
+        if (item['pccashback'] != null)
+          Text(
+            'Cashback: ${_valor(item['pccashback']).toStringAsFixed(2).replaceAll('.', ',')}%',
+            style: const TextStyle(color: Colors.green),
+          ),
+      ],
+    ),
+  );
 
   Widget _categoriaCard(Map<String, dynamic> categoria, int indice) {
     final itens = _itens(categoria);
@@ -1195,9 +1247,15 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
         initiallyExpanded: true,
-        leading: const CircleAvatar(
+        leading: CircleAvatar(
           backgroundColor: ClubbarColors.primariaClaro,
-          child: Icon(Icons.category_outlined, color: ClubbarColors.primaria),
+          child: Icon(
+            CategoriaIconUtils.porCategoria(
+              '${categoria['nmcategoria']}',
+              categoria['dsicone']?.toString(),
+            ),
+            color: CategoriaIconUtils.corPorNome('${categoria['nmcategoria']}'),
+          ),
         ),
         title: Text('${categoria['nmcategoria']}'),
         subtitle: Text(
