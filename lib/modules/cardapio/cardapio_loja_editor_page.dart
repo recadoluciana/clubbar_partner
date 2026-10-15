@@ -178,7 +178,35 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
               onPressed: () => Navigator.pop(dialogContext, categoria),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text('${categoria['nmcategoria']}'),
+                child: Row(
+                  children: [
+                    Builder(
+                      builder: (_) {
+                        final nome = '${categoria['nmcategoria']}';
+                        final cor = CategoriaIconUtils.corPorNome(nome);
+                        return CircleAvatar(
+                          radius: 18,
+                          backgroundColor: cor.withValues(alpha: 0.14),
+                          child: Icon(
+                            CategoriaIconUtils.porCategoria(
+                              nome,
+                              categoria['dsicone']?.toString(),
+                            ),
+                            color: cor,
+                            size: 20,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${categoria['nmcategoria']}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
