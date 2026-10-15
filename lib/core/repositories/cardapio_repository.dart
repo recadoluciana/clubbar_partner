@@ -40,7 +40,6 @@ class CardapioRepository {
     final response = await ApiService.post('/lojas/$lojaId/cardapios', {
       'nmcardapio': nome,
       'tipocardapio': tipo,
-      'prioridade': tipo == 'PRINCIPAL' ? 100 : 10,
     });
     if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível criar o cardápio.');
@@ -76,7 +75,7 @@ class CardapioRepository {
   ) async {
     final response = await ApiService.post(
       '/organizacoes/$organizacaoId/cardapios',
-      {'nmcardapio': nome, 'tipocardapio': tipo, 'prioridade': 0},
+      {'nmcardapio': nome, 'tipocardapio': tipo},
     );
     if (response.statusCode != 201) {
       throw _erro(response, 'Não foi possível criar o cardápio.');
