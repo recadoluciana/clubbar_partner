@@ -13,11 +13,13 @@ import 'cardapio_loja_editor_page.dart';
 /// Centraliza a gestão de um cardápio compartilhado e seus vínculos por loja.
 class CardapioGestaoEmpresaPage extends StatefulWidget {
   final int organizacaoId;
+  final String nomeOrganizacao;
   final int cardapioId;
 
   const CardapioGestaoEmpresaPage({
     super.key,
     required this.organizacaoId,
+    required this.nomeOrganizacao,
     required this.cardapioId,
   });
 
@@ -416,7 +418,7 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
           : Column(
               children: [
                 ClubbarPageHeader(
-                  titulo: '${cardapio['nmcardapio']}',
+                  titulo: widget.nomeOrganizacao,
                   subtitulo: 'Gerencie conteúdo, publicação e lojas',
                 ),
                 Expanded(
@@ -484,12 +486,23 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${cardapio['tipocardapio']}',
-                  style: const TextStyle(color: ClubbarColors.textoSecundario),
+                  '${cardapio['nmcardapio']}',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${cardapio['quantidade_produtos'] ?? 0} produtos • ${_associacoes.length} lojas',
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _badgeTipo('${cardapio['tipocardapio']}'),
+                    Text(
+                      '${cardapio['quantidade_produtos'] ?? 0} produtos • ${_associacoes.length} lojas',
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -506,6 +519,22 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
       ),
     ),
   );
+
+  Widget _badgeTipo(String tipo) {
+    final principal = tipo == 'PRINCIPAL';
+    final cor = principal ? ClubbarColors.info : Colors.amber.shade800;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: cor.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        principal ? 'Principal' : 'Especial',
+        style: TextStyle(color: cor, fontSize: 12, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
 
   Widget _acoes() => Wrap(
     spacing: 8,

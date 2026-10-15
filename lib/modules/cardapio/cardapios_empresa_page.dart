@@ -191,6 +191,7 @@ class _CardapiosEmpresaPageState extends State<CardapiosEmpresaPage> {
                                 MaterialPageRoute(
                                   builder: (_) => CardapioGestaoEmpresaPage(
                                     organizacaoId: widget.organizacaoId,
+                                    nomeOrganizacao: widget.nomeOrganizacao,
                                     cardapioId: int.parse(
                                       '${cardapio['cardapio_id']}',
                                     ),
