@@ -335,26 +335,88 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   Future<void> _adicionarProduto(Map<String, dynamic> categoria) async {
     final produto = await _escolherProduto(categoria);
     if (produto == null || !mounted) return;
+    final preco = await _informarPrecoInicial('${produto['nmproduto']}');
+    if (preco == null || !mounted) return;
+
+    final item = <String, dynamic>{
+      ...produto,
+      // Produto é cadastro mestre. Os valores comerciais pertencem
+      // exclusivamente a este item do cardápio.
+      'vrpreco': preco,
+      'tipodesconto': 'NENHUM',
+      'vrdesconto': 0.0,
+      'dtinidesconto': null,
+      'dtfimdesconto': null,
+      'qtcortesia': null,
+      'dtinicortesia': null,
+      'dtfimcortesia': null,
+      'pccashback': null,
+      'sititem': 'ATIVO',
+    };
     setState(() {
       final itens = _itens(categoria);
-      itens.add({
-        ...produto,
-        // Produto é cadastro mestre. Os valores comerciais pertencem
-        // exclusivamente a este item do cardápio.
-        'vrpreco': 0.0,
-        'tipodesconto': 'NENHUM',
-        'vrdesconto': 0.0,
-        'dtinidesconto': null,
-        'dtfimdesconto': null,
-        'qtcortesia': null,
-        'dtinicortesia': null,
-        'dtfimcortesia': null,
-        'pccashback': null,
-        'sititem': 'ATIVO',
-      });
+      itens.add(item);
       categoria['itens'] = itens;
       _alterado = true;
     });
+
+    if (preco <= 0) {
+      final configurada = await _editarCortesias(item);
+      if (configurada || !mounted) return;
+      setState(() {
+        final itens = _itens(categoria);
+        itens.remove(item);
+        categoria['itens'] = itens;
+        _alterado = true;
+      });
+      AppSnackBar.aviso(
+        context,
+        'O produto não foi adicionado porque a cortesia não foi configurada.',
+      );
+    }
+  }
+
+  Future<double?> _informarPrecoInicial(String nomeProduto) async {
+    final controller = TextEditingController();
+    final valor = await showDialog<double>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Preço • $nomeProduto'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Preço neste cardápio',
+            prefixText: 'R\$ ',
+            helperText: 'Use 0,00 para configurar uma cortesia.',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final numero = double.tryParse(
+                controller.text.trim().replaceAll(',', '.'),
+              );
+              if (numero == null || numero < 0) {
+                AppSnackBar.aviso(context, 'Informe um preço válido.');
+                return;
+              }
+              Navigator.pop(dialogContext, numero);
+            },
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return valor;
   }
 
   Future<void> _editarPreco(Map<String, dynamic> item) async {
@@ -624,13 +686,13 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     if (_ehCortesia(item)) await _editarCortesias(item);
   }
 
-  Future<void> _editarCortesias(Map<String, dynamic> item) async {
+  Future<bool> _editarCortesias(Map<String, dynamic> item) async {
     if (!_ehCortesia(item)) {
       AppSnackBar.aviso(
         context,
         'A disponibilidade de cortesias é usada somente quando o preço final é R\$ 0,00.',
       );
-      return;
+      return false;
     }
 
     final quantidadeController = TextEditingController(
@@ -762,11 +824,12 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       ),
     );
     quantidadeController.dispose();
-    if (resultado == null || !mounted) return;
+    if (resultado == null || !mounted) return false;
     setState(() {
       item.addAll(resultado);
       _alterado = true;
     });
+    return true;
   }
 
   Future<void> _editarCashback(Map<String, dynamic> item) async {
