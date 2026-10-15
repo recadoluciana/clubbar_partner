@@ -158,7 +158,7 @@ class _CardapiosEmpresaPageState extends State<CardapiosEmpresaPage> {
                         child: Padding(
                           padding: EdgeInsets.all(16),
                           child: Text(
-                            'O cardápio é compartilhável: preço, promoção e cashback são definidos por produto dentro dele. Use “Associar cardápios às lojas” para escolher em quais estabelecimentos cada cardápio ficará disponível.',
+                            'O cardápio é compartilhável: preço, promoção e cashback são definidos por produto dentro dele. Toque em um cardápio para editar o conteúdo, publicar e definir as lojas em que ele ficará disponível.',
                           ),
                         ),
                       ),

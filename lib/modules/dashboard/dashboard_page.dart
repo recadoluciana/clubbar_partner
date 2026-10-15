@@ -19,7 +19,6 @@ import '../financeiro_onboarding/titulares_financeiros_page.dart';
 import '../atracoes/atracao_list_page.dart';
 import '../estilos_musicais/estilo_musical_list_page.dart';
 import '../auditoria/auditoria_page.dart';
-import '../cardapio/cardapio_loja_page.dart';
 import '../cardapio/cardapio_padrao_empresa_page.dart';
 import '../cardapio/cardapios_empresa_page.dart';
 import '../categorias/categorias_produtos_page.dart';
@@ -106,16 +105,6 @@ class _DashboardPageState extends State<DashboardPage> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => LojaListPage(organizacaoId: organizacaoId),
-      ),
-    );
-  }
-
-  Future<void> _abrirCardapioDigital() async {
-    final organizacaoId = _organizacaoId;
-    if (organizacaoId == null || organizacaoId <= 0) return;
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => CardapioLojaPage(organizacaoId: organizacaoId),
       ),
     );
   }
@@ -312,7 +301,6 @@ class _DashboardPageState extends State<DashboardPage> {
       'Meus estabelecimentos': Color(0xFFC62828),
       'Produtos da empresa': Color(0xFFEF6C00),
       'Cardápios da empresa': Color(0xFFF57C00),
-      'Associar cardápios às lojas': Color(0xFFF57C00),
       'Modalidades e benefícios': Color(0xFF9A6700),
       'Eventos': Color(0xFF00838F),
       'Agenda': Color(0xFF00897B),
@@ -497,14 +485,6 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: _cargo == 'SUPERADMIN' || _cargo == 'ADMIN'
                               ? _abrirCardapiosEmpresa
                               : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Associar cardápios às lojas',
-                          subtitulo:
-                              'Defina quais cardápios cada estabelecimento utiliza e sua programação.',
-                          icone: Icons.storefront_rounded,
-                          onTap: _abrirCardapioDigital,
                         ),
                         const SizedBox(height: 14),
                         _opcao(

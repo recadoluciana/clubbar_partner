@@ -12,8 +12,6 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
-import '../cardapio/cardapios_page.dart';
-import '../../core/repositories/cardapio_repository.dart';
 import 'horario_funcionamento_screen.dart';
 import 'loja_form_page.dart';
 import 'loja_imagens_page.dart';
@@ -38,7 +36,6 @@ class LojaListPage extends StatefulWidget {
 class _LojaListPageState extends State<LojaListPage> {
   final TextEditingController _buscaController = TextEditingController();
   final LojaRepository _repository = LojaRepository();
-  final CardapioRepository _cardapioRepository = CardapioRepository();
 
   bool _carregando = true;
   bool _excluindo = false;
@@ -308,119 +305,6 @@ class _LojaListPageState extends State<LojaListPage> {
       ),
     );
     if (alterado == true && mounted) await _carregarLojas();
-  }
-
-  Future<void> _abrirCardapio(Loja loja) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => CardapiosPage(loja: loja, lojas: _lojas),
-      ),
-    );
-  }
-
-  Future<void> _importarCardapioPadrao(Loja loja) async {
-    if (!_podeAlterarLoja(loja)) {
-      _avisarSomenteConsulta();
-      return;
-    }
-    List<Map<String, dynamic>> cardapios;
-    try {
-      cardapios = await _cardapioRepository.listarPadroes(loja.organizacaoId);
-    } catch (e) {
-      if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
-      return;
-    }
-    if (!mounted) return;
-    cardapios = cardapios
-        .where(
-          (item) =>
-              item['sitcardapio']?.toString() == 'ATIVO' &&
-              (item['quantidade_produtos'] as num? ?? 0) > 0,
-        )
-        .toList();
-    if (cardapios.isEmpty) {
-      AppSnackBar.aviso(
-        context,
-        'Adicione produtos ao cardápio padrão da empresa antes de importar.',
-      );
-      return;
-    }
-
-    var selecionadoId = cardapios.first['cardapio_id'] as int;
-    final selecionado = await showDialog<int>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Importar Cardápio Digital'),
-          content: SizedBox(
-            width: 480,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Estabelecimento: ${loja.nmloja}'),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<int>(
-                  initialValue: selecionadoId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Cardápio que será importado',
-                    prefixIcon: Icon(Icons.menu_book_rounded),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: cardapios
-                      .map(
-                        (item) => DropdownMenuItem<int>(
-                          value: item['cardapio_id'] as int,
-                          child: Text(
-                            item['nmcardapio']?.toString() ?? 'Cardápio',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => selecionadoId = value);
-                    }
-                  },
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'O cardápio selecionado será associado a “${loja.nmloja}” e poderá ter preços e condições próprios.',
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton.icon(
-              onPressed: () => Navigator.pop(dialogContext, selecionadoId),
-              icon: const Icon(Icons.download_rounded),
-              label: const Text('Importar este cardápio'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (selecionado == null || !mounted) return;
-    try {
-      final cardapio = cardapios.firstWhere(
-        (item) => item['cardapio_id'] == selecionado,
-      );
-      await _cardapioRepository.associar(loja.lojaId, selecionado);
-      if (!mounted) return;
-      AppSnackBar.sucesso(
-        context,
-        'Cardápio “${cardapio['nmcardapio']}” importado para ${loja.nmloja}.',
-      );
-      await _abrirCardapio(loja);
-    } catch (e) {
-      if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
-    }
   }
 
   Future<bool> _confirmarExclusao(Loja loja) async {
@@ -1162,15 +1046,6 @@ class _LojaListPageState extends State<LojaListPage> {
 
           const SizedBox(height: 10),
           Align(alignment: Alignment.centerRight, child: _controleStatus(loja)),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _importarCardapioPadrao(loja),
-              icon: const Icon(Icons.download_rounded),
-              label: const Text('Importar Cardápio Digital da empresa'),
-            ),
-          ),
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
