@@ -316,6 +316,91 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
     }
   }
 
+  Future<void> _editar(Map<String, dynamic> categoria) async {
+    final form = GlobalKey<FormState>();
+    final nomeController = TextEditingController(
+      text: '${categoria['nmcategoria'] ?? ''}',
+    );
+    final iconeOriginal = '${categoria['dsicone'] ?? 'category'}';
+    String icone = _icones.containsKey(iconeOriginal)
+        ? iconeOriginal
+        : 'category';
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar categoria'),
+        content: Form(
+          key: form,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nomeController,
+                decoration: const InputDecoration(labelText: 'Nome *'),
+                maxLength: 120,
+                validator: (v) => (v ?? '').trim().length < 2
+                    ? 'Informe ao menos 2 caracteres.'
+                    : null,
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: icone,
+                decoration: const InputDecoration(labelText: 'Ícone'),
+                items: _icones.entries
+                    .map(
+                      (e) => DropdownMenuItem(
+                        value: e.key,
+                        child: Row(
+                          children: [
+                            Icon(e.value),
+                            const SizedBox(width: 12),
+                            Text(e.key),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => icone = v ?? 'category',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (form.currentState!.validate()) Navigator.pop(ctx, true);
+            },
+            child: const Text('Salvar alterações'),
+          ),
+        ],
+      ),
+    );
+
+    final nome = nomeController.text.trim();
+    nomeController.dispose();
+    if (confirmar != true || !mounted) return;
+
+    setState(() => _ocupado = true);
+    try {
+      _resposta(
+        await ApiService.patch(
+          '$_rota/${categoria['categoria_id']}',
+          body: {'nmcategoria': nome, 'dsicone': icone},
+        ),
+      );
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Categoria atualizada.');
+    } catch (e) {
+      _mostrarErro(e);
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final itens = _itens
@@ -407,6 +492,16 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                                       trailing: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          if (e['categoriapadrao_id'] == null)
+                                            IconButton(
+                                              tooltip: 'Editar categoria',
+                                              icon: const Icon(
+                                                Icons.edit_outlined,
+                                              ),
+                                              onPressed: _ocupado
+                                                  ? null
+                                                  : () => _editar(e),
+                                            ),
                                           OutlinedButton(
                                             onPressed: _ocupado
                                                 ? null
