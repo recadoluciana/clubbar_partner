@@ -708,18 +708,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     });
   }
 
-  Future<void> _reajustarPrecos() async {
-    final categoriaSelecionada = _categorias
-        .cast<Map<String, dynamic>?>()
-        .firstWhere(
-          (categoria) =>
-              _id(categoria?['categoria_id']) == _categoriaSelecionadaId,
-          orElse: () => null,
-        );
-    if (categoriaSelecionada == null) {
-      AppSnackBar.aviso(context, 'Selecione uma categoria para reajustar.');
-      return;
-    }
+  Future<void> _reajustarPrecos(
+    Map<String, dynamic> categoriaSelecionada,
+  ) async {
     final nomeCategoria = '${categoriaSelecionada['nmcategoria']}';
     final controlador = TextEditingController();
     final percentual = await showDialog<double>(
@@ -1268,6 +1259,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
             if (acao == 'subir') _moverCategoria(indice, -1);
             if (acao == 'descer') _moverCategoria(indice, 1);
             if (acao == 'remover') _removerCategoria(indice);
+            if (acao == 'reajustar') _reajustarPrecos(categoria);
           },
           itemBuilder: (_) => [
             const PopupMenuItem(
@@ -1298,6 +1290,16 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
               child: ListTile(
                 leading: Icon(Icons.delete_outline, color: Colors.red),
                 title: Text('Retirar categoria'),
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'reajustar',
+              child: ListTile(
+                leading: Icon(
+                  Icons.price_change_outlined,
+                  color: ClubbarColors.primaria,
+                ),
+                title: Text('Reajustar preços'),
               ),
             ),
           ],
@@ -1354,9 +1356,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     body: Column(
       children: [
         ClubbarPageHeader(
-          titulo: widget.loja.nmloja,
+          titulo: widget.nomeCardapio,
           subtitulo:
-              '${widget.nomeCardapio} • versão ${_numeroVersao ?? '—'}${_versaoEhRascunho ? ' em rascunho' : ''}',
+              'Versão ${_numeroVersao ?? '—'}${_versaoEhRascunho ? ' em rascunho' : ''}',
         ),
         Expanded(
           child: _carregando
@@ -1380,7 +1382,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Você pode consultar e ajustar este cardápio para este estabelecimento. O cardápio publicado só muda quando as alterações forem publicadas.',
+                                  'Você pode consultar e ajustar este cardápio. O cardápio publicado só muda quando as alterações forem publicadas.',
                                 ),
                               ),
                             ],
@@ -1392,15 +1394,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                         _filtroCategorias(),
                         const SizedBox(height: 8),
                       ],
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: OutlinedButton.icon(
-                          onPressed: _reajustarPrecos,
-                          icon: const Icon(Icons.price_change_outlined),
-                          label: const Text('Reajustar preços'),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
                       if (_categorias.isEmpty)
                         const Card(
                           child: Padding(
