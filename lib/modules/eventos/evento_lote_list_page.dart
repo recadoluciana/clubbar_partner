@@ -995,6 +995,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     final modalidadesSelecionadas = configuracao.precos
         .map((item) => item.modalidadeId)
         .toSet();
+    final modalidadesOriginais = Set<int>.from(modalidadesSelecionadas);
+    final valorInteiraOriginal = precoInteira?.valor ?? 0;
     final salvou = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -1100,6 +1102,21 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   final valor = double.tryParse(
                     preco.text.replaceAll('.', '').replaceAll(',', '.'),
                   );
+                  if (valor == null || valor < 0) {
+                    AppSnackBar.aviso(
+                      context,
+                      'Informe um preço válido para a inteira.',
+                    );
+                    return;
+                  }
+                  final alterouPrecoInteira =
+                      (valor - valorInteiraOriginal).abs() > 0.001;
+                  final alterouModalidades =
+                      modalidadesSelecionadas.length !=
+                          modalidadesOriginais.length ||
+                      !modalidadesSelecionadas.containsAll(
+                        modalidadesOriginais,
+                      );
                   final existentes = {
                     for (final item in configuracao.precos)
                       item.modalidadeId: item,
@@ -1110,15 +1127,22 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                       )
                       .map((item) {
                         final existente = existentes[item.id];
-                        final valorPadrao = item.tipo == 'LEGAL'
-                            ? (valor ?? 0) / 2
-                            : (valor ?? 0);
+                        final codigo = item.codigo.toUpperCase();
+                        final valorPadrao = codigo == 'CORTESIA'
+                            ? 0.0
+                            : item.tipo == 'LEGAL'
+                            ? valor / 2
+                            : valor;
                         return EventoLotePreco(
                           id: existente?.id ?? 0,
                           modalidadeId: item.id,
                           nome: existente?.nome ?? item.nome,
                           tipo: item.codigo,
-                          valor: existente == null || valor != null
+                          valor: existente == null
+                              ? valorPadrao
+                              : codigo == 'INTEIRA' && alterouPrecoInteira
+                              ? valorPadrao
+                              : codigo.startsWith('MEIA') && alterouPrecoInteira
                               ? valorPadrao
                               : existente.valor,
                           limiteModalidade: existente?.limiteModalidade,
@@ -1133,7 +1157,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     loteId: configuracao.loteId,
                     limite: quantidade,
                     alterarLimite: true,
-                    precos: modalidades,
+                    precos: alterouPrecoInteira || alterouModalidades
+                        ? modalidades
+                        : null,
                   );
                   if (context.mounted) Navigator.pop(context, true);
                 } catch (erro) {
