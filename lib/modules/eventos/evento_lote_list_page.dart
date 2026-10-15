@@ -982,6 +982,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   }
 
   Future<void> _editarConfiguracao(EventoLote configuracao) async {
+    final setor = _setores
+        .where((item) => item.id == configuracao.eventoSetorId)
+        .firstOrNull;
+    final nomeSetor = TextEditingController(
+      text: setor?.nome ?? configuracao.nomeSetor ?? '',
+    );
     final limite = TextEditingController(
       text: (configuracao.qttotallote ?? configuracao.qtCapacidadeSetor ?? 0)
           .toString(),
@@ -999,6 +1005,15 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  TextField(
+                    controller: nomeSetor,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome do setor',
+                      helperText:
+                          'A alteração vale para este setor em todos os lotes do evento.',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: limite,
                     keyboardType: TextInputType.number,
@@ -1022,8 +1037,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             FilledButton(
               onPressed: () async {
                 final quantidade = int.tryParse(limite.text.trim());
-                if (quantidade == null || quantidade <= 0) {
-                  AppSnackBar.aviso(context, 'Informe uma quantidade válida.');
+                final nomeAtualizado = nomeSetor.text.trim();
+                if (nomeAtualizado.isEmpty ||
+                    quantidade == null ||
+                    quantidade <= 0) {
+                  AppSnackBar.aviso(
+                    context,
+                    'Informe o nome do setor e uma quantidade válida.',
+                  );
                   return;
                 }
                 if (configuracao.qtCapacidadeSetor != null &&
@@ -1040,6 +1061,14 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     limite: quantidade,
                     alterarLimite: true,
                   );
+                  if (setor != null && nomeAtualizado != setor.nome) {
+                    await _repo.atualizarSetor(
+                      setor: setor,
+                      nome: nomeAtualizado,
+                      capacidade: setor.capacidade,
+                      descricao: setor.descricao,
+                    );
+                  }
                   if (context.mounted) Navigator.pop(context, true);
                 } catch (erro) {
                   if (context.mounted)
@@ -1055,6 +1084,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         ),
       ),
     );
+    nomeSetor.dispose();
+    limite.dispose();
     if (salvou == true && mounted) _carregar();
   }
 
