@@ -191,6 +191,37 @@ class CardapioRepository {
     return '${_json(response)['urlfotoproduto']}';
   }
 
+  Future<List<Map<String, dynamic>>> buscarFotosPadronizadasPixabay(
+    int organizacaoId,
+    String busca,
+  ) async {
+    final response = await ApiService.get(
+      '/organizacoes/$organizacaoId/produtos/fotos-pixabay'
+      '?busca=${Uri.encodeQueryComponent(busca.trim())}',
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível buscar as fotos padronizadas.');
+    }
+    final dados = Map<String, dynamic>.from(_json(response) as Map);
+    return (dados['fotos'] as List? ?? const [])
+        .map((foto) => Map<String, dynamic>.from(foto as Map))
+        .toList();
+  }
+
+  Future<String> importarFotoPadronizadaPixabay(
+    int organizacaoId,
+    int fotoId,
+  ) async {
+    final response = await ApiService.post(
+      '/organizacoes/$organizacaoId/produtos/fotos-pixabay/$fotoId',
+      const {},
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível usar a foto escolhida.');
+    }
+    return '${_json(response)['urlfotoproduto']}';
+  }
+
   Future<Map<String, dynamic>> associar(int lojaId, int cardapioId) async {
     final response = await ApiService.post(
       '/lojas/$lojaId/cardapios/associar',
