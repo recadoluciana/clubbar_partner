@@ -2529,10 +2529,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     EventoLote configuracao,
     EventoLotePreco preco,
   ) {
-    final setor = configuracao.nomeSetor ?? 'Setor';
     if (preco.limiteModalidade != null) {
       final quantidade = preco.limiteModalidade!;
-      return 'Limite desta modalidade: $quantidade ingresso${quantidade == 1 ? '' : 's'}';
+      return 'Quantidade máxima nesta modalidade: $quantidade ingresso${quantidade == 1 ? '' : 's'}';
     }
     if (preco.aplicaCotaLegal) {
       final quantidade = configuracao.quantidadeCotaLegalLote;
@@ -2540,11 +2539,11 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       final percentualFormatado = percentual == percentual.roundToDouble()
           ? percentual.toInt().toString()
           : percentual.toStringAsFixed(1).replaceAll('.', ',');
-      return 'Cota legal: $quantidade ingresso${quantidade == 1 ? '' : 's'} ($percentualFormatado%)';
+      return 'Quantidade máxima nesta modalidade: $quantidade ingresso${quantidade == 1 ? '' : 's'} (cota legal de $percentualFormatado%)';
     }
     final quantidade =
         configuracao.qttotallote ?? configuracao.qtCapacidadeSetor ?? 0;
-    return 'Capacidade compartilhada: $quantidade ingresso${quantidade == 1 ? '' : 's'} no setor $setor';
+    return 'Quantidade máxima neste setor/modalidade: $quantidade ingresso${quantidade == 1 ? '' : 's'}';
   }
 
   Widget _setorNoLote(EventoLote configuracao) => Container(
