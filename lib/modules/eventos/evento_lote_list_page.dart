@@ -2250,7 +2250,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
       const SizedBox(height: 6),
       const Text(
-        'O primeiro lote começa quando o evento é publicado. O próximo preço entra automaticamente quando as quantidades do lote atual terminarem ou na data limite, o que ocorrer primeiro.',
+        'O primeiro lote abre quando o evento é publicado. O próximo preço entra automaticamente quando as quantidades do lote atual terminarem ou no fim das vendas, o que ocorrer primeiro.',
       ),
       const SizedBox(height: 14),
       if (_globais.isEmpty)
@@ -2441,17 +2441,15 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         const SizedBox(height: 14),
         _dataCard(
           Icons.schedule_rounded,
-          'Data limite deste preço',
-          lote.fimVendas == null || lote.fimVendas!.isEmpty
-              ? 'Sem data limite'
-              : _data(lote.fimVendas),
+          'Vendas',
+          _resumoVendas(lote),
           onEditar: _somenteConsulta
               ? null
               : () => _editarDataGlobal(lote, inicio: false),
         ),
         const SizedBox(height: 10),
         Text(
-          'Mudança de preço: ao atingir a quantidade deste lote, na data limite ou manualmente, o que ocorrer primeiro. A sobra permanece no mesmo setor para o próximo lote.',
+          'Mudança de preço: ao atingir a quantidade deste lote, no fim das vendas ou manualmente, o que ocorrer primeiro. A sobra permanece no mesmo setor para o próximo lote.',
         ),
         const SizedBox(height: 10),
         const Text(
@@ -2516,6 +2514,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ],
     ),
   );
+
+  String _resumoVendas(EventoLoteGlobal lote) {
+    final inicio = lote.inicioVendas == null || lote.inicioVendas!.isEmpty
+        ? 'a publicação do evento'
+        : _data(lote.inicioVendas);
+    final fim = lote.fimVendas == null || lote.fimVendas!.isEmpty
+        ? 'data ainda não definida'
+        : _data(lote.fimVendas);
+    return 'Começam em $inicio e terminam em $fim';
+  }
 
   String _capacidadeDaModalidade(
     EventoLote configuracao,
