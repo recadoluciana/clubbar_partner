@@ -27,6 +27,7 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
   final _repo = CardapioRepository();
   List<Map<String, dynamic>> _produtos = [];
   bool _carregando = true;
+  int? _produtoComSituacaoAlterando;
 
   @override
   void initState() {
@@ -105,14 +106,50 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
     }
   }
 
+  bool _produtoEstaAtivo(Map<String, dynamic> produto) =>
+      '${produto['sitproduto']}'.trim().toUpperCase() == 'ATIVO';
+
+  Future<void> _alterarSituacaoProduto(Map<String, dynamic> produto) async {
+    final produtoId = int.parse('${produto['produto_id']}');
+    final ativo = _produtoEstaAtivo(produto);
+    setState(() => _produtoComSituacaoAlterando = produtoId);
+    try {
+      await _repo
+          .alterarProdutoPadraoOrganizacao(widget.organizacaoId, produtoId, {
+            'nmproduto': '${produto['nmproduto'] ?? ''}'.trim(),
+            'dsproduto': '${produto['dsproduto'] ?? ''}'.trim().isEmpty
+                ? null
+                : '${produto['dsproduto']}'.trim(),
+            'sitproduto': ativo ? 'INATIVO' : 'ATIVO',
+            'skuproduto': produto['skuproduto'],
+            'urlfotoproduto': produto['urlfotoproduto'],
+          });
+      await _carregar();
+      if (mounted) {
+        AppSnackBar.sucesso(
+          context,
+          ativo ? 'Produto inativado.' : 'Produto ativado.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _produtoComSituacaoAlterando = null);
+    }
+  }
+
   Widget _cardProduto(Map<String, dynamic> produto) {
     final foto = '${produto['urlfotoproduto'] ?? ''}'.trim();
-    final ativo = '${produto['sitproduto']}' == 'ATIVO';
+    final ativo = _produtoEstaAtivo(produto);
+    final alterandoSituacao =
+        _produtoComSituacaoAlterando == int.parse('${produto['produto_id']}');
     final descricao = '${produto['dsproduto'] ?? ''}'.trim();
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -120,18 +157,18 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: 64,
-                  height: 64,
+                  width: 56,
+                  height: 56,
                   child: foto.isEmpty
                       ? DecoratedBox(
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(Icons.inventory_2_outlined),
                         )
                       : ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                           child: Image.network(
                             foto.startsWith('http')
                                 ? foto
@@ -142,7 +179,7 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
                           ),
                         ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,25 +218,35 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
                 ),
               ],
             ),
-            const Spacer(),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                Chip(
-                  avatar: Icon(
-                    ativo
-                        ? Icons.check_circle_outline
-                        : Icons.pause_circle_outline,
-                    size: 17,
-                  ),
-                  label: Text(ativo ? 'Ativo' : 'Inativo'),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: alterandoSituacao
+                    ? null
+                    : () => _alterarSituacaoProduto(produto),
+                icon: alterandoSituacao
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        ativo
+                            ? Icons.pause_circle_outline_rounded
+                            : Icons.play_circle_outline_rounded,
+                        size: 18,
+                      ),
+                label: Text(ativo ? 'Inativar' : 'Ativar'),
+                style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  backgroundColor: ativo
-                      ? Colors.green.shade50
-                      : Colors.grey.shade200,
+                  foregroundColor: ativo
+                      ? ClubbarColors.erro
+                      : ClubbarColors.sucesso,
+                  side: BorderSide(
+                    color: ativo ? ClubbarColors.erro : ClubbarColors.sucesso,
+                  ),
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -227,7 +274,7 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
             itemCount: _produtos.isEmpty ? 1 : _produtos.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: colunas,
-              mainAxisExtent: 185,
+              mainAxisExtent: 132,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
