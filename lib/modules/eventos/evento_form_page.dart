@@ -16,6 +16,7 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento.dart';
+import 'evento_modelo_atracoes_page.dart';
 
 class EventoFormPage extends StatefulWidget {
   final int organizacaoId;
@@ -29,7 +30,14 @@ class EventoFormPage extends StatefulWidget {
 
 class _EventoFormPageState extends State<EventoFormPage> {
   static const int _limiteTitulo = 120;
-  static const _nomesEtapas = ['Dados', 'Banner', 'Contato', 'Preço', 'Local'];
+  static const _nomesEtapas = [
+    'Dados',
+    'Banner',
+    'Contato',
+    'Preço',
+    'Local',
+    'Atrações',
+  ];
 
   final _repo = EventoRepository();
   final _localidadeRepository = LocalidadeRepository();
@@ -52,9 +60,11 @@ class _EventoFormPageState extends State<EventoFormPage> {
   String _tipoLocalSelecionado = 'ESTABELECIMENTO';
   String _nomeEmpresa = 'Empresa';
   int _etapa = 0;
+  int? _modeloCriadoId;
 
   bool get _editando => widget.evento != null;
   bool get _ultimaEtapa => _etapa == _nomesEtapas.length - 1;
+  int get _modeloId => widget.evento?.eventoId ?? _modeloCriadoId ?? 0;
 
   @override
   void initState() {
@@ -191,13 +201,18 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
   Future<void> _avancar({bool pularBanner = false}) async {
     if (!pularBanner && !_validarEtapa(_etapa)) return;
+    if (_etapa == _nomesEtapas.length - 2) {
+      if (await _salvarDados()) await _irParaEtapa(_etapa + 1);
+      return;
+    }
     await _irParaEtapa(_etapa + 1);
   }
 
   Future<void> _buscarCep() async {
     final cep = _cepController.text.replaceAll(RegExp(r'\D'), '');
-    if (cep.length != 8 || _consultandoCep || cep == _ultimoCepConsultado)
+    if (cep.length != 8 || _consultandoCep || cep == _ultimoCepConsultado) {
       return;
+    }
     setState(() => _consultandoCep = true);
     try {
       final endereco = await _localidadeRepository.buscarEnderecoPorCep(cep);
@@ -236,36 +251,38 @@ class _EventoFormPageState extends State<EventoFormPage> {
         _imagemBytes = bytes;
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, 'Não foi possível selecionar o banner.');
+      }
     }
   }
 
   String _montarUrlBannerAtual() {
     final caminho = (widget.evento?.urlbannerevento ?? '').trim();
     if (caminho.isEmpty) return '';
-    if (caminho.startsWith('http://') || caminho.startsWith('https://'))
+    if (caminho.startsWith('http://') || caminho.startsWith('https://')) {
       return caminho;
+    }
     return caminho.startsWith('/')
         ? '${ApiConfig.baseUrl}$caminho'
         : '${ApiConfig.baseUrl}/$caminho';
   }
 
-  Future<void> _salvar() async {
-    if (_salvando) return;
-    for (var etapa = 0; etapa < _nomesEtapas.length; etapa++) {
+  Future<bool> _salvarDados() async {
+    if (_salvando) return false;
+    for (var etapa = 0; etapa < _nomesEtapas.length - 1; etapa++) {
       if (!_validarEtapa(etapa)) {
         await _irParaEtapa(etapa);
-        return;
+        return false;
       }
     }
     _formatarPreco();
     setState(() => _salvando = true);
     try {
       final outroLocal = _tipoLocalSelecionado == 'OUTRO';
-      if (_editando) {
+      if (_editando || _modeloCriadoId != null) {
         await _repo.atualizar(
-          eventoId: widget.evento!.eventoId,
+          eventoId: _modeloId,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
           emailContatoEvento: _emailContatoController.text.trim(),
@@ -278,7 +295,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
           imagem: _imagemSelecionada,
         );
       } else {
-        await _repo.criar(
+        final modeloId = await _repo.criar(
           organizacaoId: widget.organizacaoId,
           produtoIdIngresso: 1,
           titulo: _tituloController.text.trim(),
@@ -292,20 +309,27 @@ class _EventoFormPageState extends State<EventoFormPage> {
           precoPadrao: _valorPreco(),
           imagem: _imagemSelecionada,
         );
+        _modeloCriadoId = modeloId;
       }
-      if (!mounted) return;
-      AppSnackBar.sucesso(
-        context,
-        _editando
-            ? 'Evento atualizado com sucesso.'
-            : 'Evento criado com sucesso.',
-      );
-      Navigator.pop(context, true);
+      if (!mounted) return false;
+      return true;
     } catch (erro) {
       if (mounted) AppSnackBar.erro(context, _mensagemErro(erro));
+      return false;
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
+  }
+
+  Future<void> _concluir() async {
+    if (_modeloId == 0) return;
+    AppSnackBar.sucesso(
+      context,
+      _editando
+          ? 'Evento atualizado com sucesso.'
+          : 'Evento criado com sucesso.',
+    );
+    Navigator.pop(context, true);
   }
 
   Widget _cardEtapa({
@@ -374,12 +398,13 @@ class _EventoFormPageState extends State<EventoFormPage> {
       ),
     );
     if (_imagemSelecionada != null) {
-      if (kIsWeb && _imagemBytes != null)
+      if (kIsWeb && _imagemBytes != null) {
         return Image.memory(
           _imagemBytes!,
           fit: BoxFit.contain,
           width: double.infinity,
         );
+      }
       return Image.file(
         _imagemSelecionada!.path.isEmpty
             ? File('')
@@ -390,13 +415,14 @@ class _EventoFormPageState extends State<EventoFormPage> {
       );
     }
     final bannerAtual = _montarUrlBannerAtual();
-    if (bannerAtual.isNotEmpty)
+    if (bannerAtual.isNotEmpty) {
       return Image.network(
         bannerAtual,
         fit: BoxFit.contain,
         width: double.infinity,
         errorBuilder: (_, _, _) => placeholder(),
       );
+    }
     return placeholder();
   }
 
@@ -502,11 +528,12 @@ class _EventoFormPageState extends State<EventoFormPage> {
         DecimalInputFormatter(casasDecimais: 2, usarSeparadorMilhar: true),
       ],
       onTap: () {
-        if (_valorPreco() == 0)
+        if (_valorPreco() == 0) {
           _precoController.selection = TextSelection(
             baseOffset: 0,
             extentOffset: _precoController.text.length,
           );
+        }
       },
       onEditingComplete: _formatarPreco,
       onTapOutside: (_) => _formatarPreco(),
@@ -570,12 +597,15 @@ class _EventoFormPageState extends State<EventoFormPage> {
               final formatado = limitado.length > 5
                   ? '${limitado.substring(0, 5)}-${limitado.substring(5)}'
                   : limitado;
-              if (formatado != valor)
+              if (formatado != valor) {
                 _cepController.value = TextEditingValue(
                   text: formatado,
                   selection: TextSelection.collapsed(offset: formatado.length),
                 );
-              if (limitado != _ultimoCepConsultado) _ultimoCepConsultado = null;
+              }
+              if (limitado != _ultimoCepConsultado) {
+                _ultimoCepConsultado = null;
+              }
               if (limitado.length == 8) _buscarCep();
             },
             onSubmitted: (_) => _buscarCep(),
@@ -604,6 +634,55 @@ class _EventoFormPageState extends State<EventoFormPage> {
             ),
           ),
         ],
+      ],
+    ),
+  );
+
+  Future<void> _gerenciarAtracoes() async {
+    if (_modeloId == 0) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EventoModeloAtracoesPage(
+          modeloId: _modeloId,
+          titulo: _tituloController.text.trim(),
+        ),
+      ),
+    );
+  }
+
+  Widget _passoAtracoes() => _cardEtapa(
+    titulo: 'Atrações do evento',
+    descricao:
+        'Defina as atrações que serão copiadas quando este evento for agendado. Esta etapa é opcional.',
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: ClubbarColors.sucessoClaro,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.music_note_rounded, color: ClubbarColors.sucesso),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Você pode adicionar, ordenar ou remover atrações antes de concluir.',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: _salvando ? null : _gerenciarAtracoes,
+          icon: const Icon(Icons.queue_music_rounded),
+          label: const Text('Gerenciar atrações'),
+        ),
       ],
     ),
   );
@@ -663,7 +742,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
           ],
           const Spacer(),
           ElevatedButton.icon(
-            onPressed: _salvando ? null : (_ultimaEtapa ? _salvar : _avancar),
+            onPressed: _salvando ? null : (_ultimaEtapa ? _concluir : _avancar),
             icon: _salvando
                 ? const SizedBox(
                     width: 18,
@@ -682,8 +761,10 @@ class _EventoFormPageState extends State<EventoFormPage> {
               _salvando
                   ? 'Salvando...'
                   : (_ultimaEtapa
-                        ? (_editando ? 'Salvar' : 'Cadastrar')
-                        : 'Próximo'),
+                        ? 'Concluir'
+                        : (_etapa == _nomesEtapas.length - 2
+                              ? 'Salvar e avançar'
+                              : 'Próximo')),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: ClubbarColors.ambar,
@@ -726,6 +807,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
                         _passoContato(),
                         _passoPreco(),
                         _passoLocal(),
+                        _passoAtracoes(),
                       ]
                       .map(
                         (passo) => ListView(

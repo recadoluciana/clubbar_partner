@@ -11,12 +11,10 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
-import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento.dart';
 import '../../models/loja.dart';
 import 'evento_form_page.dart';
-import 'evento_modelo_atracoes_page.dart';
 
 class EventoListPage extends StatefulWidget {
   final int organizacaoId;
@@ -43,12 +41,16 @@ class _EventoListPageState extends State<EventoListPage> {
 
   bool _carregando = true;
   bool _excluindo = false;
+  int? _alterandoStatusEventoId;
+  int? _eventoSelecionadoId;
   String? _erro;
 
   List<Evento> _eventos = [];
   List<Evento> _eventosFiltrados = [];
   List<Loja> _lojas = [];
   int? _lojaIdSelecionada;
+
+  bool get _modoSelecaoAgenda => widget.dataInicialAgendamento != null;
 
   @override
   void initState() {
@@ -216,10 +218,7 @@ class _EventoListPageState extends State<EventoListPage> {
     if (resultado == true) await _carregarEventos();
   }
 
-  // O agendamento é iniciado exclusivamente pela Agenda. Mantemos o fluxo
-  // preparado aqui para uma futura navegação direta a partir da agenda.
-  // ignore: unused_element
-  Future<void> _agendarEvento(Evento evento) async {
+  Future<bool> _agendarEvento(Evento evento) async {
     int? lojaId = widget.fixarLoja
         ? _lojaIdSelecionada
         : _lojas.firstOrNull?.lojaId;
@@ -229,20 +228,21 @@ class _EventoListPageState extends State<EventoListPage> {
     final dataSugerida = sugestao != null && !sugestao.isBefore(hojeSemHora)
         ? DateTime(sugestao.year, sugestao.month, sugestao.day)
         : hojeSemHora;
-    final data = await showDatePicker(
-      context: context,
-      initialDate: dataSugerida,
-      firstDate: hojeSemHora,
-      lastDate: DateTime(hoje.year + 5),
-      calendarDelegate: const ClubbarCalendarDelegate(),
-    );
-    if (data == null || !mounted) return;
+    final data = _modoSelecaoAgenda
+        ? dataSugerida
+        : await showDatePicker(
+            context: context,
+            initialDate: dataSugerida,
+            firstDate: hojeSemHora,
+            lastDate: DateTime(hoje.year + 5),
+          );
+    if (data == null || !mounted) return false;
     final hora = await showTimePicker(
       context: context,
       initialTime: const TimeOfDay(hour: 20, minute: 0),
       helpText: 'Horário de início',
     );
-    if (hora == null || !mounted) return;
+    if (hora == null || !mounted) return false;
     final inicio = DateTime(
       data.year,
       data.month,
@@ -256,7 +256,7 @@ class _EventoListPageState extends State<EventoListPage> {
       initialTime: TimeOfDay.fromDateTime(fimSugerido),
       helpText: 'Horário de término',
     );
-    if (horaFim == null || !mounted) return;
+    if (horaFim == null || !mounted) return false;
     var fim = DateTime(
       data.year,
       data.month,
@@ -477,7 +477,7 @@ class _EventoListPageState extends State<EventoListPage> {
         ),
       ),
     );
-    if (confirmar != true) return;
+    if (confirmar != true) return false;
     if (lojaId == null) {
       capacidadeController.dispose();
       setorController.dispose();
@@ -490,7 +490,7 @@ class _EventoListPageState extends State<EventoListPage> {
           'Selecione o estabelecimento da ocorrência.',
         );
       }
-      return;
+      return false;
     }
     final capacidade = int.tryParse(capacidadeController.text.trim()) ?? 0;
     final nomeSetor = setorController.text.trim();
@@ -507,15 +507,15 @@ class _EventoListPageState extends State<EventoListPage> {
       if (mounted) {
         AppSnackBar.aviso(context, 'Informe a capacidade desta sessão.');
       }
-      return;
+      return false;
     }
     if (nomeSetor.isEmpty) {
       if (mounted) AppSnackBar.aviso(context, 'Informe o primeiro setor.');
-      return;
+      return false;
     }
     if (preco < 0) {
       if (mounted) AppSnackBar.aviso(context, 'Informe um preço válido.');
-      return;
+      return false;
     }
     try {
       await _repository.agendar(
@@ -539,8 +539,10 @@ class _EventoListPageState extends State<EventoListPage> {
               : '$repeticoes datas criadas na agenda.',
         );
       }
+      return true;
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, _extrairMensagemErro(e));
+      return false;
     }
   }
 
@@ -632,6 +634,49 @@ class _EventoListPageState extends State<EventoListPage> {
     } finally {
       if (mounted) setState(() => _excluindo = false);
     }
+  }
+
+  bool _eventoAtivo(Evento evento) {
+    final status = (evento.statusevento ?? 'ATIVO').trim().toUpperCase();
+    return status == 'ATIVO' || status == 'ATIVA';
+  }
+
+  Future<void> _alterarStatusEvento(Evento evento) async {
+    if (_alterandoStatusEventoId != null) return;
+    final ativo = _eventoAtivo(evento);
+    setState(() => _alterandoStatusEventoId = evento.eventoId);
+    try {
+      await _repository.atualizar(
+        eventoId: evento.eventoId,
+        status: ativo ? 'INATIVO' : 'ATIVO',
+      );
+      if (!mounted) return;
+      AppSnackBar.sucesso(
+        context,
+        ativo ? 'Evento inativado com sucesso.' : 'Evento ativado com sucesso.',
+      );
+      await _carregarEventos();
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackBar.erro(context, _extrairMensagemErro(e));
+    } finally {
+      if (mounted) setState(() => _alterandoStatusEventoId = null);
+    }
+  }
+
+  Future<void> _confirmarSelecaoEvento() async {
+    final id = _eventoSelecionadoId;
+    if (id == null) return;
+    final evento = _eventos.firstWhere((item) => item.eventoId == id);
+    if (!_eventoAtivo(evento)) {
+      AppSnackBar.aviso(
+        context,
+        'Ative o evento antes de adicioná-lo à agenda.',
+      );
+      return;
+    }
+    final agendado = await _agendarEvento(evento);
+    if (agendado && mounted) Navigator.pop(context, true);
   }
 
   Widget _campoBusca() {
@@ -737,8 +782,7 @@ class _EventoListPageState extends State<EventoListPage> {
   }
 
   Widget _chipStatus(Evento evento) {
-    final status = (evento.statusevento ?? 'ATIVO').trim().toUpperCase();
-    final ativo = status == 'ATIVO' || status == 'ATIVA';
+    final ativo = _eventoAtivo(evento);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -762,109 +806,170 @@ class _EventoListPageState extends State<EventoListPage> {
       locale: 'pt_BR',
       symbol: 'R\$',
     ).format(evento.vrPrecoPadrao);
+    final ativo = _eventoAtivo(evento);
+    final alterandoStatus = _alterandoStatusEventoId == evento.eventoId;
+    final selecionado = _eventoSelecionadoId == evento.eventoId;
+
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 1,
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: !_modoSelecaoAgenda
+            ? null
+            : () {
+                if (!ativo) {
+                  AppSnackBar.aviso(
+                    context,
+                    'Ative o evento antes de adicioná-lo à agenda.',
+                  );
+                  return;
+                }
+                setState(() => _eventoSelecionadoId = evento.eventoId);
+              },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 76,
-                  height: 76,
-                  child: _bannerEvento(evento),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      evento.nmtituloevento,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 76,
+                      height: 76,
+                      child: _bannerEvento(evento),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _chipStatus(evento),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Preço padrão: $preco',
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: ClubbarColors.textoSecundario,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        Text(
+                          evento.nmtituloevento,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _chipStatus(evento),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Preço padrão: $preco',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: ClubbarColors.textoSecundario,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                tooltip: 'Ações do evento',
-                onSelected: (acao) {
-                  switch (acao) {
-                    case 'atracoes':
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => EventoModeloAtracoesPage(
-                            modeloId: evento.eventoId,
-                            titulo: evento.nmtituloevento,
+                  ),
+                  if (_modoSelecaoAgenda)
+                    IconButton(
+                      tooltip: ativo ? 'Selecionar evento' : 'Evento inativo',
+                      onPressed: ativo
+                          ? () => setState(
+                              () => _eventoSelecionadoId = evento.eventoId,
+                            )
+                          : null,
+                      icon: Icon(
+                        selecionado
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        color: selecionado
+                            ? ClubbarColors.primaria
+                            : ClubbarColors.textoSecundario,
+                      ),
+                    )
+                  else
+                    PopupMenuButton<String>(
+                      tooltip: 'Ações do evento',
+                      onSelected: (acao) {
+                        switch (acao) {
+                          case 'editar':
+                            _abrirEdicao(evento);
+                          case 'excluir':
+                            _excluirEvento(evento);
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'editar',
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.edit_rounded,
+                              color: Colors.blue,
+                            ),
+                            title: Text('Editar evento'),
                           ),
                         ),
-                      );
-                    case 'editar':
-                      _abrirEdicao(evento);
-                    case 'excluir':
-                      _excluirEvento(evento);
-                  }
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(
-                    value: 'atracoes',
-                    child: ListTile(
-                      leading: Icon(Icons.music_note_rounded),
-                      title: Text('Gerenciar atrações'),
+                        PopupMenuItem(
+                          value: 'excluir',
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.delete_outline_rounded,
+                              color: ClubbarColors.erro,
+                            ),
+                            title: Text('Excluir evento'),
+                          ),
+                        ),
+                      ],
+                      icon: const Icon(Icons.more_vert_rounded),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'editar',
-                    child: ListTile(
-                      leading: Icon(Icons.edit_rounded, color: Colors.blue),
-                      title: Text('Editar evento'),
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'excluir',
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.delete_outline_rounded,
-                        color: ClubbarColors.erro,
-                      ),
-                      title: Text('Excluir evento'),
-                    ),
-                  ),
                 ],
-                icon: const Icon(Icons.more_vert_rounded),
               ),
+              if (!_modoSelecaoAgenda) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: alterandoStatus
+                        ? null
+                        : () => _alterarStatusEvento(evento),
+                    icon: alterandoStatus
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            ativo
+                                ? Icons.pause_circle_outline_rounded
+                                : Icons.play_circle_outline_rounded,
+                            size: 18,
+                          ),
+                    label: Text(ativo ? 'Inativar' : 'Ativar'),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: ativo
+                          ? ClubbarColors.erro
+                          : ClubbarColors.sucesso,
+                      side: BorderSide(
+                        color: ativo
+                            ? ClubbarColors.erro
+                            : ClubbarColors.sucesso,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1000,19 +1105,31 @@ class _EventoListPageState extends State<EventoListPage> {
       backgroundColor: ClubbarColors.fundo,
       appBar: const ClubbarAppBar(mostrarVoltar: true),
       bottomNavigationBar: ClubbarActionBar(
-        actions: [
-          ClubbarAddButton(
-            onPressed: _abrirNovoEvento,
-            label: 'Adicionar evento padrão',
-          ),
-        ],
+        actions: _modoSelecaoAgenda
+            ? [
+                ClubbarAddButton(
+                  onPressed: _eventoSelecionadoId == null
+                      ? null
+                      : _confirmarSelecaoEvento,
+                  label: 'Selecionar evento',
+                  icon: Icons.check_rounded,
+                ),
+              ]
+            : [
+                ClubbarAddButton(
+                  onPressed: _abrirNovoEvento,
+                  label: 'Adicionar evento padrão',
+                ),
+              ],
       ),
       body: SafeArea(
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Eventos',
-              subtitulo: _carregando
+              titulo: _modoSelecaoAgenda ? 'Selecionar evento' : 'Eventos',
+              subtitulo: _modoSelecaoAgenda
+                  ? 'Escolha um evento para ${DateFormat('dd/MM/yyyy').format(widget.dataInicialAgendamento!)}'
+                  : _carregando
                   ? 'Carregando eventos padrão...'
                   : '${widget.fixarLoja && nomeLoja.isNotEmpty ? '$nomeLoja • ' : ''}${_eventos.length} '
                         '${_eventos.length == 1 ? 'evento' : 'eventos'}',

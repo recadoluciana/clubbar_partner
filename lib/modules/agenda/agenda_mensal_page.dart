@@ -743,9 +743,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                   eventos = _doDia(data),
                   passado = _diaPassado(data);
               return InkWell(
-                onTap: eventos.isEmpty && !passado
-                    ? () => _criarEventoNoDia(data)
-                    : null,
+                onTap: !passado ? () => _criarEventoNoDia(data) : null,
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   padding: const EdgeInsets.all(5),
@@ -777,8 +775,9 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                           .map(
                             (e) => Expanded(
                               child: InkWell(
-                                onTap: () =>
-                                    _abrirEvento(e, somenteConsulta: passado),
+                                onTap: () => passado
+                                    ? _abrirEvento(e, somenteConsulta: true)
+                                    : _criarEventoNoDia(data),
                                 child: Container(
                                   width: double.infinity,
                                   margin: const EdgeInsets.only(bottom: 3),
