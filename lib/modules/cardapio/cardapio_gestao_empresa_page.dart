@@ -450,16 +450,6 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
                           _cardLoja(loja),
                           const SizedBox(height: 8),
                         ],
-                        const SizedBox(height: 14),
-                        OutlinedButton.icon(
-                          onPressed: _excluir,
-                          icon: const Icon(Icons.delete_outline_rounded),
-                          label: const Text('Excluir cardápio'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red.shade700,
-                            side: BorderSide(color: Colors.red.shade700),
-                          ),
-                        ),
                         const SizedBox(height: 26),
                       ],
                     ),
@@ -507,13 +497,27 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
               ],
             ),
           ),
-          Chip(
-            avatar: Icon(
-              _publicado ? Icons.check_circle : Icons.visibility_off_outlined,
-              size: 18,
-              color: _publicado ? Colors.green.shade700 : null,
-            ),
-            label: Text(_publicado ? 'Publicado' : 'Não publicado'),
+          Wrap(
+            spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Chip(
+                avatar: Icon(
+                  _publicado
+                      ? Icons.check_circle
+                      : Icons.visibility_off_outlined,
+                  size: 18,
+                  color: _publicado ? Colors.green.shade700 : null,
+                ),
+                label: Text(_publicado ? 'Publicado' : 'Não publicado'),
+              ),
+              IconButton(
+                tooltip: 'Excluir cardápio',
+                onPressed: _excluir,
+                color: Colors.red.shade700,
+                icon: const Icon(Icons.delete_outline_rounded),
+              ),
+            ],
           ),
         ],
       ),
@@ -542,13 +546,13 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
     children: [
       FilledButton.icon(
         onPressed: _editarConteudo,
-        icon: const Icon(Icons.restaurant_menu_outlined),
-        label: const Text('Editar produtos'),
+        icon: const Icon(Icons.menu_book_rounded),
+        label: const Text('Montar cardápio'),
       ),
-      OutlinedButton.icon(
+      IconButton.outlined(
         onPressed: _renomear,
         icon: const Icon(Icons.edit_outlined),
-        label: const Text('Editar nome'),
+        tooltip: 'Editar nome do cardápio',
       ),
       FilledButton.icon(
         onPressed: _rascunho == null ? null : _publicar,
