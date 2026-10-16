@@ -294,16 +294,56 @@ class _DashboardPageState extends State<DashboardPage> {
     return _cargo;
   }
 
-  String _subtitulo() {
+  Widget _subtituloUsuario() {
     final dataHora = DateFormat('dd/MM/yyyy HH:mm:ss', 'pt_BR').format(_agora);
-    return '$_nomeUsuario • ${_nomeCargo()} • $dataHora';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _nomeUsuario,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 14,
+            color: ClubbarColors.textoSecundario,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _nomeCargo(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: ClubbarColors.textoSecundario,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              dataHora,
+              style: const TextStyle(
+                fontSize: 12,
+                color: ClubbarColors.textoSecundario,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Color _corDoAtalho(String titulo) {
     // Tons progressivos, todos com a mesma intensidade visual. O fundo do
     // ícone é derivado da própria cor para manter a tela leve e legível.
     const cores = <String, Color>{
-      'Minha empresa': Color(0xFF1565C0),
+      'Empresa': Color(0xFF1565C0),
       'Estilos musicais': Color(0xFF3949AB),
       'Atrações': Color(0xFF7B1FA2),
       'Categoria de produto': Color(0xFFAD1457),
@@ -401,7 +441,8 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             ClubbarPageHeader(
               titulo: _nomeOrganizacao,
-              subtitulo: _subtitulo(),
+              subtitulo: '',
+              subtituloWidget: _subtituloUsuario(),
               tituloStyle: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w900,
@@ -421,7 +462,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       padding: const EdgeInsets.all(16),
                       children: [
                         _opcao(
-                          titulo: 'Minha empresa',
+                          titulo: 'Empresa',
                           subtitulo: _podeEditarOrganizacao
                               ? 'Atualize os dados cadastrais da empresa.'
                               : 'Disponível somente para o super administrador.',
@@ -429,6 +470,15 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: _podeEditarOrganizacao
                               ? _abrirOrganizacao
                               : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Estabelecimentos',
+                          subtitulo: _cargo == 'MANAGER'
+                              ? 'Consulte e edite os dados do seu estabelecimento.'
+                              : 'Cadastre e administre os estabelecimentos da empresa.',
+                          icone: Icons.storefront_rounded,
+                          onTap: _abrirLojas,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
@@ -465,15 +515,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                   ),
                                 ),
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Estabelecimentos',
-                          subtitulo: _cargo == 'MANAGER'
-                              ? 'Consulte e edite os dados do seu estabelecimento.'
-                              : 'Cadastre e administre os estabelecimentos da empresa.',
-                          icone: Icons.storefront_rounded,
-                          onTap: _abrirLojas,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
