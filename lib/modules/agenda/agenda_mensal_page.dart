@@ -664,13 +664,6 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
             ),
             padding: const EdgeInsets.fromLTRB(18, 9, 12, 10),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: Text(
-              'A publicação é feita dentro de cada evento, após a revisão dos detalhes.',
-              style: TextStyle(color: ClubbarColors.textoSecundario),
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.all(10),
             child: Row(
