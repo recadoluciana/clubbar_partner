@@ -59,14 +59,23 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
       : '${minutos ~/ 60}h${minutos % 60 == 0 ? '' : ' ${minutos % 60}min'}';
 
   Future<void> _editar([EventoModeloAtracao? atual]) async {
-    if (_catalogo.isEmpty) {
+    final atracoesJaSelecionadas = _itens
+        .where((item) => item.id != atual?.id)
+        .map((item) => item.atracaoId)
+        .toSet();
+    final opcoes = _catalogo
+        .where((atracao) => !atracoesJaSelecionadas.contains(atracao.atracaoId))
+        .toList(growable: false);
+    if (opcoes.isEmpty) {
       AppSnackBar.aviso(
         context,
-        'Nenhuma atração cadastrada para esta organização.',
+        atual == null
+            ? 'Todas as atrações cadastradas já foram incluídas neste evento.'
+            : 'Nenhuma atração disponível para esta edição.',
       );
       return;
     }
-    int atracaoId = atual?.atracaoId ?? _catalogo.first.atracaoId;
+    int atracaoId = atual?.atracaoId ?? opcoes.first.atracaoId;
     final ordem = TextEditingController(
       text: '${atual?.ordem ?? (_itens.length + 1)}',
     );
@@ -95,7 +104,7 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
                       labelText: 'Atração',
                       border: OutlineInputBorder(),
                     ),
-                    items: _catalogo
+                    items: opcoes
                         .map(
                           (a) => DropdownMenuItem(
                             value: a.atracaoId,
@@ -145,6 +154,10 @@ class _EventoModeloAtracoesPageState extends State<EventoModeloAtracoesPage> {
     final o = int.tryParse(ordem.text), d = int.tryParse(duracao.text);
     if (o == null || o < 1 || d == null || d < 1) {
       AppSnackBar.aviso(context, 'Confira a ordem e a duração informadas.');
+      return;
+    }
+    if (atracoesJaSelecionadas.contains(atracaoId)) {
+      AppSnackBar.aviso(context, 'Esta atração já foi adicionada ao evento.');
       return;
     }
     try {
