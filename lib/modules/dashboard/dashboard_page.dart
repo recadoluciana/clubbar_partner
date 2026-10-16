@@ -501,6 +501,15 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: _abrirLojas,
                         ),
                         const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Usuários e permissões',
+                          subtitulo: _cargo == 'MANAGER'
+                              ? 'Administre os usuários vinculados ao seu estabelecimento.'
+                              : 'Liste, inclua, altere e exclua acessos.',
+                          icone: Icons.manage_accounts_rounded,
+                          onTap: _abrirUsuarios,
+                        ),
+                        const SizedBox(height: 14),
                         _tituloBloco(
                           'Atrações e estilos',
                           Icons.music_note_rounded,
@@ -625,7 +634,21 @@ class _DashboardPageState extends State<DashboardPage> {
                               : null,
                         ),
                         const SizedBox(height: 14),
-                        _tituloBloco('Gestão e operação', Icons.tune_rounded),
+                        _tituloBloco('Delivery', Icons.delivery_dining_rounded),
+                        _opcao(
+                          titulo: 'Pedidos para entrega',
+                          subtitulo:
+                              'Aceite pedidos, acompanhe o despacho e a confirmação pelo QR Code.',
+                          icone: Icons.delivery_dining_rounded,
+                          onTap: _podeVerGerencial
+                              ? _abrirPedidosEntrega
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _tituloBloco(
+                          'Causas sociais',
+                          Icons.volunteer_activism_rounded,
+                        ),
                         _opcao(
                           titulo: 'Para quem doar?',
                           subtitulo:
@@ -636,15 +659,19 @@ class _DashboardPageState extends State<DashboardPage> {
                               : null,
                         ),
                         const SizedBox(height: 14),
+                        _tituloBloco('Gestão e operação', Icons.tune_rounded),
                         _opcao(
-                          titulo: 'Usuários e permissões',
-                          subtitulo: _cargo == 'MANAGER'
-                              ? 'Administre os usuários vinculados ao seu estabelecimento.'
-                              : 'Liste, inclua, altere e exclua acessos.',
-                          icone: Icons.manage_accounts_rounded,
-                          onTap: _abrirUsuarios,
+                          titulo: 'Auditoria',
+                          subtitulo: _podeGerenciarAtracoes
+                              ? 'Consulte alterações realizadas pelos usuários da empresa.'
+                              : 'Disponível para administradores da empresa.',
+                          icone: Icons.fact_check_outlined,
+                          onTap: _podeGerenciarAtracoes
+                              ? _abrirAuditoria
+                              : null,
                         ),
                         const SizedBox(height: 14),
+                        _tituloBloco('Gerencial', Icons.analytics_rounded),
                         _opcao(
                           titulo: 'Painel Gerencial',
                           subtitulo:
@@ -660,27 +687,6 @@ class _DashboardPageState extends State<DashboardPage> {
                           icone: Icons.monitor_heart_rounded,
                           onTap: _podeVerGerencial
                               ? _abrirAcompanhamentoVendas
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Pedidos para entrega',
-                          subtitulo:
-                              'Aceite pedidos, acompanhe o despacho e a confirmação pelo QR Code.',
-                          icone: Icons.delivery_dining_rounded,
-                          onTap: _podeVerGerencial
-                              ? _abrirPedidosEntrega
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Auditoria',
-                          subtitulo: _podeGerenciarAtracoes
-                              ? 'Consulte alterações realizadas pelos usuários da empresa.'
-                              : 'Disponível para administradores da empresa.',
-                          icone: Icons.fact_check_outlined,
-                          onTap: _podeGerenciarAtracoes
-                              ? _abrirAuditoria
                               : null,
                         ),
                       ],
