@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/evento_repository.dart';
-import '../../core/repositories/catalogo_ingresso_partner_repository.dart';
 import '../../core/repositories/localidade_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
@@ -17,7 +16,6 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento.dart';
-import '../../models/evento_lote.dart';
 
 class EventoFormPage extends StatefulWidget {
   final int organizacaoId;
@@ -31,13 +29,12 @@ class EventoFormPage extends StatefulWidget {
 
 class _EventoFormPageState extends State<EventoFormPage> {
   static const int _limiteTitulo = 120;
+  static const _nomesEtapas = ['Dados', 'Banner', 'Contato', 'Preço', 'Local'];
 
-  final _formKey = GlobalKey<FormState>();
   final _repo = EventoRepository();
-  final _catalogoRepo = CatalogoIngressoPartnerRepository();
   final _localidadeRepository = LocalidadeRepository();
   final _picker = ImagePicker();
-
+  final _pageController = PageController();
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _emailContatoController = TextEditingController();
@@ -49,74 +46,38 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
   XFile? _imagemSelecionada;
   Uint8List? _imagemBytes;
-
   bool _salvando = false;
   bool _consultandoCep = false;
   String? _ultimoCepConsultado;
-  String _statusSelecionado = 'ATIVO';
   String _tipoLocalSelecionado = 'ESTABELECIMENTO';
   String _nomeEmpresa = 'Empresa';
-  bool _carregandoModalidades = true;
-  List<ModalidadeIngressoCatalogo> _modalidades = [];
-  final Map<int, Set<int>> _beneficiosPorModalidade = {};
+  int _etapa = 0;
 
-  bool get editando => widget.evento != null;
+  bool get _editando => widget.evento != null;
+  bool get _ultimaEtapa => _etapa == _nomesEtapas.length - 1;
 
   @override
   void initState() {
     super.initState();
     _carregarNomeEmpresa();
-    _carregarModalidades();
-
     final evento = widget.evento;
-    if (evento != null) {
-      _tituloController.text = evento.nmtituloevento;
-      _descricaoController.text = evento.dsdescevento ?? '';
-      _emailContatoController.text = evento.emailContatoEvento ?? '';
-      _whatsappContatoController.text = evento.whatsappEvento ?? '';
-      _tipoLocalSelecionado = evento.tipoLocalEvento;
-      _cepController.text = evento.nrCepLocalEvento ?? '';
-      _localController.text = evento.nmlocalevento ?? '';
-      _enderecoController.text = evento.dsendlocevento ?? '';
-      _statusSelecionado = evento.statusevento ?? 'ATIVO';
-      _precoController.text = evento.vrPrecoPadrao
-          .toStringAsFixed(2)
-          .replaceAll('.', ',');
-    }
-  }
-
-  Future<void> _carregarModalidades() async {
-    try {
-      final modalidades = await _catalogoRepo.listarModalidades();
-      if (editando) {
-        final configuradas = await _repo.listarModalidadesPadrao(
-          widget.evento!.eventoId,
-        );
-        for (final item in configuradas) {
-          final id = (item['modalidade_id'] as num?)?.toInt();
-          if (id != null) {
-            _beneficiosPorModalidade[id] =
-                (item['beneficios_ids'] as List? ?? const [])
-                    .map((e) => (e as num).toInt())
-                    .toSet();
-          }
-        }
-      }
-      if (mounted) setState(() => _modalidades = modalidades);
-    } catch (e) {
-      if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
-    } finally {
-      if (mounted) setState(() => _carregandoModalidades = false);
-    }
-  }
-
-  Future<void> _carregarNomeEmpresa() async {
-    final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
-    if (mounted && nome.isNotEmpty) setState(() => _nomeEmpresa = nome);
+    if (evento == null) return;
+    _tituloController.text = evento.nmtituloevento;
+    _descricaoController.text = evento.dsdescevento ?? '';
+    _emailContatoController.text = evento.emailContatoEvento ?? '';
+    _whatsappContatoController.text = evento.whatsappEvento ?? '';
+    _tipoLocalSelecionado = evento.tipoLocalEvento;
+    _cepController.text = evento.nrCepLocalEvento ?? '';
+    _localController.text = evento.nmlocalevento ?? '';
+    _enderecoController.text = evento.dsendlocevento ?? '';
+    _precoController.text = evento.vrPrecoPadrao
+        .toStringAsFixed(2)
+        .replaceAll('.', ',');
   }
 
   @override
   void dispose() {
+    _pageController.dispose();
     _tituloController.dispose();
     _descricaoController.dispose();
     _emailContatoController.dispose();
@@ -128,16 +89,115 @@ class _EventoFormPageState extends State<EventoFormPage> {
     super.dispose();
   }
 
+  Future<void> _carregarNomeEmpresa() async {
+    final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
+    if (mounted && nome.isNotEmpty) setState(() => _nomeEmpresa = nome);
+  }
+
   String _mensagemErro(Object erro) {
     final texto = erro.toString().replaceFirst('Exception: ', '').trim();
     return texto.isEmpty ? 'Ocorreu um erro inesperado.' : texto;
   }
 
+  InputDecoration _decoracaoCampo({
+    required String label,
+    required IconData icone,
+    String? hint,
+    String? prefixText,
+    Widget? suffixIcon,
+  }) => InputDecoration(
+    labelText: label,
+    hintText: hint,
+    prefixText: prefixText,
+    prefixIcon: Icon(icone, color: ClubbarColors.textoSecundario),
+    suffixIcon: suffixIcon,
+    filled: true,
+    fillColor: ClubbarColors.branco,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: ClubbarColors.borda),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: ClubbarColors.borda),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
+    ),
+  );
+
+  double _valorPreco() =>
+      double.tryParse(
+        _precoController.text.replaceAll('.', '').replaceAll(',', '.'),
+      ) ??
+      0;
+
+  void _formatarPreco() {
+    final texto = _valorPreco().toStringAsFixed(2).replaceAll('.', ',');
+    _precoController.value = TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
+    );
+  }
+
+  bool _validarEtapa(int etapa) {
+    final titulo = _tituloController.text.trim();
+    final email = _emailContatoController.text.trim();
+    final whatsapp = _whatsappContatoController.text.trim();
+    String? mensagem;
+    switch (etapa) {
+      case 0:
+        if (titulo.isEmpty) {
+          mensagem = 'Informe o nome do evento para continuar.';
+        } else if (titulo.length > _limiteTitulo) {
+          mensagem =
+              'O nome do evento deve ter no máximo $_limiteTitulo caracteres.';
+        }
+      case 2:
+        if (email.isNotEmpty && !email.contains('@')) {
+          mensagem = 'Informe um e-mail válido.';
+        } else if (email.isEmpty && whatsapp.isEmpty) {
+          mensagem = 'Informe um e-mail ou WhatsApp para contato.';
+        }
+      case 3:
+        if (_valorPreco() < 0) mensagem = 'Informe um preço padrão válido.';
+      case 4:
+        if (_tipoLocalSelecionado == 'OUTRO') {
+          final cep = _cepController.text.replaceAll(RegExp(r'\D'), '');
+          if (_localController.text.trim().isEmpty) {
+            mensagem = 'Informe o nome do local.';
+          } else if (cep.length != 8) {
+            mensagem = 'Informe um CEP válido.';
+          } else if (_enderecoController.text.trim().isEmpty) {
+            mensagem = 'Informe o endereço do local.';
+          }
+        }
+    }
+    if (mensagem == null) return true;
+    AppSnackBar.aviso(context, mensagem);
+    return false;
+  }
+
+  Future<void> _irParaEtapa(int etapa) async {
+    FocusScope.of(context).unfocus();
+    await _pageController.animateToPage(
+      etapa,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _avancar({bool pularBanner = false}) async {
+    if (!pularBanner && !_validarEtapa(_etapa)) return;
+    await _irParaEtapa(_etapa + 1);
+  }
+
   Future<void> _buscarCep() async {
     final cep = _cepController.text.replaceAll(RegExp(r'\D'), '');
-    if (cep.length != 8 || _consultandoCep || cep == _ultimoCepConsultado) {
+    if (cep.length != 8 || _consultandoCep || cep == _ultimoCepConsultado)
       return;
-    }
     setState(() => _consultandoCep = true);
     try {
       final endereco = await _localidadeRepository.buscarEnderecoPorCep(cep);
@@ -155,22 +215,11 @@ class _EventoFormPageState extends State<EventoFormPage> {
         _cepController.text = endereco.cep;
         _enderecoController.text = partes.join(', ');
       });
-    } catch (e) {
-      if (mounted) AppSnackBar.erro(context, _mensagemErro(e));
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, _mensagemErro(erro));
     } finally {
       if (mounted) setState(() => _consultandoCep = false);
     }
-  }
-
-  String _montarUrlBannerAtual() {
-    final caminho = (widget.evento?.urlbannerevento ?? '').trim();
-    if (caminho.isEmpty) return '';
-    if (caminho.startsWith('http://') || caminho.startsWith('https://')) {
-      return caminho;
-    }
-    return caminho.startsWith('/')
-        ? '${ApiConfig.baseUrl}$caminho'
-        : '${ApiConfig.baseUrl}/$caminho';
   }
 
   Future<void> _selecionarImagem() async {
@@ -180,92 +229,41 @@ class _EventoFormPageState extends State<EventoFormPage> {
         imageQuality: 88,
       );
       if (arquivo == null) return;
-
-      Uint8List? bytes;
-      if (kIsWeb) bytes = await arquivo.readAsBytes();
+      final bytes = kIsWeb ? await arquivo.readAsBytes() : null;
       if (!mounted) return;
-
       setState(() {
         _imagemSelecionada = arquivo;
         _imagemBytes = bytes;
       });
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackBar.erro(context, 'Não foi possível selecionar o banner.');
+    } catch (_) {
+      if (mounted)
+        AppSnackBar.erro(context, 'Não foi possível selecionar o banner.');
     }
   }
 
-  InputDecoration _decoracaoCampo({
-    required String label,
-    required IconData icone,
-    String? hint,
-    String? prefixText,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      prefixText: prefixText,
-      prefixIcon: Icon(icone, color: ClubbarColors.textoSecundario),
-      suffixIcon: suffixIcon,
-      filled: true,
-      fillColor: ClubbarColors.branco,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: ClubbarColors.borda),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: ClubbarColors.borda),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: ClubbarColors.ambar, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: ClubbarColors.erro),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: ClubbarColors.erro, width: 2),
-      ),
-    );
-  }
-
-  double _valorPreco() =>
-      double.tryParse(
-        _precoController.text.replaceAll('.', '').replaceAll(',', '.'),
-      ) ??
-      0;
-
-  void _formatarPreco() {
-    final texto = _valorPreco().toStringAsFixed(2).replaceAll('.', ',');
-    _precoController.value = TextEditingValue(
-      text: texto,
-      selection: TextSelection.collapsed(offset: texto.length),
-    );
+  String _montarUrlBannerAtual() {
+    final caminho = (widget.evento?.urlbannerevento ?? '').trim();
+    if (caminho.isEmpty) return '';
+    if (caminho.startsWith('http://') || caminho.startsWith('https://'))
+      return caminho;
+    return caminho.startsWith('/')
+        ? '${ApiConfig.baseUrl}$caminho'
+        : '${ApiConfig.baseUrl}/$caminho';
   }
 
   Future<void> _salvar() async {
     if (_salvando) return;
-    _formatarPreco();
-    FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) return;
-    if (_carregandoModalidades || _beneficiosPorModalidade.isEmpty) {
-      AppSnackBar.aviso(
-        context,
-        'Selecione pelo menos uma modalidade para o evento.',
-      );
-      return;
+    for (var etapa = 0; etapa < _nomesEtapas.length; etapa++) {
+      if (!_validarEtapa(etapa)) {
+        await _irParaEtapa(etapa);
+        return;
+      }
     }
-
+    _formatarPreco();
     setState(() => _salvando = true);
-    final preco = _valorPreco();
-
     try {
-      if (editando) {
+      final outroLocal = _tipoLocalSelecionado == 'OUTRO';
+      if (_editando) {
         await _repo.atualizar(
           eventoId: widget.evento!.eventoId,
           titulo: _tituloController.text.trim(),
@@ -273,22 +271,11 @@ class _EventoFormPageState extends State<EventoFormPage> {
           emailContatoEvento: _emailContatoController.text.trim(),
           whatsappEvento: _whatsappContatoController.text.trim(),
           tipoLocal: _tipoLocalSelecionado,
-          cep: _tipoLocalSelecionado == 'OUTRO'
-              ? _cepController.text.trim()
-              : null,
-          local: _tipoLocalSelecionado == 'OUTRO'
-              ? _localController.text.trim()
-              : '',
-          endereco: _tipoLocalSelecionado == 'OUTRO'
-              ? _enderecoController.text.trim()
-              : '',
-          status: _statusSelecionado,
-          precoPadrao: preco,
+          cep: outroLocal ? _cepController.text.trim() : null,
+          local: outroLocal ? _localController.text.trim() : '',
+          endereco: outroLocal ? _enderecoController.text.trim() : '',
+          precoPadrao: _valorPreco(),
           imagem: _imagemSelecionada,
-        );
-        await _repo.salvarModalidadesPadrao(
-          modeloId: widget.evento!.eventoId,
-          beneficiosPorModalidade: _beneficiosPorModalidade,
         );
       } else {
         await _repo.criar(
@@ -299,574 +286,461 @@ class _EventoFormPageState extends State<EventoFormPage> {
           emailContatoEvento: _emailContatoController.text.trim(),
           whatsappEvento: _whatsappContatoController.text.trim(),
           tipoLocal: _tipoLocalSelecionado,
-          cep: _tipoLocalSelecionado == 'OUTRO'
-              ? _cepController.text.trim()
-              : null,
-          local: _tipoLocalSelecionado == 'OUTRO'
-              ? _localController.text.trim()
-              : null,
-          endereco: _tipoLocalSelecionado == 'OUTRO'
-              ? _enderecoController.text.trim()
-              : null,
-          status: _statusSelecionado,
-          precoPadrao: preco,
+          cep: outroLocal ? _cepController.text.trim() : null,
+          local: outroLocal ? _localController.text.trim() : null,
+          endereco: outroLocal ? _enderecoController.text.trim() : null,
+          precoPadrao: _valorPreco(),
           imagem: _imagemSelecionada,
-          beneficiosPorModalidade: _beneficiosPorModalidade,
         );
       }
-
       if (!mounted) return;
       AppSnackBar.sucesso(
         context,
-        editando
+        _editando
             ? 'Evento atualizado com sucesso.'
             : 'Evento criado com sucesso.',
       );
       Navigator.pop(context, true);
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackBar.erro(context, _mensagemErro(e));
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, _mensagemErro(erro));
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
   }
 
-  Widget _imagemBanner() {
-    final bannerAtual = _montarUrlBannerAtual();
-
-    Widget placeholder() {
-      return Container(
-        color: ClubbarColors.ambarClaro,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.image_outlined,
-          size: 56,
-          color: ClubbarColors.preto,
+  Widget _cardEtapa({
+    required String titulo,
+    required String descricao,
+    required Widget child,
+  }) => ClubbarCard(
+    elevation: 1,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          titulo,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
         ),
-      );
-    }
+        const SizedBox(height: 5),
+        Text(
+          descricao,
+          style: const TextStyle(color: ClubbarColors.textoSecundario),
+        ),
+        const SizedBox(height: 18),
+        child,
+      ],
+    ),
+  );
 
+  Widget _passoDados() => _cardEtapa(
+    titulo: 'Dados do evento',
+    descricao: 'O nome é obrigatório para criar o evento padrão.',
+    child: Column(
+      children: [
+        TextField(
+          controller: _tituloController,
+          textCapitalization: TextCapitalization.words,
+          maxLength: _limiteTitulo,
+          inputFormatters: [LengthLimitingTextInputFormatter(_limiteTitulo)],
+          decoration: _decoracaoCampo(
+            label: 'Nome do evento',
+            icone: Icons.celebration_outlined,
+            hint: 'Ex.: Motor Rock Festival',
+          ),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _descricaoController,
+          maxLines: 5,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: _decoracaoCampo(
+            label: 'Descrição do evento',
+            icone: Icons.description_outlined,
+            hint: 'Descreva o evento',
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _imagemBanner() {
+    Widget placeholder() => Container(
+      color: ClubbarColors.ambarClaro,
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.image_outlined,
+        size: 56,
+        color: ClubbarColors.preto,
+      ),
+    );
     if (_imagemSelecionada != null) {
-      if (kIsWeb && _imagemBytes != null) {
+      if (kIsWeb && _imagemBytes != null)
         return Image.memory(
           _imagemBytes!,
           fit: BoxFit.contain,
           width: double.infinity,
         );
-      }
-
       return Image.file(
-        File(_imagemSelecionada!.path),
+        _imagemSelecionada!.path.isEmpty
+            ? File('')
+            : File(_imagemSelecionada!.path),
         fit: BoxFit.contain,
         width: double.infinity,
         errorBuilder: (_, _, _) => placeholder(),
       );
     }
-
-    if (editando && bannerAtual.isNotEmpty) {
+    final bannerAtual = _montarUrlBannerAtual();
+    if (bannerAtual.isNotEmpty)
       return Image.network(
         bannerAtual,
         fit: BoxFit.contain,
         width: double.infinity,
         errorBuilder: (_, _, _) => placeholder(),
       );
-    }
-
     return placeholder();
   }
 
-  Widget _cardBanner() {
-    return ClubbarCard(
-      elevation: 1,
-      child: Column(
-        children: [
-          const Text(
-            'Cadastre um evento padrão reutilizável',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: _salvando ? null : _selecionarImagem,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 210,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _imagemBanner(),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          margin: const EdgeInsets.all(14),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.68),
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.photo_library_rounded,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 7),
-                              Text(
-                                _imagemSelecionada != null || editando
-                                    ? 'Toque para alterar o banner'
-                                    : 'Toque para selecionar o banner',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _cardDados() {
-    return ClubbarCard(
-      elevation: 1,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Dados do evento',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _tituloController,
-            textCapitalization: TextCapitalization.words,
-            maxLength: _limiteTitulo,
-            inputFormatters: [LengthLimitingTextInputFormatter(_limiteTitulo)],
-            decoration: _decoracaoCampo(
-              label: 'Título',
-              icone: Icons.celebration_outlined,
-              hint: 'Ex.: Motor Rock Festival',
-            ),
-            validator: (value) {
-              if ((value ?? '').trim().isEmpty) {
-                return 'Informe o título do evento';
-              }
-              if (value!.trim().length > _limiteTitulo) {
-                return 'O título deve ter no máximo $_limiteTitulo caracteres';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _descricaoController,
-            maxLines: 4,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: _decoracaoCampo(
-              label: 'Descrição',
-              icone: Icons.description_outlined,
-              hint: 'Descreva o evento',
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _emailContatoController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: _decoracaoCampo(
-              label: 'E-mail de contato do evento',
-              icone: Icons.email_outlined,
-              hint: 'contato@evento.com.br',
-            ),
-            validator: (value) {
-              final email = (value ?? '').trim();
-              if (email.isNotEmpty && !email.contains('@')) {
-                return 'Informe um e-mail válido';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _whatsappContatoController,
-            keyboardType: TextInputType.phone,
-            decoration: _decoracaoCampo(
-              label: 'WhatsApp de contato do evento',
-              icone: Icons.chat_outlined,
-              hint: '(00) 00000-0000',
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _precoController,
-            onTap: () {
-              if (_valorPreco() != 0) return;
-              _precoController.selection = TextSelection(
-                baseOffset: 0,
-                extentOffset: _precoController.text.length,
-              );
-            },
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: const [
-              DecimalInputFormatter(
-                casasDecimais: 2,
-                usarSeparadorMilhar: true,
-              ),
-            ],
-            onEditingComplete: _formatarPreco,
-            onTapOutside: (_) => _formatarPreco(),
-            decoration: _decoracaoCampo(
-              label: 'Preço padrão do lote',
-              icone: Icons.payments_outlined,
-              prefixText: 'R\$ ',
-              hint: '0,00',
-            ),
-          ),
-          const SizedBox(height: 14),
-          DropdownButtonFormField<String>(
-            initialValue: _tipoLocalSelecionado,
-            decoration: _decoracaoCampo(
-              label: 'Onde o evento será realizado?',
-              icone: Icons.location_on_outlined,
-            ),
-            items: const [
-              DropdownMenuItem(
-                value: 'ESTABELECIMENTO',
-                child: Text('No estabelecimento'),
-              ),
-              DropdownMenuItem(value: 'OUTRO', child: Text('Em outro local')),
-            ],
-            onChanged: _salvando
-                ? null
-                : (value) => setState(() {
-                    _tipoLocalSelecionado = value ?? 'ESTABELECIMENTO';
-                    if (_tipoLocalSelecionado == 'ESTABELECIMENTO') {
-                      _cepController.clear();
-                      _localController.clear();
-                      _enderecoController.clear();
-                    }
-                  }),
-          ),
-          if (_tipoLocalSelecionado == 'OUTRO') ...[
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _localController,
-              textCapitalization: TextCapitalization.words,
-              decoration: _decoracaoCampo(
-                label: 'Local',
-                icone: Icons.location_on_outlined,
-                hint: 'Ex.: Motor Rock',
-              ),
-              validator: (value) => (value ?? '').trim().isEmpty
-                  ? 'Informe o nome do local'
-                  : null,
-            ),
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _cepController,
-              keyboardType: TextInputType.number,
-              decoration:
-                  _decoracaoCampo(
-                    label: 'CEP do evento',
-                    icone: Icons.markunread_mailbox_outlined,
-                    hint: '00000-000',
-                  ).copyWith(
-                    suffixIcon: _consultandoCep
-                        ? const Padding(
-                            padding: EdgeInsets.all(14),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : IconButton(
-                            tooltip: 'Buscar CEP',
-                            onPressed: _buscarCep,
-                            icon: const Icon(Icons.search_rounded),
-                          ),
-                  ),
-              onChanged: (valor) {
-                final numeros = valor.replaceAll(RegExp(r'\D'), '');
-                final limitado = numeros.length > 8
-                    ? numeros.substring(0, 8)
-                    : numeros;
-                final formatado = limitado.length > 5
-                    ? '${limitado.substring(0, 5)}-${limitado.substring(5)}'
-                    : limitado;
-                if (formatado != valor) {
-                  _cepController.value = TextEditingValue(
-                    text: formatado,
-                    selection: TextSelection.collapsed(
-                      offset: formatado.length,
-                    ),
-                  );
-                }
-                if (limitado != _ultimoCepConsultado) {
-                  _ultimoCepConsultado = null;
-                }
-                if (limitado.length == 8) _buscarCep();
-              },
-              onFieldSubmitted: (_) => _buscarCep(),
-              validator: (value) =>
-                  (value ?? '').replaceAll(RegExp(r'\D'), '').length != 8
-                  ? 'Informe um CEP válido'
-                  : null,
-            ),
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _enderecoController,
-              textCapitalization: TextCapitalization.words,
-              decoration: _decoracaoCampo(
-                label: 'Endereço',
-                icone: Icons.map_outlined,
-                hint: 'Rua, número, bairro, cidade e UF',
-              ),
-              validator: (value) => (value ?? '').trim().isEmpty
-                  ? 'Informe o endereço do local'
-                  : null,
-            ),
-          ],
-          const SizedBox(height: 14),
-          DropdownButtonFormField<String>(
-            initialValue: _statusSelecionado,
-            decoration: _decoracaoCampo(
-              label: 'Status',
-              icone: Icons.toggle_on_outlined,
-            ),
-            items: const [
-              DropdownMenuItem(value: 'ATIVO', child: Text('Ativo')),
-              DropdownMenuItem(value: 'INATIVO', child: Text('Inativo')),
-            ],
-            onChanged: _salvando
-                ? null
-                : (value) {
-                    if (value == null) return;
-                    setState(() => _statusSelecionado = value);
-                  },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _cardAvisoLotes() {
-    return ClubbarCard(
-      elevation: 0,
-      backgroundColor: ClubbarColors.infoClaro,
-      borderColor: ClubbarColors.info,
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.confirmation_number_rounded, color: ClubbarColors.info),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Ao agendar uma data, informe o primeiro setor, como Pista, '
-              'Camarote ou Área VIP. O sistema criará o Lote 1 com as '
-              'modalidades selecionadas para este evento. Os preços poderão '
-              'ser ajustados depois.',
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-                color: ClubbarColors.info,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _cardModalidades() {
-    if (_carregandoModalidades) {
-      return const ClubbarCard(
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    return ClubbarCard(
-      elevation: 1,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Modalidades do evento',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Escolha as opções que o cliente poderá comprar nesta data.',
-          ),
-          const SizedBox(height: 10),
-          ..._modalidades.map((modalidade) {
-            final selecionada = _beneficiosPorModalidade.containsKey(
-              modalidade.id,
-            );
-            return Column(
+  Widget _passoBanner() => _cardEtapa(
+    titulo: 'Banner do evento',
+    descricao: 'Opcional. Você pode adicionar ou trocar a imagem depois.',
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _salvando ? null : _selecionarImagem,
+          child: SizedBox(
+            height: 220,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: selecionada,
-                  title: Text(
-                    modalidade.nome,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  subtitle: Text(
-                    modalidade.propria
-                        ? 'Modalidade da empresa'
-                        : 'Modalidade padrão Clubbar',
-                  ),
-                  onChanged: _salvando
-                      ? null
-                      : (valor) => setState(() {
-                          if (valor == true) {
-                            _beneficiosPorModalidade[modalidade.id] = modalidade
-                                .beneficios
-                                .map((e) => e.id)
-                                .toSet();
-                          } else {
-                            _beneficiosPorModalidade.remove(modalidade.id);
-                          }
-                        }),
-                ),
-                if (selecionada && modalidade.exigeBeneficio)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 18, bottom: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                _imagemBanner(),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    margin: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.68),
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          'Benefícios aceitos',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        Icon(
+                          Icons.photo_library_rounded,
+                          size: 18,
+                          color: Colors.white,
                         ),
-                        ...modalidade.beneficios.map(
-                          (beneficio) => CheckboxListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            value: _beneficiosPorModalidade[modalidade.id]!
-                                .contains(beneficio.id),
-                            title: Text(beneficio.nome),
-                            onChanged: _salvando
-                                ? null
-                                : (valor) => setState(() {
-                                    final selecionados =
-                                        _beneficiosPorModalidade[modalidade
-                                            .id]!;
-                                    if (valor == true) {
-                                      selecionados.add(beneficio.id);
-                                    } else {
-                                      selecionados.remove(beneficio.id);
-                                    }
-                                  }),
+                        SizedBox(width: 7),
+                        Text(
+                          'Selecionar banner',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
                     ),
                   ),
-                const Divider(height: 1),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _botaoSalvar() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton.icon(
-        onPressed: _salvando ? null : _salvar,
-        icon: _salvando
-            ? const SizedBox(
-                width: 21,
-                height: 21,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: ClubbarColors.preto,
                 ),
-              )
-            : const Icon(Icons.save_rounded),
-        label: Text(
-          _salvando
-              ? 'Salvando...'
-              : editando
-              ? 'Salvar alterações'
-              : 'Cadastrar evento padrão',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: ClubbarColors.ambar,
-          foregroundColor: ClubbarColors.preto,
-          disabledBackgroundColor: ClubbarColors.ambarClaro,
-          disabledForegroundColor: ClubbarColors.textoSecundario,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
-      body: SafeArea(
-        child: Column(
-          children: [
-            ClubbarPageHeader(
-              titulo: _nomeEmpresa,
-              subtitulo: 'Evento padrão',
-              tituloStyle: const TextStyle(
-                color: ClubbarColors.primariaEscuro,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-              ),
+  Widget _passoContato() => _cardEtapa(
+    titulo: 'Contato do evento',
+    descricao:
+        'Informe ao menos um canal para o cliente falar com o organizador.',
+    child: Column(
+      children: [
+        TextField(
+          controller: _emailContatoController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: _decoracaoCampo(
+            label: 'E-mail',
+            icone: Icons.email_outlined,
+            hint: 'contato@evento.com.br',
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Text(
+            'ou',
+            style: TextStyle(color: ClubbarColors.textoSecundario),
+          ),
+        ),
+        TextField(
+          controller: _whatsappContatoController,
+          keyboardType: TextInputType.phone,
+          decoration: _decoracaoCampo(
+            label: 'WhatsApp',
+            icone: Icons.chat_outlined,
+            hint: '(00) 00000-0000',
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _passoPreco() => _cardEtapa(
+    titulo: 'Preço padrão do ingresso',
+    descricao:
+        'Ele será sugerido ao agendar o evento e pode ser alterado por lote e setor.',
+    child: TextField(
+      controller: _precoController,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: const [
+        DecimalInputFormatter(casasDecimais: 2, usarSeparadorMilhar: true),
+      ],
+      onTap: () {
+        if (_valorPreco() == 0)
+          _precoController.selection = TextSelection(
+            baseOffset: 0,
+            extentOffset: _precoController.text.length,
+          );
+      },
+      onEditingComplete: _formatarPreco,
+      onTapOutside: (_) => _formatarPreco(),
+      decoration: _decoracaoCampo(
+        label: 'Preço padrão',
+        icone: Icons.payments_outlined,
+        prefixText: r'R$ ',
+        hint: '0,00',
+      ),
+    ),
+  );
+
+  Widget _passoLocal() => _cardEtapa(
+    titulo: 'Onde o evento será realizado?',
+    descricao: 'Escolha o estabelecimento ou informe outro local.',
+    child: Column(
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _tipoLocalSelecionado,
+          decoration: _decoracaoCampo(
+            label: 'Local do evento',
+            icone: Icons.location_on_outlined,
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: 'ESTABELECIMENTO',
+              child: Text('No estabelecimento'),
             ),
-            Expanded(
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-                  children: [
-                    _cardBanner(),
-                    const SizedBox(height: 16),
-                    _cardDados(),
-                    const SizedBox(height: 16),
-                    _cardModalidades(),
-                    const SizedBox(height: 16),
-                    _cardAvisoLotes(),
-                    const SizedBox(height: 20),
-                    _botaoSalvar(),
-                  ],
+            DropdownMenuItem(value: 'OUTRO', child: Text('Em outro local')),
+          ],
+          onChanged: _salvando
+              ? null
+              : (valor) => setState(() {
+                  _tipoLocalSelecionado = valor ?? 'ESTABELECIMENTO';
+                  if (_tipoLocalSelecionado == 'ESTABELECIMENTO') {
+                    _cepController.clear();
+                    _localController.clear();
+                    _enderecoController.clear();
+                  }
+                }),
+        ),
+        if (_tipoLocalSelecionado == 'OUTRO') ...[
+          const SizedBox(height: 14),
+          TextField(
+            controller: _localController,
+            textCapitalization: TextCapitalization.words,
+            decoration: _decoracaoCampo(
+              label: 'Nome do local',
+              icone: Icons.location_city_outlined,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _cepController,
+            keyboardType: TextInputType.number,
+            onChanged: (valor) {
+              final numeros = valor.replaceAll(RegExp(r'\D'), '');
+              final limitado = numeros.length > 8
+                  ? numeros.substring(0, 8)
+                  : numeros;
+              final formatado = limitado.length > 5
+                  ? '${limitado.substring(0, 5)}-${limitado.substring(5)}'
+                  : limitado;
+              if (formatado != valor)
+                _cepController.value = TextEditingValue(
+                  text: formatado,
+                  selection: TextSelection.collapsed(offset: formatado.length),
+                );
+              if (limitado != _ultimoCepConsultado) _ultimoCepConsultado = null;
+              if (limitado.length == 8) _buscarCep();
+            },
+            onSubmitted: (_) => _buscarCep(),
+            decoration: _decoracaoCampo(
+              label: 'CEP',
+              icone: Icons.markunread_mailbox_outlined,
+              hint: '00000-000',
+              suffixIcon: _consultandoCep
+                  ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : IconButton(
+                      onPressed: _buscarCep,
+                      icon: const Icon(Icons.search_rounded),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _enderecoController,
+            textCapitalization: TextCapitalization.words,
+            decoration: _decoracaoCampo(
+              label: 'Endereço',
+              icone: Icons.map_outlined,
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
+
+  Widget _indicadorEtapas() => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+    child: Column(
+      children: [
+        Row(
+          children: List.generate(_nomesEtapas.length, (indice) {
+            final preenchida = indice <= _etapa;
+            return Expanded(
+              child: Container(
+                height: 5,
+                margin: EdgeInsets.only(
+                  right: indice == _nomesEtapas.length - 1 ? 0 : 5,
+                ),
+                decoration: BoxDecoration(
+                  color: preenchida
+                      ? ClubbarColors.primaria
+                      : ClubbarColors.borda,
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
+            );
+          }),
+        ),
+        const SizedBox(height: 9),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Passo ${_etapa + 1} de ${_nomesEtapas.length}: ${_nomesEtapas[_etapa]}',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _acoesNavegacao() => SafeArea(
+    top: false,
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      child: Row(
+        children: [
+          if (_etapa > 0)
+            OutlinedButton(
+              onPressed: _salvando ? null : () => _irParaEtapa(_etapa - 1),
+              child: const Text('Voltar'),
+            ),
+          if (_etapa == 1) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: _salvando ? null : () => _avancar(pularBanner: true),
+              child: const Text('Pular'),
             ),
           ],
-        ),
+          const Spacer(),
+          ElevatedButton.icon(
+            onPressed: _salvando ? null : (_ultimaEtapa ? _salvar : _avancar),
+            icon: _salvando
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: ClubbarColors.preto,
+                    ),
+                  )
+                : Icon(
+                    _ultimaEtapa
+                        ? Icons.check_rounded
+                        : Icons.arrow_forward_rounded,
+                  ),
+            label: Text(
+              _salvando
+                  ? 'Salvando...'
+                  : (_ultimaEtapa
+                        ? (_editando ? 'Salvar' : 'Cadastrar')
+                        : 'Próximo'),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ClubbarColors.ambar,
+              foregroundColor: ClubbarColors.preto,
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: ClubbarColors.fundo,
+    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    body: SafeArea(
+      child: Column(
+        children: [
+          ClubbarPageHeader(
+            titulo: _nomeEmpresa,
+            subtitulo: _editando
+                ? 'Editar evento padrão'
+                : 'Novo evento padrão',
+            tituloStyle: const TextStyle(
+              color: ClubbarColors.primariaEscuro,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          _indicadorEtapas(),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              onPageChanged: (etapa) => setState(() => _etapa = etapa),
+              children:
+                  [
+                        _passoDados(),
+                        _passoBanner(),
+                        _passoContato(),
+                        _passoPreco(),
+                        _passoLocal(),
+                      ]
+                      .map(
+                        (passo) => ListView(
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                          children: [passo],
+                        ),
+                      )
+                      .toList(),
+            ),
+          ),
+          _acoesNavegacao(),
+        ],
+      ),
+    ),
+  );
 }

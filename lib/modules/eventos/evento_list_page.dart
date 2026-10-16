@@ -755,17 +755,29 @@ class _EventoListPageState extends State<EventoListPage> {
   }
 
   Widget _cardEvento(Evento evento) {
+    final preco = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+    ).format(evento.vrPrecoPadrao);
     return ClubbarCard(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 1,
       padding: const EdgeInsets.all(12),
-      onTap: () => _abrirEdicao(evento),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 76,
+                  height: 76,
+                  child: _bannerEvento(evento),
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -780,68 +792,83 @@ class _EventoListPageState extends State<EventoListPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _chipStatus(evento),
+                    Row(
+                      children: [
+                        _chipStatus(evento),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Preço padrão: $preco',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: ClubbarColors.textoSecundario,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 104,
-                  height: 76,
-                  child: _bannerEvento(evento),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => EventoModeloAtracoesPage(
-                        modeloId: evento.eventoId,
-                        titulo: evento.nmtituloevento,
-                      ),
+              PopupMenuButton<String>(
+                tooltip: 'Ações do evento',
+                onSelected: (acao) {
+                  switch (acao) {
+                    case 'atracoes':
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => EventoModeloAtracoesPage(
+                            modeloId: evento.eventoId,
+                            titulo: evento.nmtituloevento,
+                          ),
+                        ),
+                      );
+                    case 'editar':
+                      _abrirEdicao(evento);
+                    case 'excluir':
+                      _excluirEvento(evento);
+                    case 'agendar':
+                      _agendarEvento(evento);
+                  }
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'atracoes',
+                    child: ListTile(
+                      leading: Icon(Icons.music_note_rounded),
+                      title: Text('Gerenciar atrações'),
                     ),
                   ),
-                  icon: const Icon(Icons.music_note_rounded, size: 18),
-                  label: const Text('Atrações'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _agendarEvento(evento),
-                  icon: const Icon(Icons.calendar_month_rounded, size: 18),
-                  label: const Text('Adicionar à agenda'),
-                ),
+                  const PopupMenuItem(
+                    value: 'editar',
+                    child: ListTile(
+                      leading: Icon(Icons.edit_rounded, color: Colors.blue),
+                      title: Text('Editar evento'),
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'excluir',
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.delete_outline_rounded,
+                        color: ClubbarColors.erro,
+                      ),
+                      title: Text('Excluir evento'),
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'agendar',
+                    child: ListTile(
+                      leading: Icon(Icons.calendar_month_rounded),
+                      title: Text('Agendar evento'),
+                    ),
+                  ),
+                ],
+                icon: const Icon(Icons.more_vert_rounded),
               ),
             ],
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: 'Editar evento',
-                  onPressed: _excluindo ? null : () => _abrirEdicao(evento),
-                  icon: const Icon(Icons.edit_rounded),
-                  color: Colors.blue,
-                ),
-                IconButton(
-                  tooltip: 'Excluir evento',
-                  onPressed: _excluindo ? null : () => _excluirEvento(evento),
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  color: ClubbarColors.erro,
-                ),
-              ],
-            ),
           ),
         ],
       ),
