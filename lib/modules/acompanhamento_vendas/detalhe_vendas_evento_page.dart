@@ -161,7 +161,13 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
               '${lote.numero}º lote • ${lote.nome}',
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
-            Text(lote.setor),
+            Text(
+              'Setor: ${lote.setor}',
+              style: const TextStyle(
+                color: Colors.deepPurple,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 9),
             Wrap(
               spacing: 8,
