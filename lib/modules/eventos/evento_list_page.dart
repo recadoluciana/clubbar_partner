@@ -216,6 +216,9 @@ class _EventoListPageState extends State<EventoListPage> {
     if (resultado == true) await _carregarEventos();
   }
 
+  // O agendamento é iniciado exclusivamente pela Agenda. Mantemos o fluxo
+  // preparado aqui para uma futura navegação direta a partir da agenda.
+  // ignore: unused_element
   Future<void> _agendarEvento(Evento evento) async {
     int? lojaId = widget.fixarLoja
         ? _lojaIdSelecionada
@@ -829,8 +832,6 @@ class _EventoListPageState extends State<EventoListPage> {
                       _abrirEdicao(evento);
                     case 'excluir':
                       _excluirEvento(evento);
-                    case 'agendar':
-                      _agendarEvento(evento);
                   }
                 },
                 itemBuilder: (_) => [
@@ -856,13 +857,6 @@ class _EventoListPageState extends State<EventoListPage> {
                         color: ClubbarColors.erro,
                       ),
                       title: Text('Excluir evento'),
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'agendar',
-                    child: ListTile(
-                      leading: Icon(Icons.calendar_month_rounded),
-                      title: Text('Agendar evento'),
                     ),
                   ),
                 ],
