@@ -1011,7 +1011,7 @@ class _EventoListPageState extends State<EventoListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Eventos padrão',
+              titulo: 'Eventos',
               subtitulo: _carregando
                   ? 'Carregando eventos padrão...'
                   : '${widget.fixarLoja && nomeLoja.isNotEmpty ? '$nomeLoja • ' : ''}${_eventos.length} '
