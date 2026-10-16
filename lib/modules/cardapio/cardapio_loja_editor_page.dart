@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -39,6 +41,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   bool _carregando = true;
   bool _salvando = false;
   bool _alterado = false;
+  int _revisaoAlteracoes = 0;
+  bool _salvamentoAutomaticoPendente = false;
+  Timer? _temporizadorSalvamentoAutomatico;
   int? _numeroVersao;
   int? _categoriaSelecionadaId;
   final Set<int> _produtosExpandidos = {};
@@ -181,7 +186,33 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
           )
           .toList();
 
-  void _marcarAlterado() => setState(() => _alterado = true);
+  void _registrarAlteracao() {
+    _alterado = true;
+    _revisaoAlteracoes++;
+    _agendarSalvamentoAutomatico();
+  }
+
+  void _marcarAlterado() => setState(_registrarAlteracao);
+
+  void _agendarSalvamentoAutomatico() {
+    _temporizadorSalvamentoAutomatico?.cancel();
+    _temporizadorSalvamentoAutomatico = Timer(
+      const Duration(milliseconds: 100),
+      () {
+        if (_salvando) {
+          _salvamentoAutomaticoPendente = true;
+          return;
+        }
+        unawaited(_salvar(avisar: false));
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _temporizadorSalvamentoAutomatico?.cancel();
+    super.dispose();
+  }
 
   Future<void> _adicionarCategoria() async {
     final usadas = _categorias.map((e) => _id(e['categoria_id'])).toSet();
@@ -248,7 +279,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         'itens': <Map<String, dynamic>>[],
       });
       _categoriaSelecionadaId = _id(selecionada['categoria_id']);
-      _alterado = true;
+      _registrarAlteracao();
     });
   }
 
@@ -357,7 +388,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       final itens = _itens(categoria);
       itens.add(item);
       categoria['itens'] = itens;
-      _alterado = true;
     });
 
     if (preco <= 0) {
@@ -367,13 +397,14 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         final itens = _itens(categoria);
         itens.remove(item);
         categoria['itens'] = itens;
-        _alterado = true;
       });
       AppSnackBar.aviso(
         context,
         'O produto não foi adicionado porque a cortesia não foi configurada.',
       );
+      return;
     }
+    _marcarAlterado();
   }
 
   Future<double?> _informarPrecoInicial(String nomeProduto) async {
@@ -461,9 +492,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     setState(() {
       item['vrpreco'] = valor;
       _limparCortesiaSeNecessario(item);
-      _alterado = true;
     });
-    if (_ehCortesia(item)) await _editarCortesias(item);
+    if (_ehCortesia(item) && !await _editarCortesias(item)) return;
+    _marcarAlterado();
   }
 
   Future<void> _editarDesconto(Map<String, dynamic> item) async {
@@ -681,9 +712,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
           ? null
           : resultado['dtfimdesconto'];
       _limparCortesiaSeNecessario(item);
-      _alterado = true;
     });
-    if (_ehCortesia(item)) await _editarCortesias(item);
+    if (_ehCortesia(item) && !await _editarCortesias(item)) return;
+    _marcarAlterado();
   }
 
   Future<bool> _editarCortesias(Map<String, dynamic> item) async {
@@ -827,7 +858,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     if (resultado == null || !mounted) return false;
     setState(() {
       item.addAll(resultado);
-      _alterado = true;
+      _registrarAlteracao();
     });
     return true;
   }
@@ -881,7 +912,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     if (!mounted) return;
     setState(() {
       item['pccashback'] = valor;
-      _alterado = true;
+      _registrarAlteracao();
     });
   }
 
@@ -919,7 +950,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
             ? null
             : _id(_categorias.first['categoria_id']);
       }
-      _alterado = true;
+      _registrarAlteracao();
     });
   }
 
@@ -929,7 +960,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     setState(() {
       final item = _categorias.removeAt(indice);
       _categorias.insert(destino, item);
-      _alterado = true;
+      _registrarAlteracao();
     });
   }
 
@@ -974,7 +1005,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       final item = itens.removeAt(indice);
       itens.insert(destino, item);
       categoria['itens'] = itens;
-      _alterado = true;
+      _registrarAlteracao();
     });
   }
 
@@ -1036,11 +1067,11 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         quantidade++;
       }
       categoriaSelecionada['itens'] = itens;
-      _alterado = true;
+      _registrarAlteracao();
     });
     AppSnackBar.sucesso(
       context,
-      '$quantidade ${quantidade == 1 ? 'preço reajustado' : 'preços reajustados'} na categoria $nomeCategoria. Salve ou publique quando estiver pronto.',
+      '$quantidade ${quantidade == 1 ? 'preço reajustado' : 'preços reajustados'} na categoria $nomeCategoria. As alterações foram salvas automaticamente; publique quando estiver pronto.',
     );
   }
 
@@ -1117,14 +1148,20 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   }
 
   Future<bool> _salvar({bool avisar = true}) async {
-    if (_salvando) return false;
+    if (_salvando) {
+      _salvamentoAutomaticoPendente = true;
+      return false;
+    }
     if (!_alterado && !_versaoEhRascunho) return true;
+    final revisaoSalva = _revisaoAlteracoes;
+    var salvoComSucesso = false;
     setState(() => _salvando = true);
     try {
       if (!await _garantirRascunho()) return false;
       await _repo.salvarConteudo(_versaoEdicaoId, _payload());
+      salvoComSucesso = true;
       if (!mounted) return true;
-      setState(() => _alterado = false);
+      setState(() => _alterado = _revisaoAlteracoes != revisaoSalva);
       if (avisar) {
         AppSnackBar.sucesso(
           context,
@@ -1148,7 +1185,13 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       }
       return false;
     } finally {
-      if (mounted) setState(() => _salvando = false);
+      if (mounted) {
+        setState(() => _salvando = false);
+        if ((salvoComSucesso && _alterado) || _salvamentoAutomaticoPendente) {
+          _salvamentoAutomaticoPendente = false;
+          _agendarSalvamentoAutomatico();
+        }
+      }
     }
   }
 
@@ -1329,7 +1372,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                                 setState(() {
                                   itens.removeAt(indice);
                                   categoria['itens'] = itens;
-                                  _alterado = true;
+                                  _registrarAlteracao();
                                 });
                               }
                             },
@@ -1636,90 +1679,98 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
-    bottomNavigationBar: ClubbarActionBar(
-      actions: [
-        ClubbarAddButton(
-          label: _salvando ? 'Salvando...' : 'Salvar rascunho',
-          icon: Icons.save_outlined,
-          primary: false,
-          onPressed: _salvando || !_alterado ? null : () => _salvar(),
-        ),
-        ClubbarAddButton(
-          label: 'Publicar alterações',
-          icon: Icons.publish,
-          onPressed: _salvando || (!_alterado && !_versaoEhRascunho)
-              ? null
-              : _publicar,
-        ),
-      ],
-    ),
-    body: Column(
-      children: [
-        ClubbarPageHeader(
-          titulo: widget.nomeCardapio,
-          subtitulo:
-              'Versão ${_numeroVersao ?? '—'}${_versaoEhRascunho ? ' em rascunho' : ''}',
-        ),
-        Expanded(
-          child: _carregando
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _carregar,
-                  child: ListView(
-                    padding: const EdgeInsets.all(14),
-                    children: [
-                      const Card(
-                        color: ClubbarColors.infoClaro,
-                        child: Padding(
-                          padding: EdgeInsets.all(14),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: ClubbarColors.info,
-                              ),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Você pode consultar e ajustar este cardápio. O cardápio publicado só muda quando as alterações forem publicadas.',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      if (_categorias.isNotEmpty) ...[
-                        _filtroCategorias(),
-                        const SizedBox(height: 8),
-                      ],
-                      if (_categorias.isEmpty)
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_alterado,
+    onPopInvokedWithResult: (didPop, _) async {
+      if (didPop || !_alterado) return;
+      _temporizadorSalvamentoAutomatico?.cancel();
+      if (_salvando) {
+        AppSnackBar.aviso(context, 'Aguardando o salvamento automático.');
+        return;
+      }
+      final salvo = await _salvar(avisar: false);
+      if (!mounted || !salvo) return;
+      Navigator.of(this.context).pop(true);
+    },
+    child: Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(
+            label: 'Publicar alterações',
+            icon: Icons.publish,
+            onPressed: _salvando || (!_alterado && !_versaoEhRascunho)
+                ? null
+                : _publicar,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          ClubbarPageHeader(
+            titulo: widget.nomeCardapio,
+            subtitulo:
+                'Versão ${_numeroVersao ?? '—'}${_versaoEhRascunho ? ' em rascunho' : ''}',
+          ),
+          Expanded(
+            child: _carregando
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _carregar,
+                    child: ListView(
+                      padding: const EdgeInsets.all(14),
+                      children: [
                         const Card(
+                          color: ClubbarColors.infoClaro,
                           child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text(
-                              'Este cardápio ainda não possui categorias.',
-                              textAlign: TextAlign.center,
+                            padding: EdgeInsets.all(14),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: ClubbarColors.info,
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'As alterações deste rascunho são salvas automaticamente. O cardápio publicado só muda quando elas forem publicadas.',
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      for (final entrada in _categoriasExibidas)
-                        _categoriaCard(entrada.value, entrada.key),
-                      OutlinedButton.icon(
-                        onPressed: _adicionarCategoria,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Adicionar categoria'),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                        const SizedBox(height: 4),
+                        if (_categorias.isNotEmpty) ...[
+                          _filtroCategorias(),
+                          const SizedBox(height: 8),
+                        ],
+                        if (_categorias.isEmpty)
+                          const Card(
+                            child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Text(
+                                'Este cardápio ainda não possui categorias.',
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        for (final entrada in _categoriasExibidas)
+                          _categoriaCard(entrada.value, entrada.key),
+                        OutlinedButton.icon(
+                          onPressed: _adicionarCategoria,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Adicionar categoria'),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
-                ),
-        ),
-      ],
+          ),
+        ],
+      ),
     ),
   );
 }
