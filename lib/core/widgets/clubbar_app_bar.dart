@@ -17,7 +17,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onVoltar,
     this.onSair,
     this.logoPath = 'assets/images/corujao.png',
-    this.centralizarLogo = false,
+    this.centralizarLogo = true,
     this.alturaLogo = 52,
     this.actions,
   });
@@ -51,27 +51,33 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
       flexibleSpace: SafeArea(
         bottom: false,
         child: IgnorePointer(
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  logoPath,
-                  height: alturaLogo.clamp(36.0, 44.0).toDouble(),
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Clubbar Partner',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.8,
+          child: Align(
+            alignment: centralizarLogo
+                ? Alignment.center
+                : Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: centralizarLogo ? 0 : 18),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    logoPath,
+                    height: alturaLogo.clamp(36.0, 44.0).toDouble(),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Clubbar Partner',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.8,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

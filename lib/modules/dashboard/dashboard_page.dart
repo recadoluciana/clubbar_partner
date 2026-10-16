@@ -433,6 +433,7 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: ClubbarColors.fundo,
       appBar: ClubbarAppBar(
         mostrarSair: true,
+        centralizarLogo: false,
         onSair: _sair,
         actions: const [ApiStatusIndicator(versao: '1.0.1')],
       ),
