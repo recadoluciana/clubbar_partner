@@ -512,6 +512,15 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     }
   }
 
+  Future<void> _abrirOuCriarEventoNoDia(DateTime dia) async {
+    final eventosDoDia = _doDia(dia);
+    if (eventosDoDia.isNotEmpty) {
+      await _abrirEvento(eventosDoDia.first, somenteConsulta: _diaPassado(dia));
+      return;
+    }
+    await _criarEventoNoDia(dia);
+  }
+
   // ignore: unused_element
   Future<void> _remover(AgendaEvento evento, EventoAtracao p) async {
     final confirmado = await showDialog<bool>(
@@ -743,7 +752,9 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                   eventos = _doDia(data),
                   passado = _diaPassado(data);
               return InkWell(
-                onTap: !passado ? () => _criarEventoNoDia(data) : null,
+                onTap: eventos.isNotEmpty || !passado
+                    ? () => _abrirOuCriarEventoNoDia(data)
+                    : null,
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   padding: const EdgeInsets.all(5),
@@ -771,13 +782,11 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
                       ),
                       const SizedBox(height: 3),
                       ...eventos
-                          .take(largura < 700 ? 2 : 4)
+                          .take(1)
                           .map(
                             (e) => Expanded(
                               child: InkWell(
-                                onTap: () => passado
-                                    ? _abrirEvento(e, somenteConsulta: true)
-                                    : _criarEventoNoDia(data),
+                                onTap: () => _abrirOuCriarEventoNoDia(data),
                                 child: Container(
                                   width: double.infinity,
                                   margin: const EdgeInsets.only(bottom: 3),
