@@ -1832,6 +1832,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   Widget _resumo() => ListView(
     padding: const EdgeInsets.all(16),
     children: [
+      _cardAgendamento(),
+      const SizedBox(height: 12),
       ClubbarCard(
         child: Column(
           children: [
@@ -2001,51 +2003,52 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         ),
       ),
       const SizedBox(height: 12),
-      ClubbarCard(
-        child: Row(
-          children: [
-            const Icon(
-              Icons.event_available_outlined,
-              color: ClubbarColors.primariaEscuro,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Agendado para', style: TextStyle(fontSize: 12)),
-                  Text(
-                    'Início: $_dataEvento',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  if (_fimEvento != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3),
-                      child: Text(
-                        'Término: $_dataFimEvento',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (!_somenteConsulta)
-              IconButton(
-                onPressed: _alterarHorarioEvento,
-                icon: const Icon(Icons.access_time_rounded, color: Colors.blue),
-                tooltip: 'Alterar horário do evento',
-              ),
-          ],
-        ),
-      ),
       const SizedBox(height: 18),
       _matrizCapacidade(),
       const SizedBox(height: 14),
       _matrizPrecos(),
     ],
+  );
+
+  Widget _cardAgendamento() => ClubbarCard(
+    child: Row(
+      children: [
+        const Icon(
+          Icons.event_available_outlined,
+          color: ClubbarColors.primariaEscuro,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Agendado para', style: TextStyle(fontSize: 12)),
+              Text(
+                'Início: $_dataEvento',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (_fimEvento != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text(
+                    'Término: $_dataFimEvento',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (!_somenteConsulta)
+          IconButton(
+            onPressed: _alterarHorarioEvento,
+            icon: const Icon(Icons.access_time_rounded, color: Colors.blue),
+            tooltip: 'Alterar horário do evento',
+          ),
+      ],
+    ),
   );
 
   List<EventoSetor> get _setoresAtivos =>
