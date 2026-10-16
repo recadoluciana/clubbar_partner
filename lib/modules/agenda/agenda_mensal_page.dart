@@ -50,19 +50,6 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     await _carregar();
   }
 
-  Future<void> _abrirGerenciarEventos() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EventoListPage(
-          organizacaoId: _loja.organizacaoId,
-          lojaIdInicial: _loja.lojaId,
-          fixarLoja: true,
-        ),
-      ),
-    );
-    if (mounted) await _carregar();
-  }
-
   Future<void> _carregar() async {
     setState(() {
       _loading = true;
@@ -676,20 +663,6 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
               color: ClubbarColors.primariaEscuro,
             ),
             padding: const EdgeInsets.fromLTRB(18, 9, 12, 10),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FilledButton.icon(
-                  onPressed: _abrirGerenciarEventos,
-                  icon: const Icon(Icons.event_note_rounded, size: 18),
-                  label: const Text('Eventos padrão'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    minimumSize: const Size(0, 38),
-                  ),
-                ),
-              ],
-            ),
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(12, 8, 12, 0),
