@@ -30,6 +30,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nome;
   late final TextEditingController _descricao;
+  late final TextEditingController _precoPadrao;
   String? _fotoUrl;
   XFile? _fotoSelecionada;
   Uint8List? _fotoBytes;
@@ -43,6 +44,9 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     final item = widget.item ?? const <String, dynamic>{};
     _nome = TextEditingController(text: '${item['nmproduto'] ?? ''}');
     _descricao = TextEditingController(text: '${item['dsproduto'] ?? ''}');
+    _precoPadrao = TextEditingController(
+      text: _formatarPreco(_numeroPreco(item['vrprecopadrao']) ?? 0),
+    );
     _fotoUrl = item['urlfotoproduto']?.toString();
     _situacao = '${item['sitproduto'] ?? 'ATIVO'}';
     _carregando = false;
@@ -50,7 +54,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
 
   @override
   void dispose() {
-    for (final controller in [_nome, _descricao]) {
+    for (final controller in [_nome, _descricao, _precoPadrao]) {
       controller.dispose();
     }
     super.dispose();
@@ -299,8 +303,29 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     return data == null ? '—' : DateFormat('dd/MM/yyyy HH:mm').format(data);
   }
 
+  double? _numeroPreco(Object? valor) {
+    final texto = '${valor ?? ''}'
+        .replaceAll('R\$', '')
+        .replaceAll(' ', '')
+        .trim();
+    if (texto.isEmpty) return null;
+    return double.tryParse(
+      texto.contains(',')
+          ? texto.replaceAll('.', '').replaceAll(',', '.')
+          : texto,
+    );
+  }
+
+  String _formatarPreco(double valor) =>
+      NumberFormat('0.00', 'pt_BR').format(valor);
+
   Future<void> _salvar() async {
     if (_salvando || !_formKey.currentState!.validate()) return;
+    final precoPadrao = _numeroPreco(_precoPadrao.text);
+    if (precoPadrao == null || precoPadrao < 0) {
+      AppSnackBar.aviso(context, 'Informe um preço padrão válido.');
+      return;
+    }
     setState(() => _salvando = true);
     try {
       if (_fotoSelecionada != null) {
@@ -314,6 +339,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
         'dsproduto': _descricao.text.trim().isEmpty
             ? null
             : _descricao.text.trim(),
+        'vrprecopadrao': precoPadrao,
         'sitproduto': _situacao,
         if (widget.item != null) 'skuproduto': widget.item!['skuproduto'],
         'urlfotoproduto': _fotoUrl,
@@ -382,6 +408,26 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                           labelText: 'Descrição',
                           border: OutlineInputBorder(),
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _precoPadrao,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Preço padrão',
+                          prefixText: 'R\$ ',
+                          helperText:
+                              'Sugestão inicial ao incluir no cardápio.',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (valor) {
+                          final preco = _numeroPreco(valor);
+                          return preco == null || preco < 0
+                              ? 'Informe um preço válido.'
+                              : null;
+                        },
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
@@ -460,7 +506,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                       ),
                       const SizedBox(height: 16),
                       const Text(
-                        'Preço, promoção e cashback são definidos quando este produto for incluído em um cardápio.',
+                        'O preço padrão é apenas uma sugestão. O preço, a promoção e o cashback definidos no cardápio são os que valem para venda.',
                         style: TextStyle(color: ClubbarColors.textoSecundario),
                       ),
                       if (widget.item != null) ...[

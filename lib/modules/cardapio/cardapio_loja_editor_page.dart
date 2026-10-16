@@ -340,7 +340,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                         return ListTile(
                           title: Text('${produto['nmproduto']}'),
                           subtitle: Text(
-                            _moeda.format(_valor(produto['vrprecoprod'])),
+                            'Preço padrão: ${_moeda.format(_valor(produto['vrprecopadrao']))}',
                           ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => Navigator.pop(dialogContext, produto),
@@ -366,7 +366,10 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   Future<void> _adicionarProduto(Map<String, dynamic> categoria) async {
     final produto = await _escolherProduto(categoria);
     if (produto == null || !mounted) return;
-    final preco = await _informarPrecoInicial('${produto['nmproduto']}');
+    final preco = await _informarPrecoInicial(
+      '${produto['nmproduto']}',
+      precoPadrao: _valor(produto['vrprecopadrao']),
+    );
     if (preco == null || !mounted) return;
 
     final item = <String, dynamic>{
@@ -407,8 +410,13 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     _marcarAlterado();
   }
 
-  Future<double?> _informarPrecoInicial(String nomeProduto) async {
-    final controller = TextEditingController();
+  Future<double?> _informarPrecoInicial(
+    String nomeProduto, {
+    required double precoPadrao,
+  }) async {
+    final controller = TextEditingController(
+      text: precoPadrao.toStringAsFixed(2).replaceAll('.', ','),
+    );
     final valor = await showDialog<double>(
       context: context,
       barrierDismissible: false,
@@ -418,10 +426,11 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
           controller: controller,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Preço neste cardápio',
             prefixText: 'R\$ ',
-            helperText: 'Use 0,00 para configurar uma cortesia.',
+            helperText:
+                'Preço padrão: ${_moeda.format(precoPadrao)}. Use 0,00 para configurar uma cortesia.',
             border: OutlineInputBorder(),
           ),
         ),

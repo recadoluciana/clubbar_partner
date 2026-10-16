@@ -120,6 +120,7 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
             'dsproduto': '${produto['dsproduto'] ?? ''}'.trim().isEmpty
                 ? null
                 : '${produto['dsproduto']}'.trim(),
+            'vrprecopadrao': produto['vrprecopadrao'] ?? 0,
             'sitproduto': ativo ? 'INATIVO' : 'ATIVO',
             'skuproduto': produto['skuproduto'],
             'urlfotoproduto': produto['urlfotoproduto'],
@@ -146,6 +147,8 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
     final alterandoSituacao =
         _produtoComSituacaoAlterando == int.parse('${produto['produto_id']}');
     final descricao = '${produto['dsproduto'] ?? ''}'.trim();
+    final precoPadrao =
+        double.tryParse('${produto['vrprecopadrao'] ?? 0}') ?? 0;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
@@ -193,6 +196,16 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
                       const SizedBox(height: 3),
                       Text(
                         descricao.isEmpty ? 'Sem descrição' : descricao,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: ClubbarColors.textoSecundario,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Preço padrão: R\$ ${precoPadrao.toStringAsFixed(2).replaceAll('.', ',')}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
