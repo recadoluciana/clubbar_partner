@@ -428,8 +428,6 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
                       padding: const EdgeInsets.all(16),
                       children: [
                         _resumo(cardapio),
-                        const SizedBox(height: 16),
-                        _acoes(),
                         const SizedBox(height: 20),
                         const Text(
                           'Lojas associadas',
@@ -463,53 +461,48 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
   Widget _resumo(Map<String, dynamic> cardapio) => Card(
     child: Padding(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.menu_book_rounded,
-            color: ClubbarColors.primaria,
-            size: 34,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${cardapio['nmcardapio']}',
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
+            children: [
+              const Icon(
+                Icons.menu_book_rounded,
+                color: ClubbarColors.primaria,
+                size: 34,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _badgeTipo('${cardapio['tipocardapio']}'),
                     Text(
-                      '${cardapio['quantidade_produtos'] ?? 0} produtos • ${_associacoes.length} lojas',
+                      '${cardapio['nmcardapio']}',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _badgeTipo('${cardapio['tipocardapio']}'),
+                        Text(
+                          '${cardapio['quantidade_produtos'] ?? 0} produtos • ${_associacoes.length} lojas',
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          Wrap(
-            spacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Chip(
-                avatar: Icon(
-                  _publicado
-                      ? Icons.check_circle
-                      : Icons.visibility_off_outlined,
-                  size: 18,
-                  color: _publicado ? Colors.green.shade700 : null,
-                ),
-                label: Text(_publicado ? 'Publicado' : 'Não publicado'),
+              ),
+              IconButton(
+                tooltip: 'Editar nome do cardápio',
+                onPressed: _renomear,
+                color: Colors.blue.shade700,
+                icon: const Icon(Icons.edit_outlined),
               ),
               IconButton(
                 tooltip: 'Excluir cardápio',
@@ -517,6 +510,42 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
                 color: Colors.red.shade700,
                 icon: const Icon(Icons.delete_outline_rounded),
               ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Chip(
+            avatar: Icon(
+              _publicado ? Icons.check_circle : Icons.visibility_off_outlined,
+              size: 18,
+              color: _publicado ? Colors.green.shade700 : null,
+            ),
+            label: Text(_publicado ? 'Publicado' : 'Não publicado'),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: _editarConteudo,
+                icon: const Icon(Icons.menu_book_rounded),
+                label: const Text('Montar cardápio'),
+              ),
+              FilledButton.icon(
+                onPressed: _rascunho == null ? null : _publicar,
+                icon: const Icon(Icons.publish_outlined),
+                label: const Text('Publicar cardápio'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              if (_publicado)
+                OutlinedButton.icon(
+                  onPressed: _retirarPublicacao,
+                  icon: const Icon(Icons.visibility_off_outlined),
+                  label: const Text('Retirar publicação'),
+                ),
             ],
           ),
         ],
@@ -539,34 +568,6 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
       ),
     );
   }
-
-  Widget _acoes() => Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: [
-      FilledButton.icon(
-        onPressed: _editarConteudo,
-        icon: const Icon(Icons.menu_book_rounded),
-        label: const Text('Montar cardápio'),
-      ),
-      IconButton.outlined(
-        onPressed: _renomear,
-        icon: const Icon(Icons.edit_outlined),
-        tooltip: 'Editar nome do cardápio',
-      ),
-      FilledButton.icon(
-        onPressed: _rascunho == null ? null : _publicar,
-        icon: const Icon(Icons.publish_outlined),
-        label: const Text('Publicar'),
-      ),
-      if (_publicado)
-        OutlinedButton.icon(
-          onPressed: _retirarPublicacao,
-          icon: const Icon(Icons.visibility_off_outlined),
-          label: const Text('Retirar publicação'),
-        ),
-    ],
-  );
 
   Widget _cardLoja(Loja loja) {
     final associacao = _associacao(loja);
