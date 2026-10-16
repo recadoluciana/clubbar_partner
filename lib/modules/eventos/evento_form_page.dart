@@ -15,8 +15,8 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../models/atracao.dart';
 import '../../models/evento.dart';
-import 'evento_modelo_atracoes_page.dart';
 
 class EventoFormPage extends StatefulWidget {
   final int organizacaoId;
@@ -61,6 +61,9 @@ class _EventoFormPageState extends State<EventoFormPage> {
   String _nomeEmpresa = 'Empresa';
   int _etapa = 0;
   int? _modeloCriadoId;
+  List<EventoModeloAtracao> _atracoes = [];
+  List<Atracao> _catalogoAtracoes = [];
+  bool _carregandoAtracoes = false;
 
   bool get _editando => widget.evento != null;
   bool get _ultimaEtapa => _etapa == _nomesEtapas.length - 1;
@@ -202,7 +205,10 @@ class _EventoFormPageState extends State<EventoFormPage> {
   Future<void> _avancar({bool pularBanner = false}) async {
     if (!pularBanner && !_validarEtapa(_etapa)) return;
     if (_etapa == _nomesEtapas.length - 2) {
-      if (await _salvarDados()) await _irParaEtapa(_etapa + 1);
+      if (await _salvarDados()) {
+        await _carregarAtracoes();
+        if (mounted) await _irParaEtapa(_etapa + 1);
+      }
       return;
     }
     await _irParaEtapa(_etapa + 1);
@@ -638,16 +644,190 @@ class _EventoFormPageState extends State<EventoFormPage> {
     ),
   );
 
-  Future<void> _gerenciarAtracoes() async {
+  Future<void> _carregarAtracoes() async {
     if (_modeloId == 0) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EventoModeloAtracoesPage(
-          modeloId: _modeloId,
-          titulo: _tituloController.text.trim(),
+    setState(() => _carregandoAtracoes = true);
+    try {
+      final resultados = await Future.wait([
+        _repo.listarAtracoesPadrao(_modeloId),
+        _repo.listarAtracoesDisponiveis(_modeloId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _atracoes = resultados[0] as List<EventoModeloAtracao>;
+        _catalogoAtracoes = resultados[1] as List<Atracao>;
+      });
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, _mensagemErro(erro));
+    } finally {
+      if (mounted) setState(() => _carregandoAtracoes = false);
+    }
+  }
+
+  String _tempoAtracao(int minutos) => minutos < 60
+      ? '$minutos min'
+      : '${minutos ~/ 60}h${minutos % 60 == 0 ? '' : ' ${minutos % 60} min'}';
+
+  Future<void> _editarAtracao([EventoModeloAtracao? atual]) async {
+    final selecionadas = _atracoes
+        .where((item) => item.id != atual?.id)
+        .map((item) => item.atracaoId)
+        .toSet();
+    final opcoes = _catalogoAtracoes
+        .where((atracao) => !selecionadas.contains(atracao.atracaoId))
+        .toList(growable: false);
+    if (opcoes.isEmpty) {
+      AppSnackBar.aviso(
+        context,
+        atual == null
+            ? 'Todas as atrações cadastradas já foram incluídas neste evento.'
+            : 'Nenhuma atração disponível para esta edição.',
+      );
+      return;
+    }
+
+    var atracaoId = atual?.atracaoId ?? opcoes.first.atracaoId;
+    final ordem = TextEditingController(
+      text: '${atual?.ordem ?? (_atracoes.length + 1)}',
+    );
+    final duracao = TextEditingController(
+      text: '${atual?.minutoDuracao ?? 120}',
+    );
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(atual == null ? 'Adicionar atração' : 'Editar atração'),
+          content: SizedBox(
+            width: 430,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<int>(
+                    initialValue: atracaoId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Atração',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: opcoes
+                        .map(
+                          (atracao) => DropdownMenuItem(
+                            value: atracao.atracaoId,
+                            child: Text(atracao.nome),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (valor) =>
+                        setDialogState(() => atracaoId = valor!),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: ordem,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Ordem de apresentação',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: duracao,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Duração prevista',
+                      suffixText: 'min',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Salvar'),
+            ),
+          ],
         ),
       ),
     );
+    if (confirmou != true || !mounted) {
+      ordem.dispose();
+      duracao.dispose();
+      return;
+    }
+
+    final ordemInformada = int.tryParse(ordem.text);
+    final duracaoInformada = int.tryParse(duracao.text);
+    if (ordemInformada == null ||
+        ordemInformada < 1 ||
+        duracaoInformada == null ||
+        duracaoInformada < 1) {
+      AppSnackBar.aviso(context, 'Confira a ordem e a duração informadas.');
+      ordem.dispose();
+      duracao.dispose();
+      return;
+    }
+    if (selecionadas.contains(atracaoId)) {
+      AppSnackBar.aviso(context, 'Esta atração já foi adicionada ao evento.');
+      ordem.dispose();
+      duracao.dispose();
+      return;
+    }
+
+    try {
+      await _repo.salvarAtracaoPadrao(
+        modeloId: _modeloId,
+        item: atual,
+        atracaoId: atracaoId,
+        ordem: ordemInformada,
+        minutoDuracao: duracaoInformada,
+      );
+      await _carregarAtracoes();
+      if (mounted) AppSnackBar.sucesso(context, 'Atração salva.');
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, _mensagemErro(erro));
+    } finally {
+      ordem.dispose();
+      duracao.dispose();
+    }
+  }
+
+  Future<void> _excluirAtracao(EventoModeloAtracao item) async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir atração?'),
+        content: Text(
+          'A atração “${item.nomeAtracao}” deixará de ser copiada para as próximas datas.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true) return;
+    try {
+      await _repo.excluirAtracaoPadrao(item.id);
+      await _carregarAtracoes();
+      if (mounted) AppSnackBar.sucesso(context, 'Atração excluída.');
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, _mensagemErro(erro));
+    }
   }
 
   Widget _passoAtracoes() => _cardEtapa(
@@ -678,11 +858,77 @@ class _EventoFormPageState extends State<EventoFormPage> {
           ),
         ),
         const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: _salvando ? null : _gerenciarAtracoes,
-          icon: const Icon(Icons.queue_music_rounded),
-          label: const Text('Gerenciar atrações'),
-        ),
+        if (_carregandoAtracoes)
+          const Center(child: CircularProgressIndicator())
+        else ...[
+          if (_atracoes.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Nenhuma atração adicionada ainda.',
+                style: TextStyle(color: ClubbarColors.textoSecundario),
+              ),
+            )
+          else
+            ..._atracoes.map(
+              (item) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+                decoration: BoxDecoration(
+                  color: ClubbarColors.branco,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: ClubbarColors.borda),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: ClubbarColors.sucessoClaro,
+                      foregroundColor: ClubbarColors.sucesso,
+                      child: Text('${item.ordem}'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.nomeAtracao,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Ordem ${item.ordem} • Duração: ${_tempoAtracao(item.minutoDuracao)}',
+                            style: const TextStyle(
+                              color: ClubbarColors.textoSecundario,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Editar atração',
+                      onPressed: _salvando ? null : () => _editarAtracao(item),
+                      icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                    ),
+                    IconButton(
+                      tooltip: 'Excluir atração',
+                      onPressed: _salvando ? null : () => _excluirAtracao(item),
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: ClubbarColors.erro,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          OutlinedButton.icon(
+            onPressed: _salvando ? null : () => _editarAtracao(),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Adicionar atração'),
+          ),
+        ],
       ],
     ),
   );
