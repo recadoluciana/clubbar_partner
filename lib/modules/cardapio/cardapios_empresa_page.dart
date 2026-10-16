@@ -136,6 +136,9 @@ class _CardapiosEmpresaPageState extends State<CardapiosEmpresaPage> {
     return 'Lojas: ${lojas.map((loja) => loja['nmfantasialoja']).join(', ')}';
   }
 
+  bool _ehEspecial(Map<String, dynamic> cardapio) =>
+      '${cardapio['tipocardapio']}'.trim().toUpperCase() == 'ESPECIAL';
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
@@ -173,34 +176,46 @@ class _CardapiosEmpresaPageState extends State<CardapiosEmpresaPage> {
                           ),
                         ),
                       for (final cardapio in _cardapios)
-                        Card(
-                          child: ListTile(
-                            leading: const Icon(
-                              Icons.menu_book_rounded,
-                              color: ClubbarColors.primaria,
-                            ),
-                            title: Text('${cardapio['nmcardapio']}'),
-                            subtitle: Text(
-                              '${cardapio['tipocardapio']} • ${cardapio['quantidade_produtos'] ?? 0} produtos\n${_lojasTexto(cardapio)}',
-                            ),
-                            isThreeLine: true,
-                            trailing: const Icon(Icons.chevron_right_rounded),
-                            onTap: () async {
-                              final alterado = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => CardapioGestaoEmpresaPage(
-                                    organizacaoId: widget.organizacaoId,
-                                    nomeOrganizacao: widget.nomeOrganizacao,
-                                    cardapioId: int.parse(
-                                      '${cardapio['cardapio_id']}',
-                                    ),
-                                  ),
+                        Builder(
+                          builder: (context) {
+                            final especial = _ehEspecial(cardapio);
+                            final cor = especial
+                                ? Colors.deepPurple
+                                : ClubbarColors.primaria;
+                            return Card(
+                              child: ListTile(
+                                leading: Icon(
+                                  especial
+                                      ? Icons.auto_awesome_rounded
+                                      : Icons.menu_book_rounded,
+                                  color: cor,
                                 ),
-                              );
-                              if (alterado == true && mounted) _carregar();
-                            },
-                          ),
+                                title: Text('${cardapio['nmcardapio']}'),
+                                subtitle: Text(
+                                  '${cardapio['tipocardapio']} • ${cardapio['quantidade_produtos'] ?? 0} produtos\n${_lojasTexto(cardapio)}',
+                                ),
+                                isThreeLine: true,
+                                trailing: const Icon(
+                                  Icons.chevron_right_rounded,
+                                ),
+                                onTap: () async {
+                                  final alterado = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CardapioGestaoEmpresaPage(
+                                        organizacaoId: widget.organizacaoId,
+                                        nomeOrganizacao: widget.nomeOrganizacao,
+                                        cardapioId: int.parse(
+                                          '${cardapio['cardapio_id']}',
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                  if (alterado == true && mounted) _carregar();
+                                },
+                              ),
+                            );
+                          },
                         ),
                     ],
                   ),
