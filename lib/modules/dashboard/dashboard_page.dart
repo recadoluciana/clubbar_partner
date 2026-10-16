@@ -427,6 +427,24 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Widget _tituloBloco(String titulo, IconData icone) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
+    child: Row(
+      children: [
+        Icon(icone, size: 20, color: ClubbarColors.primariaEscuro),
+        const SizedBox(width: 8),
+        Text(
+          titulo,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            color: ClubbarColors.primariaEscuro,
+          ),
+        ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -462,6 +480,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   : ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
+                        _tituloBloco('Empresa', Icons.business_rounded),
                         _opcao(
                           titulo: 'Empresa',
                           subtitulo: _podeEditarOrganizacao
@@ -482,10 +501,14 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: _abrirLojas,
                         ),
                         const SizedBox(height: 14),
+                        _tituloBloco(
+                          'Atrações e estilos',
+                          Icons.music_note_rounded,
+                        ),
                         _opcao(
                           titulo: 'Estilos musicais',
                           subtitulo: _podeGerenciarAtracoes
-                              ? 'Gerencie os estilos usados nos establecimentos e nas atrações.'
+                              ? 'Gerencie os estilos usados nos estabelecimentos e nas atrações.'
                               : 'Disponível para administradores da empresa.',
                           icone: Icons.library_music_rounded,
                           onTap: _podeGerenciarAtracoes
@@ -502,6 +525,10 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: _podeGerenciarAtracoes ? _abrirAtracoes : null,
                         ),
                         const SizedBox(height: 14),
+                        _tituloBloco(
+                          'Produtos e cardápios',
+                          Icons.shopping_bag_outlined,
+                        ),
                         _opcao(
                           titulo: 'Categoria de produto',
                           subtitulo:
@@ -538,6 +565,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               : null,
                         ),
                         const SizedBox(height: 14),
+                        _tituloBloco('Eventos', Icons.event_note_rounded),
                         _opcao(
                           titulo: 'Modalidades e benefícios',
                           subtitulo:
@@ -566,6 +594,10 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: _abrirAgendaMensal,
                         ),
                         const SizedBox(height: 14),
+                        _tituloBloco(
+                          'Financeiro',
+                          Icons.account_balance_wallet_rounded,
+                        ),
                         _opcao(
                           titulo: 'Titular financeiro',
                           subtitulo:
@@ -575,6 +607,26 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _opcao(
+                          titulo: 'Extrato Asaas',
+                          subtitulo:
+                              'Consulte o saldo e as transações recebidas na sua subconta.',
+                          icone: Icons.receipt_long_rounded,
+                          onTap: _podeVerGerencial ? _abrirExtratoAsaas : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Cancelamentos em processamento',
+                          subtitulo: _podeReconciliarCancelamentos
+                              ? 'Consulte o Asaas e conclua ou reverta cancelamentos pendentes.'
+                              : 'Disponível para administradores da empresa.',
+                          icone: Icons.currency_exchange_rounded,
+                          onTap: _podeReconciliarCancelamentos
+                              ? _abrirReconciliacaoCancelamentos
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _tituloBloco('Gestão e operação', Icons.tune_rounded),
+                        _opcao(
                           titulo: 'Para quem doar?',
                           subtitulo:
                               'Destine parte das vendas a entidades ou campanhas emergenciais.',
@@ -582,14 +634,6 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: _podeVerGerencial
                               ? _abrirCampanhasDoacao
                               : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Extrato Asaas',
-                          subtitulo:
-                              'Consulte o saldo e as transações recebidas na sua subconta.',
-                          icone: Icons.receipt_long_rounded,
-                          onTap: _podeVerGerencial ? _abrirExtratoAsaas : null,
                         ),
                         const SizedBox(height: 14),
                         _opcao(
@@ -626,17 +670,6 @@ class _DashboardPageState extends State<DashboardPage> {
                           icone: Icons.delivery_dining_rounded,
                           onTap: _podeVerGerencial
                               ? _abrirPedidosEntrega
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Cancelamentos em processamento',
-                          subtitulo: _podeReconciliarCancelamentos
-                              ? 'Consulte o Asaas e conclua ou reverta cancelamentos pendentes.'
-                              : 'Disponível para administradores da empresa.',
-                          icone: Icons.currency_exchange_rounded,
-                          onTap: _podeReconciliarCancelamentos
-                              ? _abrirReconciliacaoCancelamentos
                               : null,
                         ),
                         const SizedBox(height: 14),
