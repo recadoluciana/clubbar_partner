@@ -768,7 +768,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: ClubbarColors.ambar,
-              foregroundColor: ClubbarColors.preto,
+              foregroundColor: ClubbarColors.branco,
             ),
           ),
         ],
