@@ -1342,114 +1342,164 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     final limite = TextEditingController(
       text: atual.limiteModalidade?.toString() ?? '',
     );
+    final minutos = TextEditingController(
+      text: atual.minutosAposInicio?.toString() ?? '',
+    );
+    var travarEntrada = atual.travarEntradaAposLimite;
+    final ehCortesia = atual.tipo.toUpperCase() == 'CORTESIA';
     final salvou = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Editar ${atual.nome}'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nome,
-                decoration: const InputDecoration(labelText: 'Modalidade'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: valor,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, atualizarDialogo) => AlertDialog(
+          title: Text('Editar ${atual.nome}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nome,
+                  decoration: const InputDecoration(labelText: 'Modalidade'),
                 ),
-                decoration: const InputDecoration(labelText: 'Preço'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: limite,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Limite de ingressos desta modalidade',
-                  helperText:
-                      'Opcional: deixa vazia para usar o limite do setor.',
+                const SizedBox(height: 12),
+                TextField(
+                  controller: valor,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(labelText: 'Preço'),
                 ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'As regras de cota legal, benefício e comprovante são definidas pelo catálogo do Clubbar.',
-                style: TextStyle(fontSize: 12, color: Colors.black54),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: limite,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Limite de ingressos desta modalidade',
+                    helperText:
+                        'Opcional: deixa vazia para usar o limite do setor.',
+                  ),
+                ),
+                if (ehCortesia) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: minutos,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Entrada até quantos minutos após o início?',
+                      helperText:
+                          'Ex.: 60 permite entrada até uma hora após o início.',
+                    ),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: travarEntrada,
+                    onChanged: (valor) =>
+                        atualizarDialogo(() => travarEntrada = valor),
+                    title: const Text('Travar entrada após este horário'),
+                    subtitle: const Text(
+                      'O QR Code será recusado depois do horário calculado.',
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                const Text(
+                  'As regras de cota legal, benefício e comprovante são definidas pelo catálogo do Clubbar.',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final preco = double.tryParse(
-                valor.text.replaceAll('.', '').replaceAll(',', '.'),
-              );
-              if (nome.text.trim().isEmpty || preco == null || preco < 0)
-                return;
-              final textoLimite = limite.text.trim();
-              final limiteModalidade = textoLimite.isEmpty
-                  ? null
-                  : int.tryParse(textoLimite);
-              final capacidadeSetor =
-                  configuracao.qttotallote ??
-                  configuracao.qtCapacidadeSetor ??
-                  0;
-              if ((textoLimite.isNotEmpty && limiteModalidade == null) ||
-                  (limiteModalidade != null &&
-                      (limiteModalidade <= 0 ||
-                          limiteModalidade > capacidadeSetor))) {
-                AppSnackBar.aviso(
-                  context,
-                  'Informe um limite entre 1 e $capacidadeSetor ingressos.',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final preco = double.tryParse(
+                  valor.text.replaceAll('.', '').replaceAll(',', '.'),
                 );
-                return;
-              }
-              try {
-                final modalidades = configuracao.precos
-                    .map(
-                      (item) => item.id == atual.id
-                          ? EventoLotePreco(
-                              id: item.id,
-                              modalidadeId: item.modalidadeId,
-                              nome: nome.text.trim(),
-                              tipo: item.tipo,
-                              valor: preco,
-                              limiteModalidade: limiteModalidade,
-                              aplicaCotaLegal: item.aplicaCotaLegal,
-                              exigeComprovante: item.exigeComprovante,
-                              situacao: item.situacao,
-                              ordem: item.ordem,
-                            )
-                          : item,
-                    )
-                    .toList();
-                await _repo.atualizarConfiguracaoSetor(
-                  loteId: configuracao.loteId,
-                  precos: modalidades,
-                );
-                if (context.mounted) Navigator.pop(context, true);
-              } catch (erro) {
-                if (context.mounted)
-                  AppSnackBar.erro(
+                if (nome.text.trim().isEmpty || preco == null || preco < 0)
+                  return;
+                final textoLimite = limite.text.trim();
+                final limiteModalidade = textoLimite.isEmpty
+                    ? null
+                    : int.tryParse(textoLimite);
+                final textoMinutos = minutos.text.trim();
+                final minutosAposInicio = textoMinutos.isEmpty
+                    ? null
+                    : int.tryParse(textoMinutos);
+                final capacidadeSetor =
+                    configuracao.qttotallote ??
+                    configuracao.qtCapacidadeSetor ??
+                    0;
+                if ((textoLimite.isNotEmpty && limiteModalidade == null) ||
+                    (limiteModalidade != null &&
+                        (limiteModalidade <= 0 ||
+                            limiteModalidade > capacidadeSetor))) {
+                  AppSnackBar.aviso(
                     context,
-                    erro.toString().replaceFirst('Exception: ', ''),
+                    'Informe um limite entre 1 e $capacidadeSetor ingressos.',
                   );
-              }
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
+                  return;
+                }
+                if (ehCortesia &&
+                    ((textoMinutos.isNotEmpty &&
+                            (minutosAposInicio == null ||
+                                minutosAposInicio <= 0)) ||
+                        (travarEntrada && minutosAposInicio == null))) {
+                  AppSnackBar.aviso(
+                    context,
+                    'Informe os minutos após o início para travar a entrada.',
+                  );
+                  return;
+                }
+                try {
+                  final modalidades = configuracao.precos
+                      .map(
+                        (item) => item.id == atual.id
+                            ? EventoLotePreco(
+                                id: item.id,
+                                modalidadeId: item.modalidadeId,
+                                nome: nome.text.trim(),
+                                tipo: item.tipo,
+                                valor: preco,
+                                limiteModalidade: limiteModalidade,
+                                minutosAposInicio: ehCortesia
+                                    ? minutosAposInicio
+                                    : null,
+                                travarEntradaAposLimite:
+                                    ehCortesia && travarEntrada,
+                                aplicaCotaLegal: item.aplicaCotaLegal,
+                                exigeComprovante: item.exigeComprovante,
+                                situacao: item.situacao,
+                                ordem: item.ordem,
+                              )
+                            : item,
+                      )
+                      .toList();
+                  await _repo.atualizarConfiguracaoSetor(
+                    loteId: configuracao.loteId,
+                    precos: modalidades,
+                  );
+                  if (context.mounted) Navigator.pop(context, true);
+                } catch (erro) {
+                  if (context.mounted)
+                    AppSnackBar.erro(
+                      context,
+                      erro.toString().replaceFirst('Exception: ', ''),
+                    );
+                }
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
       ),
     );
     nome.dispose();
     valor.dispose();
     limite.dispose();
+    minutos.dispose();
     if (salvou == true && mounted) _carregar();
   }
 
@@ -1615,6 +1665,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ).toStringAsFixed(2).replaceAll('.', ','),
     );
     final limite = TextEditingController();
+    final minutos = TextEditingController();
+    var travarEntrada = false;
     final salvou = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -1646,6 +1698,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         configuracao,
                         modalidade,
                       ).toStringAsFixed(2).replaceAll('.', ',');
+                      if (modalidade.codigo.toUpperCase() != 'CORTESIA') {
+                        minutos.clear();
+                        travarEntrada = false;
+                      }
                     });
                   },
                 ),
@@ -1668,6 +1724,29 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         'Opcional: deixa vazio para usar o limite do setor.',
                   ),
                 ),
+                if (modalidadeSelecionada.codigo.toUpperCase() ==
+                    'CORTESIA') ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: minutos,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Entrada até quantos minutos após o início?',
+                      helperText:
+                          'Ex.: 60 permite entrada até uma hora após o início.',
+                    ),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: travarEntrada,
+                    onChanged: (valor) =>
+                        atualizarDialogo(() => travarEntrada = valor),
+                    title: const Text('Travar entrada após este horário'),
+                    subtitle: const Text(
+                      'O QR Code será recusado depois do horário calculado.',
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 const Text(
                   'As regras de benefício e comprovante são aplicadas automaticamente conforme a modalidade.',
@@ -1694,6 +1773,10 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 final limiteModalidade = textoLimite.isEmpty
                     ? null
                     : int.tryParse(textoLimite);
+                final textoMinutos = minutos.text.trim();
+                final minutosAposInicio = textoMinutos.isEmpty
+                    ? null
+                    : int.tryParse(textoMinutos);
                 final capacidadeSetor =
                     configuracao.qttotallote ??
                     configuracao.qtCapacidadeSetor ??
@@ -1705,6 +1788,17 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   AppSnackBar.aviso(
                     context,
                     'Informe um limite entre 1 e $capacidadeSetor ingressos.',
+                  );
+                  return;
+                }
+                if (modalidadeSelecionada.codigo.toUpperCase() == 'CORTESIA' &&
+                    ((textoMinutos.isNotEmpty &&
+                            (minutosAposInicio == null ||
+                                minutosAposInicio <= 0)) ||
+                        (travarEntrada && minutosAposInicio == null))) {
+                  AppSnackBar.aviso(
+                    context,
+                    'Informe os minutos após o início para travar a entrada.',
                   );
                   return;
                 }
@@ -1722,6 +1816,15 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                           ? 0
                           : preco,
                       limiteModalidade: limiteModalidade,
+                      minutosAposInicio:
+                          modalidadeSelecionada.codigo.toUpperCase() ==
+                              'CORTESIA'
+                          ? minutosAposInicio
+                          : null,
+                      travarEntradaAposLimite:
+                          modalidadeSelecionada.codigo.toUpperCase() ==
+                              'CORTESIA' &&
+                          travarEntrada,
                       aplicaCotaLegal: modalidadeSelecionada.aplicaCotaLegal,
                       exigeComprovante: modalidadeSelecionada.exigeComprovante,
                       situacao: 'ATIVO',
@@ -1747,6 +1850,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     );
     valor.dispose();
     limite.dispose();
+    minutos.dispose();
     if (salvou == true && mounted) _carregar();
   }
 

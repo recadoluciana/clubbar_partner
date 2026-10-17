@@ -141,6 +141,8 @@ class EventoLotePreco {
   final String tipo;
   final double valor;
   final int? limiteModalidade;
+  final int? minutosAposInicio;
+  final bool travarEntradaAposLimite;
   final bool aplicaCotaLegal;
   final bool exigeComprovante;
   final String situacao;
@@ -152,6 +154,8 @@ class EventoLotePreco {
     required this.tipo,
     required this.valor,
     this.limiteModalidade,
+    this.minutosAposInicio,
+    this.travarEntradaAposLimite = false,
     required this.aplicaCotaLegal,
     required this.exigeComprovante,
     this.situacao = 'ATIVO',
@@ -164,6 +168,8 @@ class EventoLotePreco {
     tipo: '${j['tipopreco'] ?? ''}',
     valor: (j['vrpreco'] as num?)?.toDouble() ?? 0,
     limiteModalidade: (j['qtlimitemodalidade'] as num?)?.toInt(),
+    minutosAposInicio: (j['nrminutosaposinicio'] as num?)?.toInt(),
+    travarEntradaAposLimite: j['travarentradaaposlimite'] == true,
     aplicaCotaLegal: j['aplicacotalegal'] == true,
     exigeComprovante: j['exigecomprovante'] == true,
     situacao: '${j['situacao'] ?? 'ATIVO'}',
