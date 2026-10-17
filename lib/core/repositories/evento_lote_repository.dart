@@ -358,6 +358,29 @@ class EventoLoteRepository {
     }
   }
 
+  Future<void> atualizarModalidadeDoSetor({
+    required int loteId,
+    required EventoLotePreco preco,
+  }) async {
+    final response =
+        await ApiService.put('/eventos/lotes/$loteId/modalidades/${preco.id}', {
+          'modalidade_id': preco.modalidadeId,
+          'nmpreco': preco.nome.trim(),
+          'tipopreco': preco.tipo,
+          'vrpreco': preco.valor,
+          'qtlimitemodalidade': preco.limiteModalidade,
+          'nrminutosaposinicio': preco.minutosAposInicio,
+          'travarentradaaposlimite': preco.travarEntradaAposLimite,
+          'aplicacotalegal': preco.aplicaCotaLegal,
+          'exigecomprovante': preco.exigeComprovante,
+          'situacao': preco.situacao,
+          'nrordem': preco.ordem,
+        });
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível atualizar a modalidade.');
+    }
+  }
+
   Future<void> adicionarModalidadeAoSetor({
     required int loteId,
     required EventoLotePreco preco,

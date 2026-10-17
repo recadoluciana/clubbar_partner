@@ -1454,32 +1454,22 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   return;
                 }
                 try {
-                  final modalidades = configuracao.precos
-                      .map(
-                        (item) => item.id == atual.id
-                            ? EventoLotePreco(
-                                id: item.id,
-                                modalidadeId: item.modalidadeId,
-                                nome: nome.text.trim(),
-                                tipo: item.tipo,
-                                valor: preco,
-                                limiteModalidade: limiteModalidade,
-                                minutosAposInicio: ehCortesia
-                                    ? minutosAposInicio
-                                    : null,
-                                travarEntradaAposLimite:
-                                    ehCortesia && travarEntrada,
-                                aplicaCotaLegal: item.aplicaCotaLegal,
-                                exigeComprovante: item.exigeComprovante,
-                                situacao: item.situacao,
-                                ordem: item.ordem,
-                              )
-                            : item,
-                      )
-                      .toList();
-                  await _repo.atualizarConfiguracaoSetor(
+                  await _repo.atualizarModalidadeDoSetor(
                     loteId: configuracao.loteId,
-                    precos: modalidades,
+                    preco: EventoLotePreco(
+                      id: atual.id,
+                      modalidadeId: atual.modalidadeId,
+                      nome: nome.text.trim(),
+                      tipo: atual.tipo,
+                      valor: preco,
+                      limiteModalidade: limiteModalidade,
+                      minutosAposInicio: ehCortesia ? minutosAposInicio : null,
+                      travarEntradaAposLimite: ehCortesia && travarEntrada,
+                      aplicaCotaLegal: atual.aplicaCotaLegal,
+                      exigeComprovante: atual.exigeComprovante,
+                      situacao: atual.situacao,
+                      ordem: atual.ordem,
+                    ),
                   );
                   if (context.mounted) Navigator.pop(context, true);
                 } catch (erro) {
