@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/repositories/evento_lote_repository.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -132,7 +133,7 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
   Future<DateTime?> _selecionar(DateTime? atual) async {
     final data = await showDatePicker(
       context: context,
-      initialDate: atual ?? DateTime.now(),
+      initialDate: atual ?? HorarioBrasil.agora(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
       calendarDelegate: const ClubbarCalendarDelegate(),

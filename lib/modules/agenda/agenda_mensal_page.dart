@@ -5,6 +5,7 @@ import '../../core/config/api_config.dart';
 import '../../core/repositories/atracao_repository.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_calendar_delegate.dart';
@@ -29,7 +30,10 @@ class AgendaMensalPage extends StatefulWidget {
 
 class _AgendaMensalPageState extends State<AgendaMensalPage> {
   final _repo = AtracaoRepository();
-  DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _mes = DateTime(
+    HorarioBrasil.agora().year,
+    HorarioBrasil.agora().month,
+  );
   List<AgendaEvento> _eventos = [];
   bool _loading = true;
   String? _erro;
@@ -137,7 +141,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   }).toList();
 
   bool _diaPassado(DateTime dia) {
-    final hoje = DateTime.now();
+    final hoje = HorarioBrasil.agora();
     final dataHoje = DateTime(hoje.year, hoje.month, hoje.day);
     final dataDia = DateTime(dia.year, dia.month, dia.day);
     return dataDia.isBefore(dataHoje);

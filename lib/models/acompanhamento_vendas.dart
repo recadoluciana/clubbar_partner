@@ -1,3 +1,5 @@
+import '../core/utils/horario_brasil.dart';
+
 class ProdutoPendente {
   final int lojaId;
   final String loja;
@@ -207,7 +209,8 @@ class IngressoVendido {
         preco: (json['preco'] as num?)?.toDouble() ?? 0,
         taxa: (json['taxa'] as num?)?.toDouble() ?? 0,
         vendaId: (json['venda_id'] as num).toInt(),
-        dataCompra: DateTime.parse(json['dtcompra'].toString()),
+        dataCompra:
+            HorarioBrasil.deTextoUtc(json['dtcompra']) ?? DateTime(1970),
         cliente: json['cliente']?.toString() ?? '',
         participante: json['participante']?.toString() ?? '',
         cpfParticipante: json['cpf_participante']?.toString() ?? '',

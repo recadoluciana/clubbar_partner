@@ -5,6 +5,7 @@ import '../../core/config/api_config.dart';
 import '../../core/repositories/atracao_repository.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -21,7 +22,10 @@ class AgendaConsultaPage extends StatefulWidget {
 class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
   static const _tamanhoImagem = 128.0;
   final _repo = AtracaoRepository(), _lojaRepo = LojaRepository();
-  DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _mes = DateTime(
+    HorarioBrasil.agora().year,
+    HorarioBrasil.agora().month,
+  );
   List<Loja> _lojas = [];
   List<AgendaEvento> _eventos = [];
   int? _lojaId;

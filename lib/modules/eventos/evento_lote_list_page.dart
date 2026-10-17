@@ -9,6 +9,7 @@ import '../../core/repositories/atracao_repository.dart';
 import '../../core/repositories/evento_lote_repository.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
@@ -118,7 +119,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   Future<DateTime?> _selecionarDataHora(DateTime? atual) async {
     final data = await showDatePicker(
       context: context,
-      initialDate: atual ?? DateTime.now(),
+      initialDate: atual ?? HorarioBrasil.agora(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
       calendarDelegate: const ClubbarCalendarDelegate(),
@@ -205,7 +206,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _repo.listarModalidadesDoEvento(widget.eventoId),
         _atracaoRepo.agenda(
           widget.lojaId,
-          DateTime.tryParse(_eventoInicio ?? '') ?? DateTime.now(),
+          DateTime.tryParse(_eventoInicio ?? '') ?? HorarioBrasil.agora(),
         ),
         _eventoRepo.obterEventoAgendado(widget.eventoId),
       ]);
@@ -240,7 +241,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       _evento?.dtinicioevento ?? _eventoInicio ?? '',
     );
     if (data == null) return false;
-    final hoje = DateTime.now();
+    final hoje = HorarioBrasil.agora();
     return DateTime(
       data.year,
       data.month,
@@ -451,7 +452,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   }
 
   Future<void> _alterarHorarioEvento() async {
-    final atual = DateTime.tryParse(_eventoInicio ?? '') ?? DateTime.now();
+    final atual =
+        DateTime.tryParse(_eventoInicio ?? '') ?? HorarioBrasil.agora();
     final hora = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(atual),
@@ -518,7 +520,7 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     var atracaoId = atual?.atracao.atracaoId ?? atracoes.first.atracaoId;
     var inicio =
         atual?.inicio ??
-        (DateTime.tryParse(_eventoInicio ?? '') ?? DateTime.now());
+        (DateTime.tryParse(_eventoInicio ?? '') ?? HorarioBrasil.agora());
     var fim = atual?.fim ?? inicio.add(const Duration(hours: 2));
     var salvando = false;
     final salvo = await showDialog<bool>(

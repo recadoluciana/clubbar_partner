@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/repositories/painel_gerencial_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
@@ -38,13 +39,13 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
   String _nomeOrganizacao = 'Empresa não identificada';
   String _cargo = '';
   DateTime _mesSelecionado = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
+    HorarioBrasil.agora().year,
+    HorarioBrasil.agora().month,
   );
 
   bool get _podeTrocarMes => _cargo == 'SUPERADMIN' || _cargo == 'ADMIN';
   bool get _mesAtual {
-    final agora = DateTime.now();
+    final agora = HorarioBrasil.agora();
     return _mesSelecionado.year == agora.year &&
         _mesSelecionado.month == agora.month;
   }
@@ -95,7 +96,8 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
       _mesSelecionado.year,
       _mesSelecionado.month + deslocamento,
     );
-    final atual = DateTime(DateTime.now().year, DateTime.now().month);
+    final agora = HorarioBrasil.agora();
+    final atual = DateTime(agora.year, agora.month);
     if (novo.isAfter(atual)) return;
     setState(() {
       _mesSelecionado = novo;
@@ -217,7 +219,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
   }
 
   Widget _kpis(PainelGerencial painel) {
-    final referenciaMes = painel.periodoFim ?? DateTime.now();
+    final referenciaMes = painel.periodoFim ?? HorarioBrasil.agora();
     final nomeMes = DateFormat('MMMM', 'pt_BR').format(referenciaMes);
 
     final itens = [

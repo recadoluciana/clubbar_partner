@@ -7,6 +7,7 @@ import '../../core/config/api_config.dart';
 import '../../core/repositories/evento_repository.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
@@ -222,7 +223,7 @@ class _EventoListPageState extends State<EventoListPage> {
     int? lojaId = widget.fixarLoja
         ? _lojaIdSelecionada
         : _lojas.firstOrNull?.lojaId;
-    final hoje = DateTime.now();
+    final hoje = HorarioBrasil.agora();
     final hojeSemHora = DateTime(hoje.year, hoje.month, hoje.day);
     final sugestao = widget.dataInicialAgendamento;
     final dataSugerida = sugestao != null && !sugestao.isBefore(hojeSemHora)

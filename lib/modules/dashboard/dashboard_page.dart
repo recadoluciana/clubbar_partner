@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/api_status_indicator.dart';
@@ -44,7 +45,7 @@ class _DashboardPageState extends State<DashboardPage> {
   String _cargo = '';
   int? _organizacaoId;
   bool _carregando = true;
-  DateTime _agora = DateTime.now();
+  DateTime _agora = HorarioBrasil.agora();
   Timer? _timer;
 
   bool get _podeEditarOrganizacao => _cargo == 'SUPERADMIN';
@@ -60,7 +61,7 @@ class _DashboardPageState extends State<DashboardPage> {
     super.initState();
     _carregarDadosUsuario();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _agora = DateTime.now());
+      if (mounted) setState(() => _agora = HorarioBrasil.agora());
     });
   }
 
