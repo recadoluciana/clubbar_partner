@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../models/acompanhamento_vendas.dart';
+import '../../models/cliente_compras.dart';
 import '../services/api_service.dart';
 
 class AcompanhamentoVendasRepository {
@@ -52,6 +53,28 @@ class AcompanhamentoVendasRepository {
               CompraProduto.fromJson(Map<String, dynamic>.from(item as Map)),
         )
         .toList();
+  }
+
+  Future<List<ClienteComCompras>> clientesComCompras({String? busca}) async {
+    final termo = busca?.trim() ?? '';
+    final query = termo.isEmpty
+        ? ''
+        : '?busca=${Uri.encodeQueryComponent(termo)}';
+    final response = await ApiService.get(
+      '/acompanhamento-vendas/clientes$query',
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        _erro(response.body, 'Não foi possível consultar os clientes.'),
+      );
+    }
+    final dados = Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    return ((dados['clientes'] as List?) ?? const [])
+        .whereType<Map>()
+        .map(
+          (item) => ClienteComCompras.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList(growable: false);
   }
 
   Future<List<EventoVendaResumo>> eventos(String periodo) async {

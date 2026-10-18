@@ -27,6 +27,7 @@ import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
 import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
 import '../acompanhamento_vendas/compras_produtos_page.dart';
+import '../clientes/clientes_compras_page.dart';
 import '../eventos/evento_list_page.dart';
 import '../ingressos/catalogo_ingressos_partner_page.dart';
 import '../entregas/pedidos_entrega_page.dart';
@@ -234,6 +235,12 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _abrirComprasProdutos() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const ComprasProdutosPage()),
+    );
+  }
+
+  Future<void> _abrirClientesCompras() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const ClientesComprasPage()),
     );
   }
 
@@ -675,6 +682,16 @@ class _DashboardPageState extends State<DashboardPage> {
                           icone: Icons.receipt_long_rounded,
                           onTap: _podeVerGerencial
                               ? _abrirComprasProdutos
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Clientes e compras',
+                          subtitulo:
+                              'Consulte os cadastros e o histórico completo de compras dos clientes.',
+                          icone: Icons.people_alt_rounded,
+                          onTap: _podeVerGerencial
+                              ? _abrirClientesCompras
                               : null,
                         ),
                         const SizedBox(height: 14),
