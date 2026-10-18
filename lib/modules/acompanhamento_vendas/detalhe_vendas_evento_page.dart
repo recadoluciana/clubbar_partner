@@ -285,22 +285,34 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
             ],
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: _resumo(
-              'Ingressos pendentes',
-              '${detalhe.quantidadePendente}',
-              Icons.pending_actions_rounded,
-              Colors.orange,
-              onDetalhes: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => IngressosVendidosEventoPage(
-                    evento: widget.evento,
-                    apenasPendentes: true,
+          Row(
+            children: [
+              Expanded(
+                child: _resumo(
+                  'Ingressos disponibilizados',
+                  '${detalhe.capacidadeTotal}',
+                  Icons.event_available_rounded,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _resumo(
+                  'Ingressos pendentes',
+                  '${detalhe.quantidadePendente}',
+                  Icons.pending_actions_rounded,
+                  Colors.orange,
+                  onDetalhes: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => IngressosVendidosEventoPage(
+                        evento: widget.evento,
+                        apenasPendentes: true,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
           const SizedBox(height: 10),
           _ocupacao(detalhe),
