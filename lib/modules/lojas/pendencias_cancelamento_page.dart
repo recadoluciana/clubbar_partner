@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -31,9 +32,7 @@ class PendenciasCancelamentoPage extends StatelessWidget {
   }
 
   String _cpf(dynamic valor) {
-    final numeros = (valor?.toString() ?? '').replaceAll(RegExp(r'\D'), '');
-    if (numeros.length != 11) return _texto(valor);
-    return '${numeros.substring(0, 3)}.${numeros.substring(3, 6)}.${numeros.substring(6, 9)}-${numeros.substring(9)}';
+    return Formatters.cpfMascarado(_texto(valor));
   }
 
   Widget _linha(IconData icone, String texto) => Padding(

@@ -52,4 +52,13 @@ class Formatters {
         '${numeros.substring(6, 9)}-'
         '${numeros.substring(9)}';
   }
+
+  /// Exibe somente os dois últimos dígitos do CPF em telas operacionais.
+  static String cpfMascarado(String valor) {
+    final numeros = Validators.somenteNumeros(valor);
+
+    if (numeros.length != 11) return valor;
+
+    return '***.***.***-${numeros.substring(9)}';
+  }
 }

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/repositories/acompanhamento_vendas_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
@@ -135,6 +136,9 @@ class _ClientesComprasPageState extends State<ClientesComprasPage> {
 
   String _valor(String chave, dynamic valor) {
     if (valor == null || valor.toString().trim().isEmpty) return '—';
+    if (chave == 'nrcpfcliente' || chave == 'cpfparticipante') {
+      return Formatters.cpfMascarado('$valor');
+    }
     if (chave.startsWith('dt')) {
       final data = HorarioBrasil.deTextoBrasil(valor);
       if (data != null) return _dataHora.format(data);

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/repositories/acompanhamento_vendas_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/acompanhamento_vendas.dart';
@@ -175,7 +176,10 @@ class _IngressosVendidosEventoPageState
             ),
           _linha('Participante', ingresso.participante),
           if (ingresso.cpfParticipante.isNotEmpty)
-            _linha('CPF do participante', ingresso.cpfParticipante),
+            _linha(
+              'CPF do participante',
+              Formatters.cpfMascarado(ingresso.cpfParticipante),
+            ),
           _linha(
             'Uso do ingresso',
             ingresso.utilizado ? 'Validado' : 'Ainda não utilizado',
