@@ -189,6 +189,7 @@ class EventoVendaDetalhe {
   final String nome;
   final DateTime dataHora;
   final int quantidade;
+  final int quantidadePendente;
   final int capacidadeTotal;
   final int quantidadeRestante;
   final double percentualOcupacao;
@@ -199,6 +200,7 @@ class EventoVendaDetalhe {
     required this.nome,
     required this.dataHora,
     required this.quantidade,
+    required this.quantidadePendente,
     required this.capacidadeTotal,
     required this.quantidadeRestante,
     required this.percentualOcupacao,
@@ -212,6 +214,7 @@ class EventoVendaDetalhe {
     nome: json['nmtituloevento']?.toString() ?? '',
     dataHora: DateTime.parse(json['dtinicioevento'].toString()),
     quantidade: (json['quantidade_vendida'] as num?)?.toInt() ?? 0,
+    quantidadePendente: (json['quantidade_pendente'] as num?)?.toInt() ?? 0,
     capacidadeTotal: (json['capacidade_total'] as num?)?.toInt() ?? 0,
     quantidadeRestante: (json['quantidade_restante'] as num?)?.toInt() ?? 0,
     percentualOcupacao: (json['percentual_ocupacao'] as num?)?.toDouble() ?? 0,

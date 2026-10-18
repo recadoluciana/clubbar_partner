@@ -9,8 +9,13 @@ import '../../models/acompanhamento_vendas.dart';
 
 class IngressosVendidosEventoPage extends StatefulWidget {
   final EventoVendaResumo evento;
+  final bool apenasPendentes;
 
-  const IngressosVendidosEventoPage({super.key, required this.evento});
+  const IngressosVendidosEventoPage({
+    super.key,
+    required this.evento,
+    this.apenasPendentes = false,
+  });
 
   @override
   State<IngressosVendidosEventoPage> createState() =>
@@ -34,9 +39,12 @@ class _IngressosVendidosEventoPageState
   Future<void> _carregar() async {
     setState(() => _erro = null);
     try {
-      final ingressos = await _repo.ingressosVendidosEvento(
+      final todosIngressos = await _repo.ingressosVendidosEvento(
         widget.evento.eventoId,
       );
+      final ingressos = widget.apenasPendentes
+          ? todosIngressos.where((ingresso) => !ingresso.utilizado).toList()
+          : todosIngressos;
       if (mounted) setState(() => _ingressos = ingressos);
     } catch (e) {
       if (mounted) {
@@ -222,14 +230,20 @@ class _IngressosVendidosEventoPageState
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            '${ingressos.length} ingresso${ingressos.length == 1 ? '' : 's'} vendido${ingressos.length == 1 ? '' : 's'}',
+            '${ingressos.length} ingresso${ingressos.length == 1 ? '' : 's'} ${widget.apenasPendentes ? 'pendente${ingressos.length == 1 ? '' : 's'}' : 'vendido${ingressos.length == 1 ? '' : 's'}'}',
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           if (ingressos.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 32),
-              child: Center(child: Text('Nenhum ingresso vendido.')),
+            Padding(
+              padding: const EdgeInsets.only(top: 32),
+              child: Center(
+                child: Text(
+                  widget.apenasPendentes
+                      ? 'Nenhum ingresso pendente.'
+                      : 'Nenhum ingresso vendido.',
+                ),
+              ),
             ),
           ...ingressos.map(_card),
         ],
@@ -245,7 +259,9 @@ class _IngressosVendidosEventoPageState
       child: Column(
         children: [
           ClubbarPageHeader(
-            titulo: 'Ingressos vendidos',
+            titulo: widget.apenasPendentes
+                ? 'Ingressos pendentes'
+                : 'Ingressos vendidos',
             subtitulo:
                 '${widget.evento.nome} • ${_data.format(widget.evento.dataHora)}',
             tituloStyle: const TextStyle(

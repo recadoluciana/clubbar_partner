@@ -285,6 +285,24 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
             ],
           ),
           const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: _resumo(
+              'Ingressos pendentes',
+              '${detalhe.quantidadePendente}',
+              Icons.pending_actions_rounded,
+              Colors.orange,
+              onDetalhes: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => IngressosVendidosEventoPage(
+                    evento: widget.evento,
+                    apenasPendentes: true,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
           _ocupacao(detalhe),
           const SizedBox(height: 16),
           const Text(
