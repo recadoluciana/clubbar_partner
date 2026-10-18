@@ -31,6 +31,29 @@ class AcompanhamentoVendasRepository {
     );
   }
 
+  Future<List<CompraProduto>> comprasProdutos({
+    String situacao = 'TODOS',
+  }) async {
+    final response = await ApiService.get(
+      '/acompanhamento-vendas/produtos?situacao=$situacao',
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        _erro(
+          response.body,
+          'Não foi possível consultar as compras de produtos.',
+        ),
+      );
+    }
+    final dados = Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    return ((dados['itens'] as List?) ?? const [])
+        .map(
+          (item) =>
+              CompraProduto.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
+  }
+
   Future<List<EventoVendaResumo>> eventos(String periodo) async {
     final response = await ApiService.get(
       '/acompanhamento-vendas/eventos?periodo=$periodo',

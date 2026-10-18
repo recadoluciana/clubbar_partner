@@ -53,6 +53,60 @@ class ProdutosPendentesResumo {
   );
 }
 
+class CompraProduto {
+  final int itemVendaId;
+  final int vendaId;
+  final String loja;
+  final String cliente;
+  final String emailCliente;
+  final String produto;
+  final String imagemProduto;
+  final int quantidade;
+  final double precoUnitario;
+  final double valorTotal;
+  final DateTime dataCompra;
+  final bool retirado;
+  final DateTime? dataRetirada;
+  final String responsavelRetirada;
+  final bool cortesia;
+
+  const CompraProduto({
+    required this.itemVendaId,
+    required this.vendaId,
+    required this.loja,
+    required this.cliente,
+    required this.emailCliente,
+    required this.produto,
+    required this.imagemProduto,
+    required this.quantidade,
+    required this.precoUnitario,
+    required this.valorTotal,
+    required this.dataCompra,
+    required this.retirado,
+    required this.dataRetirada,
+    required this.responsavelRetirada,
+    required this.cortesia,
+  });
+
+  factory CompraProduto.fromJson(Map<String, dynamic> json) => CompraProduto(
+    itemVendaId: (json['itvenda_id'] as num).toInt(),
+    vendaId: (json['venda_id'] as num).toInt(),
+    loja: json['nmloja']?.toString() ?? '',
+    cliente: json['nmcliente']?.toString() ?? 'Cliente não identificado',
+    emailCliente: json['emailcliente']?.toString() ?? '',
+    produto: json['nmproduto']?.toString() ?? '',
+    imagemProduto: json['urlfotoproduto']?.toString() ?? '',
+    quantidade: (json['quantidade'] as num?)?.toInt() ?? 0,
+    precoUnitario: (json['preco_unitario'] as num?)?.toDouble() ?? 0,
+    valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
+    dataCompra: HorarioBrasil.deTextoUtc(json['dtcompra']) ?? DateTime(1970),
+    retirado: json['retirado'] == true,
+    dataRetirada: HorarioBrasil.deTextoUtc(json['dtretirada']),
+    responsavelRetirada: json['responsavel_retirada']?.toString() ?? '',
+    cortesia: json['cortesia'] == true,
+  );
+}
+
 class EventoVendaResumo {
   final int eventoId;
   final String nome;

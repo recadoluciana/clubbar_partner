@@ -26,6 +26,7 @@ import '../categorias/categorias_produtos_page.dart';
 import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
 import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
+import '../acompanhamento_vendas/compras_produtos_page.dart';
 import '../eventos/evento_list_page.dart';
 import '../ingressos/catalogo_ingressos_partner_page.dart';
 import '../entregas/pedidos_entrega_page.dart';
@@ -227,6 +228,12 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _abrirAcompanhamentoVendas() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const AcompanhamentoVendasPage()),
+    );
+  }
+
+  Future<void> _abrirComprasProdutos() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const ComprasProdutosPage()),
     );
   }
 
@@ -661,6 +668,16 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 14),
                         _tituloBloco('Gestão e operação', Icons.tune_rounded),
+                        _opcao(
+                          titulo: 'Compras de produtos',
+                          subtitulo:
+                              'Consulte compras de todos os clientes e confirme se cada produto foi retirado.',
+                          icone: Icons.receipt_long_rounded,
+                          onTap: _podeVerGerencial
+                              ? _abrirComprasProdutos
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
                         _opcao(
                           titulo: 'Auditoria',
                           subtitulo: _podeGerenciarAtracoes
