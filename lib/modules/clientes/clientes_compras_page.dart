@@ -254,50 +254,77 @@ class _ClientesComprasPageState extends State<ClientesComprasPage> {
     );
   }
 
-  Widget _cliente(ClienteComCompras cliente) => ClubbarCard(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: EdgeInsets.zero,
-    child: ExpansionTile(
-      leading: CircleAvatar(
-        backgroundColor: ClubbarColors.infoClaro,
-        foregroundColor: ClubbarColors.info,
-        child: const Icon(Icons.person_rounded),
-      ),
-      title: Text(
-        cliente.nome,
-        style: const TextStyle(fontWeight: FontWeight.w900),
-      ),
-      subtitle: Text(
-        '${cliente.email}\n${cliente.resumo['quantidade_compras'] ?? 0} compra(s) · ${_valor('totalvenda', cliente.resumo['valor_total_compras'])}',
-      ),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      children: [
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Dados cadastrais',
-            style: TextStyle(fontWeight: FontWeight.w900),
-          ),
+  Widget _cliente(ClienteComCompras cliente) {
+    final quantidadeCompras =
+        (cliente.resumo['quantidade_compras'] as num?)?.toInt() ?? 0;
+    final semConsumo = quantidadeCompras == 0;
+    return ClubbarCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.zero,
+      child: ExpansionTile(
+        leading: CircleAvatar(
+          backgroundColor: ClubbarColors.infoClaro,
+          foregroundColor: ClubbarColors.info,
+          child: const Icon(Icons.person_rounded),
         ),
-        const SizedBox(height: 8),
-        _campos(cliente.cadastro),
-        const SizedBox(height: 18),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Compras (${cliente.compras.length})',
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                cliente.nome,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+            if (semConsumo)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: ClubbarColors.erro.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Sem consumo',
+                  style: TextStyle(
+                    color: ClubbarColors.erro,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+          ],
         ),
-        if (cliente.compras.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text('Nenhuma compra localizada.'),
+        subtitle: Text(
+          '${cliente.email}\n$quantidadeCompras compra(s) · ${_valor('totalvenda', cliente.resumo['valor_total_compras'])}',
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Dados cadastrais',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
           ),
-        for (final compra in cliente.compras) _compra(compra),
-      ],
-    ),
-  );
+          const SizedBox(height: 8),
+          _campos(cliente.cadastro),
+          const SizedBox(height: 18),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Compras (${cliente.compras.length})',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+          if (cliente.compras.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text('Nenhuma compra localizada.'),
+            ),
+          for (final compra in cliente.compras) _compra(compra),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -387,7 +414,7 @@ class _ClientesComprasPageState extends State<ClientesComprasPage> {
                           if (_clientes.isEmpty)
                             const ClubbarCard(
                               child: Text(
-                                'Nenhum cliente com compras foi encontrado.',
+                                'Nenhum cliente cadastrado foi encontrado.',
                               ),
                             ),
                           ..._clientes.map(_cliente),
