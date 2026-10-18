@@ -72,6 +72,37 @@ class _IngressosVendidosEventoPageState
     ),
   );
 
+  Widget _situacaoUso(IngressoVendido ingresso) {
+    final utilizado = ingresso.utilizado;
+    final cor = utilizado ? ClubbarColors.sucesso : ClubbarColors.aviso;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: cor.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            utilizado ? Icons.verified_rounded : Icons.schedule_rounded,
+            size: 14,
+            color: cor,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            utilizado ? 'Validado' : 'Não utilizado',
+            style: TextStyle(
+              color: cor,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _card(IngressoVendido ingresso) => Card(
     margin: const EdgeInsets.only(bottom: 10),
     child: Padding(
@@ -95,12 +126,19 @@ class _IngressosVendidosEventoPageState
                   ),
                 ),
               ),
-              Text(
-                _moeda.format(ingresso.preco),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: Colors.green,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _moeda.format(ingresso.preco),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  _situacaoUso(ingresso),
+                ],
               ),
             ],
           ),
@@ -121,9 +159,28 @@ class _IngressosVendidosEventoPageState
             '#${ingresso.vendaId} realizada em ${_data.format(ingresso.dataCompra)}',
           ),
           _linha('Cliente', ingresso.cliente),
+          if (ingresso.telefoneCliente.isNotEmpty)
+            _linha(
+              'Telefone do cliente',
+              ingresso.telefoneCliente,
+              icone: Icons.phone_rounded,
+            ),
           _linha('Participante', ingresso.participante),
           if (ingresso.cpfParticipante.isNotEmpty)
             _linha('CPF do participante', ingresso.cpfParticipante),
+          _linha(
+            'Uso do ingresso',
+            ingresso.utilizado ? 'Validado' : 'Ainda não utilizado',
+            icone: ingresso.utilizado
+                ? Icons.verified_rounded
+                : Icons.pending_outlined,
+          ),
+          if (ingresso.utilizado && ingresso.dataValidacao != null)
+            _linha(
+              'Validado em',
+              _data.format(ingresso.dataValidacao!),
+              icone: Icons.access_time_filled_rounded,
+            ),
           if (ingresso.quantidade > 1)
             _linha('Quantidade', '${ingresso.quantidade}'),
         ],

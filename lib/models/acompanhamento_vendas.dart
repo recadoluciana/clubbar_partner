@@ -233,12 +233,15 @@ class IngressoVendido {
   final int vendaId;
   final DateTime dataCompra;
   final String cliente;
+  final String telefoneCliente;
   final String participante;
   final String cpfParticipante;
   final int numeroLote;
   final String lote;
   final String setor;
   final String modalidade;
+  final bool utilizado;
+  final DateTime? dataValidacao;
 
   const IngressoVendido({
     required this.id,
@@ -248,12 +251,15 @@ class IngressoVendido {
     required this.vendaId,
     required this.dataCompra,
     required this.cliente,
+    required this.telefoneCliente,
     required this.participante,
     required this.cpfParticipante,
     required this.numeroLote,
     required this.lote,
     required this.setor,
     required this.modalidade,
+    required this.utilizado,
+    required this.dataValidacao,
   });
 
   factory IngressoVendido.fromJson(Map<String, dynamic> json) =>
@@ -266,11 +272,14 @@ class IngressoVendido {
         dataCompra:
             HorarioBrasil.deTextoUtc(json['dtcompra']) ?? DateTime(1970),
         cliente: json['cliente']?.toString() ?? '',
+        telefoneCliente: json['telefone_cliente']?.toString() ?? '',
         participante: json['participante']?.toString() ?? '',
         cpfParticipante: json['cpf_participante']?.toString() ?? '',
         numeroLote: (json['numero_lote'] as num?)?.toInt() ?? 0,
         lote: json['lote']?.toString() ?? '',
         setor: json['setor']?.toString() ?? '',
         modalidade: json['modalidade']?.toString() ?? '',
+        utilizado: json['utilizado'] == true,
+        dataValidacao: HorarioBrasil.deTextoUtc(json['dtvalidacao']),
       );
 }
