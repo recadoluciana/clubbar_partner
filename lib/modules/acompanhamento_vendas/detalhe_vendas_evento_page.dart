@@ -60,6 +60,7 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
     IconData icone,
     Color cor, {
     VoidCallback? onDetalhes,
+    String? subtitulo,
   }) => Container(
     padding: const EdgeInsets.all(13),
     decoration: BoxDecoration(
@@ -96,6 +97,17 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
           titulo,
           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
         ),
+        if (subtitulo != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitulo,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: cor.withValues(alpha: .85),
+            ),
+          ),
+        ],
       ],
     ),
   );
@@ -248,6 +260,9 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
     }
 
     final detalhe = _detalhe!;
+    final quantidadeUtilizada = detalhe.quantidade > detalhe.quantidadePendente
+        ? detalhe.quantidade - detalhe.quantidadePendente
+        : 0;
     final lotesAgrupados = <int, List<LoteVendaResumo>>{};
     for (final lote in detalhe.lotes) {
       lotesAgrupados.putIfAbsent(lote.loteId, () => []).add(lote);
@@ -265,6 +280,8 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
                   '${detalhe.quantidade}',
                   Icons.confirmation_number_rounded,
                   Colors.deepPurple,
+                  subtitulo:
+                      'Utilizados: $quantidadeUtilizada • Não utilizados: ${detalhe.quantidadePendente}',
                   onDetalhes: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) =>
