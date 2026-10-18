@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/config/api_config.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/utils/categoria_icon_utils.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
@@ -586,7 +587,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                       onTap: () async {
                         final data = await showDatePicker(
                           context: context,
-                          initialDate: inicio ?? DateTime.now(),
+                          initialDate: inicio ?? HorarioBrasil.agora(),
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2100),
                         );
@@ -594,7 +595,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                         final hora = await showTimePicker(
                           context: context,
                           initialTime: TimeOfDay.fromDateTime(
-                            inicio ?? DateTime.now(),
+                            inicio ?? HorarioBrasil.agora(),
                           ),
                         );
                         if (hora != null) {
@@ -632,7 +633,8 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                             onPressed: () async {
                               final data = await showDatePicker(
                                 context: context,
-                                initialDate: fim ?? inicio ?? DateTime.now(),
+                                initialDate:
+                                    fim ?? inicio ?? HorarioBrasil.agora(),
                                 firstDate: DateTime(2020),
                                 lastDate: DateTime(2100),
                               );
@@ -640,7 +642,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                               final hora = await showTimePicker(
                                 context: context,
                                 initialTime: TimeOfDay.fromDateTime(
-                                  fim ?? inicio ?? DateTime.now(),
+                                  fim ?? inicio ?? HorarioBrasil.agora(),
                                 ),
                               );
                               if (hora != null) {
@@ -739,10 +741,11 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       text: item['qtcortesia']?.toString() ?? '',
     );
     var inicio =
-        DateTime.tryParse('${item['dtinicortesia'] ?? ''}') ?? DateTime.now();
+        DateTime.tryParse('${item['dtinicortesia'] ?? ''}') ??
+        HorarioBrasil.agora();
     var fim =
         DateTime.tryParse('${item['dtfimcortesia'] ?? ''}') ??
-        DateTime.now().add(const Duration(days: 1));
+        HorarioBrasil.agora().add(const Duration(days: 1));
 
     final resultado = await showDialog<Map<String, dynamic>>(
       context: context,

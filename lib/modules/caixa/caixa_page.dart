@@ -10,6 +10,7 @@ import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/repositories/categoria_repository.dart';
 import '../../core/repositories/produto_repository.dart';
 import '../../core/services/storage_service.dart';
@@ -44,7 +45,7 @@ class _CaixaPageState extends State<CaixaPage> {
   String _busca = '';
   String _nomeUsuario = 'Usuário';
   String _cargo = 'Cashier';
-  DateTime _agora = DateTime.now();
+  DateTime _agora = HorarioBrasil.agora();
   Timer? _relogioCabecalho;
 
   List<Map<String, dynamic>> get _itens => (_carrinho['itens'] as List? ?? [])
@@ -62,7 +63,7 @@ class _CaixaPageState extends State<CaixaPage> {
     super.initState();
     _carregarIdentificacao();
     _relogioCabecalho = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _agora = DateTime.now());
+      if (mounted) setState(() => _agora = HorarioBrasil.agora());
     });
     _carregar();
   }

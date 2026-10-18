@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/repositories/organizacao_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -64,7 +65,7 @@ class _OrganizacaoListPageState extends State<OrganizacaoListPage> {
       return '-';
     }
 
-    final local = data.toLocal();
+    final local = data.isUtc ? HorarioBrasil.deUtc(data) : data;
 
     String doisDigitos(int valor) {
       return valor.toString().padLeft(2, '0');

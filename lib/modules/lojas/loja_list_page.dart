@@ -6,6 +6,7 @@ import '../../core/repositories/loja_repository.dart';
 import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -618,7 +619,7 @@ class _LojaListPageState extends State<LojaListPage> {
   }
 
   String _formatarDataCancelamento(dynamic valor) {
-    final data = DateTime.tryParse(valor?.toString() ?? '')?.toLocal();
+    final data = HorarioBrasil.deTextoBrasil(valor);
     if (data == null) return 'data não informada';
     return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}';
   }

@@ -8,6 +8,7 @@ import '../../core/config/api_config.dart';
 import '../../core/repositories/categoria_repository.dart';
 import '../../core/repositories/produto_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -209,7 +210,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
   }
 
   Future<void> _selecionarData(TextEditingController controller) async {
-    final agora = DateTime.now();
+    final agora = HorarioBrasil.agora();
 
     DateTime dataInicial = agora;
     final textoAtual = controller.text.trim();

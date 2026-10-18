@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -22,8 +23,12 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
   final _lojaRepository = LojaRepository();
   final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _data = DateFormat('dd/MM/yyyy');
-  DateTime _inicio = DateTime(DateTime.now().year, DateTime.now().month, 1);
-  DateTime _fim = DateTime.now();
+  DateTime _inicio = DateTime(
+    HorarioBrasil.agora().year,
+    HorarioBrasil.agora().month,
+    1,
+  );
+  DateTime _fim = HorarioBrasil.agora();
   Map<String, dynamic> _dados = {};
   String _empresa = 'Empresa';
   List<Loja> _lojas = const [];
@@ -78,7 +83,7 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
     final intervalo = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      lastDate: HorarioBrasil.agora(),
       initialDateRange: DateTimeRange(start: _inicio, end: _fim),
       locale: const Locale('pt', 'BR'),
       helpText: 'Selecione o período do extrato',

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_calendar_delegate.dart';
@@ -375,7 +376,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                             context: dialogContext,
                             initialDate: nascimento ?? DateTime(1990, 1, 1),
                             firstDate: DateTime(1900),
-                            lastDate: DateTime.now(),
+                            lastDate: HorarioBrasil.agora(),
                             calendarDelegate: const ClubbarCalendarDelegate(),
                             helpText: 'Data de nascimento',
                             cancelText: 'Cancelar',

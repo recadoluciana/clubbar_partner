@@ -7,6 +7,7 @@ import '../../core/repositories/localidade_repository.dart';
 import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -244,7 +245,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
       context: context,
       initialDate: inicial,
       firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      lastDate: HorarioBrasil.agora(),
       calendarDelegate: const ClubbarCalendarDelegate(),
       helpText: 'Data de nascimento',
       cancelText: 'Cancelar',

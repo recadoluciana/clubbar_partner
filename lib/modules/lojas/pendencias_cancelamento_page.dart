@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
@@ -21,7 +22,7 @@ class PendenciasCancelamentoPage extends StatelessWidget {
   }
 
   String _data(dynamic valor, {bool comHora = false}) {
-    final data = DateTime.tryParse(valor?.toString() ?? '')?.toLocal();
+    final data = HorarioBrasil.deTextoBrasil(valor);
     if (data == null) return 'Não informada';
     final base =
         '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}';

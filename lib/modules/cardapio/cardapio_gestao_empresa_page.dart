@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -261,7 +262,7 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
   }
 
   Future<void> _programarExibicao(Loja loja) async {
-    final agora = DateTime.now();
+    final agora = HorarioBrasil.agora();
     final inicio = await showDatePicker(
       context: context,
       initialDate: agora,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/repositories/reconciliacao_cancelamentos_repository.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
@@ -63,7 +64,7 @@ class _ReconciliacaoCancelamentosPageState
 
   DateTime? _dataHora(dynamic valor) {
     if (valor == null) return null;
-    return DateTime.tryParse(valor.toString())?.toLocal();
+    return HorarioBrasil.deTextoBrasil(valor);
   }
 
   Future<void> _consultar(Map<String, dynamic> venda) async {

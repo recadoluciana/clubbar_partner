@@ -99,9 +99,9 @@ class CompraProduto {
     quantidade: (json['quantidade'] as num?)?.toInt() ?? 0,
     precoUnitario: (json['preco_unitario'] as num?)?.toDouble() ?? 0,
     valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
-    dataCompra: HorarioBrasil.deTextoUtc(json['dtcompra']) ?? DateTime(1970),
+    dataCompra: HorarioBrasil.deTextoBrasil(json['dtcompra']) ?? DateTime(1970),
     retirado: json['retirado'] == true,
-    dataRetirada: HorarioBrasil.deTextoUtc(json['dtretirada']),
+    dataRetirada: HorarioBrasil.deTextoBrasil(json['dtretirada']),
     responsavelRetirada: json['responsavel_retirada']?.toString() ?? '',
     cortesia: json['cortesia'] == true,
   );
@@ -270,7 +270,7 @@ class IngressoVendido {
         taxa: (json['taxa'] as num?)?.toDouble() ?? 0,
         vendaId: (json['venda_id'] as num).toInt(),
         dataCompra:
-            HorarioBrasil.deTextoUtc(json['dtcompra']) ?? DateTime(1970),
+            HorarioBrasil.deTextoBrasil(json['dtcompra']) ?? DateTime(1970),
         cliente: json['cliente']?.toString() ?? '',
         telefoneCliente: json['telefone_cliente']?.toString() ?? '',
         participante: json['participante']?.toString() ?? '',
@@ -280,6 +280,6 @@ class IngressoVendido {
         setor: json['setor']?.toString() ?? '',
         modalidade: json['modalidade']?.toString() ?? '',
         utilizado: json['utilizado'] == true,
-        dataValidacao: HorarioBrasil.deTextoUtc(json['dtvalidacao']),
+        dataValidacao: HorarioBrasil.deTextoBrasil(json['dtvalidacao']),
       );
 }

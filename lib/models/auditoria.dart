@@ -1,3 +1,5 @@
+import '../core/utils/horario_brasil.dart';
+
 class AuditoriaItem {
   final int id;
   final int? organizacaoId;
@@ -50,6 +52,6 @@ class AuditoriaItem {
     metodoHttp: json['metodo_http']?.toString(),
     rota: json['rota']?.toString(),
     dataCriacao:
-        DateTime.tryParse('${json['dtcriacao'] ?? ''}') ?? DateTime.now(),
+        HorarioBrasil.deTextoBrasil(json['dtcriacao']) ?? HorarioBrasil.agora(),
   );
 }
