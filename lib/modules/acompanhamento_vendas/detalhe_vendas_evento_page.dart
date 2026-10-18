@@ -60,7 +60,6 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
     IconData icone,
     Color cor, {
     VoidCallback? onDetalhes,
-    String? subtitulo,
   }) => Container(
     padding: const EdgeInsets.all(13),
     decoration: BoxDecoration(
@@ -97,17 +96,6 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
           titulo,
           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
         ),
-        if (subtitulo != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            subtitulo,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: cor.withValues(alpha: .85),
-            ),
-          ),
-        ],
       ],
     ),
   );
@@ -155,6 +143,63 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
             '${detalhe.quantidade} vendidos • ${detalhe.quantidadeRestante} restantes • capacidade ${detalhe.capacidadeTotal}',
             style: const TextStyle(color: Colors.red),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resumoComparecimento({
+    required int quantidadeVendida,
+    required int quantidadeUtilizada,
+    required int quantidadePendente,
+    required VoidCallback onVerPendentes,
+  }) {
+    final texto = quantidadePendente == 0
+        ? 'Das $quantidadeVendida pessoas que compraram ingresso, todas compareceram ao evento.'
+        : 'Das $quantidadeVendida pessoas que compraram ingresso, $quantidadeUtilizada compareceram ao evento e $quantidadePendente não compareceram.';
+    final faltantes = quantidadePendente == 1
+        ? '1 pessoa faltante'
+        : '$quantidadePendente pessoas faltantes';
+
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.orange.withValues(alpha: .3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.groups_rounded, color: Colors.orange),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Comparecimento ao evento',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 3),
+                Text(texto, style: const TextStyle(fontSize: 12)),
+                if (quantidadePendente > 0)
+                  Text(
+                    faltantes,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.deepOrange,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (quantidadePendente > 0)
+            IconButton(
+              tooltip: 'Ver ingressos não utilizados',
+              onPressed: onVerPendentes,
+              icon: const Icon(Icons.visibility_outlined, color: Colors.orange),
+            ),
         ],
       ),
     );
@@ -276,12 +321,19 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
             children: [
               Expanded(
                 child: _resumo(
+                  'Ingressos disponibilizados',
+                  '${detalhe.capacidadeTotal}',
+                  Icons.event_available_rounded,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _resumo(
                   'Ingressos vendidos',
                   '${detalhe.quantidade}',
                   Icons.confirmation_number_rounded,
                   Colors.deepPurple,
-                  subtitulo:
-                      'Utilizados: $quantidadeUtilizada • Não utilizados: ${detalhe.quantidadePendente}',
                   onDetalhes: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) =>
@@ -290,46 +342,37 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: _resumo(
-                  'Total recebido',
-                  _moeda.format(detalhe.valorTotal),
-                  Icons.payments_rounded,
-                  Colors.green,
+                  'Falta vender',
+                  '${detalhe.quantidadeRestante}',
+                  Icons.confirmation_number_outlined,
+                  Colors.red,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _resumo(
-                  'Ingressos disponibilizados',
-                  '${detalhe.capacidadeTotal}',
-                  Icons.event_available_rounded,
-                  Colors.blue,
+          _resumoComparecimento(
+            quantidadeVendida: detalhe.quantidade,
+            quantidadeUtilizada: quantidadeUtilizada,
+            quantidadePendente: detalhe.quantidadePendente,
+            onVerPendentes: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => IngressosVendidosEventoPage(
+                  evento: widget.evento,
+                  apenasPendentes: true,
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _resumo(
-                  'Ingressos pendentes',
-                  '${detalhe.quantidadePendente}',
-                  Icons.pending_actions_rounded,
-                  Colors.orange,
-                  onDetalhes: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => IngressosVendidosEventoPage(
-                        evento: widget.evento,
-                        apenasPendentes: true,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          _resumo(
+            'Total recebido',
+            _moeda.format(detalhe.valorTotal),
+            Icons.payments_rounded,
+            Colors.green,
           ),
           const SizedBox(height: 10),
           _ocupacao(detalhe),
