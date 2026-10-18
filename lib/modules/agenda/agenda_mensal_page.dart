@@ -147,6 +147,20 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     return dataDia.isBefore(dataHoje);
   }
 
+  bool _eventoEncerrado(AgendaEvento evento) {
+    DateTime? fimAtracoes;
+    for (final atracao in evento.atracoes) {
+      if (fimAtracoes == null || atracao.fim.isAfter(fimAtracoes)) {
+        fimAtracoes = atracao.fim;
+      }
+    }
+    final fim =
+        evento.fim ??
+        fimAtracoes ??
+        evento.inicio.add(const Duration(hours: 6));
+    return !HorarioBrasil.agora().isBefore(fim);
+  }
+
   DateTime _horarioNoDia(AgendaEvento evento) => evento.inicio;
 
   Future<DateTime?> _dataHora(
@@ -519,7 +533,10 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   Future<void> _abrirOuCriarEventoNoDia(DateTime dia) async {
     final eventosDoDia = _doDia(dia);
     if (eventosDoDia.isNotEmpty) {
-      await _abrirEvento(eventosDoDia.first, somenteConsulta: _diaPassado(dia));
+      await _abrirEvento(
+        eventosDoDia.first,
+        somenteConsulta: _eventoEncerrado(eventosDoDia.first),
+      );
       return;
     }
     await _criarEventoNoDia(dia);

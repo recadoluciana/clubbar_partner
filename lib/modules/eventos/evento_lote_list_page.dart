@@ -236,17 +236,27 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   bool get _eventoPublicado =>
       (_evento?.statusevento ?? '').trim().toUpperCase() == 'ATIVO';
 
-  bool get _eventoPassado {
-    final data = DateTime.tryParse(
-      _evento?.dtinicioevento ?? _eventoInicio ?? '',
+  DateTime? get _fimEfetivoEvento {
+    final fimConfigurado = HorarioBrasil.deTextoBrasil(_evento?.dtfimevento);
+    if (fimConfigurado != null) return fimConfigurado;
+
+    DateTime? fimAtracoes;
+    for (final atracao in _atracoes) {
+      if (fimAtracoes == null || atracao.fim.isAfter(fimAtracoes)) {
+        fimAtracoes = atracao.fim;
+      }
+    }
+    if (fimAtracoes != null) return fimAtracoes;
+
+    final inicio = HorarioBrasil.deTextoBrasil(
+      _evento?.dtinicioevento ?? _eventoInicio,
     );
-    if (data == null) return false;
-    final hoje = HorarioBrasil.agora();
-    return DateTime(
-      data.year,
-      data.month,
-      data.day,
-    ).isBefore(DateTime(hoje.year, hoje.month, hoje.day));
+    return inicio?.add(const Duration(hours: 6));
+  }
+
+  bool get _eventoPassado {
+    final fim = _fimEfetivoEvento;
+    return fim != null && !HorarioBrasil.agora().isBefore(fim);
   }
 
   bool get _somenteConsulta => widget.somenteConsulta || _eventoPassado;
