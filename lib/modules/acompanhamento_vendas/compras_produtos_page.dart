@@ -137,6 +137,10 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
   @override
   Widget build(BuildContext context) {
     final compras = _comprasFiltradas;
+    final compradas = compras.fold(
+      0,
+      (soma, compra) => soma + compra.quantidade,
+    );
     final pendentes = compras
         .where((compra) => !compra.retirado)
         .fold(0, (soma, compra) => soma + compra.quantidade);
@@ -232,6 +236,12 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                           const SizedBox(height: 14),
                           Row(
                             children: [
+                              _resumo(
+                                'Unidades compradas',
+                                compradas,
+                                ClubbarColors.info,
+                              ),
+                              const SizedBox(width: 10),
                               _resumo(
                                 'Unidades a retirar',
                                 pendentes,
