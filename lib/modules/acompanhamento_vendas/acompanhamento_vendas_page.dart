@@ -261,27 +261,41 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Row(
+          const Text(
+            'Ingressos vendidos',
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              const Expanded(
-                child: Text(
-                  'Ingressos vendidos',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
-                ),
+              ChoiceChip(
+                label: const Text('Futuros'),
+                selected: _periodo == 'FUTUROS',
+                onSelected: (selecionado) {
+                  if (selecionado) {
+                    _periodo = 'FUTUROS';
+                    _carregar();
+                  }
+                },
               ),
-              DropdownButton<String>(
-                value: _periodo,
-                items: const [
-                  DropdownMenuItem(value: 'FUTUROS', child: Text('Futuros')),
-                  DropdownMenuItem(
-                    value: 'REALIZADOS',
-                    child: Text('Realizados'),
-                  ),
-                  DropdownMenuItem(value: 'TODOS', child: Text('Todos')),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    _periodo = value;
+              ChoiceChip(
+                label: const Text('Realizados'),
+                selected: _periodo == 'REALIZADOS',
+                onSelected: (selecionado) {
+                  if (selecionado) {
+                    _periodo = 'REALIZADOS';
+                    _carregar();
+                  }
+                },
+              ),
+              ChoiceChip(
+                label: const Text('Todos'),
+                selected: _periodo == 'TODOS',
+                onSelected: (selecionado) {
+                  if (selecionado) {
+                    _periodo = 'TODOS';
                     _carregar();
                   }
                 },
