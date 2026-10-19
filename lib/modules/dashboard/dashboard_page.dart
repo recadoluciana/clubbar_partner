@@ -33,6 +33,7 @@ import '../ingressos/catalogo_ingressos_partner_page.dart';
 import '../entregas/pedidos_entrega_page.dart';
 import '../doacoes/campanhas_doacao_page.dart';
 import '../reconciliacao_cancelamentos/reconciliacao_cancelamentos_page.dart';
+import '../beneficios_produtos/beneficios_produtos_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -587,6 +588,22 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: _cargo == 'SUPERADMIN' || _cargo == 'ADMIN'
                               ? _abrirCardapiosEmpresa
                               : null,
+                        ),
+                        const SizedBox(height: 14),
+                        _opcao(
+                          titulo: 'Cortesias e promoções',
+                          subtitulo:
+                              'Planeje cortesias e a roleta promocional sem alterar ou republicar o cardápio.',
+                          icone: Icons.casino_outlined,
+                          onTap: _organizacaoId == null
+                              ? null
+                              : () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => BeneficiosProdutosPage(
+                                      organizacaoId: _organizacaoId!,
+                                    ),
+                                  ),
+                                ),
                         ),
                         const SizedBox(height: 14),
                         _tituloBloco('Eventos', Icons.event_note_rounded),
