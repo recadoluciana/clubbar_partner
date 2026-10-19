@@ -89,13 +89,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
 
   DateTime? get _fimEvento => DateTime.tryParse(_evento?.dtfimevento ?? '');
 
-  String get _dataFimEvento {
-    final data = _fimEvento;
-    return data == null
-        ? 'Não informado'
-        : DateFormat("dd/MM/yyyy 'às' HH:mm 'horas'").format(data);
-  }
-
   String _data(String? valor) {
     final data = DateTime.tryParse(valor ?? '');
     return data == null
@@ -464,35 +457,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   Future<void> _alterarHorarioEvento() async {
     final atual =
         DateTime.tryParse(_eventoInicio ?? '') ?? HorarioBrasil.agora();
-    final hora = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(atual),
-    );
-    if (hora == null) return;
-    final nova = DateTime(
-      atual.year,
-      atual.month,
-      atual.day,
-      hora.hour,
-      hora.minute,
-    );
-    final fimAtual =
-        DateTime.tryParse(_evento?.dtfimevento ?? '') ??
-        nova.add(const Duration(hours: 4));
-    if (!mounted) return;
-    final horaFim = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(fimAtual),
-      helpText: 'HORÁRIO DE TÉRMINO',
-    );
-    if (horaFim == null) return;
-    var novoFim = DateTime(
-      nova.year,
-      nova.month,
-      nova.day,
-      horaFim.hour,
-      horaFim.minute,
-    );
+    final nova = await _selecionarDataHora(atual);
+    if (nova == null) {
+      return;
+    }
+    final fimAtual = _fimEfetivoEvento ?? nova.add(const Duration(hours: 4));
+    final fimSelecionado = await _selecionarDataHora(fimAtual);
+    if (fimSelecionado == null) {
+      return;
+    }
+    var novoFim = fimSelecionado;
     if (!novoFim.isAfter(nova)) {
       novoFim = novoFim.add(const Duration(days: 1));
     }
@@ -1940,6 +1914,8 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     children: [
       _cardAgendamento(),
       const SizedBox(height: 12),
+      _cardHorarioEvento(),
+      const SizedBox(height: 12),
       ClubbarCard(
         child: Column(
           children: [
@@ -2130,32 +2106,63 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             children: [
               const Text('Agendado para', style: TextStyle(fontSize: 12)),
               Text(
-                'Início: $_dataEvento',
+                _dataEvento,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              if (_fimEvento != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 3),
-                  child: Text(
-                    'Término: $_dataFimEvento',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
             ],
           ),
         ),
-        if (!_somenteConsulta)
-          IconButton(
-            onPressed: _alterarHorarioEvento,
-            icon: const Icon(Icons.access_time_rounded, color: Colors.blue),
-            tooltip: 'Alterar horário do evento',
-          ),
       ],
     ),
   );
+
+  Widget _cardHorarioEvento() {
+    final inicio = DateTime.tryParse(_eventoInicio ?? '');
+    final fim = _fimEfetivoEvento;
+    final formato = DateFormat("dd/MM/yyyy 'às' HH:mm 'horas'");
+    return ClubbarCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.schedule_rounded,
+            color: ClubbarColors.primariaEscuro,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Horário do evento', style: TextStyle(fontSize: 12)),
+                const SizedBox(height: 2),
+                Text(
+                  'Início: ${inicio == null ? 'Não informado' : formato.format(inicio)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Fim: ${fim == null ? 'Não informado' : formato.format(fim)}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          if (!_somenteConsulta)
+            IconButton(
+              onPressed: _alterarHorarioEvento,
+              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+              tooltip: 'Editar início e fim do evento',
+            ),
+        ],
+      ),
+    );
+  }
 
   List<EventoSetor> get _setoresAtivos =>
       _setores.where((setor) => setor.situacao == 'ATIVO').toList()
