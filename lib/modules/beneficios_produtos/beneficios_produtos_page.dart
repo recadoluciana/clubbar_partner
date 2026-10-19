@@ -111,7 +111,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'A roleta sorteia 0%, 10%, 20%, 30% ou 50%. Cada cliente gira uma vez por dia.',
+                'A roleta sorteia 10% ou 20%. O cliente pode girar até duas vezes por produto em 24 horas; o segundo giro substitui o primeiro prêmio. Cortesia pendente ou desconto usado nos últimos 10 dias bloqueiam novos giros.',
                 style: TextStyle(fontSize: 12),
               ),
             ],
