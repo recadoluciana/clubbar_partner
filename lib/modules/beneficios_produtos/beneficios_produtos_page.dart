@@ -4,6 +4,8 @@ import '../../core/repositories/cardapio_repository.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 
 class BeneficiosProdutosPage extends StatefulWidget {
@@ -51,12 +53,18 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
     }
   }
 
-  Future<void> _nova() async {
+  Future<void> _nova([Map<String, dynamic>? campanha]) async {
     if (_lojaId == null || _produtos.isEmpty) return;
-    String tipo = 'CORTESIA';
-    int produtoId = int.parse('${_produtos.first['produto_id']}');
-    final nome = TextEditingController();
-    final limite = TextEditingController();
+    String tipo = '${campanha?['tipo'] ?? 'CORTESIA'}';
+    int produtoId =
+        int.tryParse('${campanha?['produto_id']}') ??
+        int.parse('${_produtos.first['produto_id']}');
+    final nome = TextEditingController(
+      text: '${campanha?['nmcampanha'] ?? ''}',
+    );
+    final limite = TextEditingController(
+      text: campanha?['qtlimite']?.toString() ?? '',
+    );
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -123,7 +131,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
     );
     if (ok != true) return;
     final agora = DateTime.now();
-    final r = await ApiService.post('/beneficios-produtos', {
+    final dados = {
       'organizacao_id': widget.organizacaoId,
       'loja_id': _lojaId,
       'produto_id': produtoId,
@@ -131,15 +139,27 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
       'nmcampanha': nome.text.trim().isEmpty
           ? (tipo == 'ROLETA' ? 'Roleta promocional' : 'Cortesia de produto')
           : nome.text.trim(),
-      'dthrinicio': agora.toIso8601String(),
-      'dthrfim': agora.add(const Duration(days: 30)).toIso8601String(),
+      'dthrinicio': campanha?['dthrinicio'] ?? agora.toIso8601String(),
+      'dthrfim':
+          campanha?['dthrfim'] ??
+          agora.add(const Duration(days: 30)).toIso8601String(),
       'qtlimite': int.tryParse(limite.text),
       'limite_cliente_dia': 1,
       'situacao': 'ATIVA',
-    });
+    };
+    final r = campanha == null
+        ? await ApiService.post('/beneficios-produtos', dados)
+        : await ApiService.put(
+            '/beneficios-produtos/${campanha['campanha_id']}',
+            dados,
+          );
     if (r.statusCode >= 200 && r.statusCode < 300) {
       await _carregar();
-      if (mounted) AppSnackBar.sucesso(context, 'Benefício criado.');
+      if (mounted)
+        AppSnackBar.sucesso(
+          context,
+          campanha == null ? 'Benefício criado.' : 'Campanha atualizada.',
+        );
     } else {
       if (mounted)
         AppSnackBar.erro(
@@ -150,9 +170,39 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
     }
   }
 
+  Future<void> _excluir(Map<String, dynamic> campanha) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Excluir campanha'),
+        content: Text('Excluir "${campanha['nmcampanha']}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    final r = await ApiService.delete(
+      '/beneficios-produtos/${campanha['campanha_id']}',
+    );
+    if (r.statusCode == 204) {
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, 'Campanha excluída.');
+    } else if (mounted) {
+      AppSnackBar.erro(context, 'Não foi possível excluir a campanha.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Cortesias e promoções')),
+    appBar: const ClubbarAppBar(mostrarVoltar: true),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: _nova,
       label: const Text('Nova campanha'),
@@ -163,51 +213,90 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
         : RefreshIndicator(
             onRefresh: _carregar,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.zero,
               children: [
-                DropdownButtonFormField<int>(
-                  value: _lojaId,
-                  decoration: const InputDecoration(
-                    labelText: 'Estabelecimento',
-                  ),
-                  items: _lojas
-                      .map(
-                        (l) => DropdownMenuItem(
-                          value: l.lojaId,
-                          child: Text(l.nmloja),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) {
-                    setState(() => _lojaId = v);
-                    _carregar();
-                  },
+                const ClubbarPageHeader(
+                  titulo: 'Cortesias e promoções',
+                  subtitulo:
+                      'Planeje campanhas sem alterar ou republicar o cardápio.',
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Campanhas independentes do cardápio',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: DropdownButtonFormField<int>(
+                    value: _lojaId,
+                    decoration: const InputDecoration(
+                      labelText: 'Estabelecimento',
+                    ),
+                    items: _lojas
+                        .map(
+                          (l) => DropdownMenuItem(
+                            value: l.lojaId,
+                            child: Text(l.nmloja),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) {
+                      setState(() => _lojaId = v);
+                      _carregar();
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Campanhas independentes do cardápio',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'O produto continua com seu preço normal no cardápio. Configure a cortesia ou a roleta aqui, sem republicar.',
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'O produto continua com seu preço normal no cardápio. Configure a cortesia ou a roleta aqui, sem republicar.',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ..._campanhas.map(
-                  (x) => Card(
-                    child: ListTile(
-                      leading: Icon(
-                        x['tipo'] == 'ROLETA'
-                            ? Icons.casino_outlined
-                            : Icons.redeem_outlined,
-                      ),
-                      title: Text('${x['nmcampanha']}'),
-                      subtitle: Text(
-                        '${x['tipo'] == 'ROLETA' ? 'Roleta: 0%, 10%, 20%, 30% e 50%' : 'Cortesia'} • ${x['resgates'] ?? 0} resgates',
-                      ),
-                      trailing: Text(
-                        '${x['restantes'] ?? '∞'}\nrestantes',
-                        textAlign: TextAlign.right,
+                  (x) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: Card(
+                      child: ListTile(
+                        leading: Icon(
+                          x['tipo'] == 'ROLETA'
+                              ? Icons.casino_outlined
+                              : Icons.redeem_outlined,
+                        ),
+                        title: Text('${x['nmcampanha']}'),
+                        subtitle: Text(
+                          'Produto: ${x['nmproduto'] ?? 'Produto'}\n${x['tipo'] == 'ROLETA' ? 'Roleta: 0%, 10%, 20%, 30% e 50%' : 'Cortesia'} • ${x['resgates'] ?? 0} resgates',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${x['restantes'] ?? '∞'}\nrestantes',
+                              textAlign: TextAlign.right,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined),
+                              tooltip: 'Editar',
+                              onPressed: () => _nova(x),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                              ),
+                              tooltip: 'Excluir',
+                              onPressed: () => _excluir(x),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
