@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/utils/horario_brasil.dart';
+import '../../core/utils/text_normalizer.dart';
 import '../../core/repositories/categoria_repository.dart';
 import '../../core/repositories/produto_repository.dart';
 import '../../core/services/storage_service.dart';
@@ -139,14 +140,14 @@ class _CaixaPageState extends State<CaixaPage> {
   }
 
   List<Map<String, dynamic>> get _produtosVisiveis {
-    final termo = _busca.trim().toLowerCase();
+    final termo = normalizarTextoBusca(_busca);
     return _produtos.where((produto) {
       final pertenceCategoria =
           int.tryParse('${produto['categoria_id']}') == _categoriaId;
-      final texto =
-          '${produto['nmproduto'] ?? ''} '
-                  '${produto['dsproduto'] ?? ''} ${produto['nmcategoria'] ?? ''}'
-              .toLowerCase();
+      final texto = normalizarTextoBusca(
+        '${produto['nmproduto'] ?? ''} '
+        '${produto['dsproduto'] ?? ''} ${produto['nmcategoria'] ?? ''}',
+      );
       return pertenceCategoria && (termo.isEmpty || texto.contains(termo));
     }).toList();
   }

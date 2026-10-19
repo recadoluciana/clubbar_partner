@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/utils/text_normalizer.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/repositories/produto_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
@@ -243,19 +244,25 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
   }
 
   List<dynamic> _aplicarFiltro(List<dynamic> produtos, String texto) {
-    final busca = texto.trim().toLowerCase();
+    final busca = normalizarTextoBusca(texto);
 
     if (busca.isEmpty) {
       return List<dynamic>.from(produtos);
     }
 
     return produtos.where((produto) {
-      final nome = (produto['nmproduto'] ?? '').toString().toLowerCase();
-      final categoria = (produto['nmcategoria'] ?? '').toString().toLowerCase();
-      final status = (produto['sitproduto'] ?? '').toString().toLowerCase();
-      final tipoDesconto = (produto['tipodesconto'] ?? '')
-          .toString()
-          .toLowerCase();
+      final nome = normalizarTextoBusca(
+        (produto['nmproduto'] ?? '').toString(),
+      );
+      final categoria = normalizarTextoBusca(
+        (produto['nmcategoria'] ?? '').toString(),
+      );
+      final status = normalizarTextoBusca(
+        (produto['sitproduto'] ?? '').toString(),
+      );
+      final tipoDesconto = normalizarTextoBusca(
+        (produto['tipodesconto'] ?? '').toString(),
+      );
       final id = (produto['produto_id'] ?? '').toString();
 
       return nome.contains(busca) ||

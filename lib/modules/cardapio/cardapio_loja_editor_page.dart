@@ -8,6 +8,7 @@ import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/utils/categoria_icon_utils.dart';
+import '../../core/utils/text_normalizer.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
@@ -311,9 +312,9 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         builder: (context, atualizar) {
           final filtrados = disponiveis
               .where(
-                (produto) => '${produto['nmproduto']}'.toLowerCase().contains(
-                  filtro.toLowerCase(),
-                ),
+                (produto) => normalizarTextoBusca(
+                  '${produto['nmproduto']}',
+                ).contains(normalizarTextoBusca(filtro)),
               )
               .toList();
           return AlertDialog(
