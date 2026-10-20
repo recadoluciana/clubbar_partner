@@ -46,8 +46,8 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
   String _nomeTipo(String tipo) =>
       {
         'INTEIRA': 'Inteira',
-        'MEIA': 'Meia-entrada',
-        'MEIA_LEGAL': 'Meia-entrada',
+        'MEIA': 'Meia-entrada (estudantes, PCD e jovens de baixa renda)',
+        'MEIA_LEGAL': 'Meia-entrada (estudantes, PCD e jovens de baixa renda)',
         'MEIA_IDOSO': 'Meia-entrada (idosos, professores e outros)',
         'CORTESIA': 'Cortesia',
         'UNICO': 'Único',
