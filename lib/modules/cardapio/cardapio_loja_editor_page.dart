@@ -258,7 +258,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     });
   }
 
-  Future<Map<String, dynamic>?> _escolherProduto(
+  Future<List<Map<String, dynamic>>> _escolherProdutos(
     Map<String, dynamic> categoria,
   ) async {
     final idsUsados = _itens(
@@ -276,144 +276,160 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         context,
         'Não há outros produtos ativos disponíveis para esta categoria.',
       );
-      return null;
+      return const [];
     }
     var filtro = '';
-    return showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, atualizar) {
-          final filtrados = disponiveis
-              .where(
-                (produto) => normalizarTextoBusca(
-                  '${produto['nmproduto']}',
-                ).contains(normalizarTextoBusca(filtro)),
-              )
-              .toList();
-          return AlertDialog(
-            title: const Text('Adicionar produto'),
-            content: SizedBox(
-              width: 440,
-              height: 420,
-              child: Column(
-                children: [
-                  TextField(
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      labelText: 'Buscar produto',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (valor) => atualizar(() => filtro = valor),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filtrados.length,
-                      itemBuilder: (_, indice) {
-                        final produto = filtrados[indice];
-                        return ListTile(
-                          title: Text('${produto['nmproduto']}'),
-                          subtitle: Text(
-                            'Preço padrão: ${_moeda.format(_valor(produto['vrprecopadrao']))}',
+    final produtosSelecionados = <int>{};
+    return await showDialog<List<Map<String, dynamic>>>(
+          context: context,
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, atualizar) {
+              final filtrados = disponiveis
+                  .where(
+                    (produto) => normalizarTextoBusca(
+                      '${produto['nmproduto']}',
+                    ).contains(normalizarTextoBusca(filtro)),
+                  )
+                  .toList();
+              return AlertDialog(
+                title: const Text('Adicionar produto'),
+                content: SizedBox(
+                  width: 440,
+                  height: 420,
+                  child: Column(
+                    children: [
+                      TextField(
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search),
+                          labelText: 'Buscar produto',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (valor) => atualizar(() => filtro = valor),
+                      ),
+                      const SizedBox(height: 8),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Os produtos serão incluídos com o preço padrão. Você poderá ajustar cada preço depois.',
+                          style: TextStyle(
+                            color: ClubbarColors.textoSecundario,
+                            fontSize: 12,
                           ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.pop(dialogContext, produto),
-                        );
-                      },
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: filtrados.length,
+                          itemBuilder: (_, indice) {
+                            final produto = filtrados[indice];
+                            final produtoId = _id(produto['produto_id']);
+                            final selecionado = produtosSelecionados.contains(
+                              produtoId,
+                            );
+                            return ListTile(
+                              title: Text('${produto['nmproduto']}'),
+                              subtitle: Text(
+                                'Preço padrão: ${_moeda.format(_valor(produto['vrprecopadrao']))}',
+                              ),
+                              trailing: Checkbox(
+                                value: selecionado,
+                                onChanged: (_) => atualizar(() {
+                                  if (selecionado) {
+                                    produtosSelecionados.remove(produtoId);
+                                  } else {
+                                    produtosSelecionados.add(produtoId);
+                                  }
+                                }),
+                              ),
+                              onTap: () => atualizar(() {
+                                if (selecionado) {
+                                  produtosSelecionados.remove(produtoId);
+                                } else {
+                                  produtosSelecionados.add(produtoId);
+                                }
+                              }),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton.icon(
+                    onPressed: produtosSelecionados.isEmpty
+                        ? null
+                        : () => Navigator.pop(
+                            dialogContext,
+                            disponiveis
+                                .where(
+                                  (produto) => produtosSelecionados.contains(
+                                    _id(produto['produto_id']),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                    icon: const Icon(Icons.add_shopping_cart_outlined),
+                    label: Text(
+                      produtosSelecionados.length == 1
+                          ? 'Adicionar 1 produto'
+                          : 'Adicionar ${produtosSelecionados.length} produtos',
                     ),
                   ),
                 ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+              );
+            },
+          ),
+        ) ??
+        const [];
   }
 
   Future<void> _adicionarProduto(Map<String, dynamic> categoria) async {
-    final produto = await _escolherProduto(categoria);
-    if (produto == null || !mounted) return;
-    final preco = await _informarPrecoInicial(
-      '${produto['nmproduto']}',
-      precoPadrao: _valor(produto['vrprecopadrao']),
-    );
-    if (preco == null || !mounted) return;
-
-    final item = <String, dynamic>{
-      ...produto,
-      // Produto é cadastro mestre. Os valores comerciais pertencem
-      // exclusivamente a este item do cardápio.
-      'vrpreco': preco,
-      'tipodesconto': 'NENHUM',
-      'vrdesconto': 0.0,
-      'dtinidesconto': null,
-      'dtfimdesconto': null,
-      'pccashback': null,
-      'sititem': 'ATIVO',
-    };
+    final produtos = await _escolherProdutos(categoria);
+    if (produtos.isEmpty || !mounted) return;
+    if (produtos.any((produto) => _valor(produto['vrprecopadrao']) <= 0)) {
+      AppSnackBar.aviso(
+        context,
+        'Um dos produtos selecionados não possui preço padrão válido. Atualize-o antes de adicionar.',
+      );
+      return;
+    }
     setState(() {
       final itens = _itens(categoria);
-      itens.add(item);
+      itens.addAll(
+        produtos.map(
+          (produto) => <String, dynamic>{
+            ...produto,
+            // Produto é cadastro mestre. Os valores comerciais pertencem
+            // exclusivamente a este item do cardápio.
+            'vrpreco': _valor(produto['vrprecopadrao']),
+            'tipodesconto': 'NENHUM',
+            'vrdesconto': 0.0,
+            'dtinidesconto': null,
+            'dtfimdesconto': null,
+            'pccashback': null,
+            'sititem': 'ATIVO',
+          },
+        ),
+      );
       categoria['itens'] = itens;
     });
 
     _marcarAlterado();
-  }
-
-  Future<double?> _informarPrecoInicial(
-    String nomeProduto, {
-    required double precoPadrao,
-  }) async {
-    final controller = TextEditingController(
-      text: precoPadrao.toStringAsFixed(2).replaceAll('.', ','),
-    );
-    final valor = await showDialog<double>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Preço • $nomeProduto'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText: 'Preço neste cardápio',
-            prefixText: 'R\$ ',
-            helperText: 'Preço padrão: ${_moeda.format(precoPadrao)}.',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final numero = double.tryParse(
-                controller.text.trim().replaceAll(',', '.'),
-              );
-              if (numero == null || numero <= 0) {
-                AppSnackBar.aviso(context, 'Informe um preço maior que zero.');
-                return;
-              }
-              Navigator.pop(dialogContext, numero);
-            },
-            child: const Text('Continuar'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return valor;
+    if (mounted) {
+      AppSnackBar.sucesso(
+        context,
+        produtos.length == 1
+            ? 'Produto adicionado ao cardápio.'
+            : '${produtos.length} produtos adicionados ao cardápio.',
+      );
+    }
   }
 
   Future<void> _editarPreco(Map<String, dynamic> item) async {
