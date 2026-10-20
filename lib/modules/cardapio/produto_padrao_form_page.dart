@@ -45,7 +45,9 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
     _nome = TextEditingController(text: '${item['nmproduto'] ?? ''}');
     _descricao = TextEditingController(text: '${item['dsproduto'] ?? ''}');
     _precoPadrao = TextEditingController(
-      text: _formatarPreco(_numeroPreco(item['vrprecopadrao']) ?? 0),
+      text: widget.item == null
+          ? ''
+          : _formatarPreco(_numeroPreco(item['vrprecopadrao']) ?? 0),
     );
     _fotoUrl = item['urlfotoproduto']?.toString();
     _situacao = '${item['sitproduto'] ?? 'ATIVO'}';
@@ -322,8 +324,8 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
   Future<void> _salvar() async {
     if (_salvando || !_formKey.currentState!.validate()) return;
     final precoPadrao = _numeroPreco(_precoPadrao.text);
-    if (precoPadrao == null || precoPadrao < 0) {
-      AppSnackBar.aviso(context, 'Informe um preço padrão válido.');
+    if (precoPadrao == null || precoPadrao <= 0) {
+      AppSnackBar.aviso(context, 'Informe um preço padrão maior que zero.');
       return;
     }
     setState(() => _salvando = true);
@@ -419,13 +421,13 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
                           labelText: 'Preço padrão',
                           prefixText: 'R\$ ',
                           helperText:
-                              'Sugestão inicial ao incluir no cardápio.',
+                              'Obrigatório e maior que zero. Sugestão inicial ao incluir no cardápio.',
                           border: OutlineInputBorder(),
                         ),
                         validator: (valor) {
                           final preco = _numeroPreco(valor);
-                          return preco == null || preco < 0
-                              ? 'Informe um preço válido.'
+                          return preco == null || preco <= 0
+                              ? 'Informe um preço maior que zero.'
                               : null;
                         },
                       ),
