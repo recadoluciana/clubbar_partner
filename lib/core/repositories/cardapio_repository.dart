@@ -259,6 +259,22 @@ class CardapioRepository {
     }
   }
 
+  Future<String> configurarVendas(
+    int lojaId,
+    int cardapioId,
+    bool habilitadas,
+  ) async {
+    final response = await ApiService.put(
+      '/lojas/$lojaId/cardapios/$cardapioId/vendas',
+      {'vendas_habilitadas': habilitadas},
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível atualizar as vendas pelo app.');
+    }
+    final dados = Map<String, dynamic>.from(_json(response));
+    return '${dados['mensagem'] ?? 'Vendas atualizadas.'}';
+  }
+
   Future<Map<String, dynamic>> novaVersao(int cardapioId) async {
     final response = await ApiService.post(
       '/cardapios/$cardapioId/nova-versao',

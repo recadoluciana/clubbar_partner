@@ -244,6 +244,25 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
     }
   }
 
+  bool _vendasHabilitadas(Map<String, dynamic> associacao) =>
+      associacao['vendas_habilitadas'] != false;
+
+  Future<void> _configurarVendas(Loja loja, bool habilitadas) async {
+    try {
+      final mensagem = await _repo.configurarVendas(
+        loja.lojaId,
+        widget.cardapioId,
+        habilitadas,
+      );
+      await _carregar();
+      if (mounted) AppSnackBar.sucesso(context, mensagem);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
   List<Map<String, dynamic>> _programacoes(Map<String, dynamic> associacao) =>
       ((associacao['programacoes'] as List?) ?? const [])
           .map((item) => Map<String, dynamic>.from(item as Map))
@@ -577,6 +596,9 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
     final programacoes = associacao == null
         ? const <Map<String, dynamic>>[]
         : _programacoes(associacao);
+    final vendasHabilitadas = associacao == null
+        ? true
+        : _vendasHabilitadas(associacao);
     return Card(
       child: Column(
         children: [
@@ -598,6 +620,26 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
             ),
             onTap: associada ? null : () => _associar(loja),
           ),
+          if (associada)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 12, 8),
+              child: Column(
+                children: [
+                  const Divider(),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Habilitar vendas pelo app'),
+                    subtitle: Text(
+                      vendasHabilitadas
+                          ? 'Clientes podem comprar os produtos deste cardápio.'
+                          : 'Cardápio disponível somente para consulta e vendas presenciais.',
+                    ),
+                    value: vendasHabilitadas,
+                    onChanged: (valor) => _configurarVendas(loja, valor),
+                  ),
+                ],
+              ),
+            ),
           if (especial && associada)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
