@@ -416,12 +416,10 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
     final url = _montarUrlImagem(produto);
 
     Widget placeholder() {
-      return Container(
-        color: ClubbarColors.ambarClaro,
-        alignment: Alignment.center,
+      return _quadroImagemProduto(
         child: const Icon(
           Icons.local_bar_rounded,
-          size: 38,
+          size: 34,
           color: ClubbarColors.preto,
         ),
       );
@@ -431,14 +429,31 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
       return placeholder();
     }
 
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      width: 84,
-      height: 84,
-      errorBuilder: (_, _, _) {
-        return placeholder();
-      },
+    return _quadroImagemProduto(
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, _, _) => const Icon(
+          Icons.image_not_supported_outlined,
+          size: 30,
+          color: ClubbarColors.textoSecundario,
+        ),
+      ),
+    );
+  }
+
+  /// Mantém todas as miniaturas no mesmo quadro quadrado, independente da
+  /// proporção da foto original. A imagem preenche o quadro sem deformação.
+  Widget _quadroImagemProduto({required Widget child}) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: ClubbarColors.ambarClaro,
+        border: Border.all(color: ClubbarColors.borda),
+      ),
+      child: ClipRect(child: child),
     );
   }
 
