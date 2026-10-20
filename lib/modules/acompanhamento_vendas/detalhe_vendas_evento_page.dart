@@ -48,7 +48,7 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
         'INTEIRA': 'Inteira',
         'MEIA': 'Meia-entrada',
         'MEIA_LEGAL': 'Meia-entrada',
-        'MEIA_IDOSO': 'Meia idoso',
+        'MEIA_IDOSO': 'Meia-entrada (idosos, professores e outros)',
         'CORTESIA': 'Cortesia',
         'UNICO': 'Único',
       }[tipo] ??
