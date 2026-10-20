@@ -15,10 +15,27 @@ class CardapioRepository {
       ? <String, dynamic>{}
       : jsonDecode(response.body);
 
+  String _mensagemAmigavel(dynamic detalhe, String padrao) {
+    if (detalhe is List) {
+      for (final erro in detalhe) {
+        if (erro is! Map) continue;
+        final campo = (erro['loc'] as List? ?? const [])
+            .map((parte) => '$parte')
+            .join('.');
+        if (campo.contains('vrprecopadrao') || campo.contains('vrprecoprod')) {
+          return 'Informe um preço padrão maior que zero.';
+        }
+      }
+      return padrao;
+    }
+    if (detalhe is String && detalhe.trim().isNotEmpty) return detalhe;
+    return padrao;
+  }
+
   Exception _erro(dynamic response, String padrao) {
     final body = _json(response);
     return Exception(
-      body is Map ? (body['detail']?.toString() ?? padrao) : padrao,
+      body is Map ? _mensagemAmigavel(body['detail'], padrao) : padrao,
     );
   }
 
