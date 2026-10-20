@@ -65,68 +65,105 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
     final limite = TextEditingController(
       text: campanha?['qtlimite']?.toString() ?? '',
     );
+    final quantidadePacote = TextEditingController(
+      text: campanha?['qtitenspacote']?.toString() ?? '',
+    );
+    final valorPacote = TextEditingController(
+      text: campanha?['vrpacote']?.toString() ?? '',
+    );
     final ok = await showDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Novo benefício'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField(
-                value: tipo,
-                items: const [
-                  DropdownMenuItem(value: 'CORTESIA', child: Text('Cortesia')),
-                  DropdownMenuItem(
-                    value: 'ROLETA',
-                    child: Text('Roleta de descontos'),
+      builder: (c) => StatefulBuilder(
+        builder: (c, atualizar) => AlertDialog(
+          title: const Text('Novo benefício'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField(
+                  value: tipo,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'CORTESIA',
+                      child: Text('Cortesia'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'ROLETA',
+                      child: Text('Roleta de descontos'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'PACOTE',
+                      child: Text('Promoção por quantidade'),
+                    ),
+                  ],
+                  onChanged: (v) => atualizar(() => tipo = v!),
+                ),
+                DropdownButtonFormField<int>(
+                  value: produtoId,
+                  items: _produtos
+                      .map(
+                        (p) => DropdownMenuItem(
+                          value: int.parse('${p['produto_id']}'),
+                          child: Text('${p['nmproduto']}'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => produtoId = v!,
+                ),
+                TextField(
+                  controller: nome,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome da campanha',
+                  ),
+                ),
+                if (tipo == 'PACOTE') ...[
+                  TextField(
+                    controller: quantidadePacote,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantidade de produtos no pacote',
+                      hintText: 'Ex.: 3',
+                    ),
+                  ),
+                  TextField(
+                    controller: valorPacote,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Preço do pacote',
+                      hintText: 'Ex.: 40,00',
+                    ),
                   ),
                 ],
-                onChanged: (v) => tipo = v!,
-              ),
-              DropdownButtonFormField<int>(
-                value: produtoId,
-                items: _produtos
-                    .map(
-                      (p) => DropdownMenuItem(
-                        value: int.parse('${p['produto_id']}'),
-                        child: Text('${p['nmproduto']}'),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => produtoId = v!,
-              ),
-              TextField(
-                controller: nome,
-                decoration: const InputDecoration(
-                  labelText: 'Nome da campanha',
+                TextField(
+                  controller: limite,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Quantidade total (opcional)',
+                  ),
                 ),
-              ),
-              TextField(
-                controller: limite,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Quantidade total (opcional)',
+                const SizedBox(height: 12),
+                Text(
+                  tipo == 'PACOTE'
+                      ? 'O cliente verá o produto normal no cardápio e, abaixo dele, a oferta do pacote. A compra gera uma ficha individual para cada unidade.'
+                      : 'A roleta sorteia 10% ou 20%. O cliente pode girar até duas vezes por produto em 24 horas; o segundo giro substitui o primeiro prêmio. Cortesia pendente ou desconto usado nos últimos 10 dias bloqueiam novos giros.',
+                  style: const TextStyle(fontSize: 12),
                 ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'A roleta sorteia 10% ou 20%. O cliente pode girar até duas vezes por produto em 24 horas; o segundo giro substitui o primeiro prêmio. Cortesia pendente ou desconto usado nos últimos 10 dias bloqueiam novos giros.',
-                style: TextStyle(fontSize: 12),
-              ),
-            ],
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Salvar'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Salvar'),
-          ),
-        ],
       ),
     );
     if (ok != true) return;
@@ -137,7 +174,11 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
       'produto_id': produtoId,
       'tipo': tipo,
       'nmcampanha': nome.text.trim().isEmpty
-          ? (tipo == 'ROLETA' ? 'Roleta promocional' : 'Cortesia de produto')
+          ? (tipo == 'ROLETA'
+                ? 'Roleta promocional'
+                : tipo == 'PACOTE'
+                ? 'Promoção por quantidade'
+                : 'Cortesia de produto')
           : nome.text.trim(),
       'dthrinicio': campanha?['dthrinicio'] ?? agora.toIso8601String(),
       'dthrfim':
@@ -145,6 +186,12 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
           agora.add(const Duration(days: 30)).toIso8601String(),
       'qtlimite': int.tryParse(limite.text),
       'limite_cliente_dia': 1,
+      'qtitenspacote': tipo == 'PACOTE'
+          ? int.tryParse(quantidadePacote.text.trim())
+          : null,
+      'vrpacote': tipo == 'PACOTE'
+          ? double.tryParse(valorPacote.text.trim().replaceAll(',', '.'))
+          : null,
       'situacao': 'ATIVA',
     };
     final r = campanha == null
@@ -269,11 +316,17 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                         leading: Icon(
                           x['tipo'] == 'ROLETA'
                               ? Icons.casino_outlined
+                              : x['tipo'] == 'PACOTE'
+                              ? Icons.local_offer_outlined
                               : Icons.redeem_outlined,
                         ),
                         title: Text('${x['nmcampanha']}'),
                         subtitle: Text(
-                          'Produto: ${x['nmproduto'] ?? 'Produto'}\n${x['tipo'] == 'ROLETA' ? 'Roleta: 0%, 10%, 20%, 30% e 50%' : 'Cortesia'} • ${x['resgates'] ?? 0} resgates',
+                          'Produto: ${x['nmproduto'] ?? 'Produto'}\n${x['tipo'] == 'ROLETA'
+                              ? 'Roleta: 10% ou 20% OFF'
+                              : x['tipo'] == 'PACOTE'
+                              ? 'Promoção: ${x['qtitenspacote']} por R\$ ${x['vrpacote']}'
+                              : 'Cortesia'} • ${x['resgates'] ?? 0} resgates',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
