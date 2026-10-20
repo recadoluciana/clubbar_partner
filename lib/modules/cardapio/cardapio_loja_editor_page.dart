@@ -72,33 +72,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       '${item['tipodesconto'] ?? 'NENHUM'}'.toUpperCase() != 'NENHUM' &&
       _valor(item['vrdesconto']) > 0;
 
-  bool _ehCortesia(Map<String, dynamic> item) {
-    final preco = _valor(item['vrpreco']);
-    final desconto = _valor(item['vrdesconto']);
-    final tipo = '${item['tipodesconto'] ?? 'NENHUM'}'.toUpperCase();
-    return preco <= 0 ||
-        (tipo == 'PERCENTUAL' && desconto >= 100) ||
-        (tipo == 'VALOR' && desconto >= preco);
-  }
-
-  void _limparCortesiaSeNecessario(Map<String, dynamic> item) {
-    if (_ehCortesia(item)) return;
-    item['qtcortesia'] = null;
-    item['dtinicortesia'] = null;
-    item['dtfimcortesia'] = null;
-  }
-
-  String _resumoCortesias(Map<String, dynamic> item) {
-    final quantidade = item['qtcortesia'];
-    final inicio = DateTime.tryParse('${item['dtinicortesia'] ?? ''}');
-    final fim = DateTime.tryParse('${item['dtfimcortesia'] ?? ''}');
-    if (quantidade == null || inicio == null || fim == null) {
-      return 'Cortesias: configuração pendente';
-    }
-    final formato = DateFormat('dd/MM/yyyy HH:mm');
-    return 'Cortesias: $quantidade • ${formato.format(inicio)} até ${formato.format(fim)}';
-  }
-
   String _seloDesconto(Map<String, dynamic> item) {
     final desconto = _valor(item['vrdesconto']);
     return '${item['tipodesconto']}'.toString().toUpperCase() == 'PERCENTUAL'
@@ -383,9 +356,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       'vrdesconto': 0.0,
       'dtinidesconto': null,
       'dtfimdesconto': null,
-      'qtcortesia': null,
-      'dtinicortesia': null,
-      'dtfimcortesia': null,
       'pccashback': null,
       'sititem': 'ATIVO',
     };
@@ -395,20 +365,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       categoria['itens'] = itens;
     });
 
-    if (preco <= 0) {
-      final configurada = await _editarCortesias(item);
-      if (configurada || !mounted) return;
-      setState(() {
-        final itens = _itens(categoria);
-        itens.remove(item);
-        categoria['itens'] = itens;
-      });
-      AppSnackBar.aviso(
-        context,
-        'O produto não foi adicionado porque a cortesia não foi configurada.',
-      );
-      return;
-    }
     _marcarAlterado();
   }
 
@@ -431,8 +387,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
           decoration: InputDecoration(
             labelText: 'Preço neste cardápio',
             prefixText: 'R\$ ',
-            helperText:
-                'Preço padrão: ${_moeda.format(precoPadrao)}. Use 0,00 para configurar uma cortesia.',
+            helperText: 'Preço padrão: ${_moeda.format(precoPadrao)}.',
             border: OutlineInputBorder(),
           ),
         ),
@@ -446,8 +401,8 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
               final numero = double.tryParse(
                 controller.text.trim().replaceAll(',', '.'),
               );
-              if (numero == null || numero < 0) {
-                AppSnackBar.aviso(context, 'Informe um preço válido.');
+              if (numero == null || numero <= 0) {
+                AppSnackBar.aviso(context, 'Informe um preço maior que zero.');
                 return;
               }
               Navigator.pop(dialogContext, numero);
@@ -489,8 +444,10 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
               final numero = double.tryParse(
                 controller.text.trim().replaceAll(',', '.'),
               );
-              if (numero != null && numero >= 0) {
+              if (numero != null && numero > 0) {
                 Navigator.pop(dialogContext, numero);
+              } else {
+                AppSnackBar.aviso(context, 'Informe um preço maior que zero.');
               }
             },
             child: const Text('Confirmar'),
@@ -500,11 +457,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     );
     controller.dispose();
     if (valor == null || !mounted) return;
-    setState(() {
-      item['vrpreco'] = valor;
-      _limparCortesiaSeNecessario(item);
-    });
-    if (_ehCortesia(item) && !await _editarCortesias(item)) return;
+    setState(() => item['vrpreco'] = valor);
     _marcarAlterado();
   }
 
@@ -681,13 +634,13 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                         );
                   if (desconto == null ||
                       desconto < 0 ||
-                      (porPercentual && desconto > 100) ||
-                      (!porPercentual && desconto > _valor(item['vrpreco']))) {
+                      (porPercentual && desconto >= 100) ||
+                      (!porPercentual && desconto >= _valor(item['vrpreco']))) {
                     AppSnackBar.aviso(
                       context,
                       porPercentual
-                          ? 'Informe um percentual entre 0 e 100.'
-                          : 'O desconto não pode ser maior que o preço.',
+                          ? 'Informe um percentual entre 0 e menor que 100.'
+                          : 'O desconto deve ser menor que o preço.',
                     );
                     return;
                   }
@@ -723,157 +676,8 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       item['dtfimdesconto'] = resultado['tipodesconto'] == 'NENHUM'
           ? null
           : resultado['dtfimdesconto'];
-      _limparCortesiaSeNecessario(item);
     });
-    if (_ehCortesia(item) && !await _editarCortesias(item)) return;
     _marcarAlterado();
-  }
-
-  Future<bool> _editarCortesias(Map<String, dynamic> item) async {
-    if (!_ehCortesia(item)) {
-      AppSnackBar.aviso(
-        context,
-        'A disponibilidade de cortesias é usada somente quando o preço final é R\$ 0,00.',
-      );
-      return false;
-    }
-
-    final quantidadeController = TextEditingController(
-      text: item['qtcortesia']?.toString() ?? '',
-    );
-    var inicio =
-        DateTime.tryParse('${item['dtinicortesia'] ?? ''}') ??
-        HorarioBrasil.agora();
-    var fim =
-        DateTime.tryParse('${item['dtfimcortesia'] ?? ''}') ??
-        HorarioBrasil.agora().add(const Duration(days: 1));
-
-    final resultado = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, atualizar) => AlertDialog(
-          title: Text('Cortesias • ${item['nmproduto']}'),
-          content: SizedBox(
-            width: 380,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Defina quantas unidades gratuitas poderão ser resgatadas e por quanto tempo.',
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: quantidadeController,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Quantidade de cortesias',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Início das cortesias'),
-                  subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(inicio)),
-                  trailing: const Icon(Icons.calendar_month_outlined),
-                  onTap: () async {
-                    final data = await showDatePicker(
-                      context: context,
-                      initialDate: inicio,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
-                    if (data == null || !context.mounted) return;
-                    final hora = await showTimePicker(
-                      context: context,
-                      initialTime: TimeOfDay.fromDateTime(inicio),
-                    );
-                    if (hora == null) return;
-                    atualizar(
-                      () => inicio = DateTime(
-                        data.year,
-                        data.month,
-                        data.day,
-                        hora.hour,
-                        hora.minute,
-                      ),
-                    );
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Fim das cortesias'),
-                  subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(fim)),
-                  trailing: const Icon(Icons.calendar_month_outlined),
-                  onTap: () async {
-                    final data = await showDatePicker(
-                      context: context,
-                      initialDate: fim,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
-                    if (data == null || !context.mounted) return;
-                    final hora = await showTimePicker(
-                      context: context,
-                      initialTime: TimeOfDay.fromDateTime(fim),
-                    );
-                    if (hora == null) return;
-                    atualizar(
-                      () => fim = DateTime(
-                        data.year,
-                        data.month,
-                        data.day,
-                        hora.hour,
-                        hora.minute,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final quantidade = int.tryParse(quantidadeController.text);
-                if (quantidade == null || quantidade <= 0) {
-                  AppSnackBar.aviso(
-                    context,
-                    'Informe uma quantidade de cortesias maior que zero.',
-                  );
-                  return;
-                }
-                if (!fim.isAfter(inicio)) {
-                  AppSnackBar.aviso(
-                    context,
-                    'O fim das cortesias deve ser posterior ao início.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, {
-                  'qtcortesia': quantidade,
-                  'dtinicortesia': inicio.toIso8601String(),
-                  'dtfimcortesia': fim.toIso8601String(),
-                });
-              },
-              child: const Text('Salvar cortesias'),
-            ),
-          ],
-        ),
-      ),
-    );
-    quantidadeController.dispose();
-    if (resultado == null || !mounted) return false;
-    setState(() {
-      item.addAll(resultado);
-      _registrarAlteracao();
-    });
-    return true;
   }
 
   Future<void> _editarCashback(Map<String, dynamic> item) async {
@@ -1121,15 +925,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
               'dtfimdesconto': _itens(
                 _categorias[categoriaIndice],
               )[itemIndice]['dtfimdesconto'],
-              'qtcortesia': _itens(
-                _categorias[categoriaIndice],
-              )[itemIndice]['qtcortesia'],
-              'dtinicortesia': _itens(
-                _categorias[categoriaIndice],
-              )[itemIndice]['dtinicortesia'],
-              'dtfimcortesia': _itens(
-                _categorias[categoriaIndice],
-              )[itemIndice]['dtfimcortesia'],
               'pccashback': _itens(
                 _categorias[categoriaIndice],
               )[itemIndice]['pccashback'],
@@ -1372,9 +1167,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                               if (acao == 'cashback') {
                                 _editarCashback(item);
                               }
-                              if (acao == 'cortesias') {
-                                _editarCortesias(item);
-                              }
                               if (acao == 'subir') {
                                 _moverProduto(categoria, indice, -1);
                               }
@@ -1420,17 +1212,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                                   title: Text('Cashback'),
                                 ),
                               ),
-                              if (_ehCortesia(item))
-                                const PopupMenuItem(
-                                  value: 'cortesias',
-                                  child: ListTile(
-                                    leading: Icon(
-                                      Icons.card_giftcard_outlined,
-                                      color: ClubbarColors.sucesso,
-                                    ),
-                                    title: Text('Configurar cortesias'),
-                                  ),
-                                ),
                               if (indice > 0)
                                 const PopupMenuItem(
                                   value: 'subir',
@@ -1566,16 +1347,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
             'Desconto: ${_seloDesconto(item)}',
             style: const TextStyle(
               color: ClubbarColors.erro,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-        ],
-        if (_ehCortesia(item)) ...[
-          Text(
-            _resumoCortesias(item),
-            style: const TextStyle(
-              color: ClubbarColors.sucesso,
               fontWeight: FontWeight.w700,
             ),
           ),
