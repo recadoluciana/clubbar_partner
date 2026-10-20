@@ -114,15 +114,17 @@ class CatalogoIngressoPartnerRepository {
     final response = await ApiService.delete(
       '/ingressos-catalogo/parceiro/beneficios/$id',
     );
-    if (response.statusCode < 200 || response.statusCode >= 300)
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _erro(response, 'Não foi possível excluir o benefício.');
+    }
   }
 
   Future<void> excluirModalidade(int id) async {
     final response = await ApiService.delete(
       '/ingressos-catalogo/parceiro/modalidades/$id',
     );
-    if (response.statusCode < 200 || response.statusCode >= 300)
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _erro(response, 'Não foi possível excluir a modalidade.');
+    }
   }
 }

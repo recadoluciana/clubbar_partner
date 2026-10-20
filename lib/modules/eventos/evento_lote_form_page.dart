@@ -268,11 +268,12 @@ class _EventoLoteFormPageState extends State<EventoLoteFormPage> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     } finally {
       if (mounted) setState(() => _salvando = false);
     }

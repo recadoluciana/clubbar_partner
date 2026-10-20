@@ -51,8 +51,9 @@ class _CatalogoIngressosPartnerPageState
         _beneficios = resultados[1] as List<BeneficioIngressoCatalogo>;
       });
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -128,11 +129,12 @@ class _CatalogoIngressosPartnerPageState
         );
         await _carregar();
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           AppSnackBar.erro(
             context,
             e.toString().replaceFirst('Exception: ', ''),
           );
+        }
       }
     }
     nome.dispose();
@@ -265,11 +267,12 @@ class _CatalogoIngressosPartnerPageState
         );
         await _carregar();
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           AppSnackBar.erro(
             context,
             e.toString().replaceFirst('Exception: ', ''),
           );
+        }
       }
     }
     nome.dispose();
@@ -277,14 +280,16 @@ class _CatalogoIngressosPartnerPageState
 
   Future<void> _excluir(bool modalidade, int id) async {
     try {
-      if (modalidade)
+      if (modalidade) {
         await _repo.excluirModalidade(id);
-      else
+      } else {
         await _repo.excluirBeneficio(id);
+      }
       await _carregar();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 

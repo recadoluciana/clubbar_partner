@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
@@ -9,6 +10,7 @@ class StorageService {
   }
 
   static const String _tokenKey = 'auth_token';
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   static const String _lojaIdKey = 'loja_id';
   static const String _organizacaoIdKey = 'organizacao_id';
@@ -22,11 +24,29 @@ class StorageService {
 
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    if (kIsWeb) {
+      await prefs.setString(_tokenKey, token);
+      return;
+    }
+    await _secureStorage.write(key: _tokenKey, value: token);
+    await prefs.remove(_tokenKey);
   }
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!kIsWeb) {
+      final tokenSeguro = await _secureStorage.read(key: _tokenKey);
+      if (tokenSeguro?.isNotEmpty == true) {
+        return tokenSeguro;
+      }
+
+      final tokenLegado = prefs.getString(_tokenKey);
+      if (tokenLegado?.isNotEmpty == true) {
+        await _secureStorage.write(key: _tokenKey, value: tokenLegado);
+        await prefs.remove(_tokenKey);
+      }
+      return tokenLegado;
+    }
     return prefs.getString(_tokenKey);
   }
 
@@ -103,6 +123,9 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.clear();
+    if (!kIsWeb) {
+      await _secureStorage.delete(key: _tokenKey);
+    }
     _notificarSessaoAlterada();
   }
 }

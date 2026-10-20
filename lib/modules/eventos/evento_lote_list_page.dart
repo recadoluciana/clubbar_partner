@@ -156,11 +156,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     if (inicioAtual != null &&
         fimAtual != null &&
         !fimAtual.isAfter(inicioAtual)) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.aviso(
           context,
           'O fim das vendas deve ser posterior ao início.',
         );
+      }
       return;
     }
     try {
@@ -178,11 +179,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _carregar();
       }
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -411,11 +413,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _carregar();
       }
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -446,11 +449,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       await _eventoRepo.excluirOcorrencia(widget.eventoId);
       if (mounted) Navigator.pop(context, true);
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -479,14 +483,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       if (!mounted) return;
       setState(() => _eventoInicio = nova.toIso8601String());
       await _carregar();
-      if (mounted)
+      if (mounted) {
         AppSnackBar.sucesso(context, 'Horário do evento atualizado.');
+      }
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -594,11 +600,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                         if (context.mounted) Navigator.pop(context, true);
                       } catch (erro) {
                         atualizar(() => salvando = false);
-                        if (mounted)
+                        if (mounted) {
                           AppSnackBar.erro(
                             this.context,
                             erro.toString().replaceFirst('Exception: ', ''),
                           );
+                        }
                       }
                     },
               child: Text(salvando ? 'Salvando...' : 'Salvar'),
@@ -636,11 +643,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, 'Atração removida do evento.');
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -669,8 +677,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       ),
     );
     nome.dispose();
-    if (novoNome == null || novoNome.isEmpty || novoNome == _eventoTitulo)
+    if (novoNome == null || novoNome.isEmpty || novoNome == _eventoTitulo) {
       return;
+    }
     try {
       await _eventoRepo.atualizarEventoAgendado(
         eventoId: widget.eventoId,
@@ -681,11 +690,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         AppSnackBar.sucesso(context, 'Nome do evento atualizado.');
       }
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -707,11 +717,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         AppSnackBar.sucesso(context, 'Foto do evento atualizada.');
       }
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -795,8 +806,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   String? get _urlBanner {
     final banner = _eventoBanner?.trim() ?? '';
     if (banner.isEmpty) return null;
-    if (banner.startsWith('http://') || banner.startsWith('https://'))
+    if (banner.startsWith('http://') || banner.startsWith('https://')) {
       return banner;
+    }
     return '${ApiConfig.baseUrl}${banner.startsWith('/') ? '' : '/'}$banner';
   }
 
@@ -847,8 +859,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
               final quantidade = int.tryParse(capacidade.text.trim());
               if (nome.text.trim().isEmpty ||
                   quantidade == null ||
-                  quantidade <= 0)
+                  quantidade <= 0) {
                 return;
+              }
               try {
                 if (existente == null) {
                   await _repo.criarSetor(
@@ -867,11 +880,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 }
                 if (context.mounted) Navigator.pop(context, true);
               } catch (erro) {
-                if (context.mounted)
+                if (context.mounted) {
                   AppSnackBar.erro(
                     context,
                     erro.toString().replaceFirst('Exception: ', ''),
                   );
+                }
               }
             },
             child: const Text('Salvar'),
@@ -911,11 +925,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _carregar();
       }
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -1057,11 +1072,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   }
                   if (context.mounted) Navigator.pop(context, true);
                 } catch (erro) {
-                  if (context.mounted)
+                  if (context.mounted) {
                     AppSnackBar.erro(
                       context,
                       erro.toString().replaceFirst('Exception: ', ''),
                     );
+                  }
                 }
               },
               child: const Text('Salvar'),
@@ -1307,11 +1323,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _carregar();
       }
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -1402,8 +1419,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 final preco = double.tryParse(
                   valor.text.replaceAll('.', '').replaceAll(',', '.'),
                 );
-                if (nome.text.trim().isEmpty || preco == null || preco < 0)
+                if (nome.text.trim().isEmpty || preco == null || preco < 0) {
                   return;
+                }
                 final textoLimite = limite.text.trim();
                 final limiteModalidade = textoLimite.isEmpty
                     ? null
@@ -1457,11 +1475,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                   );
                   if (context.mounted) Navigator.pop(context, true);
                 } catch (erro) {
-                  if (context.mounted)
+                  if (context.mounted) {
                     AppSnackBar.erro(
                       context,
                       erro.toString().replaceFirst('Exception: ', ''),
                     );
+                  }
                 }
               },
               child: const Text('Salvar'),
@@ -1865,11 +1884,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _carregar();
       }
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -1901,11 +1921,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
         _carregar();
       }
     } catch (erro) {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           erro.toString().replaceFirst('Exception: ', ''),
         );
+      }
     }
   }
 
@@ -2488,8 +2509,9 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   String? _urlImagemAtracao(EventoAtracao atracao) {
     final banner = atracao.atracao.banner?.trim() ?? '';
     if (banner.isEmpty) return null;
-    if (banner.startsWith('http://') || banner.startsWith('https://'))
+    if (banner.startsWith('http://') || banner.startsWith('https://')) {
       return banner;
+    }
     return '${ApiConfig.baseUrl}${banner.startsWith('/') ? '' : '/'}$banner';
   }
 

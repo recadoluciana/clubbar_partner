@@ -41,10 +41,11 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
         final r = await ApiService.get(
           '/beneficios-produtos/lojas/$_lojaId?organizacao_id=${widget.organizacaoId}',
         );
-        if (r.statusCode == 200)
+        if (r.statusCode == 200) {
           _campanhas = (jsonDecode(r.body) as List)
               .map((e) => Map<String, dynamic>.from(e))
               .toList();
+        }
       }
     } catch (e) {
       if (mounted) AppSnackBar.erro(context, e.toString());
@@ -81,7 +82,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField(
-                  value: tipo,
+                  initialValue: tipo,
                   items: const [
                     DropdownMenuItem(
                       value: 'CORTESIA',
@@ -99,7 +100,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                   onChanged: (v) => atualizar(() => tipo = v!),
                 ),
                 DropdownButtonFormField<int>(
-                  value: produtoId,
+                  initialValue: produtoId,
                   items: _produtos
                       .map(
                         (p) => DropdownMenuItem(
@@ -202,18 +203,20 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
           );
     if (r.statusCode >= 200 && r.statusCode < 300) {
       await _carregar();
-      if (mounted)
+      if (mounted) {
         AppSnackBar.sucesso(
           context,
           campanha == null ? 'Benefício criado.' : 'Campanha atualizada.',
         );
+      }
     } else {
-      if (mounted)
+      if (mounted) {
         AppSnackBar.erro(
           context,
           jsonDecode(r.body)['detail']?.toString() ??
               'Não foi possível salvar.',
         );
+      }
     }
   }
 
@@ -271,7 +274,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: DropdownButtonFormField<int>(
-                    value: _lojaId,
+                    initialValue: _lojaId,
                     decoration: const InputDecoration(
                       labelText: 'Estabelecimento',
                     ),
