@@ -74,6 +74,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
     );
     final ok = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (c) => StatefulBuilder(
         builder: (c, atualizar) => AlertDialog(
           title: const Text('Novo benefício'),
@@ -99,6 +100,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                   ],
                   onChanged: (v) => atualizar(() => tipo = v!),
                 ),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<int>(
                   initialValue: produtoId,
                   items: _produtos
@@ -111,6 +113,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                       .toList(),
                   onChanged: (v) => produtoId = v!,
                 ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: nome,
                   decoration: const InputDecoration(
@@ -118,6 +121,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                   ),
                 ),
                 if (tipo == 'PACOTE') ...[
+                  const SizedBox(height: 12),
                   TextField(
                     controller: quantidadePacote,
                     keyboardType: TextInputType.number,
@@ -126,6 +130,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                       hintText: 'Ex.: 3',
                     ),
                   ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: valorPacote,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -137,6 +142,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 12),
                 TextField(
                   controller: limite,
                   keyboardType: TextInputType.number,
@@ -157,6 +163,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c),
+              style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
