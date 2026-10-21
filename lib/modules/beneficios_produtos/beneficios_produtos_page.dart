@@ -81,6 +81,19 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
     final percentualDesconto = TextEditingController(
       text: campanha?['percentual_desconto']?.toString() ?? '',
     );
+    DateTime inicio =
+        DateTime.tryParse('${campanha?['dthrinicio'] ?? ''}')?.toLocal() ??
+        DateTime.now();
+    DateTime? fim = campanha?['dthrfim'] == null
+        ? null
+        : DateTime.tryParse('${campanha?['dthrfim']}')?.toLocal();
+    bool possuiFim = fim != null;
+
+    String formatarDataHora(DateTime data) {
+      String doisDigitos(int valor) => valor.toString().padLeft(2, '0');
+      return '${doisDigitos(data.day)}/${doisDigitos(data.month)}/${data.year} '
+          '${doisDigitos(data.hour)}:${doisDigitos(data.minute)}';
+    }
 
     String nomeProdutoSelecionado() {
       final produto = _produtos.where(
@@ -96,7 +109,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
       barrierDismissible: false,
       builder: (c) => StatefulBuilder(
         builder: (c, atualizar) => AlertDialog(
-          title: const Text('Novo benefício'),
+          title: Text(campanha == null ? 'Novo benefício' : 'Editar benefício'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -159,6 +172,91 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                     labelText: 'Nome da campanha',
                   ),
                 ),
+                const SizedBox(height: 12),
+                InkWell(
+                  borderRadius: BorderRadius.circular(4),
+                  onTap: () async {
+                    final data = await showDatePicker(
+                      context: c,
+                      initialDate: inicio,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (data == null || !c.mounted) return;
+                    final hora = await showTimePicker(
+                      context: c,
+                      initialTime: TimeOfDay.fromDateTime(inicio),
+                    );
+                    if (hora == null) return;
+                    atualizar(() {
+                      inicio = DateTime(
+                        data.year,
+                        data.month,
+                        data.day,
+                        hora.hour,
+                        hora.minute,
+                      );
+                    });
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Início da campanha',
+                      suffixIcon: Icon(Icons.calendar_month_outlined),
+                    ),
+                    child: Text(formatarDataHora(inicio)),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Definir data e hora de término'),
+                  subtitle: const Text(
+                    'Desative para manter a campanha sem prazo final.',
+                  ),
+                  value: possuiFim,
+                  onChanged: (valor) => atualizar(() {
+                    possuiFim = valor;
+                    fim ??= inicio.add(const Duration(days: 1));
+                  }),
+                ),
+                if (possuiFim) ...[
+                  InkWell(
+                    borderRadius: BorderRadius.circular(4),
+                    onTap: () async {
+                      final referencia =
+                          fim ?? inicio.add(const Duration(days: 1));
+                      final data = await showDatePicker(
+                        context: c,
+                        initialDate: referencia,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (data == null || !c.mounted) return;
+                      final hora = await showTimePicker(
+                        context: c,
+                        initialTime: TimeOfDay.fromDateTime(referencia),
+                      );
+                      if (hora == null) return;
+                      atualizar(() {
+                        fim = DateTime(
+                          data.year,
+                          data.month,
+                          data.day,
+                          hora.hour,
+                          hora.minute,
+                        );
+                      });
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Fim da campanha',
+                        suffixIcon: Icon(Icons.event_available_outlined),
+                      ),
+                      child: Text(formatarDataHora(fim!)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (tipo == 'PACOTE') ...[
                   const SizedBox(height: 12),
                   TextField(
@@ -230,6 +328,15 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
       ),
     );
     if (ok != true) return;
+    if (possuiFim && (fim == null || !fim!.isAfter(inicio))) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          'O fim da campanha deve ser posterior ao início.',
+        );
+      }
+      return;
+    }
     final percentual = double.tryParse(
       percentualDesconto.text.trim().replaceAll(',', '.'),
     );
@@ -243,7 +350,6 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
       }
       return;
     }
-    final agora = DateTime.now();
     final dados = {
       'organizacao_id': widget.organizacaoId,
       'loja_id': _lojaId,
@@ -256,10 +362,8 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                 ? 'Promoção por quantidade'
                 : 'Cortesia de produto')
           : nome.text.trim(),
-      'dthrinicio': campanha?['dthrinicio'] ?? agora.toIso8601String(),
-      'dthrfim':
-          campanha?['dthrfim'] ??
-          agora.add(const Duration(days: 30)).toIso8601String(),
+      'dthrinicio': inicio.toIso8601String(),
+      'dthrfim': possuiFim ? fim!.toIso8601String() : null,
       'qtlimite': int.tryParse(limite.text),
       'limite_cliente_dia': 1,
       'qtitenspacote': tipo == 'PACOTE'
@@ -323,6 +427,35 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
       if (mounted) AppSnackBar.sucesso(context, 'Campanha excluída.');
     } else if (mounted) {
       AppSnackBar.erro(context, 'Não foi possível excluir a campanha.');
+    }
+  }
+
+  String _descricaoPeriodo(Map<String, dynamic> campanha) {
+    DateTime? converter(dynamic valor) =>
+        valor == null ? null : DateTime.tryParse('$valor')?.toLocal();
+    String formatar(DateTime data) {
+      String doisDigitos(int valor) => valor.toString().padLeft(2, '0');
+      return '${doisDigitos(data.day)}/${doisDigitos(data.month)}/${data.year} '
+          '${doisDigitos(data.hour)}:${doisDigitos(data.minute)}';
+    }
+
+    final inicio = converter(campanha['dthrinicio']);
+    final fim = converter(campanha['dthrfim']);
+    switch ('${campanha['status_periodo'] ?? ''}') {
+      case 'AGENDADA':
+        return inicio == null
+            ? 'Campanha agendada'
+            : 'Agendada para ${formatar(inicio)}';
+      case 'ENCERRADA':
+        return fim == null
+            ? 'Campanha encerrada'
+            : 'Encerrada em ${formatar(fim)}';
+      case 'INATIVA':
+        return 'Campanha inativa';
+      default:
+        return fim == null
+            ? 'Ativa sem prazo final'
+            : 'Ativa até ${formatar(fim)}';
     }
   }
 
@@ -409,7 +542,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                               ? 'Roleta descontinuada — edite para convertê-la em promoção percentual'
                               : x['tipo'] == 'PACOTE'
                               ? 'Promoção: ${x['qtitenspacote']} por R\$ ${x['vrpacote']}'
-                              : 'Cortesia'} • ${x['resgates'] ?? 0} ${(x['tipo'] == 'CORTESIA' || x['tipo'] == 'ROLETA') ? 'resgates' : 'vendas'}',
+                              : 'Cortesia'} • ${x['resgates'] ?? 0} ${(x['tipo'] == 'CORTESIA' || x['tipo'] == 'ROLETA') ? 'resgates' : 'vendas'}\n${_descricaoPeriodo(x)}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
