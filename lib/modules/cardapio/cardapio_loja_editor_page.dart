@@ -51,6 +51,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   final Set<int> _produtosExpandidos = {};
   late int _versaoEdicaoId;
   bool _versaoEhRascunho = false;
+  bool _rascunhoPossuiAlteracoes = false;
 
   int _id(Object? valor) => int.parse('$valor');
   double _valor(Object? valor) => double.tryParse('$valor') ?? 0;
@@ -108,6 +109,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       setState(() {
         _numeroVersao = (conteudo['nrversao'] as num?)?.toInt();
         _versaoEhRascunho = conteudo['statusversao'] == 'RASCUNHO';
+        _rascunhoPossuiAlteracoes = conteudo['possui_alteracoes'] == true;
         _categorias = categorias;
         _categoriasOrganizacao = List<Map<String, dynamic>>.from(
           resultados[1] as List,
@@ -163,6 +165,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
 
   void _registrarAlteracao() {
     _alterado = true;
+    _rascunhoPossuiAlteracoes = true;
     _revisaoAlteracoes++;
     _agendarSalvamentoAutomatico();
   }
@@ -961,6 +964,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
         _versaoEdicaoId = int.parse('${nova['cardapioversao_id']}');
         _numeroVersao = (nova['nrversao'] as num?)?.toInt();
         _versaoEhRascunho = true;
+        _rascunhoPossuiAlteracoes = false;
       });
       return true;
     } catch (e) {
@@ -982,10 +986,15 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     setState(() => _salvando = true);
     try {
       if (!await _garantirRascunho()) return false;
-      await _repo.salvarConteudo(_versaoEdicaoId, _payload());
+      final conteudo = await _repo.salvarConteudo(_versaoEdicaoId, _payload());
       salvoComSucesso = true;
       if (!mounted) return true;
-      setState(() => _alterado = _revisaoAlteracoes != revisaoSalva);
+      setState(() {
+        final houveNovaAlteracao = _revisaoAlteracoes != revisaoSalva;
+        _alterado = houveNovaAlteracao;
+        _rascunhoPossuiAlteracoes =
+            houveNovaAlteracao || conteudo['possui_alteracoes'] == true;
+      });
       if (avisar) {
         AppSnackBar.sucesso(
           context,
@@ -1020,7 +1029,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
   }
 
   Future<void> _publicar() async {
-    if (!_alterado && !_versaoEhRascunho) {
+    if (!_alterado && !_rascunhoPossuiAlteracoes) {
       AppSnackBar.aviso(context, 'Faça uma alteração antes de publicar.');
       return;
     }
@@ -1500,7 +1509,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
           ClubbarAddButton(
             label: 'Publicar alterações',
             icon: Icons.publish,
-            onPressed: _salvando || (!_alterado && !_versaoEhRascunho)
+            onPressed: _salvando || (!_alterado && !_rascunhoPossuiAlteracoes)
                 ? null
                 : _publicar,
           ),

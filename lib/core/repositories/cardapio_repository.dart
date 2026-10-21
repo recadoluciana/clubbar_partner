@@ -317,7 +317,7 @@ class CardapioRepository {
     return Map<String, dynamic>.from(_json(response));
   }
 
-  Future<void> salvarConteudo(
+  Future<Map<String, dynamic>> salvarConteudo(
     int versaoId,
     List<Map<String, dynamic>> categorias,
   ) async {
@@ -328,6 +328,7 @@ class CardapioRepository {
     if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível atualizar o cardápio.');
     }
+    return Map<String, dynamic>.from(_json(response));
   }
 
   Future<String> publicar(int versaoId) async {

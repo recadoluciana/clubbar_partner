@@ -97,6 +97,8 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
     return null;
   }
 
+  bool get _rascunhoPossuiAlteracoes => _rascunho?['possui_alteracoes'] == true;
+
   bool get _publicado => _versoes.any(
     (versao) =>
         versao['statusversao'] == 'PUBLICADA' ||
@@ -363,8 +365,15 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
   }
 
   Future<void> _publicar() async {
+    if (_rascunho == null || !_rascunhoPossuiAlteracoes) {
+      AppSnackBar.aviso(
+        context,
+        'Faça uma alteração no cardápio antes de publicar.',
+      );
+      return;
+    }
     try {
-      final versaoId = await _garantirRascunho();
+      final versaoId = _id(_rascunho!['cardapioversao_id']);
       final mensagem = await _repo.publicar(versaoId);
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, mensagem);
@@ -552,7 +561,7 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
                 label: const Text('Montar cardápio'),
               ),
               FilledButton.icon(
-                onPressed: _rascunho == null ? null : _publicar,
+                onPressed: _rascunhoPossuiAlteracoes ? _publicar : null,
                 icon: const Icon(Icons.publish_outlined),
                 label: const Text('Publicar cardápio'),
                 style: FilledButton.styleFrom(
