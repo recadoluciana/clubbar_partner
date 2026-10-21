@@ -6,6 +6,7 @@ import '../../core/services/api_service.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/utils/text_normalizer.dart';
 import '../../models/loja.dart';
 
 class BeneficiosProdutosPage extends StatefulWidget {
@@ -72,6 +73,16 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
     final valorPacote = TextEditingController(
       text: campanha?['vrpacote']?.toString() ?? '',
     );
+
+    String nomeProdutoSelecionado() {
+      final produto = _produtos.where(
+        (item) => int.tryParse('${item['produto_id']}') == produtoId,
+      );
+      return produto.isEmpty
+          ? 'Selecione o produto'
+          : '${produto.first['nmproduto']}';
+    }
+
     final ok = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -101,17 +112,37 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                   onChanged: (v) => atualizar(() => tipo = v!),
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  initialValue: produtoId,
-                  items: _produtos
-                      .map(
-                        (p) => DropdownMenuItem(
-                          value: int.parse('${p['produto_id']}'),
-                          child: Text('${p['nmproduto']}'),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => produtoId = v!,
+                Semantics(
+                  button: true,
+                  label: 'Selecione o produto',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(4),
+                    onTap: () async {
+                      final selecionado = await Navigator.of(context)
+                          .push<Map<String, dynamic>>(
+                            MaterialPageRoute(
+                              builder: (_) => _SelecionarProdutoPage(
+                                produtos: _produtos,
+                                produtoIdSelecionado: produtoId,
+                              ),
+                            ),
+                          );
+                      if (selecionado == null) return;
+                      atualizar(() {
+                        produtoId = int.parse('${selecionado['produto_id']}');
+                      });
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Selecione o produto',
+                        suffixIcon: Icon(Icons.search_rounded),
+                      ),
+                      child: Text(
+                        nomeProdutoSelecionado(),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -368,4 +399,107 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
             ),
           ),
   );
+}
+
+class _SelecionarProdutoPage extends StatefulWidget {
+  final List<Map<String, dynamic>> produtos;
+  final int produtoIdSelecionado;
+
+  const _SelecionarProdutoPage({
+    required this.produtos,
+    required this.produtoIdSelecionado,
+  });
+
+  @override
+  State<_SelecionarProdutoPage> createState() => _SelecionarProdutoPageState();
+}
+
+class _SelecionarProdutoPageState extends State<_SelecionarProdutoPage> {
+  final _buscaController = TextEditingController();
+  String _busca = '';
+
+  @override
+  void dispose() {
+    _buscaController.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _produtosFiltrados {
+    final busca = normalizarTextoBusca(_busca);
+    if (busca.isEmpty) return widget.produtos;
+
+    return widget.produtos.where((produto) {
+      final nome = normalizarTextoBusca('${produto['nmproduto'] ?? ''}');
+      final id = '${produto['produto_id'] ?? ''}';
+      return nome.contains(busca) || id.contains(busca);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final produtos = _produtosFiltrados;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Selecione o produto')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _buscaController,
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              onChanged: (valor) => setState(() => _busca = valor),
+              decoration: InputDecoration(
+                labelText: 'Pesquisar produto',
+                hintText: 'Digite o nome ou código do produto',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _busca.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Limpar pesquisa',
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () {
+                          _buscaController.clear();
+                          setState(() => _busca = '');
+                        },
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: produtos.isEmpty
+                ? const Center(child: Text('Nenhum produto encontrado.'))
+                : ListView.separated(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    itemCount: produtos.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (_, index) {
+                      final produto = produtos[index];
+                      final produtoId = int.tryParse(
+                        '${produto['produto_id']}',
+                      );
+                      final selecionado =
+                          produtoId == widget.produtoIdSelecionado;
+
+                      return ListTile(
+                        leading: const Icon(Icons.inventory_2_outlined),
+                        title: Text('${produto['nmproduto'] ?? 'Produto'}'),
+                        trailing: selecionado
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              )
+                            : const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.of(context).pop(produto),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 }
