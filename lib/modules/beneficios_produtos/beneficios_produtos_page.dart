@@ -57,12 +57,17 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
 
   Future<void> _nova([Map<String, dynamic>? campanha]) async {
     if (_lojaId == null || _produtos.isEmpty) return;
-    String tipo = '${campanha?['tipo'] ?? 'CORTESIA'}';
+    final campanhaLegadaDeRoleta = campanha?['tipo'] == 'ROLETA';
+    String tipo = campanhaLegadaDeRoleta
+        ? 'PERCENTUAL'
+        : '${campanha?['tipo'] ?? 'CORTESIA'}';
     int produtoId =
         int.tryParse('${campanha?['produto_id']}') ??
         int.parse('${_produtos.first['produto_id']}');
     final nome = TextEditingController(
-      text: '${campanha?['nmcampanha'] ?? ''}',
+      text: campanhaLegadaDeRoleta
+          ? 'Promoção percentual'
+          : '${campanha?['nmcampanha'] ?? ''}',
     );
     final limite = TextEditingController(
       text: campanha?['qtlimite']?.toString() ?? '',
@@ -72,6 +77,9 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
     );
     final valorPacote = TextEditingController(
       text: campanha?['vrpacote']?.toString() ?? '',
+    );
+    final percentualDesconto = TextEditingController(
+      text: campanha?['percentual_desconto']?.toString() ?? '',
     );
 
     String nomeProdutoSelecionado() {
@@ -101,8 +109,8 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                       child: Text('Cortesia'),
                     ),
                     DropdownMenuItem(
-                      value: 'ROLETA',
-                      child: Text('Roleta de descontos'),
+                      value: 'PERCENTUAL',
+                      child: Text('Promoção por percentual'),
                     ),
                     DropdownMenuItem(
                       value: 'PACOTE',
@@ -173,6 +181,20 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                     ),
                   ),
                 ],
+                if (tipo == 'PERCENTUAL') ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: percentualDesconto,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Desconto percentual',
+                      hintText: 'Ex.: 20',
+                      suffixText: '%',
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextField(
                   controller: limite,
@@ -185,7 +207,9 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                 Text(
                   tipo == 'PACOTE'
                       ? 'O cliente verá o produto normal no cardápio e, abaixo dele, a oferta do pacote. A compra gera uma ficha individual para cada unidade.'
-                      : 'A roleta sorteia 10% ou 20%. O cliente pode girar até duas vezes por produto em 24 horas; o segundo giro substitui o primeiro prêmio. Cortesia pendente ou desconto usado nos últimos 10 dias bloqueiam novos giros.',
+                      : tipo == 'PERCENTUAL'
+                      ? 'O desconto será aplicado automaticamente ao produto no cardápio e no carrinho, sem sorteio ou etapas extras.'
+                      : 'O cliente poderá resgatar esta cortesia diretamente para a carteira.',
                   style: const TextStyle(fontSize: 12),
                 ),
               ],
@@ -206,6 +230,19 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
       ),
     );
     if (ok != true) return;
+    final percentual = double.tryParse(
+      percentualDesconto.text.trim().replaceAll(',', '.'),
+    );
+    if (tipo == 'PERCENTUAL' &&
+        (percentual == null || percentual <= 0 || percentual >= 100)) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          'Informe um desconto maior que 0% e menor que 100%.',
+        );
+      }
+      return;
+    }
     final agora = DateTime.now();
     final dados = {
       'organizacao_id': widget.organizacaoId,
@@ -213,8 +250,8 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
       'produto_id': produtoId,
       'tipo': tipo,
       'nmcampanha': nome.text.trim().isEmpty
-          ? (tipo == 'ROLETA'
-                ? 'Roleta promocional'
+          ? (tipo == 'PERCENTUAL'
+                ? 'Promoção percentual'
                 : tipo == 'PACOTE'
                 ? 'Promoção por quantidade'
                 : 'Cortesia de produto')
@@ -231,6 +268,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
       'vrpacote': tipo == 'PACOTE'
           ? double.tryParse(valorPacote.text.trim().replaceAll(',', '.'))
           : null,
+      'percentual_desconto': tipo == 'PERCENTUAL' ? percentual : null,
       'situacao': 'ATIVA',
     };
     final r = campanha == null
@@ -342,7 +380,7 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    'O produto continua com seu preço normal no cardápio. Configure a cortesia ou a roleta aqui, sem republicar.',
+                    'O produto continua com seu preço normal no cardápio. Configure cortesias e promoções aqui, sem republicar.',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -355,19 +393,23 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                     child: Card(
                       child: ListTile(
                         leading: Icon(
-                          x['tipo'] == 'ROLETA'
-                              ? Icons.casino_outlined
+                          x['tipo'] == 'PERCENTUAL'
+                              ? Icons.percent_rounded
+                              : x['tipo'] == 'ROLETA'
+                              ? Icons.history_toggle_off_rounded
                               : x['tipo'] == 'PACOTE'
                               ? Icons.local_offer_outlined
                               : Icons.redeem_outlined,
                         ),
                         title: Text('${x['nmcampanha']}'),
                         subtitle: Text(
-                          'Produto: ${x['nmproduto'] ?? 'Produto'}\n${x['tipo'] == 'ROLETA'
-                              ? 'Roleta: 10% ou 20% OFF'
+                          'Produto: ${x['nmproduto'] ?? 'Produto'}\n${x['tipo'] == 'PERCENTUAL'
+                              ? 'Promoção: ${x['percentual_desconto']}% OFF'
+                              : x['tipo'] == 'ROLETA'
+                              ? 'Roleta descontinuada — edite para convertê-la em promoção percentual'
                               : x['tipo'] == 'PACOTE'
                               ? 'Promoção: ${x['qtitenspacote']} por R\$ ${x['vrpacote']}'
-                              : 'Cortesia'} • ${x['resgates'] ?? 0} resgates',
+                              : 'Cortesia'} • ${x['resgates'] ?? 0} ${(x['tipo'] == 'CORTESIA' || x['tipo'] == 'ROLETA') ? 'resgates' : 'vendas'}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
