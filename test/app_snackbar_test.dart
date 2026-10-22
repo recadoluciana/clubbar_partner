@@ -30,5 +30,14 @@ void main() {
         'O servidor demorou para responder. Tente novamente.',
       );
     });
+
+    test('oculta falha de comunicação do navegador', () {
+      expect(
+        AppSnackBar.mensagemSegura(
+          'ClientFailed to fetch, uri=https://api.clubbar.com.br/eventos-modelos',
+        ),
+        'Sem conexão com a internet ou servidor indisponível.',
+      );
+    });
   });
 }

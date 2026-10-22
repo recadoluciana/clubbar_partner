@@ -41,7 +41,9 @@ class AppSnackBar {
     }
     if (textoLower.contains('socketexception') ||
         textoLower.contains('failed host lookup') ||
-        textoLower.contains('connection refused')) {
+        textoLower.contains('connection refused') ||
+        textoLower.contains('clientfailed to fetch') ||
+        textoLower.contains('clientexception: failed to fetch')) {
       return 'Sem conexão com a internet ou servidor indisponível.';
     }
     final contemDetalheTecnico =
