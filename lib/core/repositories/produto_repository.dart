@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import '../services/http_with_timeout.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
@@ -108,7 +108,7 @@ class ProdutoRepository {
       request.files.add(await _montarArquivoImagem('urlfotoproduto', imagem));
     }
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final respStr = await response.stream.bytesToString();
 
     if (response.statusCode != 200 && response.statusCode != 201) {
@@ -184,7 +184,7 @@ class ProdutoRepository {
       request.files.add(await _montarArquivoImagem('urlfotoproduto', imagem));
     }
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final respStr = await response.stream.bytesToString();
 
     if (response.statusCode != 200) {

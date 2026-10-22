@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'http_with_timeout.dart' as http;
 import '../config/api_config.dart';
 import 'storage_service.dart';
 
@@ -136,10 +136,28 @@ class ApiService {
         : <String, dynamic>{};
 
     if (response.statusCode != 200) {
-      throw Exception(response.body);
+      throw Exception(_mensagemResposta(response));
     }
 
     return data;
+  }
+
+  static String _mensagemResposta(http.Response response) {
+    try {
+      final corpo = jsonDecode(response.body);
+      if (corpo is Map) {
+        final mensagem =
+            corpo['detail'] ?? corpo['message'] ?? corpo['mensagem'];
+        if (mensagem is String && mensagem.trim().isNotEmpty) {
+          return mensagem.trim();
+        }
+      }
+    } catch (_) {}
+
+    if (response.statusCode >= 500) {
+      return 'Sistema temporariamente indisponível. Tente novamente em instantes.';
+    }
+    return 'Não foi possível concluir a operação. Tente novamente.';
   }
 
   static Future<Map<String, dynamic>> buscarProdutoPorToken({

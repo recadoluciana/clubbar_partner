@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../../core/services/http_with_timeout.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
@@ -153,7 +153,7 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
             )
           : await http.MultipartFile.fromPath('logo', logo.path),
     );
-    final resposta = await requisicao.send();
+    final resposta = await http.sendMultipart(requisicao);
     final corpo = await resposta.stream.bytesToString();
     if (resposta.statusCode < 200 || resposta.statusCode >= 300) {
       throw Exception(
@@ -190,8 +190,8 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
     XFile? logoSelecionada;
     Uint8List? logoBytes;
     final logoAtual = '${atual?['url_logo'] ?? ''}'.trim();
-    var ativa = atual != null &&
-        '${atual['situacao']}'.toUpperCase() == 'ATIVA';
+    var ativa =
+        atual != null && '${atual['situacao']}'.toUpperCase() == 'ATIVA';
     var eventoId = (atual?['evento_id'] as num?)?.toInt() ?? -1;
     InputDecoration decoracaoCampo(String rotulo, {String? ajuda}) =>
         InputDecoration(
@@ -323,9 +323,18 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                         controller: documento,
                         style: estiloCampo,
                         keyboardType: TextInputType.number,
-                        decoration: decoracaoCampo('CPF ou CNPJ do beneficiário'),
-                        validator: (valor) => (valor ?? '').replaceAll(RegExp(r'\\D'), '').length == 11 ||
-                                (valor ?? '').replaceAll(RegExp(r'\\D'), '').length == 14
+                        decoration: decoracaoCampo(
+                          'CPF ou CNPJ do beneficiário',
+                        ),
+                        validator: (valor) =>
+                            (valor ?? '')
+                                        .replaceAll(RegExp(r'\\D'), '')
+                                        .length ==
+                                    11 ||
+                                (valor ?? '')
+                                        .replaceAll(RegExp(r'\\D'), '')
+                                        .length ==
+                                    14
                             ? null
                             : 'Informe um CPF ou CNPJ válido.',
                       ),
@@ -345,7 +354,11 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                         style: estiloCampo,
                         keyboardType: TextInputType.phone,
                         decoration: decoracaoCampo('Celular do beneficiário'),
-                        validator: (valor) => (valor ?? '').replaceAll(RegExp(r'\\D'), '').length >= 10
+                        validator: (valor) =>
+                            (valor ?? '')
+                                    .replaceAll(RegExp(r'\\D'), '')
+                                    .length >=
+                                10
                             ? null
                             : 'Informe um celular válido.',
                       ),
@@ -356,16 +369,26 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                         keyboardType: TextInputType.datetime,
                         decoration: decoracaoCampo(
                           'Nascimento do responsável (somente CPF)',
-                          ajuda: 'Use AAAA-MM-DD quando o beneficiário for pessoa física.',
+                          ajuda:
+                              'Use AAAA-MM-DD quando o beneficiário for pessoa física.',
                         ),
                       ),
                       const SizedBox(height: 10),
                       TextFormField(
                         controller: faturamentoAsaas,
                         style: estiloCampo,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: decoracaoCampo('Faturamento/renda mensal estimada'),
-                        validator: (valor) => (double.tryParse((valor ?? '').replaceAll(',', '.')) ?? 0) > 0
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: decoracaoCampo(
+                          'Faturamento/renda mensal estimada',
+                        ),
+                        validator: (valor) =>
+                            (double.tryParse(
+                                      (valor ?? '').replaceAll(',', '.'),
+                                    ) ??
+                                    0) >
+                                0
                             ? null
                             : 'Informe um valor maior que zero.',
                       ),
@@ -375,7 +398,11 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                         style: estiloCampo,
                         keyboardType: TextInputType.number,
                         decoration: decoracaoCampo('CEP'),
-                        validator: (valor) => (valor ?? '').replaceAll(RegExp(r'\\D'), '').length == 8
+                        validator: (valor) =>
+                            (valor ?? '')
+                                    .replaceAll(RegExp(r'\\D'), '')
+                                    .length ==
+                                8
                             ? null
                             : 'Informe um CEP válido.',
                       ),
@@ -422,7 +449,10 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
                           padding: const EdgeInsets.all(12),
                           child: Row(
                             children: [
-                              const Icon(Icons.account_balance_rounded, color: Color(0xFF18743A)),
+                              const Icon(
+                                Icons.account_balance_rounded,
+                                color: Color(0xFF18743A),
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(

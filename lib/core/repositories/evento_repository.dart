@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import '../services/http_with_timeout.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
@@ -195,7 +195,7 @@ class EventoRepository {
     }
     request.fields['dspoliticacancelamento'] = politicaCancelamento;
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final body = await response.stream.bytesToString();
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
@@ -224,7 +224,7 @@ class EventoRepository {
       request.files.add(await _montarArquivoImagem('urlbannerevento', imagem));
     }
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final body = await response.stream.bytesToString();
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
@@ -249,7 +249,7 @@ class EventoRepository {
     request.fields['dtinicioevento'] = inicio.toIso8601String();
     request.fields['dtfimevento'] = fim.toIso8601String();
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final body = await response.stream.bytesToString();
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
@@ -336,7 +336,7 @@ class EventoRepository {
     request.fields['nmlocalevento'] = local.trim();
     request.fields['dsendlocevento'] = endereco.trim();
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final body = await response.stream.bytesToString();
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
@@ -433,7 +433,7 @@ class EventoRepository {
       request.files.add(await _montarArquivoImagem('urlbannerevento', imagem));
     }
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final body = await response.stream.bytesToString();
 
     if (response.statusCode != 200 && response.statusCode != 201) {
@@ -505,7 +505,7 @@ class EventoRepository {
       request.files.add(await _montarArquivoImagem('urlbannerevento', imagem));
     }
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final body = await response.stream.bytesToString();
 
     if (response.statusCode != 200) {

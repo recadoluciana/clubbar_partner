@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
+import '../services/http_with_timeout.dart' as http;
 
 import '../../models/cidade.dart';
 import '../../models/estado.dart';

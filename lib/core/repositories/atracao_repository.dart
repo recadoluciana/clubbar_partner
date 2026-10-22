@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import '../services/http_with_timeout.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../../models/atracao.dart';
 import '../config/api_config.dart';
@@ -104,7 +104,7 @@ class AtracaoRepository {
               ),
       );
     }
-    final resp = await req.send();
+    final resp = await http.sendMultipart(req);
     final body = await resp.stream.bytesToString();
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
       throw Exception(_erro(body));

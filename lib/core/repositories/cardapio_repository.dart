@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../services/http_with_timeout.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
@@ -201,7 +201,9 @@ class CardapioRepository {
               contentType: MediaType(partes[0], partes[1]),
             ),
     );
-    final response = await http.Response.fromStream(await request.send());
+    final response = await http.Response.fromStream(
+      await http.sendMultipart(request),
+    );
     if (response.statusCode != 200) {
       throw _erro(response, 'Não foi possível enviar a foto.');
     }

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import '../services/http_with_timeout.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/api_config.dart';
@@ -109,7 +109,7 @@ class LojaRepository {
       );
     }
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final responseBody = await response.stream.bytesToString();
 
     if (response.statusCode != 200 && response.statusCode != 201) {
@@ -214,7 +214,7 @@ class LojaRepository {
       );
     }
 
-    final response = await request.send();
+    final response = await http.sendMultipart(request);
     final responseBody = await response.stream.bytesToString();
 
     if (response.statusCode != 200) {

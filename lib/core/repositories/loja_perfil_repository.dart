@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import '../services/http_with_timeout.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../config/api_config.dart';
 import '../services/api_service.dart';
@@ -37,7 +37,7 @@ class LojaPerfilRepository {
             )
           : await http.MultipartFile.fromPath('arquivo', arquivo.path),
     );
-    final r = await req.send();
+    final r = await http.sendMultipart(req);
     final body = await r.stream.bytesToString();
     if (r.statusCode < 200 || r.statusCode >= 300) throw Exception(_erro(body));
     return (jsonDecode(body) as Map)['url'].toString();
