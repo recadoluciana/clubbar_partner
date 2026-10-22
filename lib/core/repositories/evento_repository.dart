@@ -209,7 +209,7 @@ class EventoRepository {
   Future<void> atualizarEventoAgendado({
     required int eventoId,
     required String titulo,
-    String classificacaoEtaria = 'Livre',
+    String classificacaoEtaria = 'livre',
     XFile? imagem,
   }) async {
     final request = http.MultipartRequest(
@@ -393,7 +393,7 @@ class EventoRepository {
     String? endereco,
     String? status,
     double precoPadrao = 0,
-    String classificacaoEtaria = 'Livre',
+    String classificacaoEtaria = 'livre',
     XFile? imagem,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/eventos-modelos');
@@ -409,7 +409,7 @@ class EventoRepository {
     request.fields['produto_id_ingresso'] = produtoIdIngresso.toString();
     request.fields['nmtituloevento'] = titulo;
     request.fields['classificacaoetaria'] = classificacaoEtaria.trim().isEmpty
-        ? 'Livre'
+        ? 'livre'
         : classificacaoEtaria.trim();
 
     if (descricao != null && descricao.isNotEmpty) {

@@ -45,7 +45,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
   final _pageController = PageController();
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
-  final _classificacaoEtariaController = TextEditingController(text: 'Livre');
+  final _classificacaoEtariaController = TextEditingController(text: 'livre');
   final _emailContatoController = TextEditingController();
   final _whatsappContatoController = TextEditingController();
   final _localController = TextEditingController();
@@ -402,7 +402,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
           decoration: _decoracaoCampo(
             label: 'Classificação etária',
             icone: Icons.family_restroom_outlined,
-            hint: 'Ex.: Livre, 10 anos, 12 anos, 14 anos, 16 anos ou 18 anos',
+            hint: 'Ex.: livre, 10 anos, 12 anos, 14 anos, 16 anos ou 18 anos',
           ).copyWith(
             helperText: 'Informe a classificação que será exibida aos clientes.',
           ),
