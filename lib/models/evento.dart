@@ -26,7 +26,7 @@ class Evento {
     required this.organizacaoId,
     required this.lojaId,
     required this.nmtituloevento,
-    this.classificacaoEtaria = 'Livre',
+    this.classificacaoEtaria = 'livre',
     this.dsdescevento,
     this.dspoliticacancelamento,
     this.emailContatoEvento,
@@ -49,7 +49,7 @@ class Evento {
       organizacaoId: json['organizacao_id'] ?? 0,
       lojaId: json['loja_id'] ?? 0,
       nmtituloevento: (json['nmtituloevento'] ?? '').toString(),
-      classificacaoEtaria: (json['classificacaoetaria'] ?? 'Livre').toString(),
+      classificacaoEtaria: (json['classificacaoetaria'] ?? 'livre').toString(),
 
       dsdescevento: json['dsdescevento']?.toString(),
       dspoliticacancelamento: json['dspoliticacancelamento']?.toString(),
