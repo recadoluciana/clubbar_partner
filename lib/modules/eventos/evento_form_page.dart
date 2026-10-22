@@ -40,6 +40,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
 
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
+  final _classificacaoEtariaController = TextEditingController(text: 'Livre');
   final _emailContatoController = TextEditingController();
   final _whatsappContatoController = TextEditingController();
   final _localController = TextEditingController();
@@ -72,6 +73,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
     if (evento != null) {
       _tituloController.text = evento.nmtituloevento;
       _descricaoController.text = evento.dsdescevento ?? '';
+      _classificacaoEtariaController.text = evento.classificacaoEtaria;
       _emailContatoController.text = evento.emailContatoEvento ?? '';
       _whatsappContatoController.text = evento.whatsappEvento ?? '';
       _tipoLocalSelecionado = evento.tipoLocalEvento;
@@ -119,6 +121,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
   void dispose() {
     _tituloController.dispose();
     _descricaoController.dispose();
+    _classificacaoEtariaController.dispose();
     _emailContatoController.dispose();
     _whatsappContatoController.dispose();
     _localController.dispose();
@@ -270,6 +273,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
           eventoId: widget.evento!.eventoId,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
+          classificacaoEtaria: _classificacaoEtariaController.text.trim(),
           emailContatoEvento: _emailContatoController.text.trim(),
           whatsappEvento: _whatsappContatoController.text.trim(),
           tipoLocal: _tipoLocalSelecionado,
@@ -296,6 +300,7 @@ class _EventoFormPageState extends State<EventoFormPage> {
           produtoIdIngresso: 1,
           titulo: _tituloController.text.trim(),
           descricao: _descricaoController.text.trim(),
+          classificacaoEtaria: _classificacaoEtariaController.text.trim(),
           emailContatoEvento: _emailContatoController.text.trim(),
           whatsappEvento: _whatsappContatoController.text.trim(),
           tipoLocal: _tipoLocalSelecionado,
@@ -484,6 +489,22 @@ class _EventoFormPageState extends State<EventoFormPage> {
               icone: Icons.description_outlined,
               hint: 'Descreva o evento',
             ),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _classificacaoEtariaController,
+            maxLength: 80,
+            textCapitalization: TextCapitalization.words,
+            decoration:
+                _decoracaoCampo(
+                  label: 'Classificação etária',
+                  icone: Icons.family_restroom_outlined,
+                  hint:
+                      'Ex.: Livre, 10 anos, 12 anos, 14 anos, 16 anos ou 18 anos',
+                ).copyWith(
+                  helperText:
+                      'Informe a classificação que será exibida aos clientes.',
+                ),
           ),
           const SizedBox(height: 14),
           TextFormField(
