@@ -209,6 +209,7 @@ class EventoRepository {
   Future<void> atualizarEventoAgendado({
     required int eventoId,
     required String titulo,
+    String classificacaoEtaria = 'Livre',
     XFile? imagem,
   }) async {
     final request = http.MultipartRequest(
@@ -405,6 +406,7 @@ class EventoRepository {
     request.fields['organizacao_id'] = organizacaoId.toString();
     request.fields['produto_id_ingresso'] = produtoIdIngresso.toString();
     request.fields['nmtituloevento'] = titulo;
+    request.fields['classificacaoetaria'] = classificacaoEtaria.trim().isEmpty ? 'Livre' : classificacaoEtaria.trim();
 
     if (descricao != null && descricao.isNotEmpty) {
       request.fields['dsdescevento'] = descricao;
@@ -462,6 +464,7 @@ class EventoRepository {
   Future<void> atualizar({
     required int eventoId,
     String? titulo,
+    String? classificacaoEtaria,
     String? descricao,
     String? politicaCancelamento,
     String? emailContatoEvento,
@@ -487,6 +490,9 @@ class EventoRepository {
 
     if (titulo != null && titulo.isNotEmpty) {
       request.fields['nmtituloevento'] = titulo;
+    }
+    if (classificacaoEtaria != null && classificacaoEtaria.trim().isNotEmpty) {
+      request.fields['classificacaoetaria'] = classificacaoEtaria.trim();
     }
     if (descricao != null) {
       request.fields['dsdescevento'] = descricao;
