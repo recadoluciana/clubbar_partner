@@ -83,7 +83,9 @@ class _EventoListPageState extends State<EventoListPage> {
         .replaceFirst('Exception:', '')
         .trim();
 
-    return mensagem.isEmpty ? 'Ocorreu um erro inesperado.' : mensagem;
+    return AppSnackBar.mensagemSegura(
+      mensagem.isEmpty ? 'Ocorreu um erro inesperado.' : mensagem,
+    );
   }
 
   String _nomeLojaSelecionada() {

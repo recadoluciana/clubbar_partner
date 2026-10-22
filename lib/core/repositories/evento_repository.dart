@@ -304,7 +304,9 @@ class EventoRepository {
       return data.map((e) => Evento.fromJson(e)).toList();
     }
 
-    throw Exception('Erro ao listar eventos: ${response.body}');
+    throw Exception(
+      _mensagemErro(response.body, 'Não foi possível carregar os eventos.'),
+    );
   }
 
   /// Busca os dados próprios de uma ocorrência agendada, incluindo o local
@@ -391,6 +393,7 @@ class EventoRepository {
     String? endereco,
     String? status,
     double precoPadrao = 0,
+    String classificacaoEtaria = 'Livre',
     XFile? imagem,
     Map<int, Set<int>>? beneficiosPorModalidade,
   }) async {
@@ -406,7 +409,9 @@ class EventoRepository {
     request.fields['organizacao_id'] = organizacaoId.toString();
     request.fields['produto_id_ingresso'] = produtoIdIngresso.toString();
     request.fields['nmtituloevento'] = titulo;
-    request.fields['classificacaoetaria'] = classificacaoEtaria.trim().isEmpty ? 'Livre' : classificacaoEtaria.trim();
+    request.fields['classificacaoetaria'] = classificacaoEtaria.trim().isEmpty
+        ? 'Livre'
+        : classificacaoEtaria.trim();
 
     if (descricao != null && descricao.isNotEmpty) {
       request.fields['dsdescevento'] = descricao;
