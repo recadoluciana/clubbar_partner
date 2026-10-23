@@ -261,6 +261,26 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     });
   }
 
+  Future<void> _adicionarProdutoNaCategoriaSelecionada() async {
+    Map<String, dynamic>? categoriaSelecionada;
+    for (final categoria in _categorias) {
+      if (_id(categoria['categoria_id']) == _categoriaSelecionadaId) {
+        categoriaSelecionada = categoria;
+        break;
+      }
+    }
+
+    if (categoriaSelecionada == null) {
+      AppSnackBar.aviso(
+        context,
+        'Adicione uma categoria antes de incluir produtos no cardápio.',
+      );
+      return;
+    }
+
+    await _adicionarProduto(categoriaSelecionada);
+  }
+
   Future<List<Map<String, dynamic>>> _escolherProdutos(
     Map<String, dynamic> categoria,
   ) async {
@@ -1471,14 +1491,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                   ),
                 for (var i = 0; i < itens.length; i++)
                   _produtoCard(categoria, itens[i], i),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _adicionarProduto(categoria),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Adicionar produto'),
-                  ),
-                ),
               ],
             ),
           ),
@@ -1506,6 +1518,20 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       appBar: const ClubbarAppBar(mostrarVoltar: true),
       bottomNavigationBar: ClubbarActionBar(
         actions: [
+          ClubbarAddButton(
+            label: 'Adicionar categoria',
+            icon: Icons.category_outlined,
+            primary: false,
+            onPressed: _salvando ? null : _adicionarCategoria,
+          ),
+          ClubbarAddButton(
+            label: 'Adicionar produto',
+            icon: Icons.add_shopping_cart_outlined,
+            primary: false,
+            onPressed: _salvando
+                ? null
+                : _adicionarProdutoNaCategoriaSelecionada,
+          ),
           ClubbarAddButton(
             label: 'Publicar alterações',
             icon: Icons.publish,
@@ -1568,11 +1594,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
                           ),
                         for (final entrada in _categoriasExibidas)
                           _categoriaCard(entrada.value, entrada.key),
-                        OutlinedButton.icon(
-                          onPressed: _adicionarCategoria,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Adicionar categoria'),
-                        ),
                         const SizedBox(height: 16),
                       ],
                     ),
