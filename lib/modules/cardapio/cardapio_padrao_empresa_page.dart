@@ -25,9 +25,11 @@ class CardapioPadraoEmpresaPage extends StatefulWidget {
 
 class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
   final _repo = CardapioRepository();
+  final _pesquisaController = TextEditingController();
   List<Map<String, dynamic>> _produtos = [];
   bool _carregando = true;
   int? _produtoComSituacaoAlterando;
+  String _pesquisa = '';
 
   @override
   void initState() {
@@ -37,7 +39,19 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
 
   @override
   void dispose() {
+    _pesquisaController.dispose();
     super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _produtosFiltrados {
+    final termo = _pesquisa.trim().toLowerCase();
+    if (termo.isEmpty) return _produtos;
+    return _produtos
+        .where(
+          (produto) =>
+              '${produto['nmproduto'] ?? ''}'.toLowerCase().contains(termo),
+        )
+        .toList();
   }
 
   Future<void> _carregar() async {
@@ -269,6 +283,7 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
 
   Widget _abaProdutos() {
     if (_carregando) return const Center(child: CircularProgressIndicator());
+    final produtos = _produtosFiltrados;
     return RefreshIndicator(
       onRefresh: _carregar,
       child: LayoutBuilder(
@@ -283,27 +298,27 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
               : 4;
           return GridView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            itemCount: _produtos.isEmpty ? 1 : _produtos.length,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            itemCount: produtos.isEmpty ? 1 : produtos.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: colunas,
               mainAxisExtent: 132,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
-            itemBuilder: (context, index) => _produtos.isEmpty
+            itemBuilder: (context, index) => produtos.isEmpty
                 ? const Card(
                     child: Center(
                       child: Padding(
                         padding: EdgeInsets.all(24),
                         child: Text(
-                          'Nenhum produto cadastrado. Adicione o primeiro produto da empresa.',
+                          'Nenhum produto encontrado.',
                           textAlign: TextAlign.center,
                         ),
                       ),
                     ),
                   )
-                : _cardProduto(_produtos[index]),
+                : _cardProduto(produtos[index]),
           );
         },
       ),
@@ -317,21 +332,44 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
     body: Column(
       children: [
         ClubbarPageHeader(
-          titulo: widget.nomeOrganizacao,
-          subtitulo: 'Produtos da empresa',
+          titulo: 'Produtos',
+          subtitulo: widget.nomeOrganizacao,
           tituloStyle: const TextStyle(
             color: ClubbarColors.info,
             fontSize: 17,
             fontWeight: FontWeight.w900,
           ),
+          trailing: FilledButton.icon(
+            onPressed: _abrirProduto,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Adicionar produto'),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: TextField(
+            controller: _pesquisaController,
+            onChanged: (valor) => setState(() => _pesquisa = valor),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Pesquisar produto por nome',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: _pesquisa.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Limpar pesquisa',
+                      onPressed: () {
+                        _pesquisaController.clear();
+                        setState(() => _pesquisa = '');
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+              border: const OutlineInputBorder(),
+            ),
+          ),
         ),
         Expanded(child: _abaProdutos()),
       ],
-    ),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: _abrirProduto,
-      icon: const Icon(Icons.add),
-      label: Text('Adicionar produto'),
     ),
   );
 }
