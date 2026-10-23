@@ -1290,11 +1290,14 @@ class _LojaListPageState extends State<LojaListPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 900) {
-          return Column(children: _lojasFiltradas.map(_cardLoja).toList());
-        }
+        final colunas = constraints.maxWidth < 760
+            ? 1
+            : constraints.maxWidth < 1260
+            ? 2
+            : 3;
         const espacamento = 16.0;
-        final larguraCard = (constraints.maxWidth - espacamento) / 2;
+        final larguraCard =
+            (constraints.maxWidth - (espacamento * (colunas - 1))) / colunas;
         return Wrap(
           spacing: espacamento,
           runSpacing: espacamento,
@@ -1348,14 +1351,7 @@ class _LojaListPageState extends State<LojaListPage> {
                 20,
                 widget.embedded ? 28 : 90,
               ),
-              children: [
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1180),
-                    child: _conteudoLista(),
-                  ),
-                ),
-              ],
+              children: [_conteudoLista()],
             ),
           ),
         ),
