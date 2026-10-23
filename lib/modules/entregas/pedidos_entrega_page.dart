@@ -159,77 +159,72 @@ class _PedidosEntregaPageState extends State<PedidosEntregaPage> {
       );
     }
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: Card(
-          margin: const EdgeInsets.all(20),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.storefront_rounded),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Selecione o estabelecimento',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.storefront_rounded),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Selecione o estabelecimento',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Escolha o estabelecimento cujos pedidos para entrega deseja acompanhar.',
-                ),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<int>(
-                  initialValue: _lojaIdSelecionada,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Estabelecimento',
-                    border: OutlineInputBorder(),
                   ),
-                  items: _lojas
-                      .map(
-                        (loja) => DropdownMenuItem(
-                          value: loja.lojaId,
-                          child: Text(
-                            loja.nmloja,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Escolha o estabelecimento cujos pedidos para entrega deseja acompanhar.',
+              ),
+              const SizedBox(height: 20),
+              DropdownButtonFormField<int>(
+                initialValue: _lojaIdSelecionada,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Estabelecimento',
+                  border: OutlineInputBorder(),
+                ),
+                items: _lojas
+                    .map(
+                      (loja) => DropdownMenuItem(
+                        value: loja.lojaId,
+                        child: Text(
+                          loja.nmloja,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      )
-                      .toList(),
-                  onChanged: (lojaId) {
-                    setState(() => _lojaIdSelecionada = lojaId);
-                  },
+                      ),
+                    )
+                    .toList(),
+                onChanged: (lojaId) {
+                  setState(() => _lojaIdSelecionada = lojaId);
+                },
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _lojaIdSelecionada == null
+                      ? null
+                      : () {
+                          setState(() => _selecionandoEstabelecimento = false);
+                          _carregar();
+                        },
+                  icon: const Icon(Icons.delivery_dining_rounded),
+                  label: const Text('Ver pedidos para entrega'),
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _lojaIdSelecionada == null
-                        ? null
-                        : () {
-                            setState(
-                              () => _selecionandoEstabelecimento = false,
-                            );
-                            _carregar();
-                          },
-                    icon: const Icon(Icons.delivery_dining_rounded),
-                    label: const Text('Ver pedidos para entrega'),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
