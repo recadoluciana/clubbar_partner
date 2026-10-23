@@ -464,6 +464,44 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     }
   }
 
+  Future<void> _migrarVinculoSandbox(Map<String, dynamic> titular) async {
+    final organizacaoId = _organizacaoId;
+    final titularId = titular['titularfinanceiro_id'] as int?;
+    if (organizacaoId == null || titularId == null || _processandoId != null) {
+      return;
+    }
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Migrar vínculo do Sandbox?'),
+        content: const Text(
+          'Use esta opção somente quando esta subconta tiver sido criada no ambiente de testes. '
+          'O Clubbar removerá apenas o vínculo de testes deste titular; a conta do Sandbox não será excluída. '
+          'Depois, você poderá ativar uma nova subconta de produção com o mesmo CPF/CNPJ.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Migrar vínculo'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    await _executarAsaas(
+      titular,
+      (idOrganizacao, idTitular) => _repo.migrarSandboxParaProducao(
+        idOrganizacao,
+        titularFinanceiroId: idTitular,
+      ),
+      'Vínculo de testes removido. Ative a subconta de produção para continuar.',
+    );
+  }
+
   String _statusAsaas(Map<String, dynamic> titular) {
     final status = _texto(titular['status_asaas']).trim().toUpperCase();
     return const {
@@ -506,28 +544,38 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     }
 
     if (aprovado) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: ClubbarColors.sucessoClaro,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: ClubbarColors.sucesso),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.verified_rounded, color: ClubbarColors.sucesso),
-            SizedBox(width: 8),
-            Text(
-              'Subconta pronta para receber pagamentos',
-              style: TextStyle(
-                color: ClubbarColors.sucesso,
-                fontWeight: FontWeight.w800,
-              ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: ClubbarColors.sucessoClaro,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: ClubbarColors.sucesso),
             ),
-          ],
-        ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.verified_rounded, color: ClubbarColors.sucesso),
+                SizedBox(width: 8),
+                Text(
+                  'Subconta pronta para receber pagamentos',
+                  style: TextStyle(
+                    color: ClubbarColors.sucesso,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: processando ? null : () => _migrarVinculoSandbox(titular),
+            icon: const Icon(Icons.swap_horiz_rounded),
+            label: const Text('Migrar vínculo do Sandbox para produção'),
+          ),
+        ],
       );
     }
 
