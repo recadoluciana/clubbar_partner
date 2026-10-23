@@ -58,6 +58,8 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
   String _tipo = 'PJ', _status = 'NAO_INICIADO', _onboardingUrl = '';
   bool _subcontaCriada = false;
   bool _nascimentoAusenteAoCarregar = false;
+  bool _titularInativo = false;
+  bool _podeExcluir = false;
   String _nomeOrganizacao = 'Empresa';
   bool _carregando = true, _processando = false, _consultandoCep = false;
   String? _ultimoCepConsultado;
@@ -92,6 +94,8 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     _onboardingUrl = '';
     _subcontaCriada = false;
     _nascimentoAusenteAoCarregar = false;
+    _titularInativo = false;
+    _podeExcluir = false;
     _estadoId = null;
     _cidadeId = null;
     _ultimoCepConsultado = null;
@@ -105,6 +109,10 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     _onboardingUrl = _texto(d['onboarding_url']);
     _subcontaCriada = _texto(d['asaas_account_id']).isNotEmpty;
     _nascimentoAusenteAoCarregar = _texto(d['dtnascimento']).trim().isEmpty;
+    _titularInativo = _texto(d['sittitular']).toUpperCase() == 'INATIVO';
+    if (d.containsKey('pode_excluir')) {
+      _podeExcluir = d['pode_excluir'] == true;
+    }
     _estadoId = d['estado_id'] as int?;
     _cidadeId = d['cidade_id'] as int?;
     final mapa = {
@@ -497,7 +505,104 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
         _titularFinanceiroId = dados['titularfinanceiro_id'] as int?;
         _preencher(dados);
       });
-      AppSnackBar.sucesso(context, 'Dados financeiros salvos.');
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _processando = false);
+    }
+  }
+
+  Future<void> _alterarStatusTitular() async {
+    final organizacaoId = _organizacaoId;
+    final titularId = _titularFinanceiroId;
+    if (organizacaoId == null || titularId == null || _processando) return;
+    if (_subcontaCriada) {
+      AppSnackBar.aviso(
+        context,
+        'Titulares com subconta Asaas não podem ser inativados.',
+      );
+      return;
+    }
+    final acao = _titularInativo ? 'reativar' : 'inativar';
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('${_titularInativo ? 'Reativar' : 'Inativar'} titular?'),
+        content: Text(
+          _titularInativo
+              ? 'O titular voltará a poder ser escolhido para os estabelecimentos.'
+              : 'O titular deixará de poder ser escolhido para novos estabelecimentos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(_titularInativo ? 'Reativar' : 'Inativar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+
+    setState(() => _processando = true);
+    try {
+      final atualizado = _titularInativo
+          ? await _repo.reativar(organizacaoId, titularFinanceiroId: titularId)
+          : await _repo.inativar(organizacaoId, titularFinanceiroId: titularId);
+      if (!mounted) return;
+      setState(() => _preencher(atualizado));
+      AppSnackBar.sucesso(context, 'Titular ${acao}do.');
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _processando = false);
+    }
+  }
+
+  Future<void> _excluirTitular() async {
+    final organizacaoId = _organizacaoId;
+    final titularId = _titularFinanceiroId;
+    if (organizacaoId == null ||
+        titularId == null ||
+        _processando ||
+        !_podeExcluir) {
+      return;
+    }
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir titular financeiro?'),
+        content: const Text(
+          'Esta ação remove permanentemente este cadastro. Ela só é permitida enquanto o titular não possuir subconta, estabelecimento, contrato ou checkout associado.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: ClubbarColors.erro),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.delete_forever_rounded),
+            label: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+
+    setState(() => _processando = true);
+    try {
+      await _repo.excluir(organizacaoId, titularFinanceiroId: titularId);
+      if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
         AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
@@ -672,6 +777,54 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     ),
   );
 
+  Widget _acoesTitular() {
+    if (_titularFinanceiroId == null) return const SizedBox.shrink();
+    return _cardSecao(
+      titulo: 'Gerenciamento do titular',
+      icone: Icons.manage_accounts_rounded,
+      children: [
+        if (_subcontaCriada)
+          const Text(
+            'Este titular possui uma subconta Asaas e, por segurança, não pode ser inativado ou excluído.',
+            style: TextStyle(color: ClubbarColors.textoSecundario),
+          )
+        else ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _processando ? null : _alterarStatusTitular,
+              icon: Icon(
+                _titularInativo
+                    ? Icons.play_circle_outline_rounded
+                    : Icons.pause_circle_outline_rounded,
+              ),
+              label: Text(
+                _titularInativo
+                    ? 'Ativar titular financeiro'
+                    : 'Inativar titular financeiro',
+              ),
+            ),
+          ),
+          if (_podeExcluir) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ClubbarColors.erro,
+                  side: const BorderSide(color: ClubbarColors.erro),
+                ),
+                onPressed: _processando ? null : _excluirTitular,
+                icon: const Icon(Icons.delete_forever_rounded),
+                label: const Text('Excluir titular financeiro'),
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
   Widget _formulario() => Form(
     key: _form,
     child: ListView(
@@ -745,12 +898,10 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        ElevatedButton.icon(
-          onPressed: _processando ? null : _salvar,
-          icon: const Icon(Icons.save_rounded),
-          label: const Text('Salvar dados financeiros'),
-        ),
+        if (_titularFinanceiroId != null) ...[
+          const SizedBox(height: 16),
+          _acoesTitular(),
+        ],
       ],
     ),
   );
@@ -791,10 +942,33 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     ),
   );
 
+  Widget _barraSalvar() => SafeArea(
+    top: false,
+    minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+    child: SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _processando ? null : _salvar,
+        icon: _processando
+            ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.save_rounded),
+        label: const Text('Salvar dados financeiros'),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
     appBar: const ClubbarAppBar(mostrarVoltar: true),
+    bottomNavigationBar:
+        !_carregando && _organizacaoId != null && !widget.mostrarIntegracao
+        ? _barraSalvar()
+        : null,
     body: Column(
       children: [
         ClubbarPageHeader(

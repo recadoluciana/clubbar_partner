@@ -137,6 +137,17 @@ class TitularFinanceiroRepository {
     throw Exception(_erro(r.body));
   }
 
+  Future<void> excluir(
+    int organizacaoId, {
+    required int titularFinanceiroId,
+  }) async {
+    final r = await ApiService.delete(
+      '/titular-financeiro/organizacao/$organizacaoId/titular/$titularFinanceiroId',
+    );
+    if (r.statusCode == 200 || r.statusCode == 204) return;
+    throw Exception(_erro(r.body));
+  }
+
   Future<Map<String, dynamic>> inativar(
     int id, {
     required int titularFinanceiroId,
