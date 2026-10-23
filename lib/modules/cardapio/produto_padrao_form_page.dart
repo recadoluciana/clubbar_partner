@@ -13,11 +13,13 @@ import '../../core/widgets/clubbar_page_header.dart';
 
 class ProdutoPadraoFormPage extends StatefulWidget {
   final int organizacaoId;
+  final String nomeOrganizacao;
   final Map<String, dynamic>? item;
 
   const ProdutoPadraoFormPage({
     super.key,
     required this.organizacaoId,
+    required this.nomeOrganizacao,
     this.item,
   });
 
@@ -373,7 +375,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
       children: [
         ClubbarPageHeader(
           titulo: widget.item == null ? 'Novo produto' : 'Editar produto',
-          subtitulo: 'Produtos da empresa',
+          subtitulo: widget.nomeOrganizacao,
         ),
         if (widget.item != null)
           const Padding(

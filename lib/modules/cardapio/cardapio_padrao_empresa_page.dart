@@ -78,6 +78,7 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
       MaterialPageRoute(
         builder: (_) => ProdutoPadraoFormPage(
           organizacaoId: widget.organizacaoId,
+          nomeOrganizacao: widget.nomeOrganizacao,
           item: produto,
         ),
       ),
