@@ -8,6 +8,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String logoPath;
   final bool centralizarLogo;
   final double alturaLogo;
+  final String? titulo;
   final List<Widget>? actions;
 
   const ClubbarAppBar({
@@ -19,6 +20,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.logoPath = 'assets/images/corujao.png',
     this.centralizarLogo = true,
     this.alturaLogo = 52,
+    this.titulo,
     this.actions,
   });
 
@@ -55,30 +57,41 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
             alignment: centralizarLogo
                 ? Alignment.center
                 : Alignment.centerLeft,
-            child: Padding(
-              padding: EdgeInsets.only(left: centralizarLogo ? 0 : 18),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    logoPath,
-                    height: alturaLogo.clamp(36.0, 44.0).toDouble(),
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Clubbar Partner',
-                    style: TextStyle(
+            child: titulo == null
+                ? Padding(
+                    padding: EdgeInsets.only(left: centralizarLogo ? 0 : 18),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          logoPath,
+                          height: alturaLogo.clamp(36.0, 44.0).toDouble(),
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Clubbar Partner',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 21,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Text(
+                    titulo!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.8,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ],
-              ),
-            ),
           ),
         ),
       ),

@@ -1515,18 +1515,20 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     },
     child: Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(titulo: widget.loja.nmloja),
       bottomNavigationBar: ClubbarActionBar(
+        backgroundColor: Colors.black,
+        singleLine: true,
         actions: [
           ClubbarAddButton(
-            label: 'Adicionar categoria',
-            icon: Icons.category_outlined,
+            label: 'Categoria',
+            icon: Icons.add_rounded,
             primary: false,
             onPressed: _salvando ? null : _adicionarCategoria,
           ),
           ClubbarAddButton(
-            label: 'Adicionar produto',
-            icon: Icons.add_shopping_cart_outlined,
+            label: 'Produto',
+            icon: Icons.add_rounded,
             primary: false,
             onPressed: _salvando
                 ? null
@@ -1544,7 +1546,28 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       body: Column(
         children: [
           ClubbarPageHeader(
-            titulo: widget.nomeCardapio,
+            tituloWidget: Row(
+              children: [
+                IconButton(
+                  tooltip: 'Voltar',
+                  onPressed: () => Navigator.maybePop(context),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    widget.nomeCardapio,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            titulo: '',
             subtitulo:
                 'Versão ${_numeroVersao ?? '—'}${_versaoEhRascunho ? ' em rascunho' : ''}',
           ),
