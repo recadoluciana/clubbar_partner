@@ -24,6 +24,35 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
   List<Map<String, dynamic>> _campanhas = const [];
   int? _lojaId;
   bool _carregando = true;
+  bool _mostrarSomenteAtivas = false;
+
+  DateTime? _dataCampanha(dynamic valor) {
+    final texto = '${valor ?? ''}'.trim();
+    if (texto.isEmpty) return null;
+    return DateTime.tryParse(texto)?.toLocal();
+  }
+
+  bool _campanhaEstaAtivaAgora(Map<String, dynamic> campanha) {
+    final situacao = '${campanha['situacao'] ?? ''}'.trim().toUpperCase();
+    final statusPeriodo = '${campanha['status_periodo'] ?? ''}'
+        .trim()
+        .toUpperCase();
+    final agora = DateTime.now();
+    final inicio = _dataCampanha(campanha['dthrinicio']);
+    final fim = _dataCampanha(campanha['dthrfim']);
+    final restantes = num.tryParse('${campanha['restantes'] ?? ''}');
+
+    return (situacao.isEmpty || situacao == 'ATIVA') &&
+        (statusPeriodo.isEmpty || statusPeriodo == 'ATIVA') &&
+        (inicio == null || !agora.isBefore(inicio)) &&
+        (fim == null || !agora.isAfter(fim)) &&
+        (restantes == null || restantes > 0);
+  }
+
+  List<Map<String, dynamic>> get _campanhasExibidas => _mostrarSomenteAtivas
+      ? _campanhas.where(_campanhaEstaAtivaAgora).toList()
+      : _campanhas;
+
   @override
   void initState() {
     super.initState();
@@ -462,11 +491,6 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: const ClubbarAppBar(mostrarVoltar: true),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: _nova,
-      label: const Text('Nova campanha'),
-      icon: const Icon(Icons.add),
-    ),
     body: _carregando
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(
@@ -474,10 +498,15 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                const ClubbarPageHeader(
+                ClubbarPageHeader(
                   titulo: 'Cortesias e promoções',
                   subtitulo:
                       'Planeje campanhas sem alterar ou republicar o cardápio.',
+                  trailing: FilledButton.icon(
+                    onPressed: _nova,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Nova campanha'),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Padding(
@@ -502,11 +531,27 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'Campanhas independentes do cardápio',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Campanhas independentes do cardápio',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      FilterChip(
+                        avatar: const Icon(Icons.bolt_rounded, size: 18),
+                        label: const Text('Ativas agora'),
+                        selected: _mostrarSomenteAtivas,
+                        onSelected: (valor) =>
+                            setState(() => _mostrarSomenteAtivas = valor),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -517,7 +562,22 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                ..._campanhas.map(
+                if (_campanhasExibidas.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          _mostrarSomenteAtivas
+                              ? 'Não há campanhas ativas neste momento.'
+                              : 'Não há campanhas cadastradas para este estabelecimento.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                ..._campanhasExibidas.map(
                   (x) => Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
