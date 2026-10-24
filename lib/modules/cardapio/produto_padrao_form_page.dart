@@ -9,6 +9,7 @@ import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 
 class ProdutoPadraoFormPage extends StatefulWidget {
@@ -541,10 +542,9 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
         ),
       ],
     ),
-    bottomNavigationBar: SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: FilledButton.icon(
+    bottomNavigationBar: ClubbarActionBar(
+      actions: [
+        FilledButton.icon(
           onPressed: _salvando || _carregando ? null : _salvar,
           icon: _salvando
               ? const SizedBox.square(
@@ -556,7 +556,7 @@ class _ProdutoPadraoFormPageState extends State<ProdutoPadraoFormPage> {
             widget.item == null ? 'Adicionar produto' : 'Salvar alterações',
           ),
         ),
-      ),
+      ],
     ),
   );
 }

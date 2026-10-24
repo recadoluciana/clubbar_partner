@@ -8,6 +8,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/atracao.dart';
 import '../../models/loja.dart';
@@ -196,10 +197,14 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
     appBar: const ClubbarAppBar(mostrarVoltar: true),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: _ocorrencias.isEmpty ? null : _share,
-      icon: const Icon(Icons.share),
-      label: const Text('Compartilhar'),
+    bottomNavigationBar: ClubbarActionBar(
+      actions: [
+        ClubbarAddButton(
+          onPressed: _ocorrencias.isEmpty ? null : _share,
+          icon: Icons.share,
+          label: 'Compartilhar',
+        ),
+      ],
     ),
     body: SafeArea(
       child: Column(

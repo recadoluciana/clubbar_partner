@@ -4,6 +4,7 @@ import '../../core/repositories/catalogo_ingresso_partner_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/evento_lote.dart';
@@ -393,12 +394,16 @@ class _CatalogoIngressosPartnerPageState
   Widget build(BuildContext context) => Scaffold(
     appBar: const ClubbarAppBar(mostrarVoltar: true),
     backgroundColor: ClubbarColors.fundo,
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: _carregando
-          ? null
-          : () => _tabs.index == 0 ? _editarModalidade() : _editarBeneficio(),
-      icon: const Icon(Icons.add),
-      label: Text(_tabs.index == 0 ? 'Nova modalidade' : 'Novo benefício'),
+    bottomNavigationBar: ClubbarActionBar(
+      actions: [
+        ClubbarAddButton(
+          onPressed: _carregando
+              ? null
+              : () =>
+                    _tabs.index == 0 ? _editarModalidade() : _editarBeneficio(),
+          label: _tabs.index == 0 ? 'Nova modalidade' : 'Novo benefício',
+        ),
+      ],
     ),
     body: Column(
       children: [

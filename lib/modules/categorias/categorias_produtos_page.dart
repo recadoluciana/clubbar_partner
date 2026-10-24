@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../core/widgets/app_snackbar.dart';
 
@@ -554,34 +555,19 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Material(
-          color: Colors.white,
-          elevation: 8,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _ocupado ? null : _importar,
-                    icon: const Icon(Icons.download),
-                    label: const Text('Importar categoria'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _ocupado ? null : _criar,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Criar categoria'),
-                  ),
-                ),
-              ],
-            ),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(
+            onPressed: _ocupado ? null : _importar,
+            icon: Icons.download,
+            label: 'Importar categoria',
+            primary: false,
           ),
-        ),
+          ClubbarAddButton(
+            onPressed: _ocupado ? null : _criar,
+            label: 'Criar categoria',
+          ),
+        ],
       ),
     );
   }

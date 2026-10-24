@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/repositories/atracao_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
-import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/atracao.dart';
 
@@ -21,6 +21,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
   List<EstiloMusical> _itens = [];
   bool _carregando = true;
   String? _erro;
+  String _nomeOrganizacao = 'Empresa não identificada';
 
   List<EstiloMusical> get _filtrados {
     final termo = _busca.text.trim().toLowerCase();
@@ -32,6 +33,13 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
   void initState() {
     super.initState();
     _carregar();
+    _carregarNomeOrganizacao();
+  }
+
+  Future<void> _carregarNomeOrganizacao() async {
+    final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
+    if (!mounted || nome.isEmpty) return;
+    setState(() => _nomeOrganizacao = nome);
   }
 
   @override
@@ -289,13 +297,11 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
     final itens = _filtrados;
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
       bottomNavigationBar: ClubbarActionBar(
         actions: [
           ClubbarAddButton(
             onPressed: _importarDoCatalogo,
-            icon: Icons.library_music_outlined,
-            label: '+ Estilos do catálogo',
+            label: 'Estilos do cardápio',
             primary: false,
           ),
           ClubbarAddButton(
@@ -308,9 +314,10 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Estilos da empresa',
-              subtitulo:
-                  '${_itens.length} estilos disponíveis para as atrações',
+              titulo: _carregando
+                  ? 'Estilos musicais'
+                  : 'Estilos musicais • ${_itens.length} cadastrado(s)',
+              subtitulo: _nomeOrganizacao,
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),

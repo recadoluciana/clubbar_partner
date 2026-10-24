@@ -10,6 +10,7 @@ import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 
@@ -709,12 +710,16 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const ClubbarAppBar(mostrarVoltar: true),
-      floatingActionButton: _lojaId == null
+      bottomNavigationBar: _lojaId == null
           ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _editar(),
-              icon: const Icon(Icons.volunteer_activism_rounded),
-              label: const Text('Nova campanha'),
+          : ClubbarActionBar(
+              actions: [
+                ClubbarAddButton(
+                  onPressed: () => _editar(),
+                  icon: Icons.volunteer_activism_rounded,
+                  label: 'Nova campanha',
+                ),
+              ],
             ),
       body: Column(
         children: [

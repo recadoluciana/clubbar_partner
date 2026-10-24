@@ -11,6 +11,7 @@ import '../../core/utils/masks.dart'
     show CepInputFormatter, TelefoneInputFormatter;
 import '../../core/utils/validators.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
@@ -574,49 +575,20 @@ class _LojaFormPageState extends State<LojaFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Material(
-          color: ClubbarColors.branco,
-          elevation: 8,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    onPressed: _salvando ? null : _salvar,
-                    icon: _salvando
-                        ? const SizedBox(
-                            width: 21,
-                            height: 21,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.save_outlined),
-                    label: Text(
-                      _salvando ? 'Salvando...' : 'Salvar estabelecimento',
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ClubbarColors.primaria,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: ClubbarColors.primariaClaro,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          FilledButton.icon(
+            onPressed: _salvando ? null : _salvar,
+            icon: _salvando
+                ? const SizedBox(
+                    width: 21,
+                    height: 21,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: Text(_salvando ? 'Salvando...' : 'Salvar estabelecimento'),
           ),
-        ),
+        ],
       ),
       body: SafeArea(
         child: Column(

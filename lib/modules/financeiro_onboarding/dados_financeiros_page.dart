@@ -11,6 +11,7 @@ import '../../core/utils/horario_brasil.dart';
 import '../../core/utils/masks.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -942,12 +943,9 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
     ),
   );
 
-  Widget _barraSalvar() => SafeArea(
-    top: false,
-    minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-    child: SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
+  Widget _barraSalvar() => ClubbarActionBar(
+    actions: [
+      FilledButton.icon(
         onPressed: _processando ? null : _salvar,
         icon: _processando
             ? const SizedBox(
@@ -958,7 +956,7 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
             : const Icon(Icons.save_rounded),
         label: const Text('Salvar dados financeiros'),
       ),
-    ),
+    ],
   );
 
   @override

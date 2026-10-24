@@ -4,6 +4,7 @@ import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'cardapio_gestao_empresa_page.dart';
 
@@ -223,10 +224,8 @@ class _CardapiosEmpresaPageState extends State<CardapiosEmpresaPage> {
         ),
       ],
     ),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: _novo,
-      icon: const Icon(Icons.add),
-      label: const Text('Novo cardápio'),
+    bottomNavigationBar: ClubbarActionBar(
+      actions: [ClubbarAddButton(onPressed: _novo, label: 'Novo cardápio')],
     ),
   );
 }

@@ -10,7 +10,7 @@ class ClubbarActionBar extends StatelessWidget {
   const ClubbarActionBar({
     super.key,
     required this.actions,
-    this.backgroundColor = Colors.white,
+    this.backgroundColor = ClubbarColors.primaria,
     this.singleLine = false,
   });
 
@@ -22,32 +22,66 @@ class ClubbarActionBar extends StatelessWidget {
       shadowColor: Colors.black26,
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          child: singleLine
-              ? SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            filledButtonTheme: FilledButtonThemeData(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: ClubbarColors.primariaEscuro,
+                disabledBackgroundColor: Colors.white30,
+                disabledForegroundColor: Colors.white70,
+                minimumSize: const Size(0, 46),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                disabledForegroundColor: Colors.white60,
+                side: const BorderSide(color: Colors.white),
+                minimumSize: const Size(0, 46),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final empilhar =
+                    !singleLine &&
+                    actions.length > 2 &&
+                    constraints.maxWidth < 460;
+                if (empilhar) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       for (
                         var indice = 0;
                         indice < actions.length;
                         indice++
                       ) ...[
-                        if (indice > 0) const SizedBox(width: 10),
+                        if (indice > 0) const SizedBox(height: 8),
                         actions[indice],
                       ],
                     ],
-                  ),
-                )
-              : Wrap(
-                  alignment: WrapAlignment.end,
-                  runAlignment: WrapAlignment.center,
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: actions,
-                ),
+                  );
+                }
+                return Row(
+                  children: [
+                    for (var indice = 0; indice < actions.length; indice++) ...[
+                      if (indice > 0) const SizedBox(width: 10),
+                      Expanded(child: actions[indice]),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -70,8 +104,8 @@ class ClubbarAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = primary ? ClubbarColors.primaria : Colors.white;
-    final foreground = primary ? Colors.white : ClubbarColors.primariaEscuro;
+    final background = primary ? Colors.white : Colors.transparent;
+    final foreground = primary ? ClubbarColors.primariaEscuro : Colors.white;
     return FilledButton.icon(
       onPressed: onPressed,
       icon: Icon(icon),
@@ -80,7 +114,7 @@ class ClubbarAddButton extends StatelessWidget {
         minimumSize: const Size(0, 46),
         backgroundColor: background,
         foregroundColor: foreground,
-        side: primary ? null : const BorderSide(color: ClubbarColors.primaria),
+        side: const BorderSide(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );

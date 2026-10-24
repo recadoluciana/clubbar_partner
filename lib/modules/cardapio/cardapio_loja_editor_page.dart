@@ -1515,7 +1515,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     child: Scaffold(
       backgroundColor: ClubbarColors.fundo,
       bottomNavigationBar: ClubbarActionBar(
-        backgroundColor: Colors.black,
         singleLine: true,
         actions: [
           ClubbarAddButton(

@@ -8,6 +8,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'dados_financeiros_page.dart';
@@ -571,7 +572,9 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
           ),
           const SizedBox(height: 8),
           TextButton.icon(
-            onPressed: processando ? null : () => _migrarVinculoSandbox(titular),
+            onPressed: processando
+                ? null
+                : () => _migrarVinculoSandbox(titular),
             icon: const Icon(Icons.swap_horiz_rounded),
             label: const Text('Migrar vínculo do Sandbox para produção'),
           ),
@@ -862,12 +865,13 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _carregando ? null : _adicionar,
-        backgroundColor: ClubbarColors.info,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Adicionar titular financeiro'),
+      bottomNavigationBar: ClubbarActionBar(
+        actions: [
+          ClubbarAddButton(
+            onPressed: _carregando ? null : _adicionar,
+            label: 'Adicionar titular financeiro',
+          ),
+        ],
       ),
     );
   }
