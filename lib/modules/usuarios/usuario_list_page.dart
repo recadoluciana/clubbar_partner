@@ -7,7 +7,6 @@ import '../../core/repositories/usuario_repository.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -567,6 +566,26 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                             ),
                           ),
                         ),
+
+                        const SizedBox(width: 4),
+
+                        IconButton(
+                          tooltip: 'Editar usuário',
+                          onPressed: !_podeEditar(usuario) || _excluindo
+                              ? null
+                              : () => _abrirEdicao(usuario),
+                          icon: const Icon(Icons.edit_rounded),
+                          color: Colors.blue,
+                        ),
+
+                        IconButton(
+                          tooltip: 'Excluir usuário',
+                          onPressed: principal || _excluindo
+                              ? null
+                              : () => _excluirUsuario(usuario),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          color: ClubbarColors.erro,
+                        ),
                       ],
                     ),
 
@@ -623,51 +642,6 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                       ),
                     ],
                   ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-
-          const Divider(height: 1, color: ClubbarColors.divisor),
-
-          const SizedBox(height: 10),
-
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: !_podeEditar(usuario) || _excluindo
-                      ? null
-                      : () => _abrirEdicao(usuario),
-                  icon: const Icon(Icons.edit_rounded),
-                  label: const Text('Editar'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1976D2),
-                    side: const BorderSide(color: Color(0xFF1976D2)),
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: principal || _excluindo
-                      ? null
-                      : () => _excluirUsuario(usuario),
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  label: const Text('Excluir'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: principal
-                        ? ClubbarColors.borda
-                        : ClubbarColors.erroClaro,
-                    foregroundColor: principal
-                        ? ClubbarColors.textoSecundario
-                        : ClubbarColors.erro,
-                    elevation: 0,
-                  ),
                 ),
               ),
             ],
@@ -744,48 +718,10 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
     return Column(children: _usuariosFiltrados.map(_cardUsuario).toList());
   }
 
-  Widget _botaoCircularHeader({
-    required String tooltip,
-    required IconData icone,
-    required VoidCallback? onPressed,
-  }) {
-    return SizedBox(
-      width: 42,
-      height: 42,
-      child: IconButton(
-        tooltip: tooltip,
-        onPressed: onPressed,
-        icon: Icon(icone, size: 22),
-        color: ClubbarColors.preto,
-        disabledColor: ClubbarColors.textoSecundario,
-        style: IconButton.styleFrom(
-          backgroundColor: ClubbarColors.ambar,
-          disabledBackgroundColor: ClubbarColors.borda,
-          shape: const CircleBorder(),
-        ),
-      ),
-    );
-  }
-
-  Widget _acoesHeader() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _botaoCircularHeader(
-          tooltip: 'Atualizar',
-          icone: Icons.refresh_rounded,
-          onPressed: _carregando ? null : _carregarTudo,
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
 
       bottomNavigationBar: ClubbarActionBar(
         actions: [
@@ -800,16 +736,15 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: _nomeOrganizacao,
-              subtitulo: _carregando
-                  ? 'Carregando usuários...'
-                  : '${_usuarios.length} usuário(s) cadastrado(s)',
-              tituloStyle: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: ClubbarColors.primariaEscuro,
+              titulo: _carregando
+                  ? 'Usuários'
+                  : 'Usuários • ${_usuarios.length} cadastrado(s)',
+              subtitulo: _nomeOrganizacao,
+              trailing: IconButton(
+                tooltip: 'Atualizar',
+                onPressed: _carregando ? null : _carregarTudo,
+                icon: const Icon(Icons.refresh_rounded),
               ),
-              trailing: _acoesHeader(),
             ),
 
             Padding(
