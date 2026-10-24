@@ -168,8 +168,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
     return _compras.where((compra) {
       return compra.produto.toLowerCase().contains(termo) ||
           compra.cliente.toLowerCase().contains(termo) ||
-          compra.emailCliente.toLowerCase().contains(termo) ||
-          compra.loja.toLowerCase().contains(termo);
+          compra.emailCliente.toLowerCase().contains(termo);
     }).toList();
   }
 
@@ -323,8 +322,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                             onChanged: (valor) =>
                                 setState(() => _busca = valor),
                             decoration: InputDecoration(
-                              hintText:
-                                  'Buscar cliente, produto ou estabelecimento',
+                              hintText: 'Buscar cliente ou produto',
                               prefixIcon: const Icon(Icons.search_rounded),
                               filled: true,
                               fillColor: Colors.white,
