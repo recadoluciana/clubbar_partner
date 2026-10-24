@@ -35,9 +35,22 @@ class AcompanhamentoVendasRepository {
 
   Future<List<CompraProduto>> comprasProdutos({
     String situacao = 'TODOS',
+    int? lojaId,
+    DateTime? inicio,
+    DateTime? fim,
   }) async {
+    final parametros = <String, String>{'situacao': situacao};
+    if (lojaId != null) {
+      parametros['loja_id'] = '$lojaId';
+    }
+    if (inicio != null) {
+      parametros['inicio'] = inicio.toIso8601String().split('T').first;
+    }
+    if (fim != null) {
+      parametros['fim'] = fim.toIso8601String().split('T').first;
+    }
     final response = await ApiService.get(
-      '/acompanhamento-vendas/produtos?situacao=$situacao',
+      '/acompanhamento-vendas/produtos?${Uri(queryParameters: parametros).query}',
     );
     if (response.statusCode != 200) {
       throw Exception(

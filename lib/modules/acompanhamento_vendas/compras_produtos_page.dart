@@ -3,11 +3,15 @@ import 'package:intl/intl.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/acompanhamento_vendas_repository.dart';
+import '../../core/repositories/loja_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/acompanhamento_vendas.dart';
+import '../../models/loja.dart';
 
 class ComprasProdutosPage extends StatefulWidget {
   const ComprasProdutosPage({super.key});
@@ -18,28 +22,76 @@ class ComprasProdutosPage extends StatefulWidget {
 
 class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
   final _repo = AcompanhamentoVendasRepository();
+  final _lojaRepository = LojaRepository();
   final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _data = DateFormat('dd/MM/yyyy HH:mm', 'pt_BR');
 
   List<CompraProduto> _compras = const [];
+  List<Loja> _lojas = const [];
+  int? _lojaId;
   String _situacao = 'TODOS';
   String _busca = '';
   bool _carregando = true;
   String? _erro;
+  late DateTime _inicio;
+  late DateTime _fim;
 
   @override
   void initState() {
     super.initState();
-    _carregar();
+    final agora = HorarioBrasil.agora();
+    _fim = DateTime(agora.year, agora.month, agora.day);
+    _inicio = _fim.subtract(const Duration(days: 30));
+    _inicializar();
   }
 
-  Future<void> _carregar() async {
+  Future<void> _inicializar() async {
     setState(() {
       _carregando = true;
       _erro = null;
     });
     try {
-      final compras = await _repo.comprasProdutos(situacao: _situacao);
+      final dados = await Future.wait([
+        StorageService.getOrganizacaoId(),
+        StorageService.getLojaId(),
+      ]);
+      final organizacaoId = dados[0];
+      final lojaVinculadaId = dados[1];
+      if (organizacaoId == null || organizacaoId <= 0) {
+        throw Exception('Organização não identificada.');
+      }
+      final lojas = await _lojaRepository.listar(organizacaoId);
+      if (!mounted) return;
+      setState(() {
+        _lojas = lojas;
+        _lojaId = lojas.any((loja) => loja.lojaId == lojaVinculadaId)
+            ? lojaVinculadaId
+            : lojas.firstOrNull?.lojaId;
+      });
+      await _carregar(mostrarCarregamento: false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _erro = e.toString().replaceFirst('Exception: ', '');
+        _carregando = false;
+      });
+    }
+  }
+
+  Future<void> _carregar({bool mostrarCarregamento = true}) async {
+    if (mostrarCarregamento) {
+      setState(() {
+        _carregando = true;
+        _erro = null;
+      });
+    }
+    try {
+      final compras = await _repo.comprasProdutos(
+        situacao: _situacao,
+        lojaId: _lojaId,
+        inicio: _inicio,
+        fim: _fim,
+      );
       if (!mounted) return;
       setState(() {
         _compras = compras;
@@ -53,6 +105,62 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       });
     }
   }
+
+  Future<void> _selecionarLoja(int? lojaId) async {
+    if (lojaId == null || lojaId == _lojaId) return;
+    setState(() => _lojaId = lojaId);
+    await _carregar();
+  }
+
+  Future<void> _selecionarPeriodo() async {
+    final periodo = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: HorarioBrasil.agora(),
+      initialDateRange: DateTimeRange(start: _inicio, end: _fim),
+      locale: const Locale('pt', 'BR'),
+      helpText: 'Selecione o período das compras',
+      cancelText: 'Cancelar',
+      confirmText: 'Aplicar',
+    );
+    if (periodo == null) return;
+    setState(() {
+      _inicio = periodo.start;
+      _fim = periodo.end;
+    });
+    await _carregar();
+  }
+
+  Widget _seletorEstabelecimento() {
+    if (_lojas.isEmpty) return const SizedBox.shrink();
+    return DropdownButtonFormField<int>(
+      key: ValueKey(_lojaId),
+      initialValue: _lojaId,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        labelText: 'Estabelecimento',
+        prefixIcon: Icon(Icons.storefront_rounded),
+        border: OutlineInputBorder(),
+      ),
+      items: _lojas
+          .map(
+            (loja) => DropdownMenuItem<int>(
+              value: loja.lojaId,
+              child: Text(loja.nmloja, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(growable: false),
+      onChanged: _carregando ? null : _selecionarLoja,
+    );
+  }
+
+  Widget _filtroPeriodo() => OutlinedButton.icon(
+    onPressed: _carregando ? null : _selecionarPeriodo,
+    icon: const Icon(Icons.date_range_rounded),
+    label: Text(
+      'Período: ${DateFormat('dd/MM/yy').format(_inicio)} a ${DateFormat('dd/MM/yy').format(_fim)}',
+    ),
+  );
 
   List<CompraProduto> get _comprasFiltradas {
     final termo = _busca.trim().toLowerCase();
@@ -157,9 +265,20 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
             ClubbarPageHeader(
               titulo: 'Compras de produtos',
               subtitulo: 'Clientes, produtos comprados e situação de retirada',
-              trailing: IconButton(
-                onPressed: _carregando ? null : _carregar,
-                icon: const Icon(Icons.refresh_rounded),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Alterar período',
+                    onPressed: _carregando ? null : _selecionarPeriodo,
+                    icon: const Icon(Icons.date_range_rounded),
+                  ),
+                  IconButton(
+                    tooltip: 'Atualizar',
+                    onPressed: _carregando ? null : _carregar,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -193,6 +312,13 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                       child: ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
+                          _seletorEstabelecimento(),
+                          if (_lojas.isNotEmpty) const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: _filtroPeriodo(),
+                          ),
+                          const SizedBox(height: 10),
                           TextField(
                             onChanged: (valor) =>
                                 setState(() => _busca = valor),
@@ -211,6 +337,28 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              _resumo(
+                                'Unidades compradas',
+                                compradas,
+                                ClubbarColors.info,
+                              ),
+                              const SizedBox(width: 10),
+                              _resumo(
+                                'Unidades a retirar',
+                                pendentes,
+                                ClubbarColors.aviso,
+                              ),
+                              const SizedBox(width: 10),
+                              _resumo(
+                                'Unidades retiradas',
+                                retirados,
+                                ClubbarColors.sucesso,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -231,28 +379,6 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                                     }
                                   },
                                 ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              _resumo(
-                                'Unidades compradas',
-                                compradas,
-                                ClubbarColors.info,
-                              ),
-                              const SizedBox(width: 10),
-                              _resumo(
-                                'Unidades a retirar',
-                                pendentes,
-                                ClubbarColors.aviso,
-                              ),
-                              const SizedBox(width: 10),
-                              _resumo(
-                                'Unidades retiradas',
-                                retirados,
-                                ClubbarColors.sucesso,
-                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
