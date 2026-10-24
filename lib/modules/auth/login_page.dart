@@ -8,6 +8,7 @@ import '../../core/services/app_exit_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../dashboard/dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -351,17 +352,43 @@ class _LoginPageState extends State<LoginPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Bem-vindo, parceiro',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Acesse a gestão do seu estabelecimento.',
-            style: TextStyle(
-              fontSize: 15,
-              color: ClubbarColors.textoSecundario,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bem-vindo, parceiro',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Acesse a gestão do seu estabelecimento.',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: ClubbarColors.textoSecundario,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 100),
+                child: Image.asset(
+                  _corujaOlhoFechado
+                      ? 'assets/images/corujao_piscando.png'
+                      : 'assets/images/corujao.png',
+                  key: ValueKey(_corujaOlhoFechado),
+                  height: 76,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 28),
           TextField(
@@ -472,64 +499,51 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _marca({required bool compacta}) {
+    if (compacta) return const SizedBox.shrink();
+
     return Padding(
-      padding: EdgeInsets.all(compacta ? 8 : 42),
+      padding: const EdgeInsets.all(42),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: compacta
-            ? CrossAxisAlignment.center
-            : CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 100),
-            child: Image.asset(
-              _corujaOlhoFechado
-                  ? 'assets/images/corujao_piscando.png'
-                  : 'assets/images/corujao.png',
-              key: ValueKey(_corujaOlhoFechado),
-              height: compacta ? 92 : 120,
+          const Text(
+            'Sua operação,\nsempre sob controle.',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 32,
+              height: 1.12,
+              fontWeight: FontWeight.w900,
             ),
           ),
-          SizedBox(height: compacta ? 10 : 30),
-          if (!compacta) ...[
-            const Text(
-              'Sua operação,\nsempre sob controle.',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 32,
-                height: 1.12,
-                fontWeight: FontWeight.w900,
+          const SizedBox(height: 18),
+          const Text(
+            'Acompanhe vendas, agenda, cardápio e financeiro em um só lugar.',
+            style: TextStyle(
+              color: ClubbarColors.primariaEscuro,
+              fontSize: 17,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 30),
+          const Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _Beneficio(
+                icone: Icons.analytics_outlined,
+                texto: 'Indicadores em tempo real',
               ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Acompanhe vendas, agenda, cardápio e financeiro em um só lugar.',
-              style: TextStyle(
-                color: ClubbarColors.primariaEscuro,
-                fontSize: 17,
-                height: 1.5,
+              _Beneficio(
+                icone: Icons.storefront_outlined,
+                texto: 'Gestão dos estabelecimentos',
               ),
-            ),
-            const SizedBox(height: 30),
-            const Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _Beneficio(
-                  icone: Icons.analytics_outlined,
-                  texto: 'Indicadores em tempo real',
-                ),
-                _Beneficio(
-                  icone: Icons.storefront_outlined,
-                  texto: 'Gestão dos estabelecimentos',
-                ),
-                _Beneficio(
-                  icone: Icons.event_available_outlined,
-                  texto: 'Agenda e ingressos',
-                ),
-              ],
-            ),
-          ],
+              _Beneficio(
+                icone: Icons.event_available_outlined,
+                texto: 'Agenda e ingressos',
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -539,6 +553,19 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.primaria,
+      appBar: ClubbarAppBar(
+        mostrarTopbar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Fechar aplicativo',
+            onPressed: () async {
+              await StorageService.clearToken();
+              await AppExitService.fechar();
+            },
+            icon: const Icon(Icons.close_rounded),
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           Container(
@@ -576,29 +603,9 @@ class _LoginPageState extends State<LoginPage> {
                 }
                 return SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(18, 14, 18, 32),
-                  child: Column(
-                    children: [
-                      _marca(compacta: true),
-                      const SizedBox(height: 8),
-                      _campoLogin(),
-                    ],
-                  ),
+                  child: Column(children: [_campoLogin()]),
                 );
               },
-            ),
-          ),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: IconButton(
-                tooltip: 'Fechar aplicativo',
-                onPressed: () async {
-                  await StorageService.clearToken();
-                  await AppExitService.fechar();
-                },
-                icon: const Icon(Icons.close_rounded),
-                color: Colors.white,
-              ),
             ),
           ),
         ],
