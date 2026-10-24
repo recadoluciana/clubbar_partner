@@ -18,6 +18,7 @@ import 'loja_imagens_page.dart';
 import 'loja_conteudo_page.dart';
 import 'loja_configuracao_produtos_page.dart';
 import 'pendencias_cancelamento_page.dart';
+import 'loja_pagamento_page.dart';
 
 class LojaListPage extends StatefulWidget {
   final int organizacaoId;
@@ -235,6 +236,16 @@ class _LojaListPageState extends State<LojaListPage> {
     if (resultado == true) {
       await _carregarLojas();
     }
+  }
+
+  Future<void> _abrirRecebimentos(Loja loja) async {
+    if (!_podeAlterarLoja(loja)) {
+      _avisarSomenteConsulta();
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => LojaPagamentoPage(loja: loja)),
+    );
   }
 
   Future<void> _abrirHorarios(Loja loja) async {
@@ -751,9 +762,20 @@ class _LojaListPageState extends State<LojaListPage> {
             _abrirHorarios(loja);
           case 'conteudo':
             _abrirConteudo(loja);
+          case 'recebimentos':
+            _abrirRecebimentos(loja);
         }
       },
       itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'recebimentos',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.payments_outlined),
+            title: Text('Recebimentos'),
+          ),
+        ),
         const PopupMenuItem(
           value: 'produtos',
           child: ListTile(
