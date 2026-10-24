@@ -275,11 +275,19 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Nome *'),
                 maxLength: 120,
+                buildCounter:
+                    (
+                      _, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) => null,
                 onChanged: (v) => nome = v.trim(),
                 validator: (v) => (v ?? '').trim().length < 2
                     ? 'Informe ao menos 2 caracteres.'
                     : null,
               ),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: icone,
                 decoration: const InputDecoration(labelText: 'Ícone'),
@@ -356,10 +364,18 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                   controller: nomeController,
                   decoration: const InputDecoration(labelText: 'Nome *'),
                   maxLength: 120,
+                  buildCounter:
+                      (
+                        _, {
+                        required currentLength,
+                        required isFocused,
+                        maxLength,
+                      }) => null,
                   validator: (v) => (v ?? '').trim().length < 2
                       ? 'Informe ao menos 2 caracteres.'
                       : null,
                 ),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   initialValue: icone,
                   decoration: const InputDecoration(labelText: 'Ícone'),
@@ -379,6 +395,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                       .toList(),
                   onChanged: (v) => icone = v ?? 'category',
                 ),
+                const SizedBox(height: 16),
               ],
               DropdownButtonFormField<String>(
                 initialValue: situacao,
@@ -456,34 +473,12 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                TextField(
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Buscar categoria',
-                  ),
-                  onChanged: (v) =>
-                      setState(() => _busca = v.trim().toLowerCase()),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _ocupado ? null : _importar,
-                      icon: const Icon(Icons.download),
-                      label: const Text('Importar categoria'),
-                    ),
-                    FilledButton.icon(
-                      onPressed: _ocupado ? null : _criar,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Criar categoria'),
-                    ),
-                  ],
-                ),
-              ],
+            child: TextField(
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                hintText: 'Buscar categoria',
+              ),
+              onChanged: (v) => setState(() => _busca = v.trim().toLowerCase()),
             ),
           ),
           Expanded(
@@ -558,6 +553,35 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                   ),
           ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Material(
+          color: Colors.white,
+          elevation: 8,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _ocupado ? null : _importar,
+                    icon: const Icon(Icons.download),
+                    label: const Text('Importar categoria'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _ocupado ? null : _criar,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Criar categoria'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
