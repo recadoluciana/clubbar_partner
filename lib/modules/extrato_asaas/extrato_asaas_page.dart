@@ -6,7 +6,6 @@ import '../../core/repositories/loja_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'extrato_asaas_repository.dart';
 import '../../models/loja.dart';
@@ -30,7 +29,7 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
   );
   DateTime _fim = HorarioBrasil.agora();
   Map<String, dynamic> _dados = {};
-  String _empresa = 'Empresa';
+  String _empresa = 'Empresa não identificada';
   List<Loja> _lojas = const [];
   int? _lojaId;
   bool _carregando = true;
@@ -48,6 +47,10 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
       if (id == null) {
         throw Exception('Organização não identificada.');
       }
+      final empresa = (await StorageService.getNomeOrganizacao() ?? '').trim();
+      if (mounted && empresa.isNotEmpty) {
+        setState(() => _empresa = empresa);
+      }
       if (_lojas.isEmpty) {
         _lojas = await _lojaRepository.listar(id);
         final lojaSalva = await StorageService.getLojaId();
@@ -61,12 +64,8 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
         inicio: _inicio,
         fim: _fim,
       );
-      final empresa = (await StorageService.getNomeOrganizacao() ?? '').trim();
       if (mounted) {
-        setState(() {
-          _dados = resultado;
-          _empresa = empresa.isEmpty ? 'Empresa' : empresa;
-        });
+        setState(() => _dados = resultado);
       }
     } catch (e) {
       if (mounted) {
@@ -122,17 +121,11 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
         .cast<Map>();
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: Column(
         children: [
           ClubbarPageHeader(
-            titulo: _empresa,
-            subtitulo: 'Extrato de transações Asaas',
-            tituloStyle: const TextStyle(
-              color: ClubbarColors.info,
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-            ),
+            titulo: 'Extrato de transações Asaas',
+            subtitulo: _empresa,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
