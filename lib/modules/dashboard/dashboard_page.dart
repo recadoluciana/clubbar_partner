@@ -466,6 +466,7 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
       appBar: ClubbarAppBar(
+        mostrarTopbar: true,
         mostrarSair: true,
         centralizarLogo: false,
         onSair: _sair,
@@ -477,6 +478,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ClubbarPageHeader(
               titulo: _nomeOrganizacao,
               subtitulo: '',
+              mostrarVoltar: false,
               subtituloWidget: _subtituloUsuario(),
               tituloStyle: const TextStyle(
                 fontSize: 17,

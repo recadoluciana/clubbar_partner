@@ -1544,28 +1544,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
       body: Column(
         children: [
           ClubbarPageHeader(
-            tituloWidget: Row(
-              children: [
-                IconButton(
-                  tooltip: 'Voltar',
-                  onPressed: () => Navigator.maybePop(context),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    widget.nomeCardapio,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            titulo: '',
+            titulo: widget.nomeCardapio,
             subtitulo:
                 'Versão ${_numeroVersao ?? '—'}${_versaoEhRascunho ? ' em rascunho' : ''}',
           ),

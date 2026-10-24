@@ -10,6 +10,8 @@ class ClubbarPageHeader extends StatelessWidget {
   final Widget? trailing;
   final TextStyle? tituloStyle;
   final EdgeInsetsGeometry padding;
+  final bool mostrarVoltar;
+  final VoidCallback? onVoltar;
 
   const ClubbarPageHeader({
     super.key,
@@ -20,6 +22,8 @@ class ClubbarPageHeader extends StatelessWidget {
     this.trailing,
     this.tituloStyle,
     this.padding = const EdgeInsets.fromLTRB(18, 14, 16, 16),
+    this.mostrarVoltar = true,
+    this.onVoltar,
   });
 
   @override
@@ -51,6 +55,7 @@ class ClubbarPageHeader extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final exibirVoltar = mostrarVoltar && Navigator.canPop(context);
           final textos = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -82,12 +87,26 @@ class ClubbarPageHeader extends StatelessWidget {
                   ),
             ],
           );
+          final conteudoPrincipal = exibirVoltar
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      tooltip: 'Voltar',
+                      onPressed: onVoltar ?? () => Navigator.maybePop(context),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(child: textos),
+                  ],
+                )
+              : textos;
 
           if (trailing != null && constraints.maxWidth < 340) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                textos,
+                conteudoPrincipal,
                 const SizedBox(height: 10),
                 Align(alignment: Alignment.centerRight, child: trailing),
               ],
@@ -97,7 +116,7 @@ class ClubbarPageHeader extends StatelessWidget {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: textos),
+              Expanded(child: conteudoPrincipal),
               if (trailing != null) ...[const SizedBox(width: 8), trailing!],
             ],
           );

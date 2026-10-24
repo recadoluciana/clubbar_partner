@@ -8,7 +8,6 @@ import '../../core/services/app_exit_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/widgets/clubbar_app_bar.dart';
 import '../dashboard/dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -540,63 +539,69 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.primaria,
-      appBar: ClubbarAppBar(
-        actions: [
-          IconButton(
-            tooltip: 'Fechar aplicativo',
-            onPressed: () async {
-              await StorageService.clearToken();
-              await AppExitService.fechar();
-            },
-            icon: const Icon(Icons.close_rounded),
+      body: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF1F8A4C),
+                  Color(0xFF63B77D),
+                  Color(0xFFDDF4E5),
+                  Color(0xFFF4FBF6),
+                ],
+                stops: [0, .32, .68, 1],
+              ),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final desktop = constraints.maxWidth >= 900;
+                if (desktop) {
+                  return Row(
+                    children: [
+                      Expanded(flex: 5, child: _marca(compacta: false)),
+                      Expanded(
+                        flex: 6,
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(48),
+                          child: Center(child: _campoLogin()),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 32),
+                  child: Column(
+                    children: [
+                      _marca(compacta: true),
+                      const SizedBox(height: 8),
+                      _campoLogin(),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                tooltip: 'Fechar aplicativo',
+                onPressed: () async {
+                  await StorageService.clearToken();
+                  await AppExitService.fechar();
+                },
+                icon: const Icon(Icons.close_rounded),
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1F8A4C),
-              Color(0xFF63B77D),
-              Color(0xFFDDF4E5),
-              Color(0xFFF4FBF6),
-            ],
-            stops: [0, .32, .68, 1],
-          ),
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final desktop = constraints.maxWidth >= 900;
-            if (desktop) {
-              return Row(
-                children: [
-                  Expanded(flex: 5, child: _marca(compacta: false)),
-                  Expanded(
-                    flex: 6,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(48),
-                      child: Center(child: _campoLogin()),
-                    ),
-                  ),
-                ],
-              );
-            }
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 32),
-              child: Column(
-                children: [
-                  _marca(compacta: true),
-                  const SizedBox(height: 8),
-                  _campoLogin(),
-                ],
-              ),
-            );
-          },
-        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final bool mostrarTopbar;
   final bool mostrarVoltar;
   final bool mostrarSair;
   final VoidCallback? onVoltar;
@@ -12,6 +13,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   const ClubbarAppBar({
     super.key,
+    this.mostrarTopbar = false,
     this.mostrarVoltar = false,
     this.mostrarSair = false,
     this.onVoltar,
@@ -23,10 +25,13 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(60);
+  Size get preferredSize =>
+      mostrarTopbar ? const Size.fromHeight(60) : Size.zero;
 
   @override
   Widget build(BuildContext context) {
+    if (!mostrarTopbar) return const SizedBox.shrink();
+
     return AppBar(
       backgroundColor: Colors.black,
       foregroundColor: Colors.white,

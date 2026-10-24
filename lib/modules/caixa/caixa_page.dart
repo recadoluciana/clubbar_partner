@@ -862,131 +862,143 @@ class _ProdutoCashierPageState extends State<_ProdutoCashierPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(18),
+        child: Column(
           children: [
-            if (widget.imagem != null)
-              Container(
-                height: 260,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Image.network(
-                  widget.imagem!,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) =>
-                      const Icon(Icons.fastfood_rounded, size: 72),
-                ),
-              )
-            else
-              Container(
-                height: 180,
-                decoration: BoxDecoration(
-                  color: ClubbarColors.ambarClaro,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(Icons.fastfood_rounded, size: 72),
-              ),
-            const SizedBox(height: 20),
-            Text(
-              '${produto['nmproduto']}',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ClubbarPageHeader(
+              titulo: 'Adicionar produto',
+              subtitulo: '${produto['nmproduto'] ?? 'Produto'}',
             ),
-            const SizedBox(height: 6),
-            Text(
-              '${produto['nmcategoria'] ?? 'Sem categoria'}',
-              style: const TextStyle(
-                color: ClubbarColors.textoSecundario,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            if (descricao.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(descricao, style: const TextStyle(fontSize: 16)),
-            ],
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Text(
-                  widget.moeda.format(preco),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                if (temDesconto) ...[
-                  const SizedBox(width: 10),
-                  Text(
-                    widget.moeda.format(precoOriginal),
-                    style: const TextStyle(
-                      color: ClubbarColors.textoSecundario,
-                      decoration: TextDecoration.lineThrough,
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(18),
+                children: [
+                  if (widget.imagem != null)
+                    Container(
+                      height: 260,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Image.network(
+                        widget.imagem!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) =>
+                            const Icon(Icons.fastfood_rounded, size: 72),
+                      ),
+                    )
+                  else
+                    Container(
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: ClubbarColors.ambarClaro,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(Icons.fastfood_rounded, size: 72),
                     ),
-                  ),
-                ],
-              ],
-            ),
-            const Divider(height: 34),
-            const Text(
-              'Quantidade',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                IconButton.filledTonal(
-                  onPressed: _quantidade > 1
-                      ? () => setState(() => _quantidade--)
-                      : null,
-                  icon: const Icon(Icons.remove_rounded),
-                ),
-                SizedBox(
-                  width: 64,
-                  child: Text(
-                    '$_quantidade',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 19,
+                  const SizedBox(height: 20),
+                  Text(
+                    '${produto['nmproduto']}',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                ),
-                IconButton.filled(
-                  onPressed: () => setState(() => _quantidade++),
-                  icon: const Icon(Icons.add_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            TextField(
-              controller: _observacaoController,
-              minLines: 3,
-              maxLines: 5,
-              maxLength: 500,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Observação',
-                hintText: 'Ex.: sem gelo, retirar cebola...',
-                alignLabelWithHint: true,
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            FilledButton.icon(
-              onPressed: () => Navigator.pop(
-                context,
-                _ProdutoPedido(_quantidade, _observacaoController.text.trim()),
-              ),
-              icon: const Icon(Icons.add_shopping_cart_rounded),
-              label: Text(
-                'Adicionar $_quantidade ao carrinho • '
-                '${widget.moeda.format(preco * _quantidade)}',
+                  const SizedBox(height: 6),
+                  Text(
+                    '${produto['nmcategoria'] ?? 'Sem categoria'}',
+                    style: const TextStyle(
+                      color: ClubbarColors.textoSecundario,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (descricao.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(descricao, style: const TextStyle(fontSize: 16)),
+                  ],
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Text(
+                        widget.moeda.format(preco),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (temDesconto) ...[
+                        const SizedBox(width: 10),
+                        Text(
+                          widget.moeda.format(precoOriginal),
+                          style: const TextStyle(
+                            color: ClubbarColors.textoSecundario,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const Divider(height: 34),
+                  const Text(
+                    'Quantidade',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      IconButton.filledTonal(
+                        onPressed: _quantidade > 1
+                            ? () => setState(() => _quantidade--)
+                            : null,
+                        icon: const Icon(Icons.remove_rounded),
+                      ),
+                      SizedBox(
+                        width: 64,
+                        child: Text(
+                          '$_quantidade',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      IconButton.filled(
+                        onPressed: () => setState(() => _quantidade++),
+                        icon: const Icon(Icons.add_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: _observacaoController,
+                    minLines: 3,
+                    maxLines: 5,
+                    maxLength: 500,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'Observação',
+                      hintText: 'Ex.: sem gelo, retirar cebola...',
+                      alignLabelWithHint: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    onPressed: () => Navigator.pop(
+                      context,
+                      _ProdutoPedido(
+                        _quantidade,
+                        _observacaoController.text.trim(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.add_shopping_cart_rounded),
+                    label: Text(
+                      'Adicionar $_quantidade ao carrinho • '
+                      '${widget.moeda.format(preco * _quantidade)}',
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
