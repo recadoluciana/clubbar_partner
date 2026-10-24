@@ -3,11 +3,14 @@ import 'package:intl/intl.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/repositories/acompanhamento_vendas_repository.dart';
+import '../../core/repositories/loja_repository.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/acompanhamento_vendas.dart';
+import '../../models/loja.dart';
 import 'detalhe_vendas_evento_page.dart';
 
 class AcompanhamentoVendasPage extends StatefulWidget {
@@ -19,10 +22,13 @@ class AcompanhamentoVendasPage extends StatefulWidget {
 
 class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
   final _repo = AcompanhamentoVendasRepository();
+  final _lojaRepository = LojaRepository();
   final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _data = DateFormat('dd/MM/yyyy HH:mm', 'pt_BR');
   ProdutosPendentesResumo? _produtos;
   List<EventoVendaResumo> _eventos = const [];
+  List<Loja> _lojas = const [];
+  int? _lojaId;
   String _periodo = 'FUTUROS';
   bool _carregando = true;
   String? _erro;
@@ -30,18 +36,54 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
   @override
   void initState() {
     super.initState();
-    _carregar();
+    _inicializar();
   }
 
-  Future<void> _carregar() async {
+  Future<void> _inicializar() async {
     setState(() {
       _carregando = true;
       _erro = null;
     });
     try {
+      final dados = await Future.wait([
+        StorageService.getOrganizacaoId(),
+        StorageService.getLojaId(),
+      ]);
+      final organizacaoId = dados[0];
+      final lojaVinculadaId = dados[1];
+      if (organizacaoId == null || organizacaoId <= 0) {
+        throw Exception('Organização não identificada.');
+      }
+
+      final lojas = await _lojaRepository.listar(organizacaoId);
+      if (!mounted) return;
+      setState(() {
+        _lojas = lojas;
+        _lojaId = lojas.any((loja) => loja.lojaId == lojaVinculadaId)
+            ? lojaVinculadaId
+            : lojas.firstOrNull?.lojaId;
+      });
+      await _carregar(mostrarCarregamento: false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _erro = e.toString().replaceFirst('Exception: ', '');
+        _carregando = false;
+      });
+    }
+  }
+
+  Future<void> _carregar({bool mostrarCarregamento = true}) async {
+    if (mostrarCarregamento) {
+      setState(() {
+        _carregando = true;
+        _erro = null;
+      });
+    }
+    try {
       final resultados = await Future.wait([
-        _repo.produtosPendentes(),
-        _repo.eventos(_periodo),
+        _repo.produtosPendentes(lojaId: _lojaId),
+        _repo.eventos(_periodo, lojaId: _lojaId),
       ]);
       if (!mounted) return;
       setState(() {
@@ -56,6 +98,41 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
         _carregando = false;
       });
     }
+  }
+
+  Future<void> _selecionarLoja(int? lojaId) async {
+    if (lojaId == null || lojaId == _lojaId) return;
+    setState(() => _lojaId = lojaId);
+    await _carregar();
+  }
+
+  Widget _seletorEstabelecimento() {
+    if (_lojas.isEmpty) return const SizedBox.shrink();
+    return Material(
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: DropdownButtonFormField<int>(
+          key: ValueKey(_lojaId),
+          initialValue: _lojaId,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Estabelecimento',
+            prefixIcon: Icon(Icons.storefront_rounded),
+            border: OutlineInputBorder(),
+          ),
+          items: _lojas
+              .map(
+                (loja) => DropdownMenuItem<int>(
+                  value: loja.lojaId,
+                  child: Text(loja.nmloja, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: _carregando ? null : _selecionarLoja,
+        ),
+      ),
+    );
   }
 
   Future<void> _detalhar(EventoVendaResumo evento) async {
@@ -378,6 +455,7 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
                 icon: const Icon(Icons.refresh_rounded),
               ),
             ),
+            _seletorEstabelecimento(),
             const Material(
               color: Colors.white,
               child: TabBar(

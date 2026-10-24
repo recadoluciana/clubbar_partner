@@ -15,9 +15,10 @@ class AcompanhamentoVendasRepository {
     return padrao;
   }
 
-  Future<ProdutosPendentesResumo> produtosPendentes() async {
+  Future<ProdutosPendentesResumo> produtosPendentes({int? lojaId}) async {
+    final query = lojaId == null ? '' : '?loja_id=$lojaId';
     final response = await ApiService.get(
-      '/acompanhamento-vendas/produtos-pendentes',
+      '/acompanhamento-vendas/produtos-pendentes$query',
     );
     if (response.statusCode != 200) {
       throw Exception(
@@ -77,9 +78,10 @@ class AcompanhamentoVendasRepository {
         .toList(growable: false);
   }
 
-  Future<List<EventoVendaResumo>> eventos(String periodo) async {
+  Future<List<EventoVendaResumo>> eventos(String periodo, {int? lojaId}) async {
+    final query = lojaId == null ? '' : '&loja_id=$lojaId';
     final response = await ApiService.get(
-      '/acompanhamento-vendas/eventos?periodo=$periodo',
+      '/acompanhamento-vendas/eventos?periodo=$periodo$query',
     );
     if (response.statusCode != 200) {
       throw Exception(
