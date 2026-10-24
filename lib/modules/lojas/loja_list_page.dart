@@ -931,7 +931,7 @@ class _LojaListPageState extends State<LojaListPage> {
                         _acaoLoja(
                           tooltip: 'Editar estabelecimento',
                           icone: Icons.edit_rounded,
-                          cor: ClubbarColors.info,
+                          cor: Colors.blue,
                           acao: () => _abrirEdicao(loja),
                         ),
                         _acaoLoja(
