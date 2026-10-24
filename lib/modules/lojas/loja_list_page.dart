@@ -9,7 +9,6 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
@@ -1120,50 +1119,12 @@ class _LojaListPageState extends State<LojaListPage> {
     );
   }
 
-  Widget _botaoCircularHeader({
-    required String tooltip,
-    required IconData icone,
-    required VoidCallback? onPressed,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: SizedBox.square(
-        dimension: 40,
-        child: IconButton(
-          onPressed: onPressed,
-          icon: Icon(icone, size: 22),
-          color: ClubbarColors.preto,
-          disabledColor: ClubbarColors.textoSecundario,
-          style: IconButton.styleFrom(
-            backgroundColor: ClubbarColors.ambar,
-            disabledBackgroundColor: ClubbarColors.borda,
-            shape: const CircleBorder(),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _acoesHeader() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _botaoCircularHeader(
-          tooltip: 'Atualizar',
-          icone: Icons.refresh_rounded,
-          onPressed: _carregando ? null : _carregarLojas,
-        ),
-      ],
+    return IconButton(
+      tooltip: 'Atualizar',
+      onPressed: _carregando ? null : _carregarLojas,
+      icon: const Icon(Icons.refresh_rounded),
     );
-  }
-
-  String _subtituloHeader() {
-    if (_carregando) {
-      return 'Carregando estabelecimentos...';
-    }
-
-    return '${_lojas.length} '
-        '${_lojas.length == 1 ? 'estabelecimento cadastrado' : 'estabelecimentos cadastrados'}';
   }
 
   Widget _estadoVazio() {
@@ -1370,24 +1331,16 @@ class _LojaListPageState extends State<LojaListPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(
-        mostrarVoltar: true,
-        centralizarLogo: true,
-        alturaLogo: 54,
-      ),
       body: SafeArea(
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: _carregandoOrganizacao
-                  ? 'Carregando empresa...'
+              titulo: _carregando
+                  ? 'Estabelecimentos'
+                  : 'Estabelecimentos • ${_lojas.length} cadastrado(s)',
+              subtitulo: _carregandoOrganizacao
+                  ? 'Carregando organização...'
                   : _nomeOrganizacao,
-              subtitulo: _subtituloHeader(),
-              tituloStyle: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: ClubbarColors.primariaEscuro,
-              ),
               trailing: _acoesHeader(),
             ),
             Expanded(child: _lista(mostrarTitulo: false)),
