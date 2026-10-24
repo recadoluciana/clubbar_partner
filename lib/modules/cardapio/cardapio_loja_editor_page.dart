@@ -12,7 +12,6 @@ import '../../core/utils/text_normalizer.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
-import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 
@@ -1515,7 +1514,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     },
     child: Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: ClubbarAppBar(titulo: widget.loja.nmloja),
       bottomNavigationBar: ClubbarActionBar(
         backgroundColor: Colors.black,
         singleLine: true,
