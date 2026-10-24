@@ -27,6 +27,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
   final _data = DateFormat('dd/MM/yyyy HH:mm', 'pt_BR');
 
   List<CompraProduto> _compras = const [];
+  List<CompraProduto> _comprasResumo = const [];
   List<Loja> _lojas = const [];
   int? _lojaId;
   String _situacao = 'TODOS';
@@ -86,14 +87,26 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       });
     }
     try {
-      final compras = await _repo.comprasProdutos(
-        situacao: _situacao,
+      final resumoFuture = _repo.comprasProdutos(
+        situacao: 'TODOS',
         lojaId: _lojaId,
         inicio: _inicio,
         fim: _fim,
       );
+      final comprasFuture = _situacao == 'TODOS'
+          ? resumoFuture
+          : _repo.comprasProdutos(
+              situacao: _situacao,
+              lojaId: _lojaId,
+              inicio: _inicio,
+              fim: _fim,
+            );
+      final resultados = await Future.wait([resumoFuture, comprasFuture]);
+      final resumo = resultados[0];
+      final compras = resultados[1];
       if (!mounted) return;
       setState(() {
+        _comprasResumo = resumo;
         _compras = compras;
         _carregando = false;
       });
@@ -105,6 +118,21 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       });
     }
   }
+
+  List<CompraProduto> _filtrarBusca(List<CompraProduto> compras) {
+    final termo = _busca.trim().toLowerCase();
+    if (termo.isEmpty) return compras;
+    return compras.where((compra) {
+      return compra.produto.toLowerCase().contains(termo) ||
+          compra.cliente.toLowerCase().contains(termo) ||
+          compra.emailCliente.toLowerCase().contains(termo);
+    }).toList();
+  }
+
+  List<CompraProduto> get _comprasFiltradas => _filtrarBusca(_compras);
+
+  List<CompraProduto> get _comprasResumoFiltradas =>
+      _filtrarBusca(_comprasResumo);
 
   Future<void> _selecionarLoja(int? lojaId) async {
     if (lojaId == null || lojaId == _lojaId) return;
@@ -161,16 +189,6 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       'Período: ${DateFormat('dd/MM/yy').format(_inicio)} a ${DateFormat('dd/MM/yy').format(_fim)}',
     ),
   );
-
-  List<CompraProduto> get _comprasFiltradas {
-    final termo = _busca.trim().toLowerCase();
-    if (termo.isEmpty) return _compras;
-    return _compras.where((compra) {
-      return compra.produto.toLowerCase().contains(termo) ||
-          compra.cliente.toLowerCase().contains(termo) ||
-          compra.emailCliente.toLowerCase().contains(termo);
-    }).toList();
-  }
 
   Widget _imagemProduto(CompraProduto compra) {
     final imagem = compra.imagemProduto.trim();
@@ -244,14 +262,15 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
   @override
   Widget build(BuildContext context) {
     final compras = _comprasFiltradas;
-    final compradas = compras.fold(
+    final comprasResumo = _comprasResumoFiltradas;
+    final compradas = comprasResumo.fold(
       0,
       (soma, compra) => soma + compra.quantidade,
     );
-    final pendentes = compras
+    final pendentes = comprasResumo
         .where((compra) => !compra.retirado)
         .fold(0, (soma, compra) => soma + compra.quantidade);
-    final retirados = compras
+    final retirados = comprasResumo
         .where((compra) => compra.retirado)
         .fold(0, (soma, compra) => soma + compra.quantidade);
 
