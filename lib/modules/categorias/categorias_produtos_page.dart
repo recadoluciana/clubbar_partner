@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/services/api_service.dart';
-import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../core/widgets/app_snackbar.dart';
 
@@ -17,6 +17,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
   bool _ocupado = false;
   String? _erro;
   String _busca = '';
+  String _nomeOrganizacao = 'Empresa não identificada';
   String get _rota => '/organizacoes/${widget.organizacaoId}/categorias';
   static const _icones = <String, IconData>{
     'category': Icons.category_rounded,
@@ -66,6 +67,27 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
     return _coresCategoria[id.abs() % _coresCategoria.length];
   }
 
+  Widget _badgeSituacao(Map<String, dynamic> categoria) {
+    final ativa =
+        '${categoria['sitcategoria'] ?? 'ATIVA'}'.toUpperCase() == 'ATIVA';
+    final cor = ativa ? Colors.green : Colors.red;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: cor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        ativa ? 'Ativa' : 'Inativa',
+        style: TextStyle(
+          color: cor.shade700,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
   dynamic _resposta(dynamic r) {
     final dados = jsonDecode(r.body);
     if (r.statusCode < 200 || r.statusCode >= 300) {
@@ -80,6 +102,13 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
   void initState() {
     super.initState();
     _carregar();
+    _carregarNomeOrganizacao();
+  }
+
+  Future<void> _carregarNomeOrganizacao() async {
+    final nome = (await StorageService.getNomeOrganizacao() ?? '').trim();
+    if (!mounted || nome.isEmpty) return;
+    setState(() => _nomeOrganizacao = nome);
   }
 
   void _mostrarErro(Object erro) {
@@ -145,7 +174,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
         context: context,
         builder: (ctx) => StatefulBuilder(
           builder: (ctx, atualizar) => AlertDialog(
-            title: const Text('Importar categorias padrão'),
+            title: const Text('Importar categorias'),
             content: SizedBox(
               width: 440,
               height: 380,
@@ -231,30 +260,6 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
     }
   }
 
-  Future<void> _alterarSituacao(Map<String, dynamic> categoria) async {
-    final ativar = categoria['sitcategoria'] != 'ATIVA';
-    setState(() => _ocupado = true);
-    try {
-      _resposta(
-        await ApiService.patch(
-          '$_rota/${categoria['categoria_id']}/situacao',
-          body: {'sitcategoria': ativar ? 'ATIVA' : 'INATIVA'},
-        ),
-      );
-      await _carregar();
-      if (mounted) {
-        AppSnackBar.sucesso(
-          context,
-          ativar ? 'Categoria ativada.' : 'Categoria inativada.',
-        );
-      }
-    } catch (e) {
-      _mostrarErro(e);
-    } finally {
-      if (mounted) setState(() => _ocupado = false);
-    }
-  }
-
   Future<void> _criar() async {
     final form = GlobalKey<FormState>();
     String nome = '', icone = 'category';
@@ -318,6 +323,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
 
   Future<void> _editar(Map<String, dynamic> categoria) async {
     final form = GlobalKey<FormState>();
+    final importada = categoria['categoriapadrao_id'] != null;
     final nomeController = TextEditingController(
       text: '${categoria['nmcategoria'] ?? ''}',
     );
@@ -325,6 +331,9 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
     String icone = _icones.containsKey(iconeOriginal)
         ? iconeOriginal
         : 'category';
+    final situacaoOriginal = '${categoria['sitcategoria'] ?? 'ATIVA'}'
+        .toUpperCase();
+    String situacao = situacaoOriginal == 'INATIVA' ? 'INATIVA' : 'ATIVA';
 
     final confirmar = await showDialog<bool>(
       context: context,
@@ -335,32 +344,50 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: nomeController,
-                decoration: const InputDecoration(labelText: 'Nome *'),
-                maxLength: 120,
-                validator: (v) => (v ?? '').trim().length < 2
-                    ? 'Informe ao menos 2 caracteres.'
-                    : null,
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: icone,
-                decoration: const InputDecoration(labelText: 'Ícone'),
-                items: _icones.entries
-                    .map(
-                      (e) => DropdownMenuItem(
-                        value: e.key,
-                        child: Row(
-                          children: [
-                            Icon(e.value),
-                            const SizedBox(width: 12),
-                            Text(e.key),
-                          ],
+              if (importada)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'Esta categoria foi importada do catálogo padrão. Você pode alterar apenas a situação.',
+                  ),
+                )
+              else ...[
+                TextFormField(
+                  controller: nomeController,
+                  decoration: const InputDecoration(labelText: 'Nome *'),
+                  maxLength: 120,
+                  validator: (v) => (v ?? '').trim().length < 2
+                      ? 'Informe ao menos 2 caracteres.'
+                      : null,
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: icone,
+                  decoration: const InputDecoration(labelText: 'Ícone'),
+                  items: _icones.entries
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e.key,
+                          child: Row(
+                            children: [
+                              Icon(e.value),
+                              const SizedBox(width: 12),
+                              Text(e.key),
+                            ],
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => icone = v ?? 'category',
+                      )
+                      .toList(),
+                  onChanged: (v) => icone = v ?? 'category',
+                ),
+              ],
+              DropdownButtonFormField<String>(
+                initialValue: situacao,
+                decoration: const InputDecoration(labelText: 'Situação'),
+                items: const [
+                  DropdownMenuItem(value: 'ATIVA', child: Text('Ativa')),
+                  DropdownMenuItem(value: 'INATIVA', child: Text('Inativa')),
+                ],
+                onChanged: (v) => situacao = v ?? situacao,
               ),
             ],
           ),
@@ -386,12 +413,22 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
 
     setState(() => _ocupado = true);
     try {
-      _resposta(
-        await ApiService.patch(
-          '$_rota/${categoria['categoria_id']}',
-          body: {'nmcategoria': nome, 'dsicone': icone},
-        ),
-      );
+      if (!importada) {
+        _resposta(
+          await ApiService.patch(
+            '$_rota/${categoria['categoria_id']}',
+            body: {'nmcategoria': nome, 'dsicone': icone},
+          ),
+        );
+      }
+      if (situacao != situacaoOriginal) {
+        _resposta(
+          await ApiService.patch(
+            '$_rota/${categoria['categoria_id']}/situacao',
+            body: {'sitcategoria': situacao},
+          ),
+        );
+      }
       await _carregar();
       if (mounted) AppSnackBar.sucesso(context, 'Categoria atualizada.');
     } catch (e) {
@@ -407,12 +444,11 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
         .where((e) => '${e['nmcategoria']}'.toLowerCase().contains(_busca))
         .toList();
     return Scaffold(
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: Column(
         children: [
           ClubbarPageHeader(
-            titulo: 'Categorias dos produtos',
-            subtitulo: 'Categorias da sua empresa',
+            titulo: 'Categoria de produto',
+            subtitulo: _nomeOrganizacao,
             trailing: IconButton(
               onPressed: _ocupado ? null : _carregar,
               icon: const Icon(Icons.refresh),
@@ -438,7 +474,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                     OutlinedButton.icon(
                       onPressed: _ocupado ? null : _importar,
                       icon: const Icon(Icons.download),
-                      label: const Text('Importar das padrão'),
+                      label: const Text('Importar categoria'),
                     ),
                     FilledButton.icon(
                       onPressed: _ocupado ? null : _criar,
@@ -446,10 +482,6 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                       label: const Text('Criar categoria'),
                     ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Somente as categorias ativas da sua empresa são usadas no Cardápio Digital.',
                 ),
               ],
             ),
@@ -487,30 +519,24 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
                                       ),
                                       title: Text(e['nmcategoria']),
                                       subtitle: Text(
-                                        '${e['categoriapadrao_id'] == null ? 'Categoria própria' : 'Importada das padrão'} • ${e['sitcategoria'] == 'ATIVA' ? 'Ativa' : 'Inativa'}',
+                                        e['categoriapadrao_id'] == null
+                                            ? 'Categoria própria'
+                                            : 'Importada do padrão',
                                       ),
                                       trailing: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          if (e['categoriapadrao_id'] == null)
-                                            IconButton(
-                                              tooltip: 'Editar categoria',
-                                              icon: const Icon(
-                                                Icons.edit_outlined,
-                                              ),
-                                              onPressed: _ocupado
-                                                  ? null
-                                                  : () => _editar(e),
+                                          _badgeSituacao(e),
+                                          const SizedBox(width: 4),
+                                          IconButton(
+                                            tooltip: 'Editar categoria',
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
+                                              color: Colors.blue,
                                             ),
-                                          OutlinedButton(
                                             onPressed: _ocupado
                                                 ? null
-                                                : () => _alterarSituacao(e),
-                                            child: Text(
-                                              e['sitcategoria'] == 'ATIVA'
-                                                  ? 'Inativar'
-                                                  : 'Ativar',
-                                            ),
+                                                : () => _editar(e),
                                           ),
                                           IconButton(
                                             tooltip: 'Apagar categoria',
