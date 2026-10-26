@@ -375,19 +375,42 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
   );
 
   Future<void> _alterarCapacidade() async {
-    final controller = TextEditingController(
+    final capacidadeController = TextEditingController(
       text: _capacidadeEvento.toString(),
     );
-    final nova = await showDialog<int>(
+    final reservaController = TextEditingController(
+      text: (_capacidade?.reservasInternas ?? 0).toString(),
+    );
+    final nova = await showDialog<Map<String, int>>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Capacidade total do evento'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Quantidade máxima de pessoas',
-          ),
+        title: const Text('Capacidade do evento'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: capacidadeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Capacidade total de pessoas',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reservaController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Reservas internas',
+                helperText:
+                    'Vagas bloqueadas para convidados, equipe ou operação.',
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Total = setores ativos + reservas internas.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -395,18 +418,28 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            onPressed: () =>
-                Navigator.pop(context, int.tryParse(controller.text.trim())),
+            onPressed: () {
+              final capacidade = int.tryParse(capacidadeController.text.trim());
+              final reservas = int.tryParse(reservaController.text.trim());
+              if (capacidade == null || reservas == null || reservas < 0) {
+                return;
+              }
+              Navigator.pop(context, {
+                'capacidade': capacidade,
+                'reservas': reservas,
+              });
+            },
             child: const Text('Salvar'),
           ),
         ],
       ),
     );
-    if (nova == null || nova <= 0) return;
+    if (nova == null || (nova['capacidade'] ?? 0) <= 0) return;
     try {
       await _repo.atualizarCapacidadeEvento(
         eventoId: widget.eventoId,
-        capacidade: nova,
+        capacidade: nova['capacidade']!,
+        reservasInternas: nova['reservas']!,
       );
       if (mounted) {
         AppSnackBar.sucesso(context, 'Capacidade total atualizada.');

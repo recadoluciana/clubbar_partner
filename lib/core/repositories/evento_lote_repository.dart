@@ -229,9 +229,11 @@ class EventoLoteRepository {
   Future<CapacidadeEvento> atualizarCapacidadeEvento({
     required int eventoId,
     required int capacidade,
+    required int reservasInternas,
   }) async {
     final response = await ApiService.put('/eventos/$eventoId/capacidade', {
       'qtcapacidadeevento': capacidade,
+      'qtreservainterna': reservasInternas,
     });
     if (response.statusCode != 200) {
       throw _erro(

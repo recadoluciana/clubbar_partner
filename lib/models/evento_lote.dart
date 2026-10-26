@@ -283,11 +283,13 @@ class EventoSetor {
 class CapacidadeEvento {
   final int? capacidadeTotal;
   final int capacidadeSetores;
+  final int reservasInternas;
   final int? capacidadeNaoDistribuida;
 
   const CapacidadeEvento({
     required this.capacidadeTotal,
     required this.capacidadeSetores,
+    required this.reservasInternas,
     required this.capacidadeNaoDistribuida,
   });
 
@@ -295,6 +297,7 @@ class CapacidadeEvento {
       CapacidadeEvento(
         capacidadeTotal: (json['qtcapacidadeevento'] as num?)?.toInt(),
         capacidadeSetores: (json['qtcapacidade_setores'] as num?)?.toInt() ?? 0,
+        reservasInternas: (json['qtreservainterna'] as num?)?.toInt() ?? 0,
         capacidadeNaoDistribuida: (json['qtcapacidade_nao_distribuida'] as num?)
             ?.toInt(),
       );
