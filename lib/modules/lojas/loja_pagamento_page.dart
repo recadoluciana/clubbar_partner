@@ -141,6 +141,8 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
     final conectada = _configuracao?['conectada'] == true;
     final mercadoPagoUserId =
         '${_configuracao?['mercadopago_user_id'] ?? ''}'.trim();
+    final mercadoPagoNome =
+        '${_configuracao?['mercadopago_nome'] ?? ''}'.trim();
     return Scaffold(
       body: Column(
         children: [
@@ -219,6 +221,13 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
                               ),
                               if (conectada && mercadoPagoUserId.isNotEmpty) ...[
                                 const SizedBox(height: 8),
+                                if (mercadoPagoNome.isNotEmpty)
+                                  Text(
+                                    mercadoPagoNome,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 Text(
                                   'Conta conectada — ID Mercado Pago: $mercadoPagoUserId',
                                   style: TextStyle(
