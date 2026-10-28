@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -78,7 +79,9 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
       if (url.isEmpty ||
           !await launchUrl(
             Uri.parse(url),
-            mode: LaunchMode.externalApplication,
+            mode: kIsWeb
+                ? LaunchMode.platformDefault
+                : LaunchMode.externalApplication,
           )) {
         throw Exception(
           'Não foi possível abrir a autorização do Mercado Pago.',
