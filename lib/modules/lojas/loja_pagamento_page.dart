@@ -139,6 +139,8 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
   Widget build(BuildContext context) {
     final provedor = '${_configuracao?['provedor_pagamento'] ?? 'ASAAS'}';
     final conectada = _configuracao?['conectada'] == true;
+    final mercadoPagoUserId =
+        '${_configuracao?['mercadopago_user_id'] ?? ''}'.trim();
     return Scaffold(
       body: Column(
         children: [
@@ -215,6 +217,16 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
                               const Text(
                                 'A conta do parceiro recebe a venda; o Clubbar registra a comissão configurada no checkout.',
                               ),
+                              if (conectada && mercadoPagoUserId.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Conta conectada — ID Mercado Pago: $mercadoPagoUserId',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 14),
                               Wrap(
                                 spacing: 10,
