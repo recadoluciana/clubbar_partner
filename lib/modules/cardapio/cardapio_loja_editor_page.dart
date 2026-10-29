@@ -260,26 +260,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     });
   }
 
-  Future<void> _adicionarProdutoNaCategoriaSelecionada() async {
-    Map<String, dynamic>? categoriaSelecionada;
-    for (final categoria in _categorias) {
-      if (_id(categoria['categoria_id']) == _categoriaSelecionadaId) {
-        categoriaSelecionada = categoria;
-        break;
-      }
-    }
-
-    if (categoriaSelecionada == null) {
-      AppSnackBar.aviso(
-        context,
-        'Adicione uma categoria antes de incluir produtos no cardápio.',
-      );
-      return;
-    }
-
-    await _adicionarProduto(categoriaSelecionada);
-  }
-
   Future<List<Map<String, dynamic>>> _escolherProdutos(
     Map<String, dynamic> categoria,
   ) async {
@@ -1522,14 +1502,6 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
             icon: Icons.add_rounded,
             primary: false,
             onPressed: _salvando ? null : _adicionarCategoria,
-          ),
-          ClubbarAddButton(
-            label: 'Produto',
-            icon: Icons.add_rounded,
-            primary: false,
-            onPressed: _salvando
-                ? null
-                : _adicionarProdutoNaCategoriaSelecionada,
           ),
           ClubbarAddButton(
             label: 'Publicar alterações',
