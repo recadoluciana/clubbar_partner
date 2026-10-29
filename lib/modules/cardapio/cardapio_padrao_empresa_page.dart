@@ -4,6 +4,7 @@ import '../../core/config/api_config.dart';
 import '../../core/repositories/cardapio_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'produto_padrao_form_page.dart';
@@ -340,11 +341,6 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
             fontSize: 17,
             fontWeight: FontWeight.w900,
           ),
-          trailing: FilledButton.icon(
-            onPressed: _abrirProduto,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Adicionar produto'),
-          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -370,6 +366,15 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
           ),
         ),
         Expanded(child: _abaProdutos()),
+      ],
+    ),
+    bottomNavigationBar: ClubbarActionBar(
+      actions: [
+        FilledButton.icon(
+          onPressed: _abrirProduto,
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Adicionar produto'),
+        ),
       ],
     ),
   );
