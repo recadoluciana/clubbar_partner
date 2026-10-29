@@ -301,12 +301,12 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
         actions: [
           ClubbarAddButton(
             onPressed: _importarDoCatalogo,
-            label: 'Estilos do cardápio',
+            label: 'Importar estilos',
             primary: false,
           ),
           ClubbarAddButton(
             onPressed: () => _editar(),
-            label: 'Estilos personalizados',
+            label: 'Criar estilo',
           ),
         ],
       ),
