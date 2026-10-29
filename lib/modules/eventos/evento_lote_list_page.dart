@@ -2951,6 +2951,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       bottomNavigationBar: ClubbarActionBar(
         actions: [
           if (!_somenteConsulta && _aba == 0)
+            OutlinedButton.icon(
+              onPressed: _excluirData,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Excluir esta data'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ClubbarColors.branco,
+                side: const BorderSide(color: ClubbarColors.branco),
+              ),
+            ),
+          if (!_somenteConsulta && _aba == 0)
             FilledButton.icon(
               onPressed: _carregando || _alterandoPublicacao
                   ? null
@@ -2966,15 +2976,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                     : _eventoPublicado
                     ? 'Retirar publicação'
                     : 'Publicar evento',
-              ),
-            ),
-          if (!_somenteConsulta && _aba == 0)
-            OutlinedButton.icon(
-              onPressed: _excluirData,
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Excluir esta data'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ClubbarColors.erro,
               ),
             ),
           if (!_somenteConsulta && _aba == 3)

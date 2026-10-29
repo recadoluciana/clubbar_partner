@@ -274,7 +274,7 @@ class _EventoListPageState extends State<EventoListPage> {
     final capacidadeController = TextEditingController(
       text: loja?.capacidadeTotal?.toString() ?? '',
     );
-    final setorController = TextEditingController(text: 'Pista');
+    final setorController = TextEditingController(text: 'Único');
     final precoController = TextEditingController(
       text: evento.vrPrecoPadrao.toStringAsFixed(2).replaceAll('.', ','),
     );
@@ -282,6 +282,7 @@ class _EventoListPageState extends State<EventoListPage> {
     final enderecoController = TextEditingController(
       text: evento.dsendlocevento,
     );
+    String? erroCapacidade;
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -345,14 +346,20 @@ class _EventoListPageState extends State<EventoListPage> {
                   controller: capacidadeController,
                   keyboardType: TextInputType.number,
                   style: const TextStyle(fontSize: 14),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Capacidade deste evento',
+                    errorText: erroCapacidade,
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
                     ),
                   ),
+                  onChanged: (_) {
+                    if (erroCapacidade != null) {
+                      setLocal(() => erroCapacidade = null);
+                    }
+                  },
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -473,7 +480,17 @@ class _EventoListPageState extends State<EventoListPage> {
               child: const Text('Cancelar'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () {
+                final capacidade =
+                    int.tryParse(capacidadeController.text.trim()) ?? 0;
+                if (capacidade <= 0) {
+                  setLocal(
+                    () => erroCapacidade = 'Informe a capacidade deste evento.',
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, true);
+              },
               child: const Text('Adicionar à agenda'),
             ),
           ],
