@@ -348,16 +348,12 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       if (mounted) AppSnackBar.sucesso(context, mensagem);
     } catch (erro) {
       if (!mounted) return;
-      if (erroIndicaPendenteAsaas(erro)) {
-        await mostrarDialogoAsaasPendente(context, recurso: 'este evento');
-      } else {
-        AppSnackBar.erro(
-          context,
-          erro.toString().replaceFirst('Exception: ', ''),
-          duration: const Duration(seconds: 10),
-          mostrarFechar: true,
-        );
-      }
+      AppSnackBar.erro(
+        context,
+        erro.toString().replaceFirst('Exception: ', ''),
+        duration: const Duration(seconds: 10),
+        mostrarFechar: true,
+      );
     } finally {
       if (mounted) setState(() => _alterandoPublicacao = false);
     }
