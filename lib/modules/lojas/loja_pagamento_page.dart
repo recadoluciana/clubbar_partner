@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,57 @@ class LojaPagamentoPage extends StatefulWidget {
 }
 
 class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
+  Timer? _consultaAutorizacao;
+  bool _consultando = false;
+
+  @override
+  void dispose() {
+    _consultaAutorizacao?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _consultarAutorizacao() async {
+    if (_consultando || !mounted) return;
+    _consultando = true;
+    try {
+      final resposta = await ApiService.get('/lojas/${widget.loja.lojaId}/mercado-pago');
+      if (resposta.statusCode == 200 && mounted) {
+        final dados = Map<String, dynamic>.from(jsonDecode(resposta.body));
+        if (dados['conta_pendente'] != null) {
+          _consultaAutorizacao?.cancel();
+          setState(() => _configuracao = dados);
+        }
+      }
+    } catch (_) {
+      // A consulta manual continua disponivel se a rede oscilar.
+    } finally {
+      _consultando = false;
+    }
+  }
+
+  Future<void> _confirmarConta(bool confirmar) async {
+    final pendente = _configuracao?['conta_pendente'];
+    if (pendente == null) return;
+    setState(() => _salvando = true);
+    try {
+      final resposta = await ApiService.post(
+        '/lojas/${widget.loja.lojaId}/mercado-pago/confirmacao',
+        {'confirmacao_id': pendente['confirmacao_id'], 'confirmar': confirmar},
+      );
+      if (resposta.statusCode < 200 || resposta.statusCode >= 300) {
+        throw Exception(_erro(resposta.body));
+      }
+      if (mounted) {
+        setState(() => _configuracao = Map<String, dynamic>.from(jsonDecode(resposta.body)));
+        AppSnackBar.sucesso(context, confirmar ? 'Conta Mercado Pago atualizada.' : 'Troca de conta cancelada.');
+      }
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
+
   bool _carregando = true;
   bool _salvando = false;
   Map<String, dynamic>? _configuracao;
@@ -87,10 +139,16 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
           'Não foi possível abrir a autorização do Mercado Pago.',
         );
       }
+      _consultaAutorizacao?.cancel();
+      final limite = DateTime.now().add(const Duration(minutes: 10));
+      _consultaAutorizacao = Timer.periodic(const Duration(seconds: 3), (timer) {
+        if (DateTime.now().isAfter(limite)) { timer.cancel(); return; }
+        _consultarAutorizacao();
+      });
       if (mounted) {
         AppSnackBar.sucesso(
           context,
-          'Conclua a autorização no Mercado Pago e depois toque em atualizar.',
+          'Autorize no Mercado Pago e volte aqui para confirmar a conta.',
         );
       }
     } catch (erro) {
@@ -182,6 +240,23 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
                           ),
                         ),
                       ),
+                      if (_configuracao?['conta_pendente'] != null) ...[
+                        const SizedBox(height: 16),
+                        Card(child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const Text('Deseja usar esta conta para receber as vendas?', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            Text('${_configuracao!['conta_pendente']['nome']}'),
+                            Text('ID Mercado Pago: ${_configuracao!['conta_pendente']['user_id']}'),
+                            const SizedBox(height: 12),
+                            Wrap(spacing: 12, children: [
+                              OutlinedButton(onPressed: _salvando ? null : () => _confirmarConta(false), child: const Text('Cancelar')),
+                              FilledButton(onPressed: _salvando ? null : () => _confirmarConta(true), child: const Text('Confirmar conta')),
+                            ]),
+                          ]),
+                        )),
+                      ],
                       const SizedBox(height: 20),
                       const Text(
                         'Mercado Pago',
@@ -248,7 +323,7 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
                                     icon: const Icon(Icons.link_rounded),
                                     label: Text(
                                       conectada
-                                          ? 'Conectar outra conta'
+                                          ? 'Trocar conta Mercado Pago'
                                           : 'Conectar conta Mercado Pago',
                                     ),
                                   ),
