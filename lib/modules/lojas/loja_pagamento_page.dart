@@ -163,6 +163,35 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
     }
   }
 
+  Future<void> _desconectarMercadoPago() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Desconectar conta Mercado Pago?'),
+        content: const Text('A loja deixará de receber novas compras pelo Mercado Pago até conectar outra conta. A sessão no Mercado Pago permanecerá aberta.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Desconectar')),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _salvando = true);
+    try {
+      final resposta = await ApiService.post('/lojas/${widget.loja.lojaId}/mercado-pago/desconectar', const {});
+      if (resposta.statusCode < 200 || resposta.statusCode >= 300) throw Exception(_erro(resposta.body));
+      _consultaAutorizacao?.cancel();
+      if (mounted) {
+        setState(() => _configuracao = Map<String, dynamic>.from(jsonDecode(resposta.body)));
+        AppSnackBar.sucesso(context, 'Conta Mercado Pago desconectada.');
+      }
+    } catch (erro) {
+      if (mounted) AppSnackBar.erro(context, erro.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
+
   Future<void> _selecionar(String provedor) async {
     setState(() => _salvando = true);
     try {
@@ -339,6 +368,12 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
                                     ),
                                     label: const Text('Usar Mercado Pago'),
                                   ),
+                                  if (conectada)
+                                    OutlinedButton.icon(
+                                      onPressed: _salvando ? null : _desconectarMercadoPago,
+                                      icon: const Icon(Icons.link_off_rounded),
+                                      label: const Text('Desconectar conta'),
+                                    ),
                                 ],
                               ),
                             ],
