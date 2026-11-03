@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/repositories/localidade_repository.dart';
-import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
@@ -701,25 +700,6 @@ class _DadosFinanceirosPageState extends State<DadosFinanceirosPage> {
           label: const Text('Enviar documentos e selfie'),
         ),
       if (_onboardingUrl.isNotEmpty) const SizedBox(height: 12),
-      if (_subcontaCriada &&
-          _status != 'APROVADO' &&
-          (ApiConfig.isDev ||
-              ApiConfig.baseUrl.contains('desenvolvimento'))) ...[
-        OutlinedButton.icon(
-          onPressed: _processando || _titularFinanceiroId == null
-              ? null
-              : () => _executar(
-                  () => _repo.aprovarSandbox(
-                    _organizacaoId!,
-                    titularFinanceiroId: _titularFinanceiroId!,
-                  ),
-                  'Subconta de teste aprovada no Sandbox.',
-                ),
-          icon: const Icon(Icons.fact_check_rounded),
-          label: const Text('Aprovar subconta de teste'),
-        ),
-        const SizedBox(height: 12),
-      ],
       OutlinedButton.icon(
         onPressed: _processando || _titularFinanceiroId == null
             ? null

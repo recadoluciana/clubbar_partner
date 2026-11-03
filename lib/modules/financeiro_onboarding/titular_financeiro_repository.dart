@@ -113,30 +113,6 @@ class TitularFinanceiroRepository {
     throw Exception(_erro(r.body));
   }
 
-  Future<Map<String, dynamic>> aprovarSandbox(
-    int id, {
-    required int titularFinanceiroId,
-  }) async {
-    final r = await ApiService.post(
-      _rota(id, titularFinanceiroId, '/aprovar-sandbox'),
-      {},
-    );
-    if (r.statusCode == 200) return _decode(r.body);
-    throw Exception(_erro(r.body));
-  }
-
-  Future<Map<String, dynamic>> migrarSandboxParaProducao(
-    int organizacaoId, {
-    required int titularFinanceiroId,
-  }) async {
-    final r = await ApiService.post(
-      '/titular-financeiro/organizacao/$organizacaoId/titular/$titularFinanceiroId/migrar-sandbox-producao',
-      {},
-    );
-    if (r.statusCode == 200) return _decode(r.body);
-    throw Exception(_erro(r.body));
-  }
-
   Future<void> excluir(
     int organizacaoId, {
     required int titularFinanceiroId,

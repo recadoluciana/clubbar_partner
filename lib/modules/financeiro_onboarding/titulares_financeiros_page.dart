@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
@@ -465,44 +464,6 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     }
   }
 
-  Future<void> _migrarVinculoSandbox(Map<String, dynamic> titular) async {
-    final organizacaoId = _organizacaoId;
-    final titularId = titular['titularfinanceiro_id'] as int?;
-    if (organizacaoId == null || titularId == null || _processandoId != null) {
-      return;
-    }
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Migrar vínculo do Sandbox?'),
-        content: const Text(
-          'Use esta opção somente quando esta subconta tiver sido criada no ambiente de testes. '
-          'O Clubbar removerá apenas o vínculo de testes deste titular; a conta do Sandbox não será excluída. '
-          'Depois, você poderá ativar uma nova subconta de produção com o mesmo CPF/CNPJ.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Migrar vínculo'),
-          ),
-        ],
-      ),
-    );
-    if (confirmar != true || !mounted) return;
-    await _executarAsaas(
-      titular,
-      (idOrganizacao, idTitular) => _repo.migrarSandboxParaProducao(
-        idOrganizacao,
-        titularFinanceiroId: idTitular,
-      ),
-      'Vínculo de testes removido. Ative a subconta de produção para continuar.',
-    );
-  }
-
   String _statusAsaas(Map<String, dynamic> titular) {
     final status = _texto(titular['status_asaas']).trim().toUpperCase();
     return const {
@@ -570,14 +531,6 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: processando
-                ? null
-                : () => _migrarVinculoSandbox(titular),
-            icon: const Icon(Icons.swap_horiz_rounded),
-            label: const Text('Migrar vínculo do Sandbox para produção'),
-          ),
         ],
       );
     }
@@ -606,22 +559,6 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
           icon: const Icon(Icons.refresh_rounded),
           label: const Text('Verificar situação'),
         ),
-        if (ApiConfig.isDev ||
-            ApiConfig.baseUrl.toLowerCase().contains('desenvolvimento'))
-          TextButton.icon(
-            onPressed: processando
-                ? null
-                : () => _executarAsaas(
-                    titular,
-                    (organizacaoId, titularId) => _repo.aprovarSandbox(
-                      organizacaoId,
-                      titularFinanceiroId: titularId,
-                    ),
-                    'Subconta aprovada no Sandbox.',
-                  ),
-            icon: const Icon(Icons.science_rounded),
-            label: const Text('Aprovar no Sandbox'),
-          ),
       ],
     );
   }
