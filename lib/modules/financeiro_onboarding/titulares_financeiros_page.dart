@@ -12,6 +12,7 @@ import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'dados_financeiros_page.dart';
 import 'titular_financeiro_repository.dart';
+import 'titular_mercado_pago_page.dart';
 
 class TitularesFinanceirosPage extends StatefulWidget {
   const TitularesFinanceirosPage({super.key});
@@ -689,6 +690,26 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
             ),
             const SizedBox(height: 10),
             _acoesAsaas(titular, possuiAsaas: possuiAsaas, inativo: inativo),
+            const SizedBox(height: 12),
+            const Divider(),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.account_balance_wallet_outlined),
+              title: const Text('Mercado Pago'),
+              subtitle: const Text('Conecte a conta deste titular financeiro'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: inativo || id == null || _organizacaoId == null
+                  ? null
+                  : () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TitularMercadoPagoPage(
+                          organizacaoId: _organizacaoId!,
+                          titularId: id,
+                          nome: _texto(titular['nmrazaosocial']),
+                        ),
+                      ),
+                    ),
+            ),
             if (possuiAsaas)
               Padding(
                 padding: const EdgeInsets.only(top: 6),

@@ -177,10 +177,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
             percentualCashback > 100)) {
       return 'Informe um percentual de cashback entre 0,01% e 100%.';
     }
-    if (editando && _titularFinanceiroId == null) {
-      return 'Selecione o titular financeiro deste estabelecimento.';
-    }
-
     return null;
   }
 
@@ -725,7 +721,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                         icone: Icons
                                             .account_balance_wallet_rounded,
                                         helperText:
-                                            'O mesmo titular pode ser usado em vários estabelecimentos.',
+                                            'Para alterar o titular e o provedor, use a tela Recebimentos.',
                                       ),
                                       items: _titularesFinanceiros
                                           .where((titular) {
@@ -755,12 +751,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                       validator: (valor) => valor == null
                                           ? 'Selecione o titular financeiro.'
                                           : null,
-                                      onChanged: _salvando
-                                          ? null
-                                          : (valor) => setState(
-                                              () =>
-                                                  _titularFinanceiroId = valor,
-                                            ),
+                                      onChanged: null,
                                     ),
                                 ],
                               ],

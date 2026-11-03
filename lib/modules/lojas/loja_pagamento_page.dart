@@ -1,99 +1,29 @@
 import 'dart:convert';
-import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/services/api_service.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
+import '../financeiro_onboarding/titular_financeiro_repository.dart';
+import '../financeiro_onboarding/titular_mercado_pago_page.dart';
 
 class LojaPagamentoPage extends StatefulWidget {
-  final Loja loja;
-
   const LojaPagamentoPage({super.key, required this.loja});
+  final Loja loja;
 
   @override
   State<LojaPagamentoPage> createState() => _LojaPagamentoPageState();
 }
 
 class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
-  Timer? _consultaAutorizacao;
-  bool _consultando = false;
-
-  @override
-  void dispose() {
-    _consultaAutorizacao?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _consultarAutorizacao() async {
-    if (_consultando || !mounted) return;
-    _consultando = true;
-    try {
-      final resposta = await ApiService.get(
-        '/lojas/${widget.loja.lojaId}/mercado-pago',
-      );
-      if (resposta.statusCode == 200 && mounted) {
-        final dados = Map<String, dynamic>.from(jsonDecode(resposta.body));
-        if (dados['conta_pendente'] != null) {
-          dados['mercadopago_titular'] = _configuracao?['mercadopago_titular'];
-          dados['mercadopago_email'] = _configuracao?['mercadopago_email'];
-          _consultaAutorizacao?.cancel();
-          setState(() => _configuracao = dados);
-        }
-      }
-    } catch (_) {
-      // A consulta manual continua disponivel se a rede oscilar.
-    } finally {
-      _consultando = false;
-    }
-  }
-
-  Future<void> _confirmarConta(bool confirmar) async {
-    final pendente = _configuracao?['conta_pendente'];
-    if (pendente == null) return;
-    setState(() => _salvando = true);
-    try {
-      final resposta = await ApiService.post(
-        '/lojas/${widget.loja.lojaId}/mercado-pago/confirmacao',
-        {'confirmacao_id': pendente['confirmacao_id'], 'confirmar': confirmar},
-      );
-      if (resposta.statusCode < 200 || resposta.statusCode >= 300) {
-        throw Exception(_erro(resposta.body));
-      }
-      if (mounted) {
-        setState(
-          () => _configuracao = Map<String, dynamic>.from(
-            jsonDecode(resposta.body),
-          ),
-        );
-        await _carregar();
-        if (!mounted) return;
-        AppSnackBar.sucesso(
-          context,
-          confirmar
-              ? 'Conta Mercado Pago atualizada.'
-              : 'Troca de conta cancelada.',
-        );
-      }
-    } catch (erro) {
-      if (mounted) {
-        AppSnackBar.erro(
-          context,
-          erro.toString().replaceFirst('Exception: ', ''),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _salvando = false);
-    }
-  }
-
-  bool _carregando = true;
-  bool _salvando = false;
-  Map<String, dynamic>? _configuracao;
+  final _repo = TitularFinanceiroRepository();
+  List<Map<String, dynamic>> _titulares = [];
+  int? _titularId;
+  String _provedor = 'ASAAS';
+  Map<String, dynamic>? _mercadoPago;
+  bool _carregando = true, _salvando = false;
 
   @override
   void initState() {
@@ -103,28 +33,34 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
 
   String _erro(String corpo) {
     try {
-      final dados = jsonDecode(corpo);
-      if (dados is Map && dados['detail'] != null) return '${dados['detail']}';
-    } catch (_) {}
-    return corpo.isEmpty ? 'Não foi possível concluir a operação.' : corpo;
+      return '${jsonDecode(corpo)['detail'] ?? 'Não foi possível concluir a operação.'}';
+    } catch (_) {
+      return 'Não foi possível concluir a operação.';
+    }
   }
 
   Future<void> _carregar() async {
     setState(() => _carregando = true);
     try {
+      final titulares = await _repo.listar(widget.loja.organizacaoId);
       final resposta = await ApiService.get(
-        '/lojas/${widget.loja.lojaId}/mercado-pago?incluir_dados_titular=true',
+        '/lojas/${widget.loja.lojaId}/mercado-pago',
       );
-      if (resposta.statusCode < 200 || resposta.statusCode >= 300) {
-        throw Exception(_erro(resposta.body));
-      }
-      if (mounted) {
-        setState(
-          () => _configuracao = Map<String, dynamic>.from(
-            jsonDecode(resposta.body),
-          ),
-        );
-      }
+      if (resposta.statusCode != 200) throw Exception(_erro(resposta.body));
+      final config = jsonDecode(resposta.body);
+      if (!mounted) return;
+      setState(() {
+        _titularId = config['titularfinanceiro_id'] as int?;
+        _titulares = titulares
+            .where(
+              (t) =>
+                  '${t['sittitular'] ?? 'ATIVO'}'.toUpperCase() == 'ATIVO' ||
+                  t['titularfinanceiro_id'] == _titularId,
+            )
+            .toList();
+        _provedor = '${config['provedor_pagamento'] ?? 'ASAAS'}';
+      });
+      await _carregarMercadoPago();
     } catch (erro) {
       if (mounted) {
         AppSnackBar.erro(
@@ -137,128 +73,43 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
     }
   }
 
-  Future<void> _conectarMercadoPago() async {
-    setState(() => _salvando = true);
-    try {
-      final resposta = await ApiService.post(
-        '/lojas/${widget.loja.lojaId}/mercado-pago/autorizacao',
-        const {},
-      );
-      if (resposta.statusCode < 200 || resposta.statusCode >= 300) {
-        throw Exception(_erro(resposta.body));
-      }
-      final url = '${jsonDecode(resposta.body)['authorization_url'] ?? ''}';
-      if (url.isEmpty ||
-          !await launchUrl(
-            Uri.parse(url),
-            mode: kIsWeb
-                ? LaunchMode.platformDefault
-                : LaunchMode.externalApplication,
-          )) {
-        throw Exception(
-          'Não foi possível abrir a autorização do Mercado Pago.',
-        );
-      }
-      _consultaAutorizacao?.cancel();
-      final limite = DateTime.now().add(const Duration(minutes: 10));
-      _consultaAutorizacao = Timer.periodic(const Duration(seconds: 3), (
-        timer,
-      ) {
-        if (DateTime.now().isAfter(limite)) {
-          timer.cancel();
-          return;
-        }
-        _consultarAutorizacao();
-      });
-      if (mounted) {
-        AppSnackBar.sucesso(
-          context,
-          'Autorize no Mercado Pago e volte aqui para confirmar a conta.',
-        );
-      }
-    } catch (erro) {
-      if (mounted) {
-        AppSnackBar.erro(
-          context,
-          erro.toString().replaceFirst('Exception: ', ''),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _salvando = false);
+  Future<void> _carregarMercadoPago() async {
+    final id = _titularId;
+    if (id == null) {
+      if (mounted) setState(() => _mercadoPago = null);
+      return;
     }
-  }
-
-  Future<void> _desconectarMercadoPago() async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Desconectar conta Mercado Pago?'),
-        content: const Text(
-          'A loja deixará de receber novas compras pelo Mercado Pago até conectar outra conta. A sessão no Mercado Pago permanecerá aberta.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Desconectar'),
-          ),
-        ],
-      ),
+    final resposta = await ApiService.get(
+      '/organizacoes/${widget.loja.organizacaoId}/titulares/$id/mercado-pago',
     );
-    if (confirmar != true || !mounted) return;
-    setState(() => _salvando = true);
-    try {
-      final resposta = await ApiService.post(
-        '/lojas/${widget.loja.lojaId}/mercado-pago/desconectar',
-        const {},
+    if (resposta.statusCode != 200) throw Exception(_erro(resposta.body));
+    if (mounted && _titularId == id) {
+      setState(
+        () =>
+            _mercadoPago = Map<String, dynamic>.from(jsonDecode(resposta.body)),
       );
-      if (resposta.statusCode < 200 || resposta.statusCode >= 300) {
-        throw Exception(_erro(resposta.body));
-      }
-      _consultaAutorizacao?.cancel();
-      if (mounted) {
-        setState(
-          () => _configuracao = Map<String, dynamic>.from(
-            jsonDecode(resposta.body),
-          ),
-        );
-        AppSnackBar.sucesso(context, 'Conta Mercado Pago desconectada.');
-      }
-    } catch (erro) {
-      if (mounted) {
-        AppSnackBar.erro(
-          context,
-          erro.toString().replaceFirst('Exception: ', ''),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _salvando = false);
     }
   }
 
-  Future<void> _selecionar(String provedor) async {
+  Future<void> _salvar() async {
+    if (_titularId == null) {
+      AppSnackBar.erro(context, 'Selecione um titular financeiro.');
+      return;
+    }
     setState(() => _salvando = true);
     try {
       final resposta = await ApiService.put(
         '/lojas/${widget.loja.lojaId}/provedor-pagamento',
-        {'provedor_pagamento': provedor},
+        {'titularfinanceiro_id': _titularId, 'provedor_pagamento': _provedor},
       );
-      if (resposta.statusCode < 200 || resposta.statusCode >= 300) {
-        throw Exception(_erro(resposta.body));
-      }
+      if (resposta.statusCode != 200) throw Exception(_erro(resposta.body));
       if (mounted) {
-        setState(
-          () => _configuracao = Map<String, dynamic>.from(
-            jsonDecode(resposta.body),
-          ),
+        AppSnackBar.sucesso(
+          context,
+          'Titular e provedor de recebimentos atualizados.',
         );
-        await _carregar();
-        if (!mounted) return;
-        AppSnackBar.sucesso(context, 'Provedor de pagamentos atualizado.');
       }
+      await _carregar();
     } catch (erro) {
       if (mounted) {
         AppSnackBar.erro(
@@ -273,14 +124,13 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final provedor = '${_configuracao?['provedor_pagamento'] ?? 'ASAAS'}';
-    final conectada = _configuracao?['conectada'] == true;
-    final mercadoPagoUserId = '${_configuracao?['mercadopago_user_id'] ?? ''}'
-        .trim();
-    final mercadoPagoNome = '${_configuracao?['mercadopago_nome'] ?? ''}'
-        .trim();
-    final titular = '${_configuracao?['mercadopago_titular'] ?? ''}'.trim();
-    final email = '${_configuracao?['mercadopago_email'] ?? ''}'.trim();
+    final titular = _titulares
+        .where((t) => t['titularfinanceiro_id'] == _titularId)
+        .firstOrNull;
+    final asaasPronto =
+        titular?['status_asaas'] == 'APROVADO' &&
+        titular?['asaas_account_id'] != null;
+    final mpPronto = _mercadoPago?['conectada'] == true;
     return Scaffold(
       body: Column(
         children: [
@@ -288,7 +138,7 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
             titulo: 'Recebimentos',
             subtitulo: widget.loja.nmloja,
             trailing: IconButton(
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(Icons.refresh),
               onPressed: _carregando ? null : _carregar,
             ),
           ),
@@ -296,185 +146,105 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
             child: _carregando
                 ? const Center(child: CircularProgressIndicator())
                 : ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     children: [
                       const Text(
-                        'Provedor ativo',
-                        style: TextStyle(fontWeight: FontWeight.w800),
+                        'Selecione o titular financeiro e o provedor usado nas novas vendas.',
                       ),
-                      const SizedBox(height: 8),
-                      Card(
-                        child: ListTile(
-                          leading: Icon(
-                            provedor == 'MERCADO_PAGO'
-                                ? Icons.storefront_rounded
-                                : Icons.account_balance_rounded,
-                          ),
-                          title: Text(
-                            provedor == 'MERCADO_PAGO'
-                                ? 'Mercado Pago'
-                                : 'Asaas',
-                          ),
-                          subtitle: const Text(
-                            'O cliente usa este provedor no checkout desta loja.',
-                          ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<int>(
+                        initialValue: _titularId,
+                        decoration: const InputDecoration(
+                          labelText: 'Titular financeiro',
                         ),
-                      ),
-                      if (_configuracao?['conta_pendente'] != null) ...[
-                        const SizedBox(height: 16),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Deseja usar esta conta para receber as vendas?',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '${_configuracao!['conta_pendente']['nome']}',
-                                ),
-                                Text(
-                                  'ID Mercado Pago: ${_configuracao!['conta_pendente']['user_id']}',
-                                ),
-                                const SizedBox(height: 12),
-                                Wrap(
-                                  spacing: 12,
-                                  children: [
-                                    OutlinedButton(
-                                      onPressed: _salvando
-                                          ? null
-                                          : () => _confirmarConta(false),
-                                      child: const Text('Cancelar'),
-                                    ),
-                                    FilledButton(
-                                      onPressed: _salvando
-                                          ? null
-                                          : () => _confirmarConta(true),
-                                      child: const Text('Confirmar conta'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Mercado Pago',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 8),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    conectada
-                                        ? Icons.verified_rounded
-                                        : Icons.link_off_rounded,
-                                    color: conectada
-                                        ? Colors.green
-                                        : Colors.orange,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    conectada
-                                        ? 'Conta conectada'
-                                        : 'Conta ainda não conectada',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
+                        items: _titulares
+                            .map(
+                              (t) => DropdownMenuItem<int>(
+                                value: t['titularfinanceiro_id'] as int,
+                                child: Text('${t['nmrazaosocial']}'),
                               ),
-                              const SizedBox(height: 10),
-                              const Text(
-                                'A conta do parceiro recebe a venda; o Clubbar registra a comissão configurada no checkout.',
-                              ),
-                              if (conectada &&
-                                  mercadoPagoUserId.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Titular: ${titular.isEmpty ? 'Não disponível' : titular}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  'E-mail: ${email.isEmpty ? 'Não disponível' : email}',
-                                ),
-                                if (mercadoPagoNome.isNotEmpty)
-                                  Text(
-                                    'Apelido: $mercadoPagoNome',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                Text(
-                                  'Conta conectada — ID Mercado Pago: $mercadoPagoUserId',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 14),
-                              Wrap(
-                                spacing: 10,
-                                runSpacing: 10,
-                                children: [
-                                  OutlinedButton.icon(
-                                    onPressed: _salvando
-                                        ? null
-                                        : _conectarMercadoPago,
-                                    icon: const Icon(Icons.link_rounded),
-                                    label: Text(
-                                      conectada
-                                          ? 'Trocar conta Mercado Pago'
-                                          : 'Conectar conta Mercado Pago',
-                                    ),
-                                  ),
-                                  FilledButton.icon(
-                                    onPressed:
-                                        _salvando ||
-                                            !conectada ||
-                                            provedor == 'MERCADO_PAGO'
-                                        ? null
-                                        : () => _selecionar('MERCADO_PAGO'),
-                                    icon: const Icon(
-                                      Icons.check_circle_outline,
-                                    ),
-                                    label: const Text('Usar Mercado Pago'),
-                                  ),
-                                  if (conectada)
-                                    OutlinedButton.icon(
-                                      onPressed: _salvando
-                                          ? null
-                                          : _desconectarMercadoPago,
-                                      icon: const Icon(Icons.link_off_rounded),
-                                      label: const Text('Desconectar conta'),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _salvando || provedor == 'ASAAS'
+                            )
+                            .toList(),
+                        onChanged: _salvando
                             ? null
-                            : () => _selecionar('ASAAS'),
-                        icon: const Icon(Icons.account_balance_rounded),
-                        label: const Text('Voltar a usar Asaas'),
+                            : (id) async {
+                                setState(() {
+                                  _titularId = id;
+                                  _mercadoPago = null;
+                                });
+                                try {
+                                  await _carregarMercadoPago();
+                                } catch (erro) {
+                                  if (context.mounted) {
+                                    AppSnackBar.erro(
+                                      context,
+                                      erro.toString().replaceFirst(
+                                        'Exception: ',
+                                        '',
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                      ),
+                      const SizedBox(height: 16),
+                      RadioGroup<String>(
+                        groupValue: _provedor,
+                        onChanged: (valor) {
+                          if (!_salvando && valor != null) {
+                            setState(() => _provedor = valor);
+                          }
+                        },
+                        child: Column(
+                          children: [
+                            RadioListTile<String>(
+                              value: 'ASAAS',
+                              title: const Text('Asaas'),
+                              subtitle: Text(
+                                asaasPronto
+                                    ? 'Subconta aprovada'
+                                    : 'Subconta ainda não aprovada',
+                              ),
+                            ),
+                            RadioListTile<String>(
+                              value: 'MERCADO_PAGO',
+                              title: const Text('Mercado Pago'),
+                              subtitle: Text(
+                                mpPronto
+                                    ? 'Conta conectada: ${_mercadoPago?['nome'] ?? ''}'
+                                    : 'Conta ainda não conectada',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_titularId != null)
+                        TextButton.icon(
+                          onPressed: _salvando
+                              ? null
+                              : () async {
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => TitularMercadoPagoPage(
+                                        organizacaoId:
+                                            widget.loja.organizacaoId,
+                                        titularId: _titularId!,
+                                        nome:
+                                            '${titular?['nmrazaosocial'] ?? ''}',
+                                      ),
+                                    ),
+                                  );
+                                  await _carregarMercadoPago();
+                                },
+                          icon: const Icon(Icons.link),
+                          label: const Text(
+                            'Gerenciar Mercado Pago do titular',
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _salvando ? null : _salvar,
+                        child: const Text('Salvar recebimentos'),
                       ),
                     ],
                   ),
