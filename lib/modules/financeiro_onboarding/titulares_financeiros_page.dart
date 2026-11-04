@@ -12,7 +12,7 @@ import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'dados_financeiros_page.dart';
 import 'titular_financeiro_repository.dart';
-import 'titular_mercado_pago_page.dart';
+import 'titular_mercado_pago_secao.dart';
 
 class TitularesFinanceirosPage extends StatefulWidget {
   const TitularesFinanceirosPage({super.key});
@@ -119,14 +119,14 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     final id = titular['titularfinanceiro_id'] as int?;
     if (organizacaoId == null || id == null || _processandoId != null) return;
     final possuiAsaas = _texto(titular['asaas_account_id']).isNotEmpty;
-    if (possuiAsaas) {
+    final inativo = _texto(titular['sittitular']).toUpperCase() == 'INATIVO';
+    if (possuiAsaas && !inativo) {
       AppSnackBar.aviso(
         context,
         'Titulares com subconta Asaas não podem ser inativados.',
       );
       return;
     }
-    final inativo = _texto(titular['sittitular']).toUpperCase() == 'INATIVO';
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -692,24 +692,14 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
             _acoesAsaas(titular, possuiAsaas: possuiAsaas, inativo: inativo),
             const SizedBox(height: 12),
             const Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.account_balance_wallet_outlined),
-              title: const Text('Mercado Pago'),
-              subtitle: const Text('Conecte a conta deste titular financeiro'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: inativo || id == null || _organizacaoId == null
-                  ? null
-                  : () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => TitularMercadoPagoPage(
-                          organizacaoId: _organizacaoId!,
-                          titularId: id,
-                          nome: _texto(titular['nmrazaosocial']),
-                        ),
-                      ),
-                    ),
-            ),
+            if (id != null && _organizacaoId != null)
+              TitularMercadoPagoSecao(
+                key: ValueKey(id),
+                organizacaoId: _organizacaoId!,
+                titularId: id,
+                nome: _texto(titular['nmrazaosocial']),
+                habilitado: !inativo,
+              ),
             if (possuiAsaas)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
@@ -722,20 +712,28 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                     fontSize: 12,
                   ),
                 ),
-              )
-            else
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: _processandoId == id
+              ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _processandoId != null || !inativo
                       ? null
                       : () => _alterarStatus(titular),
-                  icon: Icon(
-                    inativo ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                  ),
-                  label: Text(inativo ? 'Reativar' : 'Inativar'),
+                  icon: const Icon(Icons.play_circle_outline_rounded),
+                  label: const Text('Ativar'),
                 ),
-              ),
+                OutlinedButton.icon(
+                  onPressed: _processandoId != null || inativo || possuiAsaas
+                      ? null
+                      : () => _alterarStatus(titular),
+                  icon: const Icon(Icons.pause_circle_outline_rounded),
+                  label: const Text('Inativar'),
+                ),
+              ],
+            ),
           ],
         ),
       ),

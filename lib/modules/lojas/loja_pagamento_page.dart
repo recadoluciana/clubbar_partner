@@ -7,7 +7,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 import '../financeiro_onboarding/titular_financeiro_repository.dart';
-import '../financeiro_onboarding/titular_mercado_pago_page.dart';
+import '../financeiro_onboarding/titulares_financeiros_page.dart';
 
 class LojaPagamentoPage extends StatefulWidget {
   const LojaPagamentoPage({super.key, required this.loja});
@@ -225,13 +225,8 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
                               : () async {
                                   await Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (_) => TitularMercadoPagoPage(
-                                        organizacaoId:
-                                            widget.loja.organizacaoId,
-                                        titularId: _titularId!,
-                                        nome:
-                                            '${titular?['nmrazaosocial'] ?? ''}',
-                                      ),
+                                      builder: (_) =>
+                                          const TitularesFinanceirosPage(),
                                     ),
                                   );
                                   await _carregarMercadoPago();
