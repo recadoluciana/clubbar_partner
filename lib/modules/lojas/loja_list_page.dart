@@ -274,7 +274,7 @@ class _LojaListPageState extends State<LojaListPage> {
     }
   }
 
-  Future<void> _abrirImagens(Loja loja) async {
+  Future<void> _abrirImagem(Loja loja, TipoImagemLoja tipo) async {
     if (!_podeAlterarLoja(loja)) {
       AppSnackBar.aviso(
         context,
@@ -284,7 +284,9 @@ class _LojaListPageState extends State<LojaListPage> {
     }
 
     final alterado = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => LojaImagensPage(loja: loja)),
+      MaterialPageRoute(
+        builder: (_) => LojaImagensPage(loja: loja, tipo: tipo),
+      ),
     );
 
     if (alterado == true && mounted) {
@@ -756,8 +758,6 @@ class _LojaListPageState extends State<LojaListPage> {
         switch (acao) {
           case 'produtos':
             _abrirConfiguracaoProdutos(loja);
-          case 'imagens':
-            _abrirImagens(loja);
           case 'horarios':
             _abrirHorarios(loja);
           case 'conteudo':
@@ -783,15 +783,6 @@ class _LojaListPageState extends State<LojaListPage> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.inventory_2_outlined),
             title: Text('Gerenciar cashback'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'imagens',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.photo_library_outlined),
-            title: Text('Logo e foto da fachada'),
           ),
         ),
         const PopupMenuItem(
@@ -839,58 +830,64 @@ class _LojaListPageState extends State<LojaListPage> {
     required String url,
     required IconData iconeAusente,
     required double largura,
+    required VoidCallback onTap,
   }) {
     final temImagem = url.isNotEmpty;
 
     return Semantics(
-      label: temImagem ? '$rotulo cadastrado' : '$rotulo não cadastrado',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: largura,
-            height: 58,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: ClubbarColors.fundo,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: temImagem
-                    ? ClubbarColors.borda
-                    : ClubbarColors.textoSecundario.withValues(alpha: 0.45),
+      label: 'Alterar $rotulo',
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: largura,
+              height: 58,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: ClubbarColors.fundo,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: temImagem
+                      ? ClubbarColors.borda
+                      : ClubbarColors.textoSecundario.withValues(alpha: 0.45),
+                ),
               ),
-            ),
-            child: temImagem
-                ? Image.network(
-                    url,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Center(
+              child: temImagem
+                  ? Image.network(
+                      url,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Center(
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          color: ClubbarColors.textoSecundario,
+                        ),
+                      ),
+                    )
+                  : Center(
                       child: Icon(
-                        Icons.broken_image_outlined,
+                        iconeAusente,
                         color: ClubbarColors.textoSecundario,
                       ),
                     ),
-                  )
-                : Center(
-                    child: Icon(
-                      iconeAusente,
-                      color: ClubbarColors.textoSecundario,
-                    ),
-                  ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            temImagem ? rotulo : '$rotulo não enviado',
-            style: TextStyle(
-              fontSize: 11,
-              color: temImagem
-                  ? ClubbarColors.textoSecundario
-                  : ClubbarColors.textoSecundario,
-              fontWeight: FontWeight.w600,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              temImagem ? rotulo : '$rotulo não enviado',
+              style: TextStyle(
+                fontSize: 11,
+                color: temImagem
+                    ? ClubbarColors.textoSecundario
+                    : ClubbarColors.textoSecundario,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -976,12 +973,15 @@ class _LojaListPageState extends State<LojaListPage> {
                           url: _urlImagem(loja.urllogoloja),
                           iconeAusente: Icons.storefront_outlined,
                           largura: 58,
+                          onTap: () => _abrirImagem(loja, TipoImagemLoja.logo),
                         ),
                         _miniaturaImagemLoja(
                           rotulo: 'Foto da fachada',
                           url: _urlImagem(loja.urlfachadaloja),
                           iconeAusente: Icons.add_a_photo_outlined,
                           largura: 104,
+                          onTap: () =>
+                              _abrirImagem(loja, TipoImagemLoja.fachada),
                         ),
                       ],
                     ),

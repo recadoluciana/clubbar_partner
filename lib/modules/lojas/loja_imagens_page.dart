@@ -13,10 +13,13 @@ import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 
+enum TipoImagemLoja { logo, fachada }
+
 class LojaImagensPage extends StatefulWidget {
   final Loja loja;
+  final TipoImagemLoja tipo;
 
-  const LojaImagensPage({super.key, required this.loja});
+  const LojaImagensPage({super.key, required this.loja, required this.tipo});
 
   @override
   State<LojaImagensPage> createState() => _LojaImagensPageState();
@@ -90,7 +93,9 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
       if (!mounted) return;
       AppSnackBar.sucesso(
         context,
-        'Imagens do estabelecimento atualizadas com sucesso.',
+        widget.tipo == TipoImagemLoja.logo
+            ? 'Logo do estabelecimento atualizada com sucesso.'
+            : 'Foto da fachada atualizada com sucesso.',
       );
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -118,63 +123,22 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
     return Icon(fallback, size: 52, color: ClubbarColors.textoSecundario);
   }
 
-  Widget _previewCliente() {
-    final fachadaUrl = _url(widget.loja.urlfachadaloja);
-    final logoUrl = _url(widget.loja.urllogoloja);
-
+  Widget _previewImagem() {
+    final isLogo = widget.tipo == TipoImagemLoja.logo;
     return ClubbarCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            color: ClubbarColors.preto,
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: _imagem(
-                bytes: _fachadaBytes,
-                url: fachadaUrl,
-                fallback: Icons.storefront_outlined,
-              ),
+      padding: const EdgeInsets.all(12),
+      child: Center(
+        child: SizedBox(
+          height: isLogo ? 220 : 240,
+          width: double.infinity,
+          child: _imagem(
+            bytes: isLogo ? _logoBytes : _fachadaBytes,
+            url: _url(
+              isLogo ? widget.loja.urllogoloja : widget.loja.urlfachadaloja,
             ),
+            fallback: isLogo ? Icons.store_rounded : Icons.storefront_outlined,
           ),
-          Transform.translate(
-            offset: const Offset(0, -38),
-            child: Column(
-              children: [
-                Container(
-                  width: 92,
-                  height: 92,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: ClubbarColors.branco,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: ClubbarColors.ambar, width: 3),
-                  ),
-                  child: ClipOval(
-                    child: ColoredBox(
-                      color: ClubbarColors.branco,
-                      child: _imagem(
-                        bytes: _logoBytes,
-                        url: logoUrl,
-                        fallback: Icons.store_rounded,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  widget.loja.nmloja,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -215,7 +179,8 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Imagens - ${widget.loja.nmloja}',
+              titulo:
+                  '${widget.tipo == TipoImagemLoja.logo ? 'Logo' : 'Foto da fachada'} - ${widget.loja.nmloja}',
               subtitulo: _carregandoOrganizacao
                   ? 'Carregando empresa...'
                   : _nomeOrganizacao,
@@ -224,30 +189,30 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const Text(
-                    'Prévia no aplicativo do cliente',
+                  Text(
+                    widget.tipo == TipoImagemLoja.logo
+                        ? 'Logo do estabelecimento'
+                        : 'Foto da fachada',
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'As imagens são exibidas inteiras nesta prévia, sem cortes.',
+                    'A imagem é exibida inteira nesta prévia, sem cortes.',
                     style: TextStyle(color: ClubbarColors.textoSecundario),
                   ),
                   const SizedBox(height: 12),
-                  _previewCliente(),
+                  _previewImagem(),
                   const SizedBox(height: 16),
                   _botaoImagem(
-                    titulo: 'Escolher logo do estabelecimento',
-                    subtitulo: 'Prefira uma imagem quadrada com fundo limpo',
-                    icone: Icons.image_outlined,
-                    onPressed: () => _selecionar(logo: true),
-                  ),
-                  const SizedBox(height: 10),
-                  _botaoImagem(
-                    titulo: 'Escolher foto da fachada',
-                    subtitulo: 'Prefira uma imagem horizontal e bem iluminada',
+                    titulo: widget.tipo == TipoImagemLoja.logo
+                        ? 'Escolher logo do estabelecimento'
+                        : 'Escolher foto da fachada',
+                    subtitulo: widget.tipo == TipoImagemLoja.logo
+                        ? 'Prefira uma imagem quadrada com fundo limpo'
+                        : 'Prefira uma imagem horizontal e bem iluminada',
                     icone: Icons.add_photo_alternate_outlined,
-                    onPressed: () => _selecionar(logo: false),
+                    onPressed: () =>
+                        _selecionar(logo: widget.tipo == TipoImagemLoja.logo),
                   ),
                   const SizedBox(height: 18),
                   FilledButton.icon(
@@ -263,7 +228,7 @@ class _LojaImagensPageState extends State<LojaImagensPage> {
                       _salvando
                           ? 'Salvando...'
                           : _possuiAlteracao
-                          ? 'Salvar imagens'
+                          ? 'Salvar imagem'
                           : 'Nenhuma alteração',
                     ),
                     style: FilledButton.styleFrom(
