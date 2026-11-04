@@ -7,7 +7,6 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 import '../financeiro_onboarding/titular_financeiro_repository.dart';
-import '../financeiro_onboarding/titulares_financeiros_page.dart';
 
 class LojaPagamentoPage extends StatefulWidget {
   const LojaPagamentoPage({super.key, required this.loja});
@@ -218,24 +217,6 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
                           ],
                         ),
                       ),
-                      if (_titularId != null)
-                        TextButton.icon(
-                          onPressed: _salvando
-                              ? null
-                              : () async {
-                                  await Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const TitularesFinanceirosPage(),
-                                    ),
-                                  );
-                                  await _carregarMercadoPago();
-                                },
-                          icon: const Icon(Icons.link),
-                          label: const Text(
-                            'Gerenciar Mercado Pago do titular',
-                          ),
-                        ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _salvando ? null : _salvar,

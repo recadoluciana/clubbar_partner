@@ -11,6 +11,7 @@ import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_calendar_delegate.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'dados_financeiros_page.dart';
+import 'titular_estabelecimentos_secao.dart';
 import 'titular_financeiro_repository.dart';
 import 'titular_mercado_pago_secao.dart';
 
@@ -700,12 +701,24 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                 nome: _texto(titular['nmrazaosocial']),
                 habilitado: !inativo,
               ),
+            if (id != null && _organizacaoId != null) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              TitularEstabelecimentosSecao(
+                key: ValueKey('estabelecimentos-$id'),
+                organizacaoId: _organizacaoId!,
+                titularId: id,
+                habilitado: !inativo,
+                onAlterado: _carregar,
+              ),
+            ],
             if (possuiAsaas)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   asaasAprovado
-                      ? 'Subconta aprovada pelo Asaas. Este titular não pode ser inativado.\n\nAcesse a tela de Meus estabelecimentos e associe a cada estabelecimento um titular financeiro ativo e aprovado.'
+                      ? 'Subconta aprovada pelo Asaas. Este titular não pode ser inativado.'
                       : 'Subconta criada, mas os recebimentos serão liberados somente após a aprovação do Asaas. Este titular não pode ser inativado.',
                   style: const TextStyle(
                     color: ClubbarColors.textoSecundario,
