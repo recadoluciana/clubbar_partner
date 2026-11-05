@@ -710,6 +710,8 @@ class _LojaListPageState extends State<LojaListPage> {
     'CASA_NOTURNA' => 'Casa noturna',
     'PRODUTOR_EVENTOS' => 'Produtor de eventos',
     'CASA_EVENTOS' => 'Casa de eventos',
+    'RESTAURANTE' => 'Restaurante',
+    'CONVENIENCIA' => 'Conveniência',
     _ => tipo?.trim().isNotEmpty == true ? tipo!.trim() : 'Tipo não informado',
   };
 
