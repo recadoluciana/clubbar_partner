@@ -49,6 +49,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   String _nomeOrganizacao = 'Empresa';
   String _cargoLogado = '';
   int? _usuarioLogadoId;
+  int? _lojaSelecionadaId;
 
   List<Usuario> _usuarios = [];
   List<Usuario> _usuariosFiltrados = [];
@@ -134,6 +135,9 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
       setState(() {
         _usuarios = usuarios;
         _lojas = lojas;
+        if (!_lojas.any((loja) => loja.lojaId == _lojaSelecionadaId)) {
+          _lojaSelecionadaId = _lojas.isEmpty ? null : _lojas.first.lojaId;
+        }
 
         _usuariosFiltrados = _aplicarFiltro(usuarios, _buscaController.text);
 
@@ -255,13 +259,42 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   List<Usuario> _aplicarFiltro(List<Usuario> usuarios, String texto) {
     final busca = texto.trim().toLowerCase();
 
-    if (busca.isEmpty) {
-      return List<Usuario>.from(usuarios);
-    }
-
     return usuarios.where((usuario) {
-      return usuario.nmusuario.toLowerCase().contains(busca);
+      final pertenceAoEstabelecimento =
+          usuario.lojaId == null || usuario.lojaId == _lojaSelecionadaId;
+      return pertenceAoEstabelecimento &&
+          (busca.isEmpty || usuario.nmusuario.toLowerCase().contains(busca));
     }).toList();
+  }
+
+  Widget _filtroEstabelecimento() {
+    if (_lojas.isEmpty) return const SizedBox.shrink();
+    return DropdownButtonFormField<int>(
+      key: ValueKey(_lojaSelecionadaId),
+      initialValue: _lojaSelecionadaId,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'Estabelecimento',
+        prefixIcon: const Icon(Icons.storefront_outlined),
+        filled: true,
+        fillColor: ClubbarColors.branco,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      items: _lojas
+          .map(
+            (loja) => DropdownMenuItem<int>(
+              value: loja.lojaId,
+              child: Text(loja.nmloja, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(),
+      onChanged: (lojaId) {
+        setState(() {
+          _lojaSelecionadaId = lojaId;
+          _usuariosFiltrados = _aplicarFiltro(_usuarios, _buscaController.text);
+        });
+      },
+    );
   }
 
   void _filtrar(String texto) {
@@ -749,7 +782,13 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
 
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-              child: _campoBusca(),
+              child: Column(
+                children: [
+                  _filtroEstabelecimento(),
+                  if (_lojas.isNotEmpty) const SizedBox(height: 12),
+                  _campoBusca(),
+                ],
+              ),
             ),
 
             const SizedBox(height: 14),
