@@ -8,6 +8,7 @@ import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import 'produto_padrao_form_page.dart';
+import 'produto_foto_page.dart';
 
 class CardapioPadraoEmpresaPage extends StatefulWidget {
   final int organizacaoId;
@@ -78,6 +79,20 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
       context,
       MaterialPageRoute(
         builder: (_) => ProdutoPadraoFormPage(
+          organizacaoId: widget.organizacaoId,
+          nomeOrganizacao: widget.nomeOrganizacao,
+          item: produto,
+        ),
+      ),
+    );
+    if (alterou == true && mounted) await _carregar();
+  }
+
+  Future<void> _abrirFoto(Map<String, dynamic> produto) async {
+    final alterou = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProdutoFotoPage(
           organizacaoId: widget.organizacaoId,
           nomeOrganizacao: widget.nomeOrganizacao,
           item: produto,
@@ -167,117 +182,121 @@ class _CardapioPadraoEmpresaPageState extends State<CardapioPadraoEmpresaPage> {
         double.tryParse('${produto['vrprecopadrao'] ?? 0}') ?? 0;
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: foto.isEmpty
-                      ? DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+      child: InkWell(
+        onTap: () => _abrirFoto(produto),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: foto.isEmpty
+                        ? DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.inventory_2_outlined),
+                          )
+                        : ClipRRect(
                             borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              foto.startsWith('http')
+                                  ? foto
+                                  : ApiConfig.buildUrl(foto),
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) => const Icon(
+                                Icons.image_not_supported_outlined,
+                              ),
+                            ),
                           ),
-                          child: const Icon(Icons.inventory_2_outlined),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${produto['nmproduto']}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          descricao.isEmpty ? 'Sem descrição' : descricao,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: ClubbarColors.textoSecundario,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Preço padrão: R\$ ${precoPadrao.toStringAsFixed(2).replaceAll('.', ',')}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: ClubbarColors.textoSecundario,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Editar produto',
+                    onPressed: () => _abrirProduto(produto),
+                    icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                  ),
+                  IconButton(
+                    tooltip: 'Excluir produto',
+                    onPressed: () => _excluirProduto(produto),
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: alterandoSituacao
+                      ? null
+                      : () => _alterarSituacaoProduto(produto),
+                  icon: alterandoSituacao
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            foto.startsWith('http')
-                                ? foto
-                                : ApiConfig.buildUrl(foto),
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) =>
-                                const Icon(Icons.image_not_supported_outlined),
-                          ),
+                      : Icon(
+                          ativo
+                              ? Icons.pause_circle_outline_rounded
+                              : Icons.play_circle_outline_rounded,
+                          size: 18,
                         ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${produto['nmproduto']}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        descricao.isEmpty ? 'Sem descrição' : descricao,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: ClubbarColors.textoSecundario,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Preço padrão: R\$ ${precoPadrao.toStringAsFixed(2).replaceAll('.', ',')}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: ClubbarColors.textoSecundario,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Editar produto',
-                  onPressed: () => _abrirProduto(produto),
-                  icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                ),
-                IconButton(
-                  tooltip: 'Excluir produto',
-                  onPressed: () => _excluirProduto(produto),
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
-                onPressed: alterandoSituacao
-                    ? null
-                    : () => _alterarSituacaoProduto(produto),
-                icon: alterandoSituacao
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(
-                        ativo
-                            ? Icons.pause_circle_outline_rounded
-                            : Icons.play_circle_outline_rounded,
-                        size: 18,
-                      ),
-                label: Text(ativo ? 'Inativar' : 'Ativar'),
-                style: OutlinedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  foregroundColor: ativo
-                      ? ClubbarColors.erro
-                      : ClubbarColors.sucesso,
-                  side: BorderSide(
-                    color: ativo ? ClubbarColors.erro : ClubbarColors.sucesso,
+                  label: Text(ativo ? 'Inativar' : 'Ativar'),
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: ativo
+                        ? ClubbarColors.erro
+                        : ClubbarColors.sucesso,
+                    side: BorderSide(
+                      color: ativo ? ClubbarColors.erro : ClubbarColors.sucesso,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

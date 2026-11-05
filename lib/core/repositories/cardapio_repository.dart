@@ -164,6 +164,35 @@ class CardapioRepository {
     return Map<String, dynamic>.from(_json(response));
   }
 
+  Future<Map<String, dynamic>> alterarDadosProdutoPadraoOrganizacao(
+    int organizacaoId,
+    int produtoId,
+    Map<String, dynamic> dados,
+  ) async {
+    final response = await ApiService.patch(
+      '/organizacoes/$organizacaoId/produtos/$produtoId/dados',
+      body: dados,
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível alterar os dados do produto.');
+    }
+    return Map<String, dynamic>.from(_json(response));
+  }
+
+  Future<void> alterarFotoProdutoPadraoOrganizacao(
+    int organizacaoId,
+    int produtoId,
+    String? fotoUrl,
+  ) async {
+    final response = await ApiService.patch(
+      '/organizacoes/$organizacaoId/produtos/$produtoId/foto',
+      body: {'urlfotoproduto': fotoUrl},
+    );
+    if (response.statusCode != 200) {
+      throw _erro(response, 'Não foi possível salvar a foto do produto.');
+    }
+  }
+
   Future<void> excluirProdutoPadraoOrganizacao(int produtoId) async {
     final response = await ApiService.delete('/produtos/$produtoId');
     if (response.statusCode != 200) {
