@@ -285,6 +285,7 @@ class _EventoListPageState extends State<EventoListPage> {
     String? erroCapacidade;
     final confirmar = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (_, setLocal) => AlertDialog(
           title: const Text('Programar ocorrência'),
@@ -497,7 +498,14 @@ class _EventoListPageState extends State<EventoListPage> {
         ),
       ),
     );
-    if (confirmar != true) return false;
+    if (confirmar != true) {
+      capacidadeController.dispose();
+      setorController.dispose();
+      precoController.dispose();
+      localController.dispose();
+      enderecoController.dispose();
+      return false;
+    }
     if (lojaId == null) {
       capacidadeController.dispose();
       setorController.dispose();

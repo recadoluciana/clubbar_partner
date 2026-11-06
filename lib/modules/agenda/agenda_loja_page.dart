@@ -51,7 +51,7 @@ class _AgendaLojaPageState extends State<AgendaLojaPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_carregando && _lojas.isNotEmpty) {
+    if (!_carregando && _lojas.length == 1) {
       return AgendaMensalPage(loja: _lojas.first, lojas: _lojas);
     }
     return Scaffold(
@@ -95,8 +95,10 @@ class _AgendaLojaPageState extends State<AgendaLojaPage> {
                                   onTap: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          AgendaMensalPage(loja: loja),
+                                      builder: (_) => AgendaMensalPage(
+                                        loja: loja,
+                                        lojas: _lojas,
+                                      ),
                                     ),
                                   ),
                                   child: SizedBox(

@@ -38,6 +38,7 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   bool _loading = true;
   String? _erro;
   late Loja _loja;
+  int _numeroConsulta = 0;
 
   @override
   void initState() {
@@ -55,20 +56,24 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
   }
 
   Future<void> _carregar() async {
+    final consulta = ++_numeroConsulta;
+    final lojaId = _loja.lojaId;
+    final mes = _mes;
     setState(() {
       _loading = true;
       _erro = null;
+      _eventos = [];
     });
     try {
-      final es = await _repo.agenda(_loja.lojaId, _mes);
-      if (mounted) {
+      final es = await _repo.agenda(lojaId, mes);
+      if (mounted && consulta == _numeroConsulta) {
         setState(() {
           _eventos = es;
           _loading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && consulta == _numeroConsulta) {
         setState(() {
           _erro = e.toString().replaceFirst('Exception: ', '');
           _loading = false;
@@ -649,44 +654,31 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
           ClubbarPageHeader(
             titulo: _loja.nmloja,
             subtitulo: 'Agenda de eventos',
-            tituloWidget: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.lojas.length > 1)
-                  PopupMenuButton<int>(
-                    tooltip: 'Trocar estabelecimento',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(
-                      Icons.swap_horiz_rounded,
-                      color: Colors.blue,
-                      size: 23,
+            tituloWidget: widget.lojas.length > 1
+                ? DropdownButtonFormField<int>(
+                    key: ValueKey(_loja.lojaId),
+                    initialValue: _loja.lojaId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Estabelecimento',
+                      prefixIcon: Icon(Icons.storefront_outlined),
+                      isDense: true,
+                      border: OutlineInputBorder(),
                     ),
-                    onSelected: _selecionarLoja,
-                    itemBuilder: (_) => widget.lojas
+                    items: widget.lojas
                         .map(
-                          (loja) => PopupMenuItem<int>(
+                          (loja) => DropdownMenuItem<int>(
                             value: loja.lojaId,
-                            child: Text(loja.nmloja),
+                            child: Text(
+                              loja.nmloja,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         )
                         .toList(),
-                  ),
-                if (widget.lojas.length > 1) const SizedBox(width: 7),
-                Flexible(
-                  child: Text(
-                    _loja.nmloja,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.blue,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                    onChanged: _selecionarLoja,
+                  )
+                : null,
             tituloStyle: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w900,
