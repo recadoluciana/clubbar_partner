@@ -18,12 +18,7 @@ import '../eventos/evento_lote_list_page.dart';
 
 class AgendaMensalPage extends StatefulWidget {
   final Loja loja;
-  final List<Loja> lojas;
-  const AgendaMensalPage({
-    super.key,
-    required this.loja,
-    this.lojas = const [],
-  });
+  const AgendaMensalPage({super.key, required this.loja});
   @override
   State<AgendaMensalPage> createState() => _AgendaMensalPageState();
 }
@@ -45,14 +40,6 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
     super.initState();
     _loja = widget.loja;
     _carregar();
-  }
-
-  Future<void> _selecionarLoja(int? lojaId) async {
-    if (lojaId == null || lojaId == _loja.lojaId) return;
-    setState(
-      () => _loja = widget.lojas.firstWhere((item) => item.lojaId == lojaId),
-    );
-    await _carregar();
   }
 
   Future<void> _carregar() async {
@@ -654,31 +641,6 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
           ClubbarPageHeader(
             titulo: _loja.nmloja,
             subtitulo: 'Agenda de eventos',
-            tituloWidget: widget.lojas.length > 1
-                ? DropdownButtonFormField<int>(
-                    key: ValueKey(_loja.lojaId),
-                    initialValue: _loja.lojaId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Estabelecimento',
-                      prefixIcon: Icon(Icons.storefront_outlined),
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: widget.lojas
-                        .map(
-                          (loja) => DropdownMenuItem<int>(
-                            value: loja.lojaId,
-                            child: Text(
-                              loja.nmloja,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _selecionarLoja,
-                  )
-                : null,
             tituloStyle: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w900,
