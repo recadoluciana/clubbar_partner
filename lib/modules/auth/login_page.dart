@@ -536,7 +536,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               _Beneficio(
                 icone: Icons.storefront_outlined,
-                texto: 'Gestão dos estabelecimentos',
+                texto: 'Gestão dos negócios',
               ),
               _Beneficio(
                 icone: Icons.event_available_outlined,
