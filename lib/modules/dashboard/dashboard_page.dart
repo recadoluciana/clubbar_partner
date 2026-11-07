@@ -443,20 +443,23 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _tituloBloco(String titulo, IconData icone) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
-    child: Row(
+  Widget _grupoArvore({
+    required String titulo,
+    required IconData icone,
+    required List<Widget> filhos,
+    bool abertoInicialmente = false,
+  }) => Card(
+    margin: const EdgeInsets.only(bottom: 10),
+    clipBehavior: Clip.antiAlias,
+    child: ExpansionTile(
+      key: PageStorageKey('dashboard-$titulo'),
+      initiallyExpanded: abertoInicialmente,
+      leading: Icon(icone, color: ClubbarColors.primariaEscuro),
+      title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w800)),
+      childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
       children: [
-        Icon(icone, size: 20, color: ClubbarColors.primariaEscuro),
-        const SizedBox(width: 8),
-        Text(
-          titulo,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            color: ClubbarColors.primariaEscuro,
-          ),
-        ),
+        for (final filho in filhos)
+          Padding(padding: const EdgeInsets.only(top: 10), child: filho),
       ],
     ),
   );
@@ -498,250 +501,265 @@ class _DashboardPageState extends State<DashboardPage> {
                   : ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        _tituloBloco('Empresa', Icons.business_rounded),
-                        _opcao(
+                        _grupoArvore(
                           titulo: 'Empresa',
-                          subtitulo: _podeEditarOrganizacao
-                              ? 'Atualize os dados cadastrais da empresa.'
-                              : 'Disponível somente para o super administrador.',
                           icone: Icons.business_rounded,
-                          onTap: _podeEditarOrganizacao
-                              ? _abrirOrganizacao
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Estabelecimentos',
-                          subtitulo: _cargo == 'MANAGER'
-                              ? 'Consulte e edite os dados do seu estabelecimento.'
-                              : 'Cadastre e administre os estabelecimentos da empresa.',
-                          icone: Icons.storefront_rounded,
-                          onTap: _abrirLojas,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Usuários e permissões',
-                          subtitulo: _cargo == 'MANAGER'
-                              ? 'Administre os usuários vinculados ao seu estabelecimento.'
-                              : 'Liste, inclua, altere e exclua acessos.',
-                          icone: Icons.manage_accounts_rounded,
-                          onTap: _abrirUsuarios,
-                        ),
-                        const SizedBox(height: 14),
-                        _tituloBloco(
-                          'Atrações e estilos',
-                          Icons.music_note_rounded,
-                        ),
-                        _opcao(
-                          titulo: 'Estilos musicais',
-                          subtitulo: _podeGerenciarAtracoes
-                              ? 'Gerencie os estilos usados nos estabelecimentos e nas atrações.'
-                              : 'Disponível para administradores da empresa.',
-                          icone: Icons.library_music_rounded,
-                          onTap: _podeGerenciarAtracoes
-                              ? _abrirEstilosMusicais
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Atrações',
-                          subtitulo: _podeGerenciarAtracoes
-                              ? 'Cadastre bandas, DJs, artistas e apresentações da empresa.'
-                              : 'Disponível para administradores da empresa.',
-                          icone: Icons.mic_external_on_rounded,
-                          onTap: _podeGerenciarAtracoes ? _abrirAtracoes : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _tituloBloco(
-                          'Produtos e cardápios',
-                          Icons.shopping_bag_outlined,
-                        ),
-                        _opcao(
-                          titulo: 'Categoria de produto',
-                          subtitulo:
-                              'Importe das categorias padrão ou crie suas categorias.',
-                          icone: Icons.category_rounded,
-                          onTap: _organizacaoId == null
-                              ? null
-                              : () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => CategoriasProdutosPage(
-                                      organizacaoId: _organizacaoId!,
-                                    ),
-                                  ),
+                          abertoInicialmente: true,
+                          filhos: [
+                            _grupoArvore(
+                              titulo: 'Dados e acessos',
+                              icone: Icons.manage_accounts_rounded,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Empresa',
+                                  subtitulo: _podeEditarOrganizacao
+                                      ? 'Atualize os dados cadastrais da empresa.'
+                                      : 'Disponível somente para o super administrador.',
+                                  icone: Icons.business_rounded,
+                                  onTap: _podeEditarOrganizacao
+                                      ? _abrirOrganizacao
+                                      : null,
                                 ),
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Produtos',
-                          subtitulo:
-                              'Cadastre nome, descrição, foto e situação dos produtos.',
-                          icone: Icons.local_drink_rounded,
-                          onTap: _cargo == 'SUPERADMIN' || _cargo == 'ADMIN'
-                              ? _abrirCardapioPadraoEmpresa
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Cardápios',
-                          subtitulo:
-                              'Crie cardápios compartilháveis e seus produtos, preços, promoções e cashback.',
-                          icone: Icons.menu_book_rounded,
-                          onTap: _cargo == 'SUPERADMIN' || _cargo == 'ADMIN'
-                              ? _abrirCardapiosEmpresa
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Cortesias e promoções',
-                          subtitulo:
-                              'Planeje cortesias e a roleta promocional sem alterar ou republicar o cardápio.',
-                          icone: Icons.casino_outlined,
-                          onTap: _organizacaoId == null
-                              ? null
-                              : () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => BeneficiosProdutosPage(
-                                      organizacaoId: _organizacaoId!,
-                                    ),
-                                  ),
+                                _opcao(
+                                  titulo: 'Usuários e permissões',
+                                  subtitulo: _cargo == 'MANAGER'
+                                      ? 'Administre os usuários vinculados ao seu estabelecimento.'
+                                      : 'Liste, inclua, altere e exclua acessos.',
+                                  icone: Icons.manage_accounts_rounded,
+                                  onTap: _abrirUsuarios,
                                 ),
-                        ),
-                        const SizedBox(height: 14),
-                        _tituloBloco('Eventos', Icons.event_note_rounded),
-                        _opcao(
-                          titulo: 'Modalidades e benefícios',
-                          subtitulo:
-                              'Crie modalidades e benefícios próprios para usar nos seus eventos.',
-                          icone: Icons.confirmation_number_outlined,
-                          onTap: _podeGerenciarAtracoes
-                              ? _abrirCatalogoIngressos
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Eventos',
-                          subtitulo:
-                              'Cadastre e configure os eventos padrão que serão usados na agenda.',
-                          icone: Icons.event_note_rounded,
-                          onTap: _podeGerenciarAtracoes
-                              ? _abrirGerenciarEventos
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Agenda',
-                          subtitulo:
-                              'Associe eventos padrão às datas de cada estabelecimento.',
-                          icone: Icons.calendar_month_rounded,
-                          onTap: _abrirAgendaMensal,
-                        ),
-                        const SizedBox(height: 14),
-                        _tituloBloco(
-                          'Financeiro',
-                          Icons.account_balance_wallet_rounded,
-                        ),
-                        _opcao(
-                          titulo: 'Titular financeiro',
-                          subtitulo:
-                              'Pessoa física ou jurídica responsável pelos recebimentos.',
-                          icone: Icons.account_balance_wallet_rounded,
-                          onTap: () => _abrirFinanceiro(),
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Extrato Asaas',
-                          subtitulo:
-                              'Consulte o saldo e as transações recebidas na sua subconta.',
-                          icone: Icons.receipt_long_rounded,
-                          onTap: _podeVerGerencial ? _abrirExtratoAsaas : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Cancelamentos em processamento',
-                          subtitulo: _podeReconciliarCancelamentos
-                              ? 'Consulte o Asaas e conclua ou reverta cancelamentos pendentes.'
-                              : 'Disponível para administradores da empresa.',
-                          icone: Icons.currency_exchange_rounded,
-                          onTap: _podeReconciliarCancelamentos
-                              ? _abrirReconciliacaoCancelamentos
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _tituloBloco('Delivery', Icons.delivery_dining_rounded),
-                        _opcao(
-                          titulo: 'Pedidos para entrega',
-                          subtitulo:
-                              'Aceite pedidos, acompanhe o despacho e a confirmação pelo QR Code.',
-                          icone: Icons.delivery_dining_rounded,
-                          onTap: _podeVerGerencial
-                              ? _abrirPedidosEntrega
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _tituloBloco(
-                          'Causas sociais',
-                          Icons.volunteer_activism_rounded,
-                        ),
-                        _opcao(
-                          titulo: 'Para quem doar?',
-                          subtitulo:
-                              'Destine parte das vendas a entidades ou campanhas emergenciais.',
-                          icone: Icons.volunteer_activism_rounded,
-                          onTap: _podeVerGerencial
-                              ? _abrirCampanhasDoacao
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _tituloBloco('Gestão e operação', Icons.tune_rounded),
-                        _opcao(
-                          titulo: 'Compras de produtos',
-                          subtitulo:
-                              'Consulte compras de todos os clientes e confirme se cada produto foi retirado.',
-                          icone: Icons.receipt_long_rounded,
-                          onTap: _podeVerGerencial
-                              ? _abrirComprasProdutos
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Clientes e compras',
-                          subtitulo:
-                              'Consulte os cadastros e o histórico completo de compras dos clientes.',
-                          icone: Icons.people_alt_rounded,
-                          onTap: _podeVerGerencial
-                              ? _abrirClientesCompras
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Auditoria',
-                          subtitulo: _podeGerenciarAtracoes
-                              ? 'Consulte alterações realizadas pelos usuários da empresa.'
-                              : 'Disponível para administradores da empresa.',
-                          icone: Icons.fact_check_outlined,
-                          onTap: _podeGerenciarAtracoes
-                              ? _abrirAuditoria
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _tituloBloco('Gerencial', Icons.analytics_rounded),
-                        _opcao(
-                          titulo: 'Painel Gerencial',
-                          subtitulo:
-                              'Acompanhe suas vendas por estabelecimento, produtos e ingressos.',
-                          icone: Icons.analytics_rounded,
-                          onTap: _podeVerGerencial ? _abrirGerencial : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _opcao(
-                          titulo: 'Acompanhamento de vendas',
-                          subtitulo:
-                              'Veja produtos ainda não retirados e acompanhe as vendas de ingressos por evento.',
-                          icone: Icons.monitor_heart_rounded,
-                          onTap: _podeVerGerencial
-                              ? _abrirAcompanhamentoVendas
-                              : null,
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Produtos e cardápios',
+                              icone: Icons.shopping_bag_outlined,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Categoria de produto',
+                                  subtitulo:
+                                      'Importe das categorias padrão ou crie suas categorias.',
+                                  icone: Icons.category_rounded,
+                                  onTap: _organizacaoId == null
+                                      ? null
+                                      : () => Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                CategoriasProdutosPage(
+                                                  organizacaoId:
+                                                      _organizacaoId!,
+                                                ),
+                                          ),
+                                        ),
+                                ),
+                                _opcao(
+                                  titulo: 'Produtos',
+                                  subtitulo:
+                                      'Cadastre nome, descrição, foto e situação dos produtos.',
+                                  icone: Icons.local_drink_rounded,
+                                  onTap:
+                                      _cargo == 'SUPERADMIN' ||
+                                          _cargo == 'ADMIN'
+                                      ? _abrirCardapioPadraoEmpresa
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Cardápios',
+                                  subtitulo:
+                                      'Crie cardápios compartilháveis e seus produtos, preços, promoções e cashback.',
+                                  icone: Icons.menu_book_rounded,
+                                  onTap:
+                                      _cargo == 'SUPERADMIN' ||
+                                          _cargo == 'ADMIN'
+                                      ? _abrirCardapiosEmpresa
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Eventos e atrações',
+                              icone: Icons.event_note_rounded,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Estilos musicais',
+                                  subtitulo: _podeGerenciarAtracoes
+                                      ? 'Gerencie os estilos usados nos estabelecimentos e nas atrações.'
+                                      : 'Disponível para administradores da empresa.',
+                                  icone: Icons.library_music_rounded,
+                                  onTap: _podeGerenciarAtracoes
+                                      ? _abrirEstilosMusicais
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Atrações',
+                                  subtitulo: _podeGerenciarAtracoes
+                                      ? 'Cadastre bandas, DJs, artistas e apresentações da empresa.'
+                                      : 'Disponível para administradores da empresa.',
+                                  icone: Icons.mic_external_on_rounded,
+                                  onTap: _podeGerenciarAtracoes
+                                      ? _abrirAtracoes
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Modalidades e benefícios',
+                                  subtitulo:
+                                      'Crie modalidades e benefícios próprios para usar nos seus eventos.',
+                                  icone: Icons.confirmation_number_outlined,
+                                  onTap: _podeGerenciarAtracoes
+                                      ? _abrirCatalogoIngressos
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Eventos',
+                                  subtitulo:
+                                      'Cadastre e configure os eventos padrão que serão usados na agenda.',
+                                  icone: Icons.event_note_rounded,
+                                  onTap: _podeGerenciarAtracoes
+                                      ? _abrirGerenciarEventos
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Financeiro',
+                              icone: Icons.account_balance_wallet_rounded,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Titular financeiro',
+                                  subtitulo:
+                                      'Pessoa física ou jurídica responsável pelos recebimentos.',
+                                  icone: Icons.account_balance_wallet_rounded,
+                                  onTap: () => _abrirFinanceiro(),
+                                ),
+                                _opcao(
+                                  titulo: 'Extrato Asaas',
+                                  subtitulo:
+                                      'Consulte o saldo e as transações recebidas na sua subconta.',
+                                  icone: Icons.receipt_long_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirExtratoAsaas
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Cancelamentos em processamento',
+                                  subtitulo: _podeReconciliarCancelamentos
+                                      ? 'Consulte o Asaas e conclua ou reverta cancelamentos pendentes.'
+                                      : 'Disponível para administradores da empresa.',
+                                  icone: Icons.currency_exchange_rounded,
+                                  onTap: _podeReconciliarCancelamentos
+                                      ? _abrirReconciliacaoCancelamentos
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Gestão e operação',
+                              icone: Icons.tune_rounded,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Clientes e compras',
+                                  subtitulo:
+                                      'Consulte os cadastros e o histórico completo de compras dos clientes.',
+                                  icone: Icons.people_alt_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirClientesCompras
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Auditoria',
+                                  subtitulo: _podeGerenciarAtracoes
+                                      ? 'Consulte alterações realizadas pelos usuários da empresa.'
+                                      : 'Disponível para administradores da empresa.',
+                                  icone: Icons.fact_check_outlined,
+                                  onTap: _podeGerenciarAtracoes
+                                      ? _abrirAuditoria
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Painel Gerencial',
+                                  subtitulo:
+                                      'Acompanhe suas vendas por estabelecimento, produtos e ingressos.',
+                                  icone: Icons.analytics_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirGerencial
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Estabelecimentos',
+                              icone: Icons.storefront_rounded,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Estabelecimentos',
+                                  subtitulo: _cargo == 'MANAGER'
+                                      ? 'Consulte e edite os dados do seu estabelecimento.'
+                                      : 'Cadastre e administre os estabelecimentos da empresa.',
+                                  icone: Icons.storefront_rounded,
+                                  onTap: _abrirLojas,
+                                ),
+                                _opcao(
+                                  titulo: 'Cortesias e promoções',
+                                  subtitulo:
+                                      'Planeje cortesias e a roleta promocional sem alterar ou republicar o cardápio.',
+                                  icone: Icons.casino_outlined,
+                                  onTap: _organizacaoId == null
+                                      ? null
+                                      : () => Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                BeneficiosProdutosPage(
+                                                  organizacaoId:
+                                                      _organizacaoId!,
+                                                ),
+                                          ),
+                                        ),
+                                ),
+                                _opcao(
+                                  titulo: 'Para quem doar?',
+                                  subtitulo:
+                                      'Destine parte das vendas a entidades ou campanhas emergenciais.',
+                                  icone: Icons.volunteer_activism_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirCampanhasDoacao
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Compras de produtos',
+                                  subtitulo:
+                                      'Consulte compras de todos os clientes e confirme se cada produto foi retirado.',
+                                  icone: Icons.receipt_long_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirComprasProdutos
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Acompanhamento de vendas',
+                                  subtitulo:
+                                      'Veja produtos ainda não retirados e acompanhe as vendas de ingressos por evento.',
+                                  icone: Icons.monitor_heart_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirAcompanhamentoVendas
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Agenda',
+                                  subtitulo:
+                                      'Associe eventos padrão às datas de cada estabelecimento.',
+                                  icone: Icons.calendar_month_rounded,
+                                  onTap: _abrirAgendaMensal,
+                                ),
+                                _opcao(
+                                  titulo: 'Pedidos para entrega',
+                                  subtitulo:
+                                      'Aceite pedidos, acompanhe o despacho e a confirmação pelo QR Code.',
+                                  icone: Icons.delivery_dining_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirPedidosEntrega
+                                      : null,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ],
                     ),
