@@ -76,6 +76,9 @@ class AtracaoRepository {
     required List<int> estilosIds,
     required String descricao,
     XFile? banner,
+    XFile? foto2,
+    XFile? foto3,
+    required Map<String, dynamic> dadosExtras,
   }) async {
     final uri = Uri.parse(
       '${ApiConfig.baseUrl}/atracoes${atracao == null ? '' : '/${atracao.atracaoId}'}',
@@ -89,6 +92,7 @@ class AtracaoRepository {
       'nmatracao': nome,
       'estilos_ids': jsonEncode(estilosIds),
       'dsatracao': descricao,
+      'dados_extras': jsonEncode(dadosExtras),
     });
     if (banner != null) {
       req.files.add(
@@ -102,6 +106,19 @@ class AtracaoRepository {
                 'urlbanneratracao',
                 banner.path,
               ),
+      );
+    }
+    for (final entry in {'foto2': foto2, 'foto3': foto3}.entries) {
+      final file = entry.value;
+      if (file == null) continue;
+      req.files.add(
+        kIsWeb
+            ? http.MultipartFile.fromBytes(
+                entry.key,
+                await file.readAsBytes(),
+                filename: file.name,
+              )
+            : await http.MultipartFile.fromPath(entry.key, file.path),
       );
     }
     final resp = await http.sendMultipart(req);

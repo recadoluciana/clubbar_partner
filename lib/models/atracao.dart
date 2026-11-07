@@ -5,6 +5,12 @@ class Atracao {
   final String? estiloMusical;
   final String? banner;
   final String? descricao;
+  final String? foto2,
+      foto3,
+      instagram,
+      telefoneContato,
+      videoInstagram,
+      videoYoutube;
   final List<EstiloMusical> estilos;
 
   const Atracao({
@@ -14,6 +20,12 @@ class Atracao {
     this.estiloMusical,
     this.banner,
     this.descricao,
+    this.foto2,
+    this.foto3,
+    this.instagram,
+    this.telefoneContato,
+    this.videoInstagram,
+    this.videoYoutube,
     this.estilos = const [],
   });
   factory Atracao.fromJson(Map<String, dynamic> j) {
@@ -30,6 +42,12 @@ class Atracao {
           : j['dsestilomusical']?.toString(),
       banner: j['urlbanneratracao']?.toString(),
       descricao: j['dsatracao']?.toString(),
+      foto2: j['urlfoto2atracao']?.toString(),
+      foto3: j['urlfoto3atracao']?.toString(),
+      instagram: j['instagram']?.toString(),
+      telefoneContato: j['telefone_contato']?.toString(),
+      videoInstagram: j['video_instagram']?.toString(),
+      videoYoutube: j['video_youtube']?.toString(),
       estilos: estilos,
     );
   }

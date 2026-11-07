@@ -19,7 +19,13 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
   final _repo = AtracaoRepository();
   final _form = GlobalKey<FormState>();
   late final TextEditingController _nome, _descricao;
+  late final TextEditingController _instagram,
+      _telefone,
+      _videoInstagram,
+      _videoYoutube;
   XFile? _banner;
+  XFile? _foto2, _foto3;
+  bool _removerFoto2 = false, _removerFoto3 = false;
   bool _salvando = false, _carregandoEstilos = true;
   List<EstiloMusical> _estilos = [];
   final Set<int> _estilosSelecionados = {};
@@ -28,6 +34,12 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
     super.initState();
     _nome = TextEditingController(text: widget.atracao?.nome);
     _descricao = TextEditingController(text: widget.atracao?.descricao);
+    _instagram = TextEditingController(text: widget.atracao?.instagram);
+    _telefone = TextEditingController(text: widget.atracao?.telefoneContato);
+    _videoInstagram = TextEditingController(
+      text: widget.atracao?.videoInstagram,
+    );
+    _videoYoutube = TextEditingController(text: widget.atracao?.videoYoutube);
     _estilosSelecionados.addAll(widget.atracao?.estilos.map((e) => e.id) ?? []);
     _carregarEstilos();
   }
@@ -36,6 +48,10 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
   void dispose() {
     _nome.dispose();
     _descricao.dispose();
+    _instagram.dispose();
+    _telefone.dispose();
+    _videoInstagram.dispose();
+    _videoYoutube.dispose();
     super.dispose();
   }
 
@@ -75,6 +91,16 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
         estilosIds: _estilosSelecionados.toList(),
         descricao: _descricao.text.trim(),
         banner: _banner,
+        foto2: _foto2,
+        foto3: _foto3,
+        dadosExtras: {
+          'instagram': _instagram.text.trim(),
+          'telefone_contato': _telefone.text.trim(),
+          'video_instagram': _videoInstagram.text.trim(),
+          'video_youtube': _videoYoutube.text.trim(),
+          'remover_foto2': _removerFoto2,
+          'remover_foto3': _removerFoto3,
+        },
       );
       if (!mounted) return;
       AppSnackBar.sucesso(context, 'Atração salva com sucesso.');
@@ -166,6 +192,16 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        const Text('Fotos adicionais (até 3 fotos no total)'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(child: _fotoAdicional(2)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _fotoAdicional(3)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                         TextFormField(
                           controller: _nome,
                           decoration: _dec(
@@ -175,6 +211,48 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
                           validator: (v) => (v ?? '').trim().isEmpty
                               ? 'Informe o nome da atração.'
                               : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _instagram,
+                          decoration: _dec(
+                            'Instagram da atração',
+                            Icons.alternate_email,
+                            hint: '@perfil',
+                          ),
+                          maxLength: 255,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _telefone,
+                          decoration: _dec(
+                            'Telefone para contratar show',
+                            Icons.phone,
+                          ),
+                          keyboardType: TextInputType.phone,
+                          maxLength: 30,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _videoInstagram,
+                          decoration: _dec(
+                            'Link de vídeo do Instagram',
+                            Icons.play_circle_outline,
+                          ),
+                          keyboardType: TextInputType.url,
+                          maxLength: 500,
+                          validator: (v) => _validarVideo(v, true),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _videoYoutube,
+                          decoration: _dec(
+                            'Link de vídeo do YouTube',
+                            Icons.play_circle_outline,
+                          ),
+                          keyboardType: TextInputType.url,
+                          maxLength: 500,
+                          validator: (v) => _validarVideo(v, false),
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
@@ -275,6 +353,100 @@ class _AtracaoFormPageState extends State<AtracaoFormPage> {
           ],
         ),
       ),
+    );
+  }
+
+  String? _validarVideo(String? valor, bool instagram) {
+    final texto = (valor ?? '').trim();
+    if (texto.isEmpty) return null;
+    final uri = Uri.tryParse(texto);
+    final dominio = uri?.host.toLowerCase() ?? '';
+    final dominios = instagram
+        ? ['instagram.com']
+        : ['youtube.com', 'youtu.be'];
+    if (uri?.scheme != 'https' ||
+        !dominios.any((d) => dominio == d || dominio.endsWith('.$d'))) {
+      return 'Informe um link HTTPS válido do ${instagram ? "Instagram" : "YouTube"}.';
+    }
+    return null;
+  }
+
+  Widget _fotoAdicional(int numero) {
+    final arquivo = numero == 2 ? _foto2 : _foto3;
+    final removida = numero == 2 ? _removerFoto2 : _removerFoto3;
+    final caminho = removida
+        ? null
+        : (numero == 2 ? widget.atracao?.foto2 : widget.atracao?.foto3);
+    final url = caminho == null || caminho.isEmpty
+        ? null
+        : (caminho.startsWith('http')
+              ? caminho
+              : '${ApiConfig.baseUrl}${caminho.startsWith('/') ? '' : '/'}$caminho');
+    return Column(
+      children: [
+        InkWell(
+          onTap: () async {
+            final foto = await ImagePicker().pickImage(
+              source: ImageSource.gallery,
+              imageQuality: 88,
+              maxWidth: 1600,
+            );
+            if (foto != null && mounted) {
+              setState(() {
+                if (numero == 2) {
+                  _foto2 = foto;
+                  _removerFoto2 = false;
+                } else {
+                  _foto3 = foto;
+                  _removerFoto3 = false;
+                }
+              });
+            }
+          },
+          child: Container(
+            height: 120,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: ClubbarColors.branco,
+              border: Border.all(color: ClubbarColors.borda),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: arquivo != null
+                ? FutureBuilder(
+                    future: arquivo.readAsBytes(),
+                    builder: (_, snapshot) => snapshot.hasData
+                        ? Image.memory(snapshot.data!, fit: BoxFit.contain)
+                        : const Center(child: CircularProgressIndicator()),
+                  )
+                : url != null
+                ? Image.network(
+                    url,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => const Icon(Icons.broken_image),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add_photo_alternate_outlined),
+                      Text('Adicionar foto $numero'),
+                    ],
+                  ),
+          ),
+        ),
+        if (arquivo != null || url != null)
+          TextButton(
+            onPressed: () => setState(() {
+              if (numero == 2) {
+                _foto2 = null;
+                _removerFoto2 = true;
+              } else {
+                _foto3 = null;
+                _removerFoto3 = true;
+              }
+            }),
+            child: const Text('Remover'),
+          ),
+      ],
     );
   }
 
