@@ -10,7 +10,9 @@ import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 
 class ReconciliacaoCancelamentosPage extends StatefulWidget {
-  const ReconciliacaoCancelamentosPage({super.key});
+  const ReconciliacaoCancelamentosPage({super.key, this.provedor = 'ASAAS'});
+
+  final String provedor;
 
   @override
   State<ReconciliacaoCancelamentosPage> createState() =>
@@ -28,6 +30,9 @@ class _ReconciliacaoCancelamentosPageState
   int? _processandoVenda;
   String? _erro;
 
+  String get _nomeProvedor =>
+      widget.provedor == 'MERCADO_PAGO' ? 'Mercado Pago' : 'Asaas';
+
   @override
   void initState() {
     super.initState();
@@ -40,7 +45,7 @@ class _ReconciliacaoCancelamentosPageState
       _erro = null;
     });
     try {
-      final vendas = await _repository.listar();
+      final vendas = await _repository.listar(widget.provedor);
       if (!mounted) return;
       setState(() {
         _vendas = vendas;
@@ -71,15 +76,15 @@ class _ReconciliacaoCancelamentosPageState
     final vendaId = _inteiro(venda['venda_id']);
     setState(() => _processandoVenda = vendaId);
     try {
-      final consulta = await _repository.consultarAsaas(vendaId);
+      final consulta = await _repository.consultar(vendaId, widget.provedor);
       if (!mounted) return;
       setState(() => _consultas[vendaId] = consulta);
       final localizado = consulta['estorno_localizado'] == true;
       AppSnackBar.sucesso(
         context,
         localizado
-            ? 'Estorno integral localizado no Asaas.'
-            : 'Nenhum estorno integral foi localizado no Asaas.',
+            ? 'Estorno integral localizado no $_nomeProvedor.'
+            : 'Nenhum estorno integral foi localizado no $_nomeProvedor.',
       );
     } catch (erro) {
       if (mounted) {
@@ -131,8 +136,8 @@ class _ReconciliacaoCancelamentosPageState
     final confirmou = await _confirmar(
       titulo: concluir ? 'Concluir cancelamento?' : 'Reativar itens?',
       mensagem: concluir
-          ? 'O sistema consultará novamente o Asaas e só concluirá se o estorno integral estiver registrado.'
-          : 'O sistema consultará novamente o Asaas e só reativará se não houver estorno registrado.',
+          ? 'O sistema consultará novamente o $_nomeProvedor e só concluirá se o estorno integral estiver registrado.'
+          : 'O sistema consultará novamente o $_nomeProvedor e só reativará se não houver estorno registrado.',
       acao: concluir ? 'Concluir' : 'Reativar',
       cor: concluir ? ClubbarColors.primaria : ClubbarColors.erro,
     );
@@ -219,9 +224,9 @@ class _ReconciliacaoCancelamentosPageState
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Confirme o estorno no Asaas antes de concluir o cancelamento ou reativar a compra.',
-            style: TextStyle(color: ClubbarColors.textoSecundario),
+          Text(
+            'Confirme o estorno no $_nomeProvedor antes de concluir o cancelamento.',
+            style: const TextStyle(color: ClubbarColors.textoSecundario),
           ),
           const SizedBox(height: 12),
           ..._vendas.map(_cardVenda),
@@ -234,6 +239,7 @@ class _ReconciliacaoCancelamentosPageState
     final vendaId = _inteiro(venda['venda_id']);
     final consulta = _consultas[vendaId];
     final estornoLocalizado = consulta?['estorno_localizado'] == true;
+    final estornoPendente = consulta?['estorno_pendente'] == true;
     final processando = _processandoVenda == vendaId;
     final data = _dataHora(venda['data_venda']);
     final tipos = (venda['tipos_itens'] as List? ?? const []).join(' e ');
@@ -295,10 +301,12 @@ class _ReconciliacaoCancelamentosPageState
             ),
             child: Text(
               consulta == null
-                  ? 'Aguardando consulta ao Asaas'
+                  ? 'Aguardando consulta ao $_nomeProvedor'
                   : estornoLocalizado
                   ? 'Estorno localizado: ${_moeda.format(_numero(consulta['valor_estornado']))}'
-                  : 'Estorno integral ainda não localizado no Asaas',
+                  : estornoPendente
+                  ? 'Estorno em processamento no $_nomeProvedor'
+                  : 'Estorno integral ainda não localizado no $_nomeProvedor',
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 color: consulta == null
@@ -320,9 +328,13 @@ class _ReconciliacaoCancelamentosPageState
                 OutlinedButton.icon(
                   onPressed: () => _consultar(venda),
                   icon: const Icon(Icons.sync_rounded),
-                  label: const Text('Consultar Asaas'),
+                  label: Text('Consultar $_nomeProvedor'),
                 ),
-                if (consulta != null)
+                if (consulta != null &&
+                    (estornoLocalizado ||
+                        (widget.provedor == 'ASAAS' &&
+                            !estornoPendente &&
+                            _numero(consulta['valor_estornado']) == 0)))
                   ElevatedButton.icon(
                     onPressed: () =>
                         _resolver(venda, concluir: estornoLocalizado),
@@ -359,7 +371,7 @@ class _ReconciliacaoCancelamentosPageState
         children: [
           ClubbarPageHeader(
             titulo: 'Cancelamentos em processamento',
-            subtitulo: 'Reconcilie estornos do Asaas com segurança',
+            subtitulo: 'Reconcilie estornos do $_nomeProvedor com segurança',
             trailing: IconButton(
               onPressed: _carregando ? null : _carregar,
               icon: const Icon(Icons.refresh_rounded),

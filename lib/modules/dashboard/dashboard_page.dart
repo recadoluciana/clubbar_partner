@@ -25,6 +25,7 @@ import '../cardapio/cardapios_empresa_page.dart';
 import '../categorias/categorias_produtos_page.dart';
 import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
+import '../extrato_mercado_pago/extrato_mercado_pago_page.dart';
 import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
 import '../acompanhamento_vendas/compras_produtos_page.dart';
 import '../clientes/clientes_compras_page.dart';
@@ -251,9 +252,13 @@ class _DashboardPageState extends State<DashboardPage> {
     ).push<void>(MaterialPageRoute(builder: (_) => const PedidosEntregaPage()));
   }
 
-  Future<void> _abrirReconciliacaoCancelamentos() async {
+  Future<void> _abrirReconciliacaoCancelamentos([
+    String provedor = 'ASAAS',
+  ]) async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const ReconciliacaoCancelamentosPage()),
+      MaterialPageRoute(
+        builder: (_) => ReconciliacaoCancelamentosPage(provedor: provedor),
+      ),
     );
   }
 
@@ -640,13 +645,40 @@ class _DashboardPageState extends State<DashboardPage> {
                                       : null,
                                 ),
                                 _opcao(
-                                  titulo: 'Cancelamentos em processamento',
+                                  titulo: 'Extrato Mercado Pago',
+                                  subtitulo:
+                                      'Consulte os pagamentos da conta Mercado Pago conectada.',
+                                  icone: Icons.receipt_long_rounded,
+                                  onTap: _podeReconciliarCancelamentos
+                                      ? () => Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const ExtratoMercadoPagoPage(),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo:
+                                      'Cancelamentos em processamento — Asaas',
                                   subtitulo: _podeReconciliarCancelamentos
                                       ? 'Consulte o Asaas e conclua ou reverta cancelamentos pendentes.'
                                       : 'Disponível para administradores da empresa.',
                                   icone: Icons.currency_exchange_rounded,
                                   onTap: _podeReconciliarCancelamentos
                                       ? _abrirReconciliacaoCancelamentos
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo:
+                                      'Cancelamentos em processamento — Mercado Pago',
+                                  subtitulo:
+                                      'Consulte e conclua cancelamentos confirmados pelo Mercado Pago.',
+                                  icone: Icons.currency_exchange_rounded,
+                                  onTap: _podeReconciliarCancelamentos
+                                      ? () => _abrirReconciliacaoCancelamentos(
+                                          'MERCADO_PAGO',
+                                        )
                                       : null,
                                 ),
                               ],

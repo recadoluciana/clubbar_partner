@@ -13,8 +13,10 @@ class ReconciliacaoCancelamentosRepository {
     return padrao;
   }
 
-  Future<List<Map<String, dynamic>>> listar() async {
-    final resposta = await ApiService.get('/reconciliacao-cancelamentos');
+  Future<List<Map<String, dynamic>>> listar(String provedor) async {
+    final resposta = await ApiService.get(
+      '/reconciliacao-cancelamentos?provedor=$provedor',
+    );
     if (resposta.statusCode != 200) {
       throw Exception(
         _erro(resposta.body, 'Não foi possível consultar os cancelamentos.'),
@@ -25,9 +27,9 @@ class ReconciliacaoCancelamentosRepository {
         .toList();
   }
 
-  Future<Map<String, dynamic>> consultarAsaas(int vendaId) async {
+  Future<Map<String, dynamic>> consultar(int vendaId, String provedor) async {
     final resposta = await ApiService.get(
-      '/reconciliacao-cancelamentos/$vendaId/asaas',
+      '/reconciliacao-cancelamentos/$vendaId/${provedor == 'MERCADO_PAGO' ? 'mercado-pago' : 'asaas'}',
     );
     if (resposta.statusCode != 200) {
       throw Exception(
