@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/services/storage_service.dart';
+import '../../core/repositories/organizacao_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -46,6 +47,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   String _nomeOrganizacao = 'Empresa';
   String _nomeUsuario = 'Usuário';
+  String _responsavelOrganizacao = 'Não informado';
   String _cargo = '';
   int? _organizacaoId;
   bool _carregando = true;
@@ -82,11 +84,30 @@ class _DashboardPageState extends State<DashboardPage> {
         StorageService.getCargo(),
         StorageService.getOrganizacaoId(),
         StorageService.getNomeUsuario(),
+        StorageService.getUsuarioId(),
       ]);
+      final usuarioId = dados[4] as int?;
+      String responsavel = 'Não informado';
+      String? nomeOrganizacaoAtual;
+      if (usuarioId != null && usuarioId > 0) {
+        try {
+          final organizacao = await OrganizacaoRepository().buscarPorUsuario(
+            usuarioId,
+          );
+          responsavel = (organizacao.nmresponsavelprincipal ?? '').trim();
+          if (responsavel.isEmpty) responsavel = 'Não informado';
+          nomeOrganizacaoAtual = organizacao.nmorganizacao.trim();
+        } catch (_) {
+          responsavel = 'Não foi possível carregar';
+        }
+      }
       if (!mounted) return;
       final nome = (dados[0] as String? ?? '').trim();
       setState(() {
-        _nomeOrganizacao = nome.isEmpty ? 'Empresa' : nome;
+        _nomeOrganizacao = (nomeOrganizacaoAtual?.isNotEmpty ?? false)
+            ? nomeOrganizacaoAtual!
+            : (nome.isEmpty ? 'Empresa' : nome);
+        _responsavelOrganizacao = responsavel;
         _cargo = (dados[1] as String? ?? '').trim().toUpperCase();
         _organizacaoId = dados[2] as int?;
         final usuario = (dados[3] as String? ?? '').trim();
@@ -321,13 +342,24 @@ class _DashboardPageState extends State<DashboardPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _nomeUsuario,
+          'Responsável: $_responsavelOrganizacao',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontSize: 14,
             color: ClubbarColors.textoSecundario,
             fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          'Usuário: $_nomeUsuario',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 12,
+            color: ClubbarColors.textoSecundario,
+            fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 3),
