@@ -36,6 +36,7 @@ import '../entregas/pedidos_entrega_page.dart';
 import '../doacoes/campanhas_doacao_page.dart';
 import '../reconciliacao_cancelamentos/reconciliacao_cancelamentos_page.dart';
 import '../beneficios_produtos/beneficios_produtos_page.dart';
+import '../promocoes/campanhas_promocionais_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -726,6 +727,25 @@ class _DashboardPageState extends State<DashboardPage> {
                                   icone: Icons.people_alt_rounded,
                                   onTap: _podeVerGerencial
                                       ? _abrirClientesCompras
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Campanhas promocionais',
+                                  subtitulo:
+                                      'Prepare mensagens de promoção para seus clientes.',
+                                  icone: Icons.campaign_outlined,
+                                  onTap:
+                                      _podeVerGerencial &&
+                                          _organizacaoId != null
+                                      ? () => Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                CampanhasPromocionaisPage(
+                                                  organizacaoId:
+                                                      _organizacaoId!,
+                                                ),
+                                          ),
+                                        )
                                       : null,
                                 ),
                                 _opcao(
