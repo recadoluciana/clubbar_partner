@@ -368,7 +368,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Acesse a gestão do seu estabelecimento.',
+                      'Acesse a gestão do seu negócio.',
                       style: TextStyle(
                         fontSize: 15,
                         color: ClubbarColors.textoSecundario,
