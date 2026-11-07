@@ -980,18 +980,6 @@ class _LojaListPageState extends State<LojaListPage> {
                             Icons.category_outlined,
                             ClubbarColors.info,
                           ),
-                          if (loja.vendaprodutos == 'S')
-                            _badgeCaracteristica(
-                              'Vende produtos',
-                              Icons.shopping_bag_outlined,
-                              ClubbarColors.sucesso,
-                            ),
-                          if (loja.vendaingressos == 'S')
-                            _badgeCaracteristica(
-                              'Vende ingressos',
-                              Icons.confirmation_number_outlined,
-                              ClubbarColors.ambarEscuro,
-                            ),
                           if (loja.vendaprodutos != 'S' &&
                               loja.vendaingressos != 'S')
                             _badgeCaracteristica(
