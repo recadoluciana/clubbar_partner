@@ -22,6 +22,8 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   List<dynamic> _campanhas = [];
   int? _loja;
   bool _carregando = true;
+  bool _push = true;
+  bool _whatsapp = false;
 
   @override
   void initState() {
@@ -98,6 +100,85 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
     }
   }
 
+  Future<void> _enviar(Map campanha) async {
+    if (!_push && !_whatsapp) {
+      _erro('Selecione pelo menos um canal de envio.');
+      return;
+    }
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enviar promoção?'),
+        content: const Text(
+          'A mensagem será enviada aos clientes desta loja que autorizaram os canais selecionados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _carregando = true);
+    try {
+      final r = await ApiService.post(
+        '/campanhas-promocionais/${campanha['id']}/enviar',
+        {'push': _push, 'whatsapp': _whatsapp},
+      );
+      final dados = jsonDecode(r.body);
+      if (r.statusCode != 200) {
+        throw Exception(
+          dados is Map && dados['detail'] is String
+              ? dados['detail']
+              : 'Não foi possível iniciar o envio.',
+        );
+      }
+      await _carregar();
+      if (mounted) {
+        _erro('Envio iniciado para ${dados['destinatarios']} destino(s).');
+      }
+    } catch (e) {
+      if (mounted) _erro(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
+
+  Future<void> _resultado(Map campanha) async {
+    try {
+      final r = await ApiService.get(
+        '/campanhas-promocionais/${campanha['id']}/resultado',
+      );
+      if (r.statusCode != 200) throw Exception();
+      final dados = jsonDecode(r.body) as Map<String, dynamic>;
+      final entregas = Map<String, dynamic>.from(dados['entregas'] as Map);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Resultado da campanha'),
+          content: Text(
+            'Situação: ${dados['status']}\n\n${entregas.entries.map((e) => '${e.key}: ${e.value}').join('\n')}\n\nEnviado significa que o provedor aceitou a solicitação; não confirma a leitura.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fechar'),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (mounted) _erro('Não foi possível consultar o resultado.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Campanhas promocionais')),
@@ -153,8 +234,15 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Os canais de envio estão em preparação. Por enquanto, a campanha será salva como rascunho.',
+              CheckboxListTile(
+                title: const Text('Notificação no aplicativo'),
+                value: _push,
+                onChanged: (v) => setState(() => _push = v ?? false),
+              ),
+              CheckboxListTile(
+                title: const Text('WhatsApp'),
+                value: _whatsapp,
+                onChanged: (v) => setState(() => _whatsapp = v ?? false),
               ),
               const SizedBox(height: 12),
               FilledButton(
@@ -172,7 +260,16 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                 Card(
                   child: ListTile(
                     title: Text('${c['titulo']}'),
-                    subtitle: Text('${c['mensagem']}\nRascunho'),
+                    subtitle: Text('${c['mensagem']}\n${c['status']}'),
+                    trailing: c['status'] == 'RASCUNHO'
+                        ? TextButton(
+                            onPressed: () => _enviar(c as Map),
+                            child: const Text('Enviar'),
+                          )
+                        : TextButton(
+                            onPressed: () => _resultado(c as Map),
+                            child: const Text('Resultado'),
+                          ),
                   ),
                 ),
             ],
