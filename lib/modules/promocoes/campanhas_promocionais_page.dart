@@ -23,7 +23,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   int? _loja;
   bool _carregando = true;
   bool _push = true;
-  bool _whatsapp = false;
+  bool _email = true;
 
   @override
   void initState() {
@@ -101,7 +101,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   }
 
   Future<void> _enviar(Map campanha) async {
-    if (!_push && !_whatsapp) {
+    if (!_push && !_email) {
       _erro('Selecione pelo menos um canal de envio.');
       return;
     }
@@ -129,7 +129,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
     try {
       final r = await ApiService.post(
         '/campanhas-promocionais/${campanha['id']}/enviar',
-        {'push': _push, 'whatsapp': _whatsapp},
+        {'push': _push, 'email': _email},
       );
       final dados = jsonDecode(r.body);
       if (r.statusCode != 200) {
@@ -240,9 +240,9 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                 onChanged: (v) => setState(() => _push = v ?? false),
               ),
               CheckboxListTile(
-                title: const Text('WhatsApp'),
-                value: _whatsapp,
-                onChanged: (v) => setState(() => _whatsapp = v ?? false),
+                title: const Text('E-mail'),
+                value: _email,
+                onChanged: (v) => setState(() => _email = v ?? false),
               ),
               const SizedBox(height: 12),
               FilledButton(
