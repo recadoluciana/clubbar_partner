@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/services/api_service.dart';
 import '../../models/loja.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
+import '../../core/widgets/clubbar_page_header.dart';
 
 class CampanhasPromocionaisPage extends StatefulWidget {
   const CampanhasPromocionaisPage({super.key, required this.organizacaoId});
@@ -20,6 +22,8 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   final _mensagem = TextEditingController();
   List<Loja> _lojas = [];
   List<dynamic> _campanhas = [];
+  List<Map<String, dynamic>> _clientes = [];
+  final Set<int> _clientesSelecionados = {};
   int? _loja;
   bool _carregando = true;
   bool _push = true;
@@ -47,12 +51,27 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
         _loja = lojas.isEmpty ? null : lojas.first.lojaId;
         _carregando = false;
       });
-      if (_loja != null) await _carregar();
+      await Future.wait([_carregar(), _carregarClientes()]);
     } catch (_) {
       if (!mounted) return;
       setState(() => _carregando = false);
       _erro('Não foi possível carregar os estabelecimentos.');
     }
+  }
+
+  Future<void> _carregarClientes() async {
+    final r = await ApiService.get('/campanhas-promocionais/clientes');
+    if (r.statusCode != 200) throw Exception();
+    final dados = jsonDecode(r.body) as List<dynamic>;
+    if (!mounted) return;
+    setState(() {
+      _clientes = dados
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      _clientesSelecionados
+        ..clear()
+        ..addAll(_clientes.map((e) => (e['cliente_id'] as num).toInt()));
+    });
   }
 
   void _erro(String texto) => ScaffoldMessenger.of(
@@ -110,7 +129,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
       builder: (context) => AlertDialog(
         title: const Text('Enviar promoção?'),
         content: const Text(
-          'A mensagem será enviada aos clientes desta loja que autorizaram os canais selecionados.',
+          'A mensagem será enviada somente aos clientes selecionados que autorizaram os canais escolhidos.',
         ),
         actions: [
           TextButton(
@@ -129,7 +148,11 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
     try {
       final r = await ApiService.post(
         '/campanhas-promocionais/${campanha['id']}/enviar',
-        {'push': _push, 'email': _email},
+        {
+          'push': _push,
+          'email': _email,
+          'cliente_ids': _clientesSelecionados.toList(),
+        },
       );
       final dados = jsonDecode(r.body);
       if (r.statusCode != 200) {
@@ -179,17 +202,96 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
     }
   }
 
+  Widget _preview() => Card(
+    margin: EdgeInsets.zero,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Pré-visualização do envio',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _titulo.text.trim().isEmpty
+                ? 'Título da campanha'
+                : _titulo.text.trim(),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _mensagem.text.trim().isEmpty
+                ? 'A mensagem aparecerá aqui.'
+                : _mensagem.text.trim(),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${_clientesSelecionados.length} cliente(s) selecionado(s) • ${_push ? 'Notificação' : ''}${_push && _email ? ' e ' : ''}${_email ? 'e-mail' : ''}',
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _selecaoClientes() => Card(
+    margin: EdgeInsets.zero,
+    child: ExpansionTile(
+      initiallyExpanded: true,
+      title: Text(
+        'Destinatários (${_clientesSelecionados.length}/${_clientes.length})',
+      ),
+      subtitle: const Text('Escolha um, alguns ou todos os clientes'),
+      children: [
+        CheckboxListTile(
+          title: const Text('Selecionar todos'),
+          value:
+              _clientes.isNotEmpty &&
+              _clientesSelecionados.length == _clientes.length,
+          onChanged: (marcado) => setState(() {
+            if (marcado == true) {
+              _clientesSelecionados.addAll(
+                _clientes.map((e) => (e['cliente_id'] as num).toInt()),
+              );
+            } else {
+              _clientesSelecionados.clear();
+            }
+          }),
+        ),
+        for (final cliente in _clientes)
+          CheckboxListTile(
+            title: Text('${cliente['nome']}'),
+            subtitle: Text('${cliente['email']}'),
+            value: _clientesSelecionados.contains(
+              (cliente['cliente_id'] as num).toInt(),
+            ),
+            onChanged: (marcado) => setState(() {
+              final id = (cliente['cliente_id'] as num).toInt();
+              marcado == true
+                  ? _clientesSelecionados.add(id)
+                  : _clientesSelecionados.remove(id);
+            }),
+          ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Campanhas promocionais')),
+    appBar: const ClubbarAppBar(mostrarTopbar: true, mostrarVoltar: true),
     body: _carregando
         ? const Center(child: CircularProgressIndicator())
         : ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              const Text(
-                'Crie uma promoção para os clientes que autorizaram o recebimento.',
+              const ClubbarPageHeader(
+                titulo: 'Campanhas de Marketing',
+                subtitulo:
+                    'Crie, revise e envie uma campanha para clientes selecionados.',
+                mostrarVoltar: false,
               ),
+              const SizedBox(height: 18),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
                 initialValue: _loja,
@@ -218,9 +320,10 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                 controller: _titulo,
                 maxLength: 100,
                 decoration: const InputDecoration(
-                  labelText: 'Título da promoção',
+                  labelText: 'Título da campanha',
                   border: OutlineInputBorder(),
                 ),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -232,6 +335,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                   labelText: 'Mensagem',
                   border: OutlineInputBorder(),
                 ),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 10),
               CheckboxListTile(
@@ -239,6 +343,10 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                 value: _push,
                 onChanged: (v) => setState(() => _push = v ?? false),
               ),
+              const SizedBox(height: 8),
+              _selecaoClientes(),
+              const SizedBox(height: 12),
+              _preview(),
               CheckboxListTile(
                 title: const Text('E-mail'),
                 value: _email,
