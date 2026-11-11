@@ -367,20 +367,40 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 10),
-                    CheckboxListTile(
-                      title: const Text('Notificação no aplicativo'),
-                      value: _push,
-                      onChanged: (v) => setState(() => _push = v ?? false),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+                              child: Text(
+                                'Enviar campanha por',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            CheckboxListTile(
+                              title: const Text('Notificação no aplicativo'),
+                              value: _push,
+                              onChanged: (v) =>
+                                  setState(() => _push = v ?? false),
+                            ),
+                            CheckboxListTile(
+                              title: const Text('E-mail'),
+                              value: _email,
+                              onChanged: (v) =>
+                                  setState(() => _email = v ?? false),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     _selecaoClientes(),
                     const SizedBox(height: 12),
                     _preview(),
-                    CheckboxListTile(
-                      title: const Text('E-mail'),
-                      value: _email,
-                      onChanged: (v) => setState(() => _email = v ?? false),
-                    ),
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: _salvar,
