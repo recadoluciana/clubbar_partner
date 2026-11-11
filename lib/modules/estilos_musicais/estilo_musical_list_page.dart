@@ -175,52 +175,112 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
           .where((e) => !jaAdotados.contains(e.nome.toLowerCase()))
           .toList();
       final selecionados = <int>{};
+      var busca = '';
       final confirmar = await showDialog<bool>(
         context: context,
+        barrierDismissible: false,
         builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Estilos do catálogo'),
-            content: SizedBox(
-              width: 480,
-              child: disponiveis.isEmpty
-                  ? const Text(
-                      'Todos os estilos do catálogo já foram adicionados.',
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: disponiveis.length,
-                      itemBuilder: (_, i) {
-                        final estilo = disponiveis[i];
-                        return CheckboxListTile(
-                          value: selecionados.contains(estilo.id),
-                          title: Text(estilo.nome),
-                          onChanged: (valor) => setDialogState(() {
-                            valor == true
-                                ? selecionados.add(estilo.id)
-                                : selecionados.remove(estilo.id);
-                          }),
-                        );
-                      },
-                    ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Cancelar'),
+          builder: (context, setDialogState) {
+            final filtrados = disponiveis
+                .where(
+                  (estilo) => estilo.nome.toLowerCase().contains(
+                    busca.trim().toLowerCase(),
+                  ),
+                )
+                .toList();
+            final todosSelecionados =
+                filtrados.isNotEmpty &&
+                filtrados.every((estilo) => selecionados.contains(estilo.id));
+
+            return AlertDialog(
+              title: const Text('Estilos do catálogo'),
+              content: SizedBox(
+                width: 480,
+                child: disponiveis.isEmpty
+                    ? const Text(
+                        'Todos os estilos do catálogo já foram adicionados.',
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Buscar estilo',
+                              prefixIcon: Icon(Icons.search_rounded),
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (valor) =>
+                                setDialogState(() => busca = valor),
+                          ),
+                          CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Marcar todos'),
+                            value: todosSelecionados,
+                            onChanged: filtrados.isEmpty
+                                ? null
+                                : (valor) => setDialogState(() {
+                                    if (valor == true) {
+                                      selecionados.addAll(
+                                        filtrados.map((estilo) => estilo.id),
+                                      );
+                                    } else {
+                                      selecionados.removeAll(
+                                        filtrados.map((estilo) => estilo.id),
+                                      );
+                                    }
+                                  }),
+                          ),
+                          const Divider(height: 1),
+                          const SizedBox(height: 8),
+                          Flexible(
+                            child: filtrados.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Text('Nenhum estilo encontrado.'),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: filtrados.length,
+                                    itemBuilder: (_, i) {
+                                      final estilo = filtrados[i];
+                                      return CheckboxListTile(
+                                        value: selecionados.contains(estilo.id),
+                                        title: Text(estilo.nome),
+                                        onChanged: (valor) =>
+                                            setDialogState(() {
+                                              valor == true
+                                                  ? selecionados.add(estilo.id)
+                                                  : selecionados.remove(
+                                                      estilo.id,
+                                                    );
+                                            }),
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
               ),
-              FilledButton(
-                onPressed: disponiveis.isEmpty
-                    ? null
-                    : () => Navigator.pop(dialogContext, true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Cancelar'),
                 ),
-                child: const Text('Confirmar'),
-              ),
-            ],
-          ),
+                FilledButton(
+                  onPressed: disponiveis.isEmpty
+                      ? null
+                      : () => Navigator.pop(dialogContext, true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Confirmar'),
+                ),
+              ],
+            );
+          },
         ),
       );
       if (confirmar != true || selecionados.isEmpty) return;
@@ -304,10 +364,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
             label: 'Importar estilos',
             primary: false,
           ),
-          ClubbarAddButton(
-            onPressed: () => _editar(),
-            label: 'Criar estilo',
-          ),
+          ClubbarAddButton(onPressed: () => _editar(), label: 'Criar estilo'),
         ],
       ),
       body: SafeArea(
