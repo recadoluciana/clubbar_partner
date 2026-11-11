@@ -730,9 +730,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                       : null,
                                 ),
                                 _opcao(
-                                  titulo: 'Campanhas promocionais',
+                                  titulo: 'Campanhas de Marketing',
                                   subtitulo:
-                                      'Prepare mensagens de promoção para seus clientes.',
+                                      'Prepare mensagens de marketing para seus clientes.',
                                   icone: Icons.campaign_outlined,
                                   onTap:
                                       _podeVerGerencial &&
