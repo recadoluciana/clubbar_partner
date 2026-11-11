@@ -51,7 +51,12 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
         _loja = lojas.isEmpty ? null : lojas.first.lojaId;
         _carregando = false;
       });
-      await Future.wait([_carregar(), _carregarClientes()]);
+      if (_loja != null) await _carregar();
+      try {
+        await _carregarClientes();
+      } catch (_) {
+        if (mounted) _erro('Não foi possível carregar os clientes.');
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _carregando = false);
