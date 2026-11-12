@@ -32,6 +32,7 @@ class _TitularEstabelecimentosSecaoState
   final _repository = LojaRepository();
   List<Loja> _lojas = [];
   Map<int, Map<String, dynamic>> _configuracoes = {};
+  final Set<int> _cancelandoPagamentos = {};
   bool _carregando = true;
   bool _salvando = false;
   String? _erro;
@@ -231,7 +232,11 @@ class _TitularEstabelecimentosSecaoState
                       'Status: ${pagamento['status']}\nID: ${pagamento['payment_id']}',
                     ),
                     trailing: TextButton(
-                      onPressed: () async {
+                      onPressed: _cancelandoPagamentos.contains(
+                        pagamento['checkout_id'],
+                      )
+                          ? null
+                          : () async {
                         final confirmar = await showDialog<bool>(
                           context: context,
                           builder: (dialogContext) => AlertDialog(
@@ -253,19 +258,39 @@ class _TitularEstabelecimentosSecaoState
                           ),
                         );
                         if (confirmar != true) return;
-                        final cancelamento = await ApiService.post(
-                          '/titular-financeiro/organizacao/${widget.organizacaoId}/loja/$lojaId/pagamentos-pendentes/${pagamento['checkout_id']}/cancelar',
-                          {},
-                        );
-                        if (cancelamento.statusCode == 200 && context.mounted) {
-                          atualizar(() => pagamentos.remove(pagamento));
-                          if (pagamentos.isEmpty) {
-                            Navigator.pop(context);
-                            AppSnackBar.sucesso(this.context, 'Pagamento cancelado. Tente associar novamente.');
+                        final checkoutId = pagamento['checkout_id'] as int;
+                        atualizar(() => _cancelandoPagamentos.add(checkoutId));
+                        try {
+                          final cancelamento = await ApiService.post(
+                            '/titular-financeiro/organizacao/${widget.organizacaoId}/loja/$lojaId/pagamentos-pendentes/$checkoutId/cancelar',
+                            {},
+                          );
+                          if (cancelamento.statusCode == 200 && context.mounted) {
+                            atualizar(() => pagamentos.remove(pagamento));
+                            if (pagamentos.isEmpty) {
+                              Navigator.pop(context);
+                              AppSnackBar.sucesso(this.context, 'Pagamento cancelado. Tente associar novamente.');
+                            }
+                          } else if (context.mounted) {
+                            AppSnackBar.erro(context, 'Não foi possível cancelar o pagamento. Tente verificar novamente.');
+                          }
+                        } catch (_) {
+                          if (context.mounted) {
+                            AppSnackBar.erro(context, 'O Mercado Pago não respondeu. Tente novamente.');
+                          }
+                        } finally {
+                          if (context.mounted) {
+                            atualizar(() => _cancelandoPagamentos.remove(checkoutId));
                           }
                         }
                       },
-                      child: const Text('Cancelar'),
+                      child: _cancelandoPagamentos.contains(pagamento['checkout_id'])
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Cancelar'),
                     ),
                   ),
                 const SizedBox(height: 8),
