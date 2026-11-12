@@ -24,6 +24,7 @@ class TitularesFinanceirosPage extends StatefulWidget {
 }
 
 class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
+  static const bool _mostrarAsaas = false;
   final _repo = TitularFinanceiroRepository();
   List<Map<String, dynamic>> _titulares = const [];
   int? _organizacaoId;
@@ -567,10 +568,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
 
   Widget _card(Map<String, dynamic> titular) {
     final id = titular['titularfinanceiro_id'] as int?;
-    final possuiAsaas = _texto(titular['asaas_account_id']).isNotEmpty;
     final inativo = _texto(titular['sittitular']).toUpperCase() == 'INATIVO';
-    final asaasAprovado =
-        _texto(titular['status_asaas']).toUpperCase() == 'APROVADO';
     final pessoaJuridica = _texto(titular['tipotitular']).toUpperCase() == 'PJ';
     final rotuloDocumento = pessoaJuridica ? 'CNPJ' : 'CPF';
     final statusCor = inativo
@@ -653,44 +651,55 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
               ],
             ),
             const SizedBox(height: 10),
-            const Divider(),
-            const SizedBox(height: 4),
-            const Row(
-              children: [
-                Icon(Icons.account_balance_rounded, color: ClubbarColors.info),
-                SizedBox(width: 8),
-                Text(
-                  'Subconta Asaas',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(
-                  avatar: Icon(
-                    possuiAsaas
-                        ? Icons.verified_rounded
-                        : Icons.account_balance_outlined,
-                    size: 18,
+            if (_mostrarAsaas) ...[
+              const Divider(),
+              const SizedBox(height: 4),
+              const Row(
+                children: [
+                  Icon(
+                    Icons.account_balance_rounded,
+                    color: ClubbarColors.info,
                   ),
-                  label: Text(
-                    possuiAsaas
-                        ? 'Subconta Asaas criada'
-                        : 'Subconta Asaas não criada',
+                  SizedBox(width: 8),
+                  Text(
+                    'Subconta Asaas',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                   ),
-                ),
-                if (possuiAsaas)
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
                   Chip(
-                    label: Text('Situação no Asaas: ${_statusAsaas(titular)}'),
+                    avatar: Icon(
+                      _texto(titular['asaas_account_id']).isNotEmpty
+                          ? Icons.verified_rounded
+                          : Icons.account_balance_outlined,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _texto(titular['asaas_account_id']).isNotEmpty
+                          ? 'Subconta Asaas criada'
+                          : 'Subconta Asaas não criada',
+                    ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            _acoesAsaas(titular, possuiAsaas: possuiAsaas, inativo: inativo),
+                  if (_texto(titular['asaas_account_id']).isNotEmpty)
+                    Chip(
+                      label: Text(
+                        'Situação no Asaas: ${_statusAsaas(titular)}',
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _acoesAsaas(
+                titular,
+                possuiAsaas: _texto(titular['asaas_account_id']).isNotEmpty,
+                inativo: inativo,
+              ),
+            ],
             const SizedBox(height: 12),
             const Divider(),
             if (id != null && _organizacaoId != null)
@@ -713,11 +722,11 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                 onAlterado: _carregar,
               ),
             ],
-            if (possuiAsaas)
+            if (_mostrarAsaas && _texto(titular['asaas_account_id']).isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  asaasAprovado
+                  _texto(titular['status_asaas']).toUpperCase() == 'APROVADO'
                       ? 'Subconta aprovada pelo Asaas. Este titular não pode ser inativado.'
                       : 'Subconta criada, mas os recebimentos serão liberados somente após a aprovação do Asaas. Este titular não pode ser inativado.',
                   style: const TextStyle(
@@ -739,7 +748,11 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                   label: const Text('Ativar'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _processandoId != null || inativo || possuiAsaas
+                  onPressed:
+                      _processandoId != null ||
+                          inativo ||
+                          (_mostrarAsaas &&
+                              _texto(titular['asaas_account_id']).isNotEmpty)
                       ? null
                       : () => _alterarStatus(titular),
                   icon: const Icon(Icons.pause_circle_outline_rounded),

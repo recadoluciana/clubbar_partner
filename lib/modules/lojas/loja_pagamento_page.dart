@@ -20,7 +20,7 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
   final _repo = TitularFinanceiroRepository();
   List<Map<String, dynamic>> _titulares = [];
   int? _titularId;
-  String _provedor = 'ASAAS';
+  String _provedor = 'MERCADO_PAGO';
   Map<String, dynamic>? _mercadoPago;
   bool _carregando = true, _salvando = false;
 
@@ -57,7 +57,7 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
                   t['titularfinanceiro_id'] == _titularId,
             )
             .toList();
-        _provedor = '${config['provedor_pagamento'] ?? 'ASAAS'}';
+        _provedor = 'MERCADO_PAGO';
       });
       await _carregarMercadoPago();
     } catch (erro) {
@@ -123,12 +123,6 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final titular = _titulares
-        .where((t) => t['titularfinanceiro_id'] == _titularId)
-        .firstOrNull;
-    final asaasPronto =
-        titular?['status_asaas'] == 'APROVADO' &&
-        titular?['asaas_account_id'] != null;
     final mpPronto = _mercadoPago?['conectada'] == true;
     return Scaffold(
       body: Column(
@@ -196,15 +190,6 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
                         },
                         child: Column(
                           children: [
-                            RadioListTile<String>(
-                              value: 'ASAAS',
-                              title: const Text('Asaas'),
-                              subtitle: Text(
-                                asaasPronto
-                                    ? 'Subconta aprovada'
-                                    : 'Subconta ainda não aprovada',
-                              ),
-                            ),
                             RadioListTile<String>(
                               value: 'MERCADO_PAGO',
                               title: const Text('Mercado Pago'),

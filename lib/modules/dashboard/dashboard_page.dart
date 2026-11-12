@@ -46,6 +46,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  static const bool _mostrarAsaas = false;
   String _nomeOrganizacao = 'Empresa';
   String _nomeUsuario = 'Usuário';
   String _responsavelOrganizacao = 'Não informado';
@@ -715,15 +716,16 @@ class _DashboardPageState extends State<DashboardPage> {
                                   icone: Icons.account_balance_wallet_rounded,
                                   onTap: () => _abrirFinanceiro(),
                                 ),
-                                _opcao(
-                                  titulo: 'Extrato Asaas',
-                                  subtitulo:
-                                      'Consulte o saldo e as transações recebidas na sua subconta.',
-                                  icone: Icons.receipt_long_rounded,
-                                  onTap: _podeVerGerencial
-                                      ? _abrirExtratoAsaas
-                                      : null,
-                                ),
+                                if (_mostrarAsaas)
+                                  _opcao(
+                                    titulo: 'Extrato Asaas',
+                                    subtitulo:
+                                        'Consulte o saldo e as transações recebidas na sua subconta.',
+                                    icone: Icons.receipt_long_rounded,
+                                    onTap: _podeVerGerencial
+                                        ? _abrirExtratoAsaas
+                                        : null,
+                                  ),
                                 _opcao(
                                   titulo: 'Extrato Mercado Pago',
                                   subtitulo:
@@ -738,17 +740,18 @@ class _DashboardPageState extends State<DashboardPage> {
                                         )
                                       : null,
                                 ),
-                                _opcao(
-                                  titulo:
-                                      'Cancelamentos em processamento — Asaas',
-                                  subtitulo: _podeReconciliarCancelamentos
-                                      ? 'Consulte o Asaas e conclua ou reverta cancelamentos pendentes.'
-                                      : 'Disponível para administradores da empresa.',
-                                  icone: Icons.currency_exchange_rounded,
-                                  onTap: _podeReconciliarCancelamentos
-                                      ? _abrirReconciliacaoCancelamentos
-                                      : null,
-                                ),
+                                if (_mostrarAsaas)
+                                  _opcao(
+                                    titulo:
+                                        'Cancelamentos em processamento — Asaas',
+                                    subtitulo: _podeReconciliarCancelamentos
+                                        ? 'Consulte o Asaas e conclua ou reverta cancelamentos pendentes.'
+                                        : 'Disponível para administradores da empresa.',
+                                    icone: Icons.currency_exchange_rounded,
+                                    onTap: _podeReconciliarCancelamentos
+                                        ? _abrirReconciliacaoCancelamentos
+                                        : null,
+                                  ),
                                 _opcao(
                                   titulo:
                                       'Cancelamentos em processamento — Mercado Pago',
