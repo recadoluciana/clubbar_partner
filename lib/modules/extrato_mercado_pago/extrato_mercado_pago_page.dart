@@ -26,6 +26,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
   int _offset = 0;
   bool _mais = false;
   bool _carregando = true;
+  bool _selecionandoLoja = false;
   String? _erro;
   late DateTime _inicio;
   late DateTime _fim;
@@ -40,6 +41,17 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
     'rejected' => 'Recusado',
     _ => 'Status: ${valor ?? 'indisponível'}',
   };
+
+  String _descricaoLancamento(Map<String, dynamic> item) {
+    final nomeCliente = item['nome_cliente']?.toString().trim() ?? '';
+    if (nomeCliente.isNotEmpty) return nomeCliente;
+
+    final descricao = item['descricao']?.toString() ?? 'Pagamento';
+    return descricao.replaceFirst(
+      RegExp(r'\s-\s\d{2}/\d{2}/\d{4}\s\d{2}:\d{2}$'),
+      '',
+    );
+  }
 
   @override
   void initState() {
@@ -62,7 +74,11 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
       if (_lojaId == null) {
         throw Exception('Nenhum estabelecimento disponível.');
       }
-      await _carregar();
+      if (_lojas.length > 1) {
+        if (mounted) setState(() => _selecionandoLoja = true);
+      } else {
+        await _carregar();
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -116,6 +132,15 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
     }
   }
 
+  Future<void> _selecionarLoja(int lojaId) async {
+    setState(() {
+      _lojaId = lojaId;
+      _offset = 0;
+      _selecionandoLoja = false;
+    });
+    await _carregar();
+  }
+
   Future<void> _periodo() async {
     final intervalo = await showDateRangePicker(
       context: context,
@@ -151,31 +176,50 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           Expanded(
             child: _carregando
                 ? const Center(child: CircularProgressIndicator())
+                : _selecionandoLoja
+                ? ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const Text(
+                        'Selecione o estabelecimento',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Consulte o extrato de qualquer estabelecimento, ativo ou inativo.',
+                      ),
+                      const SizedBox(height: 16),
+                      ..._lojas.map(
+                        (loja) => Card(
+                          child: ListTile(
+                            leading: const Icon(Icons.storefront),
+                            title: Text(loja.nmloja),
+                            subtitle: Text(
+                              (loja.sitloja ?? '').toUpperCase() == 'ATIVA'
+                                  ? 'Ativo'
+                                  : 'Inativo',
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _selecionarLoja(loja.lojaId),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
                 : ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      DropdownButtonFormField<int>(
-                        initialValue: _lojaId,
-                        decoration: const InputDecoration(
-                          labelText: 'Estabelecimento',
-                          border: OutlineInputBorder(),
+                      OutlinedButton.icon(
+                        onPressed: _lojas.length > 1
+                            ? () => setState(() => _selecionandoLoja = true)
+                            : null,
+                        icon: const Icon(Icons.storefront),
+                        label: Text(
+                          'Estabelecimento: ${_lojas.firstWhere((loja) => loja.lojaId == _lojaId).nmloja}',
                         ),
-                        items: _lojas
-                            .map(
-                              (loja) => DropdownMenuItem(
-                                value: loja.lojaId,
-                                child: Text(loja.nmloja),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (id) {
-                          if (id == null || id == _lojaId) return;
-                          setState(() {
-                            _lojaId = id;
-                            _offset = 0;
-                          });
-                          _carregar();
-                        },
                       ),
                       const SizedBox(height: 12),
                       const Text(
@@ -197,9 +241,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                               (item['estornado'] as num?)?.toDouble() ?? 0;
                           return Card(
                             child: ListTile(
-                              title: Text(
-                                item['descricao']?.toString() ?? 'Pagamento',
-                              ),
+                              title: Text(_descricaoLancamento(item)),
                               subtitle: Text(
                                 '${data == null ? 'Data indisponível' : _data.format(data.toLocal())} • ${_status(item['status'])}${estornado > 0 ? '\nReembolsado: ${_moeda.format(estornado)}' : ''}',
                               ),
