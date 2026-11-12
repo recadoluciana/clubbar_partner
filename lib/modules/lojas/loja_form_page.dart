@@ -721,7 +721,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                         icone: Icons
                                             .account_balance_wallet_rounded,
                                         helperText:
-                                            'Para alterar o titular e o provedor, use a tela Recebimentos.',
+                                            'Para alterar o titular e o provedor, use a tela Titular financeiro.',
                                       ),
                                       items: _titularesFinanceiros
                                           .where((titular) {
