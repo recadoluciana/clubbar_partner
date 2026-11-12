@@ -2570,24 +2570,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
           ),
         ),
       ..._atracoes.asMap().entries.map(
-        (entrada) => _cardAtracao(entrada.value, entrada.key),
+        (entrada) => _cardAtracao(entrada.value),
       ),
     ],
   );
 
-  Widget _cardAtracao(EventoAtracao atracao, int indice) => ClubbarCard(
+  Widget _cardAtracao(EventoAtracao atracao) => ClubbarCard(
     margin: const EdgeInsets.only(bottom: 12),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CircleAvatar(
-          backgroundColor: ClubbarColors.primariaClaro,
-          child: Text(
-            '${indice + 1}',
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-        ),
-        const SizedBox(width: 12),
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
