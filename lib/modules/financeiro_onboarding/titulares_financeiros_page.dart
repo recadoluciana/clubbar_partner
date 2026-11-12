@@ -577,19 +577,29 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
         ? ClubbarColors.textoSecundario
         : ClubbarColors.sucesso;
     return Card(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 18),
+      elevation: 1,
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 10, 14),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.person_outline_rounded,
-                  color: ClubbarColors.info,
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: ClubbarColors.info.withValues(alpha: .10),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.person_outline_rounded,
+                    color: ClubbarColors.info,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -629,27 +639,24 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Spacer(),
-                Chip(
-                  avatar: Icon(
-                    inativo
-                        ? Icons.pause_circle_outline
-                        : Icons.check_circle_outline,
-                    size: 18,
-                    color: statusCor,
-                  ),
-                  label: Text(inativo ? 'Inativo' : 'Ativo'),
-                  labelStyle: TextStyle(
-                    color: statusCor,
-                    fontWeight: FontWeight.w700,
-                  ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Chip(
+                avatar: Icon(
+                  inativo
+                      ? Icons.pause_circle_outline
+                      : Icons.check_circle_outline,
+                  size: 18,
+                  color: statusCor,
                 ),
-              ],
+                label: Text(inativo ? 'Inativo' : 'Ativo'),
+                labelStyle: TextStyle(
+                  color: statusCor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 4),
             if (_mostrarAsaas) ...[
               const Divider(),
               const SizedBox(height: 4),
@@ -699,26 +706,30 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                 inativo: inativo,
               ),
             ],
-            const SizedBox(height: 12),
-            const Divider(),
-            if (id != null && _organizacaoId != null)
-              TitularMercadoPagoSecao(
-                key: ValueKey(id),
-                organizacaoId: _organizacaoId!,
-                titularId: id,
-                nome: _texto(titular['nmrazaosocial']),
-                habilitado: !inativo,
-              ),
             if (id != null && _organizacaoId != null) ...[
               const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 8),
-              TitularEstabelecimentosSecao(
-                key: ValueKey('estabelecimentos-$id'),
-                organizacaoId: _organizacaoId!,
-                titularId: id,
-                habilitado: !inativo,
-                onAlterado: _carregar,
+              _bloco(
+                icone: Icons.account_balance_wallet_outlined,
+                titulo: 'Mercado Pago',
+                child: TitularMercadoPagoSecao(
+                  key: ValueKey(id),
+                  organizacaoId: _organizacaoId!,
+                  titularId: id,
+                  nome: _texto(titular['nmrazaosocial']),
+                  habilitado: !inativo,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _bloco(
+                icone: Icons.storefront_outlined,
+                titulo: 'Estabelecimentos',
+                child: TitularEstabelecimentosSecao(
+                  key: ValueKey('estabelecimentos-$id'),
+                  organizacaoId: _organizacaoId!,
+                  titularId: id,
+                  habilitado: !inativo,
+                  onAlterado: _carregar,
+                ),
               ),
             ],
             if (_mostrarAsaas && _texto(titular['asaas_account_id']).isNotEmpty)
@@ -736,6 +747,41 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _bloco({
+    required IconData icone,
+    required String titulo,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: ClubbarColors.fundo,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ClubbarColors.borda),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icone, color: ClubbarColors.primaria),
+              const SizedBox(width: 8),
+              Text(
+                titulo,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }
