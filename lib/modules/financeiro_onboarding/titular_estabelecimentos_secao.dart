@@ -187,6 +187,50 @@ class _TitularEstabelecimentosSecaoState
     }
   }
 
+  Future<void> _desassociar(Loja loja) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir estabelecimento?'),
+        content: Text(
+          'A associação de “${loja.nmloja}” será removida deste titular financeiro. O estabelecimento não será excluído.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir associação'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _salvando = true);
+    try {
+      final response = await ApiService.delete(
+        '/titular-financeiro/organizacao/${widget.organizacaoId}/titular/${widget.titularId}/loja/${loja.lojaId}',
+      );
+      if (response.statusCode != 200) throw Exception(_detalhe(response.body));
+      if (!mounted) return;
+      AppSnackBar.sucesso(context, 'Estabelecimento removido da associação.');
+      await _carregar();
+      widget.onAlterado();
+    } catch (error) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          error.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
+
   String _descricaoAtual(Map<String, dynamic>? config) {
     if (config == null || config['titularfinanceiro_id'] == null) {
       return 'Ainda não possui titular financeiro.';
@@ -295,6 +339,18 @@ class _TitularEstabelecimentosSecaoState
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       color: ClubbarColors.textoSecundario,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  IconButton(
+                                    tooltip: 'Excluir estabelecimento',
+                                    onPressed: !widget.habilitado || _salvando
+                                        ? null
+                                        : () => _desassociar(loja),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: Colors.red,
+                                      size: 20,
                                     ),
                                   ),
                                 ],

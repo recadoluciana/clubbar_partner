@@ -13,7 +13,10 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   const ClubbarAppBar({
     super.key,
-    this.mostrarTopbar = false,
+    // Todas as telas do Partner usam a mesma identidade visual: TopBar
+    // seguida do PageHeader. Telas que realmente não precisarem dela podem
+    // desativá-la explicitamente com mostrarTopbar: false.
+    this.mostrarTopbar = true,
     this.mostrarVoltar = false,
     this.mostrarSair = false,
     this.onVoltar,
