@@ -307,6 +307,7 @@ class _TitularEstabelecimentosSecaoState
                 );
               },
             ),
+          const SizedBox(height: 14),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(44),

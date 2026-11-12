@@ -666,15 +666,6 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                     Column(
                       children: [
                         Text(
-                          'STATUS DO TITULAR',
-                          style: TextStyle(
-                            color: statusCor,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: .8,
-                          ),
-                        ),
-                        Text(
                           inativo
                               ? 'INATIVO — tocar para reativar'
                               : 'ATIVO — tocar para inativar',
