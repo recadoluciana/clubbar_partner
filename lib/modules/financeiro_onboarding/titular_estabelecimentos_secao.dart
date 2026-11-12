@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/repositories/loja_repository.dart';
 import '../../core/services/api_service.dart';
+import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../models/loja.dart';
 
@@ -227,16 +228,84 @@ class _TitularEstabelecimentosSecaoState
         ] else ...[
           if (vinculadas.isEmpty)
             const Text('Nenhum estabelecimento associado a este titular.'),
-          for (final loja in vinculadas)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(loja.nmloja),
-              subtitle: Text(
-                _configuracoes[loja.lojaId]?['provedor_pagamento'] ==
-                        'MERCADO_PAGO'
-                    ? 'Mercado Pago'
-                    : 'Asaas',
-              ),
+          if (vinculadas.isNotEmpty)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const gap = 10.0;
+                final colunas = constraints.maxWidth >= 900
+                    ? 4
+                    : constraints.maxWidth >= 560
+                    ? 3
+                    : constraints.maxWidth >= 360
+                    ? 2
+                    : 1;
+                final largura =
+                    (constraints.maxWidth - gap * (colunas - 1)) / colunas;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    for (final loja in vinculadas)
+                      SizedBox(
+                        width: largura,
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 92),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: ClubbarColors.branco.withValues(alpha: .72),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: ClubbarColors.primaria.withValues(
+                                alpha: .22,
+                              ),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                loja.nmloja,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 26,
+                                    height: 26,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFD54F),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.account_balance_wallet_rounded,
+                                      size: 16,
+                                      color: Color(0xFF5D4500),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    'Mercado Pago',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: ClubbarColors.textoSecundario,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           OutlinedButton.icon(
             onPressed: !widget.habilitado || _salvando || _lojas.isEmpty
