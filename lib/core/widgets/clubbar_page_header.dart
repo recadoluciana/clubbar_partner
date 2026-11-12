@@ -21,7 +21,7 @@ class ClubbarPageHeader extends StatelessWidget {
     this.subtituloWidget,
     this.trailing,
     this.tituloStyle,
-    this.padding = const EdgeInsets.fromLTRB(18, 14, 16, 16),
+    this.padding = const EdgeInsets.fromLTRB(18, 10, 16, 12),
     this.mostrarVoltar = true,
     this.onVoltar,
   });
@@ -72,7 +72,7 @@ class ClubbarPageHeader extends StatelessWidget {
                           color: ClubbarColors.primariaEscuro,
                         ),
                   ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               subtituloWidget ??
                   Text(
                     subtitulo,
