@@ -87,7 +87,7 @@ class _TitularEstabelecimentosSecaoState
 
   Future<void> _associar() async {
     int? lojaId;
-    String? provedor;
+    String? provedor = 'MERCADO_PAGO';
     final resultado = await showDialog<({int lojaId, String provedor})>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -117,7 +117,7 @@ class _TitularEstabelecimentosSecaoState
                       .toList(),
                   onChanged: (value) => atualizar(() {
                     lojaId = value;
-                    provedor = null;
+                    provedor = 'MERCADO_PAGO';
                   }),
                 ),
                 if (lojaId != null) ...[
@@ -128,10 +128,6 @@ class _TitularEstabelecimentosSecaoState
                     onChanged: (value) => atualizar(() => provedor = value),
                     child: const Column(
                       children: [
-                        RadioListTile<String>(
-                          value: 'ASAAS',
-                          title: Text('Asaas'),
-                        ),
                         RadioListTile<String>(
                           value: 'MERCADO_PAGO',
                           title: Text('Mercado Pago'),
