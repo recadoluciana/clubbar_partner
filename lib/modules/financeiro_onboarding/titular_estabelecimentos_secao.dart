@@ -308,6 +308,12 @@ class _TitularEstabelecimentosSecaoState
               },
             ),
           OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: !widget.habilitado || _salvando || _lojas.isEmpty
                 ? null
                 : _associar,
@@ -315,7 +321,7 @@ class _TitularEstabelecimentosSecaoState
             label: Text(
               _lojas.isEmpty
                   ? 'Nenhum estabelecimento cadastrado'
-                  : 'Associar ou alterar estabelecimento',
+                  : 'Associar estabelecimento',
             ),
           ),
         ],
