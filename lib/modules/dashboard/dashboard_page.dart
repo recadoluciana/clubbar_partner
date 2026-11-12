@@ -569,6 +569,46 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                             _grupoArvore(
+                              titulo: 'Estabelecimentos',
+                              icone: Icons.storefront_rounded,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Estabelecimentos',
+                                  subtitulo: _cargo == 'MANAGER'
+                                      ? 'Consulte e edite os dados do seu estabelecimento.'
+                                      : 'Cadastre e administre os estabelecimentos da empresa.',
+                                  icone: Icons.storefront_rounded,
+                                  onTap: _abrirLojas,
+                                ),
+                                _opcao(
+                                  titulo: 'Cortesias e promoções',
+                                  subtitulo:
+                                      'Planeje cortesias e a roleta promocional sem alterar ou republicar o cardápio.',
+                                  icone: Icons.casino_outlined,
+                                  onTap: _organizacaoId == null
+                                      ? null
+                                      : () => Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                BeneficiosProdutosPage(
+                                                  organizacaoId:
+                                                      _organizacaoId!,
+                                                ),
+                                          ),
+                                        ),
+                                ),
+                                _opcao(
+                                  titulo: 'Para quem doar?',
+                                  subtitulo:
+                                      'Destine parte das vendas a entidades ou campanhas emergenciais.',
+                                  icone: Icons.volunteer_activism_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirCampanhasDoacao
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            _grupoArvore(
                               titulo: 'Produtos e cardápios',
                               icone: Icons.shopping_bag_outlined,
                               filhos: [
@@ -805,46 +845,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                   icone: Icons.analytics_rounded,
                                   onTap: _podeVerGerencial
                                       ? _abrirGerencial
-                                      : null,
-                                ),
-                              ],
-                            ),
-                            _grupoArvore(
-                              titulo: 'Estabelecimentos',
-                              icone: Icons.storefront_rounded,
-                              filhos: [
-                                _opcao(
-                                  titulo: 'Estabelecimentos',
-                                  subtitulo: _cargo == 'MANAGER'
-                                      ? 'Consulte e edite os dados do seu estabelecimento.'
-                                      : 'Cadastre e administre os estabelecimentos da empresa.',
-                                  icone: Icons.storefront_rounded,
-                                  onTap: _abrirLojas,
-                                ),
-                                _opcao(
-                                  titulo: 'Cortesias e promoções',
-                                  subtitulo:
-                                      'Planeje cortesias e a roleta promocional sem alterar ou republicar o cardápio.',
-                                  icone: Icons.casino_outlined,
-                                  onTap: _organizacaoId == null
-                                      ? null
-                                      : () => Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                BeneficiosProdutosPage(
-                                                  organizacaoId:
-                                                      _organizacaoId!,
-                                                ),
-                                          ),
-                                        ),
-                                ),
-                                _opcao(
-                                  titulo: 'Para quem doar?',
-                                  subtitulo:
-                                      'Destine parte das vendas a entidades ou campanhas emergenciais.',
-                                  icone: Icons.volunteer_activism_rounded,
-                                  onTap: _podeVerGerencial
-                                      ? _abrirCampanhasDoacao
                                       : null,
                                 ),
                               ],
