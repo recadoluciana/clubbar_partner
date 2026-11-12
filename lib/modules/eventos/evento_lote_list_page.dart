@@ -11,7 +11,6 @@ import '../../core/repositories/evento_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_calendar_delegate.dart';
@@ -744,6 +743,84 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
       if (mounted) {
         setState(() => _bannerPreview = bytes);
         AppSnackBar.sucesso(context, 'Foto do evento atualizada.');
+      }
+    } catch (erro) {
+      if (mounted) {
+        AppSnackBar.erro(
+          context,
+          erro.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    }
+  }
+
+  Future<void> _editarDescricaoEvento() async {
+    final descricao = TextEditingController(text: _evento?.dsdescevento ?? '');
+    final novaDescricao = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Descrição do evento'),
+        content: TextField(
+          controller: descricao,
+          autofocus: true,
+          maxLines: 8,
+          maxLength: 2000,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'Digite a descrição exibida para o público.',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, descricao.text.trim()),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    descricao.dispose();
+    if (novaDescricao == null ||
+        novaDescricao == (_evento?.dsdescevento ?? '')) {
+      return;
+    }
+    try {
+      await _eventoRepo.atualizarEventoAgendado(
+        eventoId: widget.eventoId,
+        titulo: _eventoTitulo,
+        descricao: novaDescricao,
+      );
+      if (mounted) {
+        setState(() {
+          _evento = _evento == null
+              ? _evento
+              : Evento(
+                  eventoId: _evento!.eventoId,
+                  organizacaoId: _evento!.organizacaoId,
+                  lojaId: _evento!.lojaId,
+                  nmtituloevento: _evento!.nmtituloevento,
+                  classificacaoEtaria: _evento!.classificacaoEtaria,
+                  dsdescevento: novaDescricao,
+                  dspoliticacancelamento: _evento!.dspoliticacancelamento,
+                  emailContatoEvento: _evento!.emailContatoEvento,
+                  whatsappEvento: _evento!.whatsappEvento,
+                  tipoLocalEvento: _evento!.tipoLocalEvento,
+                  nrCepLocalEvento: _evento!.nrCepLocalEvento,
+                  dtinicioevento: _evento!.dtinicioevento,
+                  dtfimevento: _evento!.dtfimevento,
+                  statusevento: _evento!.statusevento,
+                  vrPrecoPadrao: _evento!.vrPrecoPadrao,
+                  qtIngressosPadrao: _evento!.qtIngressosPadrao,
+                  urlbannerevento: _evento!.urlbannerevento,
+                  nmlocalevento: _evento!.nmlocalevento,
+                  dsendlocevento: _evento!.dsendlocevento,
+                );
+        });
+        AppSnackBar.sucesso(context, 'Descrição do evento atualizada.');
       }
     } catch (erro) {
       if (mounted) {
@@ -2130,6 +2207,47 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
                 onPressed: _editarFotoEvento,
                 icon: const Icon(Icons.edit_rounded, color: Colors.blue),
                 tooltip: 'Editar foto do evento',
+              ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      ClubbarCard(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.description_outlined,
+              color: ClubbarColors.primariaEscuro,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Descrição do evento',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  Text(
+                    (_evento?.dsdescevento ?? '').trim().isEmpty
+                        ? 'Descrição não informada'
+                        : _evento!.dsdescevento!.trim(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!_somenteConsulta)
+              IconButton(
+                onPressed: _editarDescricaoEvento,
+                icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                tooltip: 'Editar descrição do evento',
               ),
           ],
         ),

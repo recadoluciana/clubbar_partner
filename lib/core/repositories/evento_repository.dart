@@ -210,6 +210,7 @@ class EventoRepository {
     required int eventoId,
     required String titulo,
     String classificacaoEtaria = 'livre',
+    String? descricao,
     XFile? imagem,
   }) async {
     final request = http.MultipartRequest(
@@ -221,6 +222,9 @@ class EventoRepository {
       request.headers['Authorization'] = 'Bearer $token';
     }
     request.fields['nmtituloevento'] = titulo.trim();
+    if (descricao != null) {
+      request.fields['dsdescevento'] = descricao;
+    }
     if (imagem != null) {
       request.files.add(await _montarArquivoImagem('urlbannerevento', imagem));
     }
