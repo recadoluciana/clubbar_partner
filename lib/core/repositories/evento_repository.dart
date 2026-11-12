@@ -526,6 +526,23 @@ class EventoRepository {
     }
   }
 
+  Future<int> sincronizarDescricao(int modeloId) async {
+    final response = await ApiService.post(
+      '/eventos-modelos/$modeloId/sincronizar-descricao',
+      const {},
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final dados = jsonDecode(response.body) as Map<String, dynamic>;
+      return (dados['eventos_atualizados'] as num?)?.toInt() ?? 0;
+    }
+    throw Exception(
+      _mensagemErro(
+        response.body,
+        'Não foi possível sincronizar as descrições dos eventos.',
+      ),
+    );
+  }
+
   Future<void> excluir(int eventoId) async {
     final response = await ApiService.delete('/eventos-modelos/$eventoId');
 

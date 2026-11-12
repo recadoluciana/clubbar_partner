@@ -42,6 +42,7 @@ class _EventoListPageState extends State<EventoListPage> {
 
   bool _carregando = true;
   bool _excluindo = false;
+  int? _sincronizandoDescricaoId;
   int? _alterandoStatusEventoId;
   int? _eventoSelecionadoId;
   String? _erro;
@@ -779,6 +780,45 @@ class _EventoListPageState extends State<EventoListPage> {
     );
   }
 
+  Future<void> _abrirSincronizacaoDescricao(Evento evento) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sincronizar descrição'),
+        content: Text(
+          'A descrição atual de “${evento.nmtituloevento}” será aplicada a todos os eventos agendados que ainda não começaram. Eventos já iniciados não serão alterados. Deseja continuar?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _sincronizandoDescricaoId = evento.eventoId);
+    try {
+      final total = await _repository.sincronizarDescricao(evento.eventoId);
+      if (!mounted) return;
+      AppSnackBar.sucesso(
+        context,
+        total == 0
+            ? 'Nenhum evento futuro encontrado para atualizar.'
+            : '$total evento(s) futuro(s) atualizado(s).',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackBar.erro(context, _extrairMensagemErro(e));
+    } finally {
+      if (mounted) setState(() => _sincronizandoDescricaoId = null);
+    }
+  }
+
   Widget _bannerEvento(Evento evento) {
     final url = _montarUrlBanner(evento);
 
@@ -836,6 +876,7 @@ class _EventoListPageState extends State<EventoListPage> {
     ).format(evento.vrPrecoPadrao);
     final ativo = _eventoAtivo(evento);
     final alterandoStatus = _alterandoStatusEventoId == evento.eventoId;
+    final sincronizandoDescricao = _sincronizandoDescricaoId == evento.eventoId;
     final selecionado = _eventoSelecionadoId == evento.eventoId;
 
     return ClubbarCard(
@@ -931,11 +972,13 @@ class _EventoListPageState extends State<EventoListPage> {
                         switch (acao) {
                           case 'editar':
                             _abrirEdicao(evento);
+                          case 'sincronizar_descricao':
+                            _abrirSincronizacaoDescricao(evento);
                           case 'excluir':
                             _excluirEvento(evento);
                         }
                       },
-                      itemBuilder: (_) => const [
+                      itemBuilder: (_) => [
                         PopupMenuItem(
                           value: 'editar',
                           child: ListTile(
@@ -944,6 +987,20 @@ class _EventoListPageState extends State<EventoListPage> {
                               color: Colors.blue,
                             ),
                             title: Text('Editar evento'),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'sincronizar_descricao',
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.sync_rounded,
+                              color: ClubbarColors.primaria,
+                            ),
+                            title: Text(
+                              sincronizandoDescricao
+                                  ? 'Sincronizando descrição...'
+                                  : 'Sincronizar descrição futura',
+                            ),
                           ),
                         ),
                         PopupMenuItem(
