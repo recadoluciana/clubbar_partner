@@ -116,6 +116,54 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     }
   }
 
+  Future<void> _excluir(Map<String, dynamic> titular) async {
+    final organizacaoId = _organizacaoId;
+    final id = titular['titularfinanceiro_id'] as int?;
+    if (organizacaoId == null || id == null || _processandoId != null) return;
+
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir titular financeiro?'),
+        content: const Text(
+          'Essa ação só é permitida para titulares que ainda não foram usados e não possuem estabelecimentos associados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ClubbarColors.erro,
+            ),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+
+    setState(() => _processandoId = id);
+    try {
+      await _repo.excluir(organizacaoId, titularFinanceiroId: id);
+      if (!mounted) return;
+      setState(() {
+        _titulares = _titulares
+            .where((item) => item['titularfinanceiro_id'] != id)
+            .toList(growable: false);
+      });
+      AppSnackBar.sucesso(context, 'Titular financeiro excluído.');
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.erro(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _processandoId = null);
+    }
+  }
+
   Future<void> _alterarStatus(Map<String, dynamic> titular) async {
     final organizacaoId = _organizacaoId;
     final id = titular['titularfinanceiro_id'] as int?;
@@ -635,6 +683,15 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                   color: ClubbarColors.info,
                   icon: const Icon(Icons.edit_rounded),
                 ),
+                if (titular['pode_excluir'] == true)
+                  IconButton(
+                    tooltip: 'Excluir titular financeiro',
+                    onPressed: _processandoId == id
+                        ? null
+                        : () => _excluir(titular),
+                    color: ClubbarColors.erro,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                  ),
               ],
             ),
             const SizedBox(height: 14),
