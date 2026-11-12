@@ -655,6 +655,13 @@ class _DashboardPageState extends State<DashboardPage> {
                                       ? _abrirGerenciarEventos
                                       : null,
                                 ),
+                                _opcao(
+                                  titulo: 'Agenda',
+                                  subtitulo:
+                                      'Associe eventos padrão às datas de cada estabelecimento.',
+                                  icone: Icons.calendar_month_rounded,
+                                  onTap: _abrirAgendaMensal,
+                                ),
                               ],
                             ),
                             _grupoArvore(
@@ -824,13 +831,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                   onTap: _podeVerGerencial
                                       ? _abrirAcompanhamentoVendas
                                       : null,
-                                ),
-                                _opcao(
-                                  titulo: 'Agenda',
-                                  subtitulo:
-                                      'Associe eventos padrão às datas de cada estabelecimento.',
-                                  icone: Icons.calendar_month_rounded,
-                                  onTap: _abrirAgendaMensal,
                                 ),
                                 _opcao(
                                   titulo: 'Pedidos para entrega',
