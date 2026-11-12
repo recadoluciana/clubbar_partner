@@ -199,15 +199,21 @@ class _TitularMercadoPagoSecaoState extends State<TitularMercadoPagoSecao> {
       children: [
         const Row(
           children: [
-            Icon(Icons.account_balance_wallet_outlined),
+            Icon(
+              Icons.account_balance_wallet_rounded,
+              color: Color(0xFF1683D8),
+            ),
             SizedBox(width: 8),
-            Text(
-              'Mercado Pago',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            Expanded(
+              child: Text(
+                'Sua conta para crédito das vendas realizadas',
+                maxLines: 2,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         if (_dados == null && _erroCarregamento)
           OutlinedButton.icon(
             onPressed: _carregar,
@@ -217,15 +223,37 @@ class _TitularMercadoPagoSecaoState extends State<TitularMercadoPagoSecao> {
         else if (_dados == null)
           const Center(child: CircularProgressIndicator())
         else ...[
-          Text(
-            _dados!['conectada'] == true
-                ? 'Conta conectada: ${_dados!['nome'] ?? 'Nome indisponível'}'
-                : 'Nenhuma conta Mercado Pago conectada.',
-          ),
-          if (_dados!['conectada'] == true) ...[
-            Text('Titular: ${_perfil?['nome'] ?? 'Não disponível'}'),
-            Text('E-mail: ${_perfil?['email'] ?? 'Não disponível'}'),
-          ],
+          if (_dados!['conectada'] == true)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _informacao(
+                    'Conta conectada',
+                    '${_dados!['nome'] ?? 'Nome indisponível'}',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _informacao(
+                        'Titular',
+                        '${_perfil?['nome'] ?? 'Não disponível'}',
+                      ),
+                      const SizedBox(height: 10),
+                      _informacao(
+                        'E-mail',
+                        '${_perfil?['email'] ?? 'Não disponível'}',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else
+            const Text('Nenhuma conta Mercado Pago conectada.'),
           if (pendente != null) ...[
             const SizedBox(height: 16),
             Text(
@@ -250,6 +278,12 @@ class _TitularMercadoPagoSecaoState extends State<TitularMercadoPagoSecao> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _ocupado || !widget.habilitado ? null : _conectar,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               child: Text(
                 _dados!['conectada'] == true
                     ? 'Trocar conta Mercado Pago'
@@ -257,15 +291,43 @@ class _TitularMercadoPagoSecaoState extends State<TitularMercadoPagoSecao> {
               ),
             ),
             if (_dados!['conectada'] == true)
-              TextButton(
+              ElevatedButton.icon(
                 onPressed: _ocupado || !widget.habilitado ? null : _desconectar,
-                style: TextButton.styleFrom(
-                  foregroundColor: ClubbarColors.erro,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ClubbarColors.erro,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text('Desconectar conta'),
+                icon: const Icon(Icons.link_off_rounded),
+                label: const Text('Desconectar conta'),
               ),
           ],
         ],
+      ],
+    );
+  }
+
+  Widget _informacao(String rotulo, String valor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          rotulo,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: ClubbarColors.textoSecundario,
+          ),
+        ),
+        Text(
+          valor,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
       ],
     );
   }
