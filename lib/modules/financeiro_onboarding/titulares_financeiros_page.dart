@@ -683,15 +683,14 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                   color: ClubbarColors.info,
                   icon: const Icon(Icons.edit_rounded),
                 ),
-                if (titular['pode_excluir'] == true)
-                  IconButton(
-                    tooltip: 'Excluir titular financeiro',
-                    onPressed: _processandoId == id
-                        ? null
-                        : () => _excluir(titular),
-                    color: ClubbarColors.erro,
-                    icon: const Icon(Icons.delete_outline_rounded),
-                  ),
+                IconButton(
+                  tooltip: 'Excluir titular financeiro',
+                  onPressed: _processandoId == id
+                      ? null
+                      : () => _excluir(titular),
+                  color: ClubbarColors.erro,
+                  icon: const Icon(Icons.delete_outline_rounded),
+                ),
               ],
             ),
             const SizedBox(height: 14),
