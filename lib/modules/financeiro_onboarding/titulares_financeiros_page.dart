@@ -709,8 +709,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
             if (id != null && _organizacaoId != null) ...[
               const SizedBox(height: 12),
               _bloco(
-                icone: Icons.account_balance_wallet_outlined,
-                titulo: 'Mercado Pago',
+                cor: const Color(0xFFEAF3FF),
                 child: TitularMercadoPagoSecao(
                   key: ValueKey(id),
                   organizacaoId: _organizacaoId!,
@@ -721,8 +720,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
               ),
               const SizedBox(height: 12),
               _bloco(
-                icone: Icons.storefront_outlined,
-                titulo: 'Estabelecimentos',
+                cor: const Color(0xFFEDF9F0),
                 child: TitularEstabelecimentosSecao(
                   key: ValueKey('estabelecimentos-$id'),
                   organizacaoId: _organizacaoId!,
@@ -751,38 +749,22 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     );
   }
 
-  Widget _bloco({
-    required IconData icone,
-    required String titulo,
-    required Widget child,
-  }) {
+  Widget _bloco({required Color cor, required Widget child}) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: ClubbarColors.fundo,
+        color: cor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ClubbarColors.borda),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icone, color: ClubbarColors.primaria),
-              const SizedBox(width: 8),
-              Text(
-                titulo,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
+        border: Border.all(color: cor.withValues(alpha: .9), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
           ),
-          const SizedBox(height: 12),
-          child,
         ],
       ),
+      child: child,
     );
   }
 
