@@ -75,7 +75,12 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
         throw Exception('Nenhum estabelecimento disponível.');
       }
       if (_lojas.length > 1) {
-        if (mounted) setState(() => _selecionandoLoja = true);
+        if (mounted) {
+          setState(() {
+            _selecionandoLoja = true;
+            _carregando = false;
+          });
+        }
       } else {
         await _carregar();
       }
