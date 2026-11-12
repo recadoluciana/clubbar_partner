@@ -116,6 +116,8 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     }
   }
 
+  // Mantido para preservar o fluxo existente; a alteração de status agora é feita pelo badge.
+  // ignore: unused_element
   Future<void> _alterarStatus(Map<String, dynamic> titular) async {
     final organizacaoId = _organizacaoId;
     final id = titular['titularfinanceiro_id'] as int?;
@@ -607,6 +609,13 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$rotuloDocumento: ${_documento(_texto(titular['cpfcnpj']))}',
+                        style: const TextStyle(
+                          color: ClubbarColors.textoSecundario,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -620,20 +629,10 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                 ),
               ],
             ),
-            const Divider(),
-            Text(
-              '$rotuloDocumento: ${_documento(_texto(titular['cpfcnpj']))}',
-              style: const TextStyle(color: ClubbarColors.textoSecundario),
-            ),
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    'Situação do titular financeiro: ${inativo ? 'Inativo' : 'Ativo'}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
+                const Spacer(),
                 Chip(
                   avatar: Icon(
                     inativo
@@ -735,31 +734,6 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                   ),
                 ),
               ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _processandoId != null || !inativo
-                      ? null
-                      : () => _alterarStatus(titular),
-                  icon: const Icon(Icons.play_circle_outline_rounded),
-                  label: const Text('Ativar'),
-                ),
-                OutlinedButton.icon(
-                  onPressed:
-                      _processandoId != null ||
-                          inativo ||
-                          (_mostrarAsaas &&
-                              _texto(titular['asaas_account_id']).isNotEmpty)
-                      ? null
-                      : () => _alterarStatus(titular),
-                  icon: const Icon(Icons.pause_circle_outline_rounded),
-                  label: const Text('Inativar'),
-                ),
-              ],
-            ),
           ],
         ),
       ),

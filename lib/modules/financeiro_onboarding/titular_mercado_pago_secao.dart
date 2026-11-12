@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/services/api_service.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/theme/clubbar_colors.dart';
 
 class TitularMercadoPagoSecao extends StatefulWidget {
   const TitularMercadoPagoSecao({
@@ -234,9 +235,7 @@ class _TitularMercadoPagoSecaoState extends State<TitularMercadoPagoSecao> {
               spacing: 8,
               children: [
                 TextButton(
-                  onPressed: _ocupado
-                      ? null
-                      : () => _confirmar(false),
+                  onPressed: _ocupado ? null : () => _confirmar(false),
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
@@ -260,6 +259,9 @@ class _TitularMercadoPagoSecaoState extends State<TitularMercadoPagoSecao> {
             if (_dados!['conectada'] == true)
               TextButton(
                 onPressed: _ocupado || !widget.habilitado ? null : _desconectar,
+                style: TextButton.styleFrom(
+                  foregroundColor: ClubbarColors.erro,
+                ),
                 child: const Text('Desconectar conta'),
               ),
           ],

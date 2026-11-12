@@ -211,7 +211,7 @@ class _TitularEstabelecimentosSecaoState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Estabelecimentos e recebimentos',
+          'Estabelecimentos',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 8),
