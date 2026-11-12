@@ -766,6 +766,39 @@ class _DashboardPageState extends State<DashboardPage> {
                                       : null,
                                 ),
                                 _opcao(
+                                  titulo: 'Pedidos para entrega',
+                                  subtitulo:
+                                      'Aceite pedidos, acompanhe o despacho e a confirmação pelo QR Code.',
+                                  icone: Icons.delivery_dining_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirPedidosEntrega
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Gerencial',
+                              icone: Icons.analytics_rounded,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Compras de produtos',
+                                  subtitulo:
+                                      'Consulte compras de todos os clientes e confirme se cada produto foi retirado.',
+                                  icone: Icons.receipt_long_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirComprasProdutos
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Acompanhamento de vendas',
+                                  subtitulo:
+                                      'Veja produtos ainda não retirados e acompanhe as vendas de ingressos por evento.',
+                                  icone: Icons.monitor_heart_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirAcompanhamentoVendas
+                                      : null,
+                                ),
+                                _opcao(
                                   titulo: 'Painel Gerencial',
                                   subtitulo:
                                       'Acompanhe suas vendas por estabelecimento, produtos e ingressos.',
@@ -812,33 +845,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                   icone: Icons.volunteer_activism_rounded,
                                   onTap: _podeVerGerencial
                                       ? _abrirCampanhasDoacao
-                                      : null,
-                                ),
-                                _opcao(
-                                  titulo: 'Compras de produtos',
-                                  subtitulo:
-                                      'Consulte compras de todos os clientes e confirme se cada produto foi retirado.',
-                                  icone: Icons.receipt_long_rounded,
-                                  onTap: _podeVerGerencial
-                                      ? _abrirComprasProdutos
-                                      : null,
-                                ),
-                                _opcao(
-                                  titulo: 'Acompanhamento de vendas',
-                                  subtitulo:
-                                      'Veja produtos ainda não retirados e acompanhe as vendas de ingressos por evento.',
-                                  icone: Icons.monitor_heart_rounded,
-                                  onTap: _podeVerGerencial
-                                      ? _abrirAcompanhamentoVendas
-                                      : null,
-                                ),
-                                _opcao(
-                                  titulo: 'Pedidos para entrega',
-                                  subtitulo:
-                                      'Aceite pedidos, acompanhe o despacho e a confirmação pelo QR Code.',
-                                  icone: Icons.delivery_dining_rounded,
-                                  onTap: _podeVerGerencial
-                                      ? _abrirPedidosEntrega
                                       : null,
                                 ),
                               ],
