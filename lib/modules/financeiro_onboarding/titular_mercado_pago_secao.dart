@@ -276,7 +276,7 @@ class _TitularMercadoPagoSecaoState extends State<TitularMercadoPagoSecao> {
             ),
           ] else ...[
             const SizedBox(height: 16),
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: _ocupado || !widget.habilitado ? null : _conectar,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(44),
@@ -284,13 +284,15 @@ class _TitularMercadoPagoSecaoState extends State<TitularMercadoPagoSecao> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(
+              icon: const Icon(Icons.swap_horiz_rounded),
+              label: Text(
                 _dados!['conectada'] == true
                     ? 'Trocar conta Mercado Pago'
                     : 'Conectar Mercado Pago',
               ),
             ),
-            if (_dados!['conectada'] == true)
+            if (_dados!['conectada'] == true) ...[
+              const SizedBox(height: 10),
               ElevatedButton.icon(
                 onPressed: _ocupado || !widget.habilitado ? null : _desconectar,
                 style: ElevatedButton.styleFrom(
@@ -302,8 +304,9 @@ class _TitularMercadoPagoSecaoState extends State<TitularMercadoPagoSecao> {
                   ),
                 ),
                 icon: const Icon(Icons.link_off_rounded),
-                label: const Text('Desconectar conta'),
+                label: const Text('Desconectar conta Mercado Pago'),
               ),
+            ],
           ],
         ],
       ],
