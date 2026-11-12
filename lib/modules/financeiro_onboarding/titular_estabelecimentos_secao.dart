@@ -230,6 +230,43 @@ class _TitularEstabelecimentosSecaoState
                     subtitle: Text(
                       'Status: ${pagamento['status']}\nID: ${pagamento['payment_id']}',
                     ),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        final confirmar = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogContext) => AlertDialog(
+                            title: const Text('Cancelar pagamento?'),
+                            content: const Text(
+                              'O pagamento pendente será cancelado e não poderá ser usado para concluir a compra.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dialogContext, false),
+                                child: const Text('Voltar'),
+                              ),
+                              FilledButton(
+                                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                onPressed: () => Navigator.pop(dialogContext, true),
+                                child: const Text('Cancelar pagamento'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmar != true) return;
+                        final cancelamento = await ApiService.post(
+                          '/titular-financeiro/organizacao/${widget.organizacaoId}/loja/$lojaId/pagamentos-pendentes/${pagamento['checkout_id']}/cancelar',
+                          {},
+                        );
+                        if (cancelamento.statusCode == 200 && context.mounted) {
+                          atualizar(() => pagamentos.remove(pagamento));
+                          if (pagamentos.isEmpty) {
+                            Navigator.pop(context);
+                            AppSnackBar.sucesso(this.context, 'Pagamento cancelado. Tente associar novamente.');
+                          }
+                        }
+                      },
+                      child: const Text('Cancelar'),
+                    ),
                   ),
                 const SizedBox(height: 8),
                 FilledButton.icon(
