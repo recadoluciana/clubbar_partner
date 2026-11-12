@@ -874,10 +874,53 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                 ? const Center(
                     child: Text('Nenhum titular financeiro cadastrado.'),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _titulares.length,
-                    itemBuilder: (_, index) => _card(_titulares[index]),
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final largura = constraints.maxWidth;
+                      final colunas = largura >= 1200
+                          ? 3
+                          : largura >= 760
+                          ? 2
+                          : 1;
+                      const espacamento = 16.0;
+                      final larguraCard = colunas == 1
+                          ? largura
+                          : (largura - espacamento * (colunas - 1)) / colunas;
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Titulares financeiros',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Escolha, consulte e gerencie os responsáveis pelos recebimentos.',
+                              style: TextStyle(
+                                color: ClubbarColors.textoSecundario,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Wrap(
+                              spacing: espacamento,
+                              runSpacing: espacamento,
+                              children: [
+                                for (final titular in _titulares)
+                                  SizedBox(
+                                    width: larguraCard,
+                                    child: _card(titular),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
           ),
         ],
