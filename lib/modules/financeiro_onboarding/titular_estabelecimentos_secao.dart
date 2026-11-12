@@ -168,7 +168,13 @@ class _TitularEstabelecimentosSecaoState
           'provedor_pagamento': resultado.provedor,
         },
       );
-      if (response.statusCode != 200) throw Exception(_detalhe(response.body));
+      if (response.statusCode != 200) {
+        if (response.statusCode == 409 && mounted) {
+          await _mostrarPendentes(resultado.lojaId);
+          return;
+        }
+        throw Exception(_detalhe(response.body));
+      }
       if (!mounted) return;
       AppSnackBar.sucesso(
         context,
@@ -184,6 +190,87 @@ class _TitularEstabelecimentosSecaoState
       }
     } finally {
       if (mounted) setState(() => _salvando = false);
+    }
+  }
+
+  Future<void> _mostrarPendentes(int lojaId) async {
+    try {
+      final response = await ApiService.get(
+        '/titular-financeiro/organizacao/${widget.organizacaoId}/loja/$lojaId/pagamentos-pendentes',
+      );
+      if (response.statusCode != 200 || !mounted) return;
+      final dados = Map<String, dynamic>.from(jsonDecode(response.body));
+      final pagamentos = (dados['pagamentos'] as List? ?? [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+      if (pagamentos.isEmpty) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, atualizar) => AlertDialog(
+            title: const Text('Pagamentos pendentes'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Conclua ou cancele estes pagamentos antes de alterar o recebimento.',
+                ),
+                const SizedBox(height: 12),
+                for (final pagamento in pagamentos)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.orange,
+                    ),
+                    title: Text(
+                      "R\$ ${pagamento['valor']} • ${pagamento['metodo'] ?? 'Pagamento'}",
+                    ),
+                    subtitle: Text(
+                      'Status: ${pagamento['status']}\nID: ${pagamento['payment_id']}',
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: () async {
+                    final verificar = await ApiService.post(
+                      '/titular-financeiro/organizacao/${widget.organizacaoId}/loja/$lojaId/pagamentos-pendentes/verificar',
+                      {},
+                    );
+                    if (verificar.statusCode == 200 && context.mounted) {
+                      final atualizados = Map<String, dynamic>.from(
+                        jsonDecode(verificar.body),
+                      );
+                      final restantes =
+                          (atualizados['pagamentos'] as List? ?? []).length;
+                      if (restantes == 0) {
+                        Navigator.pop(context);
+                        AppSnackBar.sucesso(
+                          this.context,
+                          'Pagamentos atualizados. Tente associar novamente.',
+                        );
+                      } else {
+                        atualizar(() {});
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.sync_rounded),
+                  label: const Text('Verificar pagamentos'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Fechar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (_) {
+      // A mensagem original da associação continuará sendo exibida.
     }
   }
 
