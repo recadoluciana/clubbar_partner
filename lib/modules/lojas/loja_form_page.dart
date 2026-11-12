@@ -159,8 +159,8 @@ class _LojaFormPageState extends State<LojaFormPage> {
         return 'O celular deve começar com 9 após o DDD.';
       }
     }
-    if (capacidade == null || capacidade <= 0) {
-      return 'Informe a capacidade total de pessoas do estabelecimento.';
+    if (capacidade != null && capacidade <= 0) {
+      return 'A capacidade total deve ser maior que zero.';
     }
 
     if (_controlaValidadeProduto) {
@@ -407,6 +407,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       final diasValidade = _controlaValidadeProduto
           ? int.parse(_diasValidadeController.text.trim())
           : widget.loja?.nrdiavalidade ?? 90;
+      final capacidadeTotal = int.tryParse(_capacidadeController.text.trim());
 
       if (editando) {
         await _repository.atualizar(
@@ -430,7 +431,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           instagram: _instagramController.text.trim(),
           aberto24x7: widget.loja!.aberto24x7,
           idvalidadeprod: _idValidadeProd,
-          capacidadeTotal: int.parse(_capacidadeController.text.trim()),
+          capacidadeTotal: capacidadeTotal,
           usacashback: _usaCashback ? 'S' : 'N',
           pccashback: double.parse(
             _percentualCashbackController.text.replaceAll(',', '.'),
@@ -457,7 +458,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           numeroEndereco: _numeroEnderecoController.text.trim(),
           instagram: _instagramController.text.trim(),
           idvalidadeprod: _idValidadeProd,
-          capacidadeTotal: int.parse(_capacidadeController.text.trim()),
+          capacidadeTotal: capacidadeTotal,
           usacashback: _usaCashback ? 'S' : 'N',
           pccashback: double.parse(
             _percentualCashbackController.text.replaceAll(',', '.'),
@@ -484,7 +485,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
           idvalidadeprod: _idValidadeProd,
           endloja: _enderecoController.text.trim(),
           dsinstaloja: _instagramController.text.trim(),
-          capacidadeTotal: int.parse(_capacidadeController.text.trim()),
+          capacidadeTotal: capacidadeTotal,
           usacashback: _usaCashback ? 'S' : 'N',
           pccashback: double.parse(
             _percentualCashbackController.text.replaceAll(',', '.'),
@@ -1028,13 +1029,13 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     icone: Icons.groups_rounded,
                                     hint: 'Ex.: 500',
                                     helperText:
-                                        'Limite máximo usado na venda de ingressos.',
+                                        'Opcional. Usado como limite na venda de ingressos.',
                                   ),
                                   validator: (value) {
                                     final numero = int.tryParse(
                                       value?.trim() ?? '',
                                     );
-                                    if (numero == null || numero <= 0) {
+                                    if (numero != null && numero <= 0) {
                                       return 'Informe uma capacidade maior que zero.';
                                     }
                                     return null;
