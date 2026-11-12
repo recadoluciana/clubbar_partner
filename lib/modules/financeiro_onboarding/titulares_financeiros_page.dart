@@ -116,15 +116,13 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
     }
   }
 
-  // Mantido para preservar o fluxo existente; a alteração de status agora é feita pelo badge.
-  // ignore: unused_element
   Future<void> _alterarStatus(Map<String, dynamic> titular) async {
     final organizacaoId = _organizacaoId;
     final id = titular['titularfinanceiro_id'] as int?;
     if (organizacaoId == null || id == null || _processandoId != null) return;
     final possuiAsaas = _texto(titular['asaas_account_id']).isNotEmpty;
     final inativo = _texto(titular['sittitular']).toUpperCase() == 'INATIVO';
-    if (possuiAsaas && !inativo) {
+    if (_mostrarAsaas && possuiAsaas && !inativo) {
       AppSnackBar.aviso(
         context,
         'Titulares com subconta Asaas não podem ser inativados.',
@@ -639,20 +637,55 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
                 ),
               ],
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Chip(
-                avatar: Icon(
-                  inativo
-                      ? Icons.pause_circle_outline
-                      : Icons.check_circle_outline,
-                  size: 18,
-                  color: statusCor,
+            const SizedBox(height: 14),
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _processandoId == id
+                  ? null
+                  : () => _alterarStatus(titular),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: inativo
+                      ? ClubbarColors.textoSecundario.withValues(alpha: .10)
+                      : ClubbarColors.sucesso.withValues(alpha: .10),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: statusCor.withValues(alpha: .45)),
                 ),
-                label: Text(inativo ? 'Inativo' : 'Ativo'),
-                labelStyle: TextStyle(
-                  color: statusCor,
-                  fontWeight: FontWeight.w700,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      inativo
+                          ? Icons.pause_circle_outline_rounded
+                          : Icons.check_circle_outline_rounded,
+                      color: statusCor,
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      children: [
+                        Text(
+                          'STATUS DO TITULAR',
+                          style: TextStyle(
+                            color: statusCor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: .8,
+                          ),
+                        ),
+                        Text(
+                          inativo
+                              ? 'INATIVO — tocar para reativar'
+                              : 'ATIVO — tocar para inativar',
+                          style: TextStyle(
+                            color: statusCor,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
