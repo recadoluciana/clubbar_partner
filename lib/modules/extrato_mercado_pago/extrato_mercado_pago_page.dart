@@ -228,7 +228,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'São exibidos pagamentos dos últimos 12 meses da conta Mercado Pago vinculada, inclusive de outros estabelecimentos que usem essa conta. Este histórico não inclui todas as movimentações de saldo.',
+                        'São exibidos pagamentos identificados pelo Clubbar para este estabelecimento. Pagamentos sem vínculo identificado não aparecem neste extrato.',
                       ),
                       const SizedBox(height: 10),
                       if (_erro != null)
