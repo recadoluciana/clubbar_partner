@@ -244,11 +244,16 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                               (item['valor'] as num?)?.toDouble() ?? 0;
                           final estornado =
                               (item['estornado'] as num?)?.toDouble() ?? 0;
+                          final tipo = switch (item['tipo_venda']) {
+                            'INGRESSO' => 'Ingresso',
+                            'PRODUTO' => 'Produto',
+                            _ => 'Tipo não identificado',
+                          };
                           return Card(
                             child: ListTile(
                               title: Text(_descricaoLancamento(item)),
                               subtitle: Text(
-                                '${data == null ? 'Data indisponível' : _data.format(data.toLocal())} • ${_status(item['status'])}${estornado > 0 ? '\nReembolsado: ${_moeda.format(estornado)}' : ''}',
+                                '$tipo • ${data == null ? 'Data indisponível' : _data.format(data.toLocal())} • ${_status(item['status'])}${estornado > 0 ? '\nReembolsado: ${_moeda.format(estornado)}' : ''}',
                               ),
                               trailing: Text(_moeda.format(valor)),
                             ),
