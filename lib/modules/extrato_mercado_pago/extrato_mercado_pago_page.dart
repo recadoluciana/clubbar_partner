@@ -31,6 +31,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
   bool _carregando = true;
   bool _selecionandoLoja = false;
   String? _erro;
+  String? _nomeTitularConta;
   late DateTime _inicio;
   late DateTime _fim;
 
@@ -112,6 +113,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
     setState(() {
       _carregando = true;
       _erro = null;
+      _nomeTitularConta = null;
     });
     try {
       final data = DateFormat('yyyy-MM-dd');
@@ -137,6 +139,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
         setState(() {
           _pagamentos = dados['pagamentos'] as List? ?? [];
           _mais = dados['possui_mais'] == true;
+          _nomeTitularConta = dados['nome_titular_conta']?.toString();
         });
       }
     } catch (e) {
@@ -259,6 +262,8 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                           )).toList(),
                           onChanged: (valor) { setState(() { _contaId = valor; _offset = 0; }); _carregar(); },
                         ),
+                        const SizedBox(height: 12),
+                        Text('Titular da conta: ${_nomeTitularConta?.trim().isNotEmpty == true ? _nomeTitularConta : 'Não disponível'}'),
                         const SizedBox(height: 12),
                       ],
                       const Text(
