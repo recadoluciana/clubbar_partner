@@ -264,7 +264,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   Widget _selecaoClientes() => Card(
     margin: EdgeInsets.zero,
     child: ExpansionTile(
-      initiallyExpanded: true,
+      initiallyExpanded: false,
       title: Text(
         'Destinatários (${_clientesSelecionados.length}/${_clientes.length})',
       ),
