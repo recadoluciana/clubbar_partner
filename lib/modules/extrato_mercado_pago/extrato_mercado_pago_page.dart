@@ -21,6 +21,8 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
   final _data = DateFormat('dd/MM/yyyy HH:mm');
   List<Loja> _lojas = [];
   List<dynamic> _pagamentos = [];
+  List<dynamic> _contas = [];
+  int? _contaId;
   int? _lojaId;
   int? _organizacaoId;
   int _offset = 0;
@@ -82,6 +84,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           });
         }
       } else {
+        await _carregarContas();
         await _carregar();
       }
     } catch (e) {
@@ -92,6 +95,16 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
         });
       }
     }
+  }
+
+  Future<void> _carregarContas() async {
+    final uri = Uri(path: '/titular-financeiro/organizacao/$_organizacaoId/contas-extrato-mercado-pago', queryParameters: {'loja_id': '$_lojaId'});
+    final resposta = await ApiService.get(uri.toString());
+    if (resposta.statusCode != 200) throw Exception('Não foi possível carregar as contas Mercado Pago.');
+    final contas = jsonDecode(resposta.body) as List;
+    _contas = contas;
+    final atual = contas.where((c) => c['status'] == 'ATIVA').firstOrNull;
+    _contaId = (atual ?? contas.firstOrNull)?['id'] as int?;
   }
 
   Future<void> _carregar() async {
@@ -109,6 +122,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           'data_inicio': data.format(_inicio),
           'data_fim': data.format(_fim),
           'offset': '$_offset',
+          if (_contaId != null) 'conta_id': '$_contaId',
         },
       );
       final resposta = await ApiService.get(uri.toString());
@@ -143,7 +157,12 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
       _offset = 0;
       _selecionandoLoja = false;
     });
-    await _carregar();
+    try {
+      await _carregarContas();
+      await _carregar();
+    } catch (e) {
+      if (mounted) setState(() { _erro = e.toString().replaceFirst('Exception: ', ''); _carregando = false; });
+    }
   }
 
   Future<void> _periodo() async {
@@ -227,6 +246,18 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
+                      if (_contas.isNotEmpty) ...[
+                        DropdownButtonFormField<int>(
+                          initialValue: _contaId,
+                          decoration: const InputDecoration(labelText: 'Conta Mercado Pago', border: OutlineInputBorder()),
+                          items: _contas.map((conta) => DropdownMenuItem<int>(
+                            value: conta['id'] as int,
+                            child: Text('${conta['nome'] ?? conta['conta']} • ${conta['status'] == 'ATIVA' ? 'Atual' : 'Anterior'}', overflow: TextOverflow.ellipsis),
+                          )).toList(),
+                          onChanged: (valor) { setState(() { _contaId = valor; _offset = 0; }); _carregar(); },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       const Text(
                         'São exibidos pagamentos identificados pelo Clubbar para este estabelecimento. Pagamentos sem vínculo identificado não aparecem neste extrato.',
                       ),
