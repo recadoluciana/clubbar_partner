@@ -7,6 +7,7 @@ import '../../core/repositories/loja_repository.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../../models/loja.dart';
 
 class ExtratoMercadoPagoPage extends StatefulWidget {
@@ -185,10 +186,12 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    appBar: const ClubbarAppBar(mostrarVoltar: true),
     body: SafeArea(
       child: Column(
         children: [
           ClubbarPageHeader(
+            mostrarVoltar: false,
             titulo: 'Extrato Mercado Pago',
             subtitulo: 'Pagamentos da conta conectada',
             trailing: IconButton(
