@@ -150,26 +150,75 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
       _erro('Selecione pelo menos um canal de envio.');
       return;
     }
-    final confirmar = await showDialog<bool>(
+    final selecionados = await showDialog<Set<int>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enviar promoção?'),
-        content: const Text(
-          'A mensagem será enviada somente aos clientes selecionados que autorizaram os canais escolhidos.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+      builder: (context) {
+        final selecionadosLocal = Set<int>.from(_clientesSelecionados);
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Escolha os destinatários'),
+            content: SizedBox(
+              width: 460,
+              child: _clientes.isEmpty
+                  ? const Text('Nenhum cliente disponível para envio.')
+                  : SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Selecionar todos'),
+                            value: selecionadosLocal.length == _clientes.length,
+                            onChanged: (marcado) => setDialogState(() {
+                              if (marcado == true) {
+                                selecionadosLocal
+                                  ..clear()
+                                  ..addAll(_clientes.map((e) =>
+                                      (e['cliente_id'] as num).toInt()));
+                              } else {
+                                selecionadosLocal.clear();
+                              }
+                            }),
+                          ),
+                          for (final cliente in _clientes)
+                            CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('${cliente['nome']}'),
+                              subtitle: Text('${cliente['email']}'),
+                              value: selecionadosLocal.contains(
+                                (cliente['cliente_id'] as num).toInt(),
+                              ),
+                              onChanged: (marcado) => setDialogState(() {
+                                final id = (cliente['cliente_id'] as num).toInt();
+                                marcado == true
+                                    ? selecionadosLocal.add(id)
+                                    : selecionadosLocal.remove(id);
+                              }),
+                            ),
+                        ],
+                      ),
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: selecionadosLocal.isEmpty
+                    ? null
+                    : () => Navigator.pop(context, selecionadosLocal),
+                child: Text('Enviar (${selecionadosLocal.length})'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Enviar'),
-          ),
-        ],
-      ),
+        );
+      },
     );
-    if (confirmar != true || !mounted) return;
+    if (selecionados == null || !mounted) return;
+    setState(() => _clientesSelecionados
+      ..clear()
+      ..addAll(selecionados));
     setState(() => _carregando = true);
     try {
       final r = await ApiService.post(
@@ -264,7 +313,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   Widget _selecaoClientes() => Card(
     margin: EdgeInsets.zero,
     child: ExpansionTile(
-      initiallyExpanded: true,
+      initiallyExpanded: false,
       title: Text(
         'Destinatários (${_clientesSelecionados.length}/${_clientes.length})',
       ),
@@ -397,8 +446,6 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    _selecaoClientes(),
                     const SizedBox(height: 12),
                     _preview(),
                     const SizedBox(height: 12),
