@@ -381,7 +381,17 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: const ClubbarAppBar(mostrarTopbar: true, mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarTopbar: true,
+      mostrarVoltar: true,
+      onVoltar: () {
+        if (_criando) {
+          setState(() => _criando = false);
+        } else {
+          Navigator.maybePop(context);
+        }
+      },
+    ),
     body: _carregando
         ? const Center(child: CircularProgressIndicator())
         : Column(
@@ -390,7 +400,11 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
               ClubbarPageHeader(
                 titulo: _criando ? 'Nova campanha' : 'Campanhas de Marketing',
                 subtitulo: _criando
-                    ? 'Crie e revise sua campanha.'
+                    ? _lojas
+                              .where((loja) => loja.lojaId == _loja)
+                              .map((loja) => loja.nmloja)
+                              .firstOrNull ??
+                          'Estabelecimento não selecionado'
                     : 'Consulte e envie suas campanhas.',
                 mostrarVoltar: false,
                 padding: EdgeInsets.fromLTRB(20, 14, 20, 16),
@@ -399,35 +413,31 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
                   children: [
-                    DropdownButtonFormField<int>(
-                      initialValue: _loja,
-                      decoration: const InputDecoration(
-                        labelText: 'Estabelecimento',
-                        border: OutlineInputBorder(),
+                    if (!_criando)
+                      DropdownButtonFormField<int>(
+                        initialValue: _loja,
+                        decoration: const InputDecoration(
+                          labelText: 'Estabelecimento',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _lojas
+                            .map(
+                              (loja) => DropdownMenuItem(
+                                value: loja.lojaId,
+                                child: Text(loja.nmloja),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) {
+                          setState(() {
+                            _loja = v;
+                            _campanhas = [];
+                          });
+                          _carregar();
+                        },
                       ),
-                      items: _lojas
-                          .map(
-                            (loja) => DropdownMenuItem(
-                              value: loja.lojaId,
-                              child: Text(loja.nmloja),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) {
-                        setState(() {
-                          _loja = v;
-                          _campanhas = [];
-                        });
-                        _carregar();
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                    if (!_criando) const SizedBox(height: 16),
                     if (_criando) ...[
-                      TextButton.icon(
-                        onPressed: () => setState(() => _criando = false),
-                        icon: const Icon(Icons.arrow_back),
-                        label: const Text('Voltar para campanhas'),
-                      ),
                       TextField(
                         controller: _titulo,
                         maxLength: 100,
@@ -499,7 +509,9 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                       ),
                       const SizedBox(height: 12),
                       FilledButton.icon(
-                        onPressed: () => setState(() => _criando = true),
+                        onPressed: _loja == null
+                            ? null
+                            : () => setState(() => _criando = true),
                         icon: const Icon(Icons.add),
                         label: const Text('Nova campanha'),
                       ),
