@@ -20,6 +20,7 @@ class CampanhasPromocionaisPage extends StatefulWidget {
 class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   final _titulo = TextEditingController();
   final _mensagem = TextEditingController();
+  final _busca = TextEditingController();
   List<Loja> _lojas = [];
   List<dynamic> _campanhas = [];
   List<Map<String, dynamic>> _clientes = [];
@@ -28,6 +29,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   bool _carregando = true;
   bool _push = true;
   bool _email = true;
+  bool _criando = false;
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   void dispose() {
     _titulo.dispose();
     _mensagem.dispose();
+    _busca.dispose();
     super.dispose();
   }
 
@@ -137,7 +140,10 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
       _titulo.clear();
       _mensagem.clear();
       await _carregar();
-      if (mounted) _erro('Rascunho salvo. Nenhuma mensagem foi enviada.');
+      if (mounted) {
+        setState(() => _criando = false);
+        _erro('Rascunho salvo. Nenhuma mensagem foi enviada.');
+      }
     } catch (_) {
       if (mounted) _erro('Não foi possível salvar a campanha.');
     } finally {
@@ -146,10 +152,8 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   }
 
   Future<void> _enviar(Map campanha) async {
-    if (!_push && !_email) {
-      _erro('Selecione pelo menos um canal de envio.');
-      return;
-    }
+    var pushSelecionado = _push;
+    var emailSelecionado = _email;
     final selecionados = await showDialog<Set<int>>(
       context: context,
       builder: (context) {
@@ -165,6 +169,21 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          const Text('Enviar campanha por'),
+                          CheckboxListTile(
+                            title: const Text('Notificação no aplicativo'),
+                            value: pushSelecionado,
+                            onChanged: (valor) => setDialogState(
+                              () => pushSelecionado = valor ?? false,
+                            ),
+                          ),
+                          CheckboxListTile(
+                            title: const Text('E-mail'),
+                            value: emailSelecionado,
+                            onChanged: (valor) => setDialogState(
+                              () => emailSelecionado = valor ?? false,
+                            ),
+                          ),
                           CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
                             title: const Text('Selecionar todos'),
@@ -173,8 +192,11 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                               if (marcado == true) {
                                 selecionadosLocal
                                   ..clear()
-                                  ..addAll(_clientes.map((e) =>
-                                      (e['cliente_id'] as num).toInt()));
+                                  ..addAll(
+                                    _clientes.map(
+                                      (e) => (e['cliente_id'] as num).toInt(),
+                                    ),
+                                  );
                               } else {
                                 selecionadosLocal.clear();
                               }
@@ -189,7 +211,8 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                                 (cliente['cliente_id'] as num).toInt(),
                               ),
                               onChanged: (marcado) => setDialogState(() {
-                                final id = (cliente['cliente_id'] as num).toInt();
+                                final id = (cliente['cliente_id'] as num)
+                                    .toInt();
                                 marcado == true
                                     ? selecionadosLocal.add(id)
                                     : selecionadosLocal.remove(id);
@@ -205,7 +228,9 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                 child: const Text('Cancelar'),
               ),
               FilledButton(
-                onPressed: selecionadosLocal.isEmpty
+                onPressed:
+                    selecionadosLocal.isEmpty ||
+                        (!pushSelecionado && !emailSelecionado)
                     ? null
                     : () => Navigator.pop(context, selecionadosLocal),
                 child: Text('Enviar (${selecionadosLocal.length})'),
@@ -216,9 +241,13 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
       },
     );
     if (selecionados == null || !mounted) return;
-    setState(() => _clientesSelecionados
-      ..clear()
-      ..addAll(selecionados));
+    setState(
+      () => _clientesSelecionados
+        ..clear()
+        ..addAll(selecionados),
+    );
+    _push = pushSelecionado;
+    _email = emailSelecionado;
     setState(() => _carregando = true);
     try {
       final r = await ApiService.post(
@@ -261,8 +290,50 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Resultado da campanha'),
-          content: Text(
-            'Situação: ${dados['status']}\n\n${entregas.entries.map((e) => '${e.key}: ${e.value}').join('\n')}\n\nEnviado significa que o provedor aceitou a solicitação; não confirma a leitura.',
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Situação: ${dados['status']}'),
+                  const SizedBox(height: 12),
+                  ...entregas.entries.map((e) => Text('${e.key}: ${e.value}')),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Destinatários',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  if (dados['destinatarios'] is! List)
+                    const Text(
+                      'Atualize a API para consultar os destinatários.',
+                    )
+                  else if ((dados['destinatarios'] as List).isEmpty)
+                    const Text(
+                      'Não há destinatários registrados para esta campanha.',
+                    )
+                  else
+                    for (final destinatario in dados['destinatarios'] as List)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('${destinatario['nome']}'),
+                        subtitle: Text(
+                          [
+                            if (destinatario['email'] != null)
+                              '${destinatario['email']}',
+                            for (final envio in destinatario['envios'] as List)
+                              '${envio['canal'] == 'push' ? 'Notificação' : 'E-mail'}: ${envio['status']}',
+                          ].join('\n'),
+                        ),
+                      ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Enviado significa que o provedor aceitou a solicitação; não confirma a entrega ou a leitura.',
+                  ),
+                ],
+              ),
+            ),
           ),
           actions: [
             TextButton(
@@ -302,53 +373,9 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                 : _mensagem.text.trim(),
           ),
           const SizedBox(height: 12),
-          Text(
-            '${_clientesSelecionados.length} cliente(s) selecionado(s) • ${_push ? 'Notificação' : ''}${_push && _email ? ' e ' : ''}${_email ? 'e-mail' : ''}',
-          ),
+          Text('Os canais e destinatários serão escolhidos ao enviar.'),
         ],
       ),
-    ),
-  );
-
-  Widget _selecaoClientes() => Card(
-    margin: EdgeInsets.zero,
-    child: ExpansionTile(
-      initiallyExpanded: false,
-      title: Text(
-        'Destinatários (${_clientesSelecionados.length}/${_clientes.length})',
-      ),
-      subtitle: const Text('Escolha um, alguns ou todos os clientes'),
-      children: [
-        CheckboxListTile(
-          title: const Text('Selecionar todos'),
-          value:
-              _clientes.isNotEmpty &&
-              _clientesSelecionados.length == _clientes.length,
-          onChanged: (marcado) => setState(() {
-            if (marcado == true) {
-              _clientesSelecionados.addAll(
-                _clientes.map((e) => (e['cliente_id'] as num).toInt()),
-              );
-            } else {
-              _clientesSelecionados.clear();
-            }
-          }),
-        ),
-        for (final cliente in _clientes)
-          CheckboxListTile(
-            title: Text('${cliente['nome']}'),
-            subtitle: Text('${cliente['email']}'),
-            value: _clientesSelecionados.contains(
-              (cliente['cliente_id'] as num).toInt(),
-            ),
-            onChanged: (marcado) => setState(() {
-              final id = (cliente['cliente_id'] as num).toInt();
-              marcado == true
-                  ? _clientesSelecionados.add(id)
-                  : _clientesSelecionados.remove(id);
-            }),
-          ),
-      ],
     ),
   );
 
@@ -360,10 +387,11 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const ClubbarPageHeader(
-                titulo: 'Campanhas de Marketing',
-                subtitulo:
-                    'Crie, revise e envie uma campanha para clientes selecionados.',
+              ClubbarPageHeader(
+                titulo: _criando ? 'Nova campanha' : 'Campanhas de Marketing',
+                subtitulo: _criando
+                    ? 'Crie e revise sua campanha.'
+                    : 'Consulte e envie suas campanhas.',
                 mostrarVoltar: false,
                 padding: EdgeInsets.fromLTRB(20, 14, 20, 16),
               ),
@@ -394,91 +422,124 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _titulo,
-                      maxLength: 100,
-                      decoration: const InputDecoration(
-                        labelText: 'Título da campanha',
-                        border: OutlineInputBorder(),
+                    if (_criando) ...[
+                      TextButton.icon(
+                        onPressed: () => setState(() => _criando = false),
+                        icon: const Icon(Icons.arrow_back),
+                        label: const Text('Voltar para campanhas'),
                       ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _mensagem,
-                      minLines: 3,
-                      maxLines: 6,
-                      maxLength: 1024,
-                      decoration: const InputDecoration(
-                        labelText: 'Mensagem',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 10),
-                    Card(
-                      margin: EdgeInsets.zero,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-                              child: Text(
-                                'Enviar campanha por',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            CheckboxListTile(
-                              title: const Text('Notificação no aplicativo'),
-                              value: _push,
-                              onChanged: (v) =>
-                                  setState(() => _push = v ?? false),
-                            ),
-                            CheckboxListTile(
-                              title: const Text('E-mail'),
-                              value: _email,
-                              onChanged: (v) =>
-                                  setState(() => _email = v ?? false),
-                            ),
-                          ],
+                      TextField(
+                        controller: _titulo,
+                        maxLength: 100,
+                        decoration: const InputDecoration(
+                          labelText: 'Título da campanha',
+                          border: OutlineInputBorder(),
                         ),
+                        onChanged: (_) => setState(() {}),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    _preview(),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: _salvar,
-                      child: const Text('Salvar rascunho'),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Campanhas',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    if (_campanhas.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Text('Nenhuma campanha cadastrada.'),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _mensagem,
+                        minLines: 3,
+                        maxLines: 6,
+                        maxLength: 1024,
+                        decoration: const InputDecoration(
+                          labelText: 'Mensagem',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) => setState(() {}),
                       ),
-                    for (final c in _campanhas)
+                      const SizedBox(height: 10),
                       Card(
-                        child: ListTile(
-                          title: Text('${c['titulo']}'),
-                          subtitle: Text('${c['mensagem']}\n${c['status']}'),
-                          trailing: c['status'] == 'RASCUNHO'
-                              ? TextButton(
-                                  onPressed: () => _enviar(c as Map),
-                                  child: const Text('Enviar'),
-                                )
-                              : TextButton(
-                                  onPressed: () => _resultado(c as Map),
-                                  child: const Text('Resultado'),
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+                                child: Text(
+                                  'Enviar campanha por',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
+                              ),
+                              CheckboxListTile(
+                                title: const Text('Notificação no aplicativo'),
+                                value: _push,
+                                onChanged: (v) =>
+                                    setState(() => _push = v ?? false),
+                              ),
+                              CheckboxListTile(
+                                title: const Text('E-mail'),
+                                value: _email,
+                                onChanged: (v) =>
+                                    setState(() => _email = v ?? false),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      _preview(),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        onPressed: _salvar,
+                        child: const Text('Salvar rascunho'),
+                      ),
+                    ] else ...[
+                      TextField(
+                        controller: _busca,
+                        decoration: const InputDecoration(
+                          labelText: 'Buscar campanha',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: () => setState(() => _criando = true),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Nova campanha'),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Campanhas',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      if (_campanhas
+                          .where(
+                            (c) => '${c['titulo']} ${c['mensagem']}'
+                                .toLowerCase()
+                                .contains(_busca.text.trim().toLowerCase()),
+                          )
+                          .isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Text('Nenhuma campanha encontrada.'),
+                        ),
+                      for (final c in _campanhas.where(
+                        (c) => '${c['titulo']} ${c['mensagem']}'
+                            .toLowerCase()
+                            .contains(_busca.text.trim().toLowerCase()),
+                      ))
+                        Card(
+                          child: ListTile(
+                            title: Text('${c['titulo']}'),
+                            subtitle: Text('${c['mensagem']}\n${c['status']}'),
+                            trailing: c['status'] == 'RASCUNHO'
+                                ? TextButton(
+                                    onPressed: () => _enviar(c as Map),
+                                    child: const Text('Enviar'),
+                                  )
+                                : TextButton(
+                                    onPressed: () => _resultado(c as Map),
+                                    child: const Text('Resultado'),
+                                  ),
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               ),
