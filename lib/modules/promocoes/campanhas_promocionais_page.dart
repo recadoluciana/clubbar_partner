@@ -323,7 +323,7 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
                             if (destinatario['email'] != null)
                               '${destinatario['email']}',
                             for (final envio in destinatario['envios'] as List)
-                              '${envio['canal'] == 'push' ? 'Notificação' : 'E-mail'}: ${envio['status']}',
+                              '${envio['canal'] == 'push' ? 'Notificação' : 'E-mail'}: ${envio['status']}${envio['clicado_em'] != null ? (envio['canal'] == 'push' ? ' • Clicou na notificação' : ' • Clicou no link') : ''}',
                           ].join('\n'),
                         ),
                       ),
