@@ -22,7 +22,7 @@ class ClubbarPageHeader extends StatelessWidget {
     this.trailing,
     this.tituloStyle,
     this.padding = const EdgeInsets.fromLTRB(18, 10, 16, 12),
-    this.mostrarVoltar = true,
+    this.mostrarVoltar = false,
     this.onVoltar,
   });
 
