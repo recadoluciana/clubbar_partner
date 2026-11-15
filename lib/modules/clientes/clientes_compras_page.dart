@@ -340,6 +340,7 @@ class _ClientesComprasPageState extends State<ClientesComprasPage> {
           children: [
             ClubbarPageHeader(
               titulo: 'Clientes e compras',
+              mostrarVoltar: false,
               subtitulo:
                   'Cadastros e histórico completo de vendas da organização',
               trailing: IconButton(
