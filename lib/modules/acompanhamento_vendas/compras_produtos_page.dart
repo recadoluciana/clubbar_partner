@@ -231,33 +231,64 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
     ),
   );
 
-  Widget _resumo(String titulo, int quantidade, Color cor) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cor.withValues(alpha: .09),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: cor.withValues(alpha: .22)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$quantidade',
-            style: TextStyle(
-              color: cor,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
+  Widget _resumo(String titulo, int quantidade, Color cor, String situacao) {
+    final selecionado = _situacao == situacao;
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selecionado,
+        child: Material(
+          color: cor.withValues(alpha: selecionado ? .16 : .09),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: selecionado ? cor : cor.withValues(alpha: .22),
             ),
           ),
-          Text(
-            titulo,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _carregando || selecionado
+                ? null
+                : () {
+                    setState(() => _situacao = situacao);
+                    _carregar();
+                  },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '$quantidade',
+                          style: TextStyle(
+                            color: cor,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (selecionado)
+                        Icon(Icons.check_circle_rounded, size: 18, color: cor),
+                    ],
+                  ),
+                  Text(
+                    titulo,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -360,42 +391,22 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                                 'Unidades compradas',
                                 compradas,
                                 ClubbarColors.info,
+                                'TODOS',
                               ),
                               const SizedBox(width: 10),
                               _resumo(
                                 'Unidades a retirar',
                                 pendentes,
                                 ClubbarColors.aviso,
+                                'PENDENTES',
                               ),
                               const SizedBox(width: 10),
                               _resumo(
                                 'Unidades retiradas',
                                 retirados,
                                 ClubbarColors.sucesso,
+                                'RETIRADOS',
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final filtro in const [
-                                ('TODOS', 'Todas'),
-                                ('PENDENTES', 'A retirar'),
-                                ('RETIRADOS', 'Retiradas'),
-                              ])
-                                ChoiceChip(
-                                  label: Text(filtro.$2),
-                                  selected: _situacao == filtro.$1,
-                                  selectedColor: ClubbarColors.primariaClaro,
-                                  onSelected: (_) {
-                                    if (_situacao != filtro.$1) {
-                                      setState(() => _situacao = filtro.$1);
-                                      _carregar();
-                                    }
-                                  },
-                                ),
                             ],
                           ),
                           const SizedBox(height: 16),
