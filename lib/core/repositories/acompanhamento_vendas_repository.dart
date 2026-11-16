@@ -49,24 +49,40 @@ class AcompanhamentoVendasRepository {
     if (fim != null) {
       parametros['fim'] = fim.toIso8601String().split('T').first;
     }
-    final response = await ApiService.get(
-      '/acompanhamento-vendas/produtos?${Uri(queryParameters: parametros).query}',
-    );
-    if (response.statusCode != 200) {
-      throw Exception(
-        _erro(
-          response.body,
-          'Não foi possível consultar as compras de produtos.',
-        ),
+    const tamanhoPagina = 500;
+    final compras = <CompraProduto>[];
+    while (true) {
+      parametros['limite'] = '$tamanhoPagina';
+      parametros['offset'] = '${compras.length}';
+      final response = await ApiService.get(
+        '/acompanhamento-vendas/produtos?${Uri(queryParameters: parametros).query}',
       );
+      if (response.statusCode != 200) {
+        throw Exception(
+          _erro(
+            response.body,
+            'Não foi possível consultar as compras de produtos.',
+          ),
+        );
+      }
+      final dados = Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+      final pagina = ((dados['itens'] as List?) ?? const [])
+          .map(
+            (item) =>
+                CompraProduto.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList();
+      // Detecta um servidor antigo que ignora o offset, evitando somas duplicadas.
+      if (compras.isNotEmpty &&
+          pagina.isNotEmpty &&
+          pagina.first.itemVendaId == compras.first.itemVendaId) {
+        throw Exception(
+          'Não foi possível consultar todos os produtos. Atualize a API e tente novamente.',
+        );
+      }
+      compras.addAll(pagina);
+      if (pagina.length < tamanhoPagina) return compras;
     }
-    final dados = Map<String, dynamic>.from(jsonDecode(response.body) as Map);
-    return ((dados['itens'] as List?) ?? const [])
-        .map(
-          (item) =>
-              CompraProduto.fromJson(Map<String, dynamic>.from(item as Map)),
-        )
-        .toList();
   }
 
   Future<List<ClienteComCompras>> clientesComCompras({String? busca}) async {
