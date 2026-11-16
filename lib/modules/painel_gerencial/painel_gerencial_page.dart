@@ -124,11 +124,6 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
           onPressed: _carregando ? null : _carregar,
           icon: const Icon(Icons.refresh_rounded, size: 22),
           color: ClubbarColors.preto,
-          style: IconButton.styleFrom(
-            backgroundColor: ClubbarColors.ambar,
-            disabledBackgroundColor: ClubbarColors.borda,
-            shape: const CircleBorder(),
-          ),
         ),
       ),
     );
@@ -169,55 +164,28 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
     );
   }
 
-  Widget _kpi({
-    required String titulo,
-    required String valor,
-    required IconData icone,
-  }) {
-    return ClubbarCard(
-      elevation: 1,
-      padding: const EdgeInsets.all(15),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: ClubbarColors.ambarClaro,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Icon(icone, color: ClubbarColors.ambarEscuro),
+  Widget _kpi({required String titulo, required String valor}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          titulo,
+          style: const TextStyle(
+            fontSize: 12,
+            color: ClubbarColors.textoSecundario,
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: ClubbarColors.textoSecundario,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    valor,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        ),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            valor,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -233,11 +201,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
         children: [
           Text(titulo, style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
-          Text(
-            _moeda.format(total),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -246,7 +210,6 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                   valor: produtos == null
                       ? 'Indisponível'
                       : _moeda.format(produtos),
-                  icone: Icons.shopping_bag_outlined,
                 ),
               ),
               const SizedBox(width: 8),
@@ -256,8 +219,11 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                   valor: ingressos == null
                       ? 'Indisponível'
                       : _moeda.format(ingressos),
-                  icone: Icons.confirmation_number_outlined,
                 ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _kpi(titulo: 'Total', valor: _moeda.format(total)),
               ),
             ],
           ),
@@ -526,7 +492,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
         return Column(
           children: [
             _totalComDetalhes(
-              'Total vendido hoje',
+              'Vendido hoje',
               painel.totalHoje,
               painel.totalProdutosHoje,
               painel.totalIngressosHoje,
@@ -540,7 +506,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
               _EstadoErro(mensagem: _erro!, onTentarNovamente: _carregar)
             else ...[
               _totalComDetalhes(
-                'Total vendido no mês',
+                'Vendido no mês',
                 painel.totalMes,
                 painel.totalProdutosMes,
                 painel.totalIngressosMes,
