@@ -529,6 +529,7 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: ClubbarColors.fundo,
       appBar: ClubbarAppBar(
         mostrarTopbar: true,
+        mostrarVoltar: Navigator.canPop(context),
         mostrarSair: true,
         centralizarLogo: false,
         onSair: _sair,

@@ -10,6 +10,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../../models/loja.dart';
 import '../../models/usuario.dart';
 import 'usuario_form_page.dart';
@@ -755,6 +756,7 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
 
       bottomNavigationBar: ClubbarActionBar(
         actions: [

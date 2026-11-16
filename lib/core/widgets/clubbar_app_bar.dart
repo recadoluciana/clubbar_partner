@@ -64,7 +64,9 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ? Alignment.center
                 : Alignment.centerLeft,
             child: Padding(
-              padding: EdgeInsets.only(left: centralizarLogo ? 0 : 18),
+              padding: EdgeInsets.only(
+                left: centralizarLogo ? 0 : (mostrarVoltar ? 64 : 18),
+              ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

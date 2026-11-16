@@ -555,6 +555,7 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: ClubbarColors.primaria,
       appBar: ClubbarAppBar(
         mostrarTopbar: true,
+        mostrarVoltar: Navigator.canPop(context),
         actions: [
           IconButton(
             tooltip: 'Fechar aplicativo',

@@ -7,6 +7,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import 'extrato_asaas_repository.dart';
 import '../../models/loja.dart';
 
@@ -121,6 +122,7 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
         .cast<Map>();
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: Column(
         children: [
           ClubbarPageHeader(

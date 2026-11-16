@@ -4,6 +4,7 @@ import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/app_snackbar.dart';
 
 class CategoriasProdutosPage extends StatefulWidget {
@@ -462,6 +463,7 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
         .where((e) => '${e['nmcategoria']}'.toLowerCase().contains(_busca))
         .toList();
     return Scaffold(
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: Column(
         children: [
           ClubbarPageHeader(

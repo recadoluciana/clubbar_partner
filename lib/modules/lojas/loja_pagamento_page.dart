@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../../models/loja.dart';
 import '../financeiro_onboarding/titular_financeiro_repository.dart';
 
@@ -125,6 +126,7 @@ class _LojaPagamentoPageState extends State<LojaPagamentoPage> {
   Widget build(BuildContext context) {
     final mpPronto = _mercadoPago?['conectada'] == true;
     return Scaffold(
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: Column(
         children: [
           ClubbarPageHeader(

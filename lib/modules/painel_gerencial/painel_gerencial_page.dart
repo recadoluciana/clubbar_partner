@@ -611,16 +611,17 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
         toolbarHeight: 60,
         automaticallyImplyLeading: false,
         titleSpacing: 8,
+        leading: IconButton(
+          tooltip: 'Voltar',
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Icons.arrow_back_rounded, size: 25),
+        ),
         title: Row(
           children: [
-            IconButton(
-              tooltip: 'Voltar',
-              onPressed: () => Navigator.maybePop(context),
-              icon: Image.asset(
-                'assets/images/corujao.png',
-                height: 40,
-                fit: BoxFit.contain,
-              ),
+            Image.asset(
+              'assets/images/corujao.png',
+              height: 40,
+              fit: BoxFit.contain,
             ),
             const SizedBox(width: 4),
             Expanded(

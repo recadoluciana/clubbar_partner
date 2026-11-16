@@ -675,9 +675,10 @@ class _SelecionarProdutoPageState extends State<_SelecionarProdutoPage> {
     final produtos = _produtosFiltrados;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Selecione o produto')),
+    appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: Column(
         children: [
+        const ClubbarPageHeader(titulo: 'Selecione o produto', subtitulo: ''),
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
