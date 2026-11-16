@@ -13,8 +13,11 @@ import '../../models/acompanhamento_vendas.dart';
 import '../../models/loja.dart';
 import 'detalhe_vendas_evento_page.dart';
 
+enum TipoAcompanhamento { produtos, ingressos }
+
 class AcompanhamentoVendasPage extends StatefulWidget {
-  const AcompanhamentoVendasPage({super.key});
+  const AcompanhamentoVendasPage({super.key, required this.tipo});
+  final TipoAcompanhamento tipo;
   @override
   State<AcompanhamentoVendasPage> createState() =>
       _AcompanhamentoVendasPageState();
@@ -81,14 +84,16 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
       });
     }
     try {
-      final resultados = await Future.wait([
-        _repo.produtosPendentes(lojaId: _lojaId),
-        _repo.eventos(_periodo, lojaId: _lojaId),
-      ]);
+      final produtos = widget.tipo == TipoAcompanhamento.produtos
+          ? await _repo.produtosPendentes(lojaId: _lojaId)
+          : null;
+      final eventos = widget.tipo == TipoAcompanhamento.ingressos
+          ? await _repo.eventos(_periodo, lojaId: _lojaId)
+          : null;
       if (!mounted) return;
       setState(() {
-        _produtos = resultados[0] as ProdutosPendentesResumo;
-        _eventos = resultados[1] as List<EventoVendaResumo>;
+        _produtos = produtos;
+        _eventos = eventos ?? const [];
         _carregando = false;
       });
     } catch (e) {
@@ -439,48 +444,31 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
   }
 
   @override
-  Widget build(BuildContext context) => DefaultTabController(
-    length: 2,
-    child: Scaffold(
-      backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
-      body: SafeArea(
-        child: Column(
-          children: [
-            ClubbarPageHeader(
-              titulo: 'Acompanhamento de vendas',
-              subtitulo: 'Produtos a retirar e ingressos vendidos',
-              trailing: IconButton(
-                onPressed: _carregando ? null : _carregar,
-                icon: const Icon(Icons.refresh_rounded),
-              ),
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: ClubbarColors.fundo,
+    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    body: SafeArea(
+      child: Column(
+        children: [
+          ClubbarPageHeader(
+            titulo: widget.tipo == TipoAcompanhamento.produtos
+                ? 'Produtos a retirar'
+                : 'Ingressos vendidos',
+            subtitulo: widget.tipo == TipoAcompanhamento.produtos
+                ? 'Acompanhamento de produtos pendentes'
+                : 'Acompanhamento de vendas por evento',
+            trailing: IconButton(
+              onPressed: _carregando ? null : _carregar,
+              icon: const Icon(Icons.refresh_rounded),
             ),
-            _seletorEstabelecimento(),
-            const Material(
-              color: Colors.white,
-              child: TabBar(
-                labelColor: ClubbarColors.primaria,
-                unselectedLabelColor: ClubbarColors.textoSecundario,
-                indicatorColor: ClubbarColors.primaria,
-                tabs: [
-                  Tab(
-                    icon: Icon(Icons.inventory_2_rounded),
-                    text: 'Produtos a retirar',
-                  ),
-                  Tab(
-                    icon: Icon(Icons.confirmation_number_rounded),
-                    text: 'Ingressos vendidos',
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [_conteudoProdutos(), _conteudoIngressos()],
-              ),
-            ),
-          ],
-        ),
+          ),
+          _seletorEstabelecimento(),
+          Expanded(
+            child: widget.tipo == TipoAcompanhamento.produtos
+                ? _conteudoProdutos()
+                : _conteudoIngressos(),
+          ),
+        ],
       ),
     ),
   );

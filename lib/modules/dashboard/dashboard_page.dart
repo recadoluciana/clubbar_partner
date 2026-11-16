@@ -251,9 +251,9 @@ class _DashboardPageState extends State<DashboardPage> {
     ).push<void>(MaterialPageRoute(builder: (_) => const ExtratoAsaasPage()));
   }
 
-  Future<void> _abrirAcompanhamentoVendas() async {
+  Future<void> _abrirAcompanhamentoVendas(TipoAcompanhamento tipo) async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const AcompanhamentoVendasPage()),
+      MaterialPageRoute(builder: (_) => AcompanhamentoVendasPage(tipo: tipo)),
     );
   }
 
@@ -820,7 +820,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                             _grupoArvore(
-                              titulo: 'Gerencial',
+                              titulo: 'Gerencial - Produtos',
                               icone: Icons.analytics_rounded,
                               filhos: [
                                 _opcao(
@@ -833,14 +833,39 @@ class _DashboardPageState extends State<DashboardPage> {
                                       : null,
                                 ),
                                 _opcao(
-                                  titulo: 'Acompanhamento de vendas',
+                                  titulo: 'Produtos a retirar',
                                   subtitulo:
-                                      'Veja produtos ainda não retirados e acompanhe as vendas de ingressos por evento.',
+                                      'Veja os produtos vendidos que ainda não foram retirados.',
                                   icone: Icons.monitor_heart_rounded,
                                   onTap: _podeVerGerencial
-                                      ? _abrirAcompanhamentoVendas
+                                      ? () => _abrirAcompanhamentoVendas(
+                                          TipoAcompanhamento.produtos,
+                                        )
                                       : null,
                                 ),
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Gerencial - Ingressos',
+                              icone: Icons.confirmation_number_rounded,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Ingressos vendidos',
+                                  subtitulo:
+                                      'Acompanhe as vendas de ingressos por evento.',
+                                  icone: Icons.monitor_heart_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? () => _abrirAcompanhamentoVendas(
+                                          TipoAcompanhamento.ingressos,
+                                        )
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Gerencial',
+                              icone: Icons.analytics_rounded,
+                              filhos: [
                                 _opcao(
                                   titulo: 'Painel Gerencial',
                                   subtitulo:
