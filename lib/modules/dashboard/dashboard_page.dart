@@ -706,7 +706,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                             _grupoArvore(
-                              titulo: 'Mercado Pago',
+                              titulo: 'Integração Mercado Pago',
                               icone: Icons.account_balance_wallet_rounded,
                               filhos: [
                                 _opcao(
@@ -767,7 +767,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                             _grupoArvore(
-                              titulo: 'Meu cliente',
+                              titulo: 'Meus clientes',
                               icone: Icons.tune_rounded,
                               filhos: [
                                 _opcao(
@@ -858,7 +858,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                             _grupoArvore(
-                              titulo: 'Painel gerencial',
+                              titulo: 'Painel - Gerencial',
                               icone: Icons.analytics_rounded,
                               filhos: [
                                 _opcao(
