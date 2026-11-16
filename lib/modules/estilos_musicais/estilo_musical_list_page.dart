@@ -6,6 +6,7 @@ import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../../models/atracao.dart';
 
 class EstiloMusicalListPage extends StatefulWidget {
@@ -357,6 +358,7 @@ class _EstiloMusicalListPageState extends State<EstiloMusicalListPage> {
     final itens = _filtrados;
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       bottomNavigationBar: ClubbarActionBar(
         actions: [
           ClubbarAddButton(

@@ -664,7 +664,11 @@ class _CaixaPageState extends State<CaixaPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
-    appBar: ClubbarAppBar(mostrarSair: true, onSair: _sair),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: Navigator.canPop(context),
+      mostrarSair: true,
+      onSair: _sair,
+    ),
     body: _carregando || _contexto == null
         ? const Center(child: CircularProgressIndicator())
         : Column(
@@ -862,6 +866,7 @@ class _ProdutoCashierPageState extends State<_ProdutoCashierPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: SafeArea(
         child: Column(
           children: [

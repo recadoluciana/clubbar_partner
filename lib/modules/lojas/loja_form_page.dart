@@ -14,6 +14,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_localidade_field.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../../models/loja.dart';
 import '../../models/atracao.dart';
 import '../financeiro_onboarding/titular_financeiro_repository.dart';
@@ -572,6 +573,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       bottomNavigationBar: ClubbarActionBar(
         actions: [
           FilledButton.icon(

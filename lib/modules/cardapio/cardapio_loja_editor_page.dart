@@ -13,6 +13,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/asaas_pendente_dialog.dart';
 import '../../core/widgets/clubbar_action_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../../models/loja.dart';
 
 class CardapioLojaEditorPage extends StatefulWidget {
@@ -1494,6 +1495,7 @@ class _CardapioLojaEditorPageState extends State<CardapioLojaEditorPage> {
     },
     child: Scaffold(
       backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       bottomNavigationBar: ClubbarActionBar(
         singleLine: true,
         actions: [
