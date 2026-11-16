@@ -426,6 +426,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
     required String titulo,
     required List<ItemRankingGerencial> itens,
     required String vazio,
+    bool coresDoGrafico = false,
   }) {
     return ClubbarCard(
       elevation: 1,
@@ -449,8 +450,12 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                   children: [
                     CircleAvatar(
                       radius: 15,
-                      backgroundColor: ClubbarColors.ambarClaro,
-                      foregroundColor: ClubbarColors.preto,
+                      backgroundColor: coresDoGrafico
+                          ? _corGrafico(entry.key)
+                          : ClubbarColors.ambarClaro,
+                      foregroundColor: coresDoGrafico
+                          ? Colors.white
+                          : ClubbarColors.preto,
                       child: Text(
                         '${entry.key + 1}',
                         style: const TextStyle(
@@ -536,6 +541,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                     Expanded(
                       child: _ranking(
                         titulo: 'Ranking de produtos',
+                        coresDoGrafico: true,
                         itens: painel.produtosMaisVendidos,
                         vazio: 'Nenhum produto vendido.',
                       ),
@@ -553,6 +559,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
               else ...[
                 _ranking(
                   titulo: 'Ranking de produtos',
+                  coresDoGrafico: true,
                   itens: painel.produtosMaisVendidos,
                   vazio: 'Nenhum produto vendido.',
                 ),
