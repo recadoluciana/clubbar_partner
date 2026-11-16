@@ -33,7 +33,6 @@ import '../clientes/clientes_compras_page.dart';
 import '../eventos/evento_list_page.dart';
 import '../ingressos/catalogo_ingressos_partner_page.dart';
 import '../entregas/pedidos_entrega_page.dart';
-import '../doacoes/campanhas_doacao_page.dart';
 import '../reconciliacao_cancelamentos/reconciliacao_cancelamentos_page.dart';
 import '../beneficios_produtos/beneficios_produtos_page.dart';
 import '../promocoes/campanhas_promocionais_page.dart';
@@ -239,12 +238,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Future<void> _abrirCampanhasDoacao() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const CampanhasDoacaoPage()),
-    );
-  }
-
   Future<void> _abrirExtratoAsaas() async {
     await Navigator.of(
       context,
@@ -409,7 +402,6 @@ class _DashboardPageState extends State<DashboardPage> {
       'Eventos': Color(0xFF00838F),
       'Agenda': Color(0xFF00897B),
       'Titular financeiro': Color(0xFF2E7D32),
-      'Para quem doar?': Color(0xFF388E3C),
       'Extrato Asaas': Color(0xFF00796B),
       'Usuários e permissões': Color(0xFF0277BD),
       'Visão gerencial - empresa': Color(0xFF4527A0),
@@ -482,26 +474,54 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Color _corDoMenu(String titulo) {
+    const cores = <String, Color>{
+      'Empresa': Color(0xFF455A64),
+      'Dados e acessos': Color(0xFF1565C0),
+      'Estabelecimentos': Color(0xFFC62828),
+      'Produtos e cardápios': Color(0xFFB45309),
+      'Eventos e atrações': Color(0xFF7B1FA2),
+      'Integração Mercado Pago': Color(0xFF006C91),
+      'Meus clientes': Color(0xFFAD1457),
+      'Segurança': Color(0xFF455A64),
+      'Gerencial - Produtos': Color(0xFF00695C),
+      'Gerencial - Ingressos': Color(0xFF5E35B1),
+      'Painel - Gerencial': Color(0xFF3949AB),
+    };
+    return cores[titulo] ?? ClubbarColors.primariaEscuro;
+  }
+
   Widget _grupoArvore({
     required String titulo,
     required IconData icone,
     required List<Widget> filhos,
     bool abertoInicialmente = false,
-  }) => Card(
-    margin: const EdgeInsets.only(bottom: 10),
-    clipBehavior: Clip.antiAlias,
-    child: ExpansionTile(
-      key: PageStorageKey('dashboard-$titulo'),
-      initiallyExpanded: abertoInicialmente,
-      leading: Icon(icone, color: ClubbarColors.primariaEscuro),
-      title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w800)),
-      childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-      children: [
-        for (final filho in filhos)
-          Padding(padding: const EdgeInsets.only(top: 10), child: filho),
-      ],
-    ),
-  );
+  }) {
+    final cor = _corDoMenu(titulo);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
+      color: titulo == 'Empresa'
+          ? Colors.white
+          : Color.alphaBlend(cor.withValues(alpha: .07), Colors.white),
+      child: ExpansionTile(
+        key: PageStorageKey('dashboard-$titulo'),
+        initiallyExpanded: abertoInicialmente,
+        iconColor: cor,
+        collapsedIconColor: cor,
+        leading: Icon(icone, color: cor),
+        title: Text(
+          titulo,
+          style: TextStyle(fontWeight: FontWeight.w800, color: cor),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        children: [
+          for (final filho in filhos)
+            Padding(padding: const EdgeInsets.only(top: 10), child: filho),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -597,15 +617,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                                 ),
                                           ),
                                         ),
-                                ),
-                                _opcao(
-                                  titulo: 'Para quem doar?',
-                                  subtitulo:
-                                      'Destine parte das vendas a entidades ou campanhas emergenciais.',
-                                  icone: Icons.volunteer_activism_rounded,
-                                  onTap: _podeVerGerencial
-                                      ? _abrirCampanhasDoacao
-                                      : null,
                                 ),
                               ],
                             ),
