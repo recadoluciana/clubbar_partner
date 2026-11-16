@@ -119,3 +119,16 @@ class ItemRankingGerencial {
     );
   }
 }
+
+List<ItemRankingGerencial> produtosOrdenadosPorValor(
+  List<ItemRankingGerencial> produtos,
+) {
+  final ordenados = List<ItemRankingGerencial>.of(produtos);
+  ordenados.sort((a, b) {
+    final valor = b.valor.compareTo(a.valor);
+    if (valor != 0) return valor;
+    final nome = a.nome.compareTo(b.nome);
+    return nome != 0 ? nome : a.id.compareTo(b.id);
+  });
+  return ordenados;
+}
