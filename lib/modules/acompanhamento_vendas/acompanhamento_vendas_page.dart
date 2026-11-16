@@ -335,6 +335,73 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
     );
   }
 
+  Widget _filtroPeriodo(String titulo, String valor, IconData icone) {
+    final selecionado = _periodo == valor;
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selecionado,
+        child: Material(
+          color: ClubbarColors.primaria.withValues(
+            alpha: selecionado ? .16 : .09,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: selecionado
+                  ? ClubbarColors.primaria
+                  : ClubbarColors.primaria.withValues(alpha: .22),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: selecionado || _carregando
+                ? null
+                : () {
+                    setState(() => _periodo = valor);
+                    _carregar();
+                  },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Icon(
+                          icone,
+                          color: ClubbarColors.primaria,
+                          size: 22,
+                        ),
+                      ),
+                      if (selecionado)
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          size: 18,
+                          color: ClubbarColors.primaria,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    titulo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _conteudoIngressos() {
     final estado = _estadoComum();
     if (estado != null) return estado;
@@ -348,40 +415,21 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
             children: [
-              ChoiceChip(
-                label: const Text('Futuros'),
-                selected: _periodo == 'FUTUROS',
-                onSelected: (selecionado) {
-                  if (selecionado) {
-                    _periodo = 'FUTUROS';
-                    _carregar();
-                  }
-                },
+              _filtroPeriodo(
+                'Futuros',
+                'FUTUROS',
+                Icons.event_rounded,
               ),
-              ChoiceChip(
-                label: const Text('Realizados'),
-                selected: _periodo == 'REALIZADOS',
-                onSelected: (selecionado) {
-                  if (selecionado) {
-                    _periodo = 'REALIZADOS';
-                    _carregar();
-                  }
-                },
+              const SizedBox(width: 10),
+              _filtroPeriodo(
+                'Realizados',
+                'REALIZADOS',
+                Icons.event_available_rounded,
               ),
-              ChoiceChip(
-                label: const Text('Todos'),
-                selected: _periodo == 'TODOS',
-                onSelected: (selecionado) {
-                  if (selecionado) {
-                    _periodo = 'TODOS';
-                    _carregar();
-                  }
-                },
-              ),
+              const SizedBox(width: 10),
+              _filtroPeriodo('Todos', 'TODOS', Icons.calendar_month_rounded),
             ],
           ),
           const SizedBox(height: 6),
