@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/repositories/loja_repository.dart';
+import '../../core/config/api_config.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/clubbar_page_header.dart';
@@ -87,6 +88,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
         }
       } else {
         await _carregarContas();
+        if (!mounted) return;
         await _carregar();
       }
     } catch (e) {
@@ -100,9 +102,15 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
   }
 
   Future<void> _carregarContas() async {
-    final uri = Uri(path: '/titular-financeiro/organizacao/$_organizacaoId/contas-extrato-mercado-pago', queryParameters: {'loja_id': '$_lojaId'});
+    final uri = Uri(
+      path:
+          '/titular-financeiro/organizacao/$_organizacaoId/contas-extrato-mercado-pago',
+      queryParameters: {'loja_id': '$_lojaId'},
+    );
     final resposta = await ApiService.get(uri.toString());
-    if (resposta.statusCode != 200) throw Exception('Não foi possível carregar as contas Mercado Pago.');
+    if (resposta.statusCode != 200) {
+      throw Exception('Não foi possível carregar as contas Mercado Pago.');
+    }
     final contas = jsonDecode(resposta.body) as List;
     _contas = contas;
     final atual = contas.where((c) => c['status'] == 'ATIVA').firstOrNull;
@@ -160,12 +168,23 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
       _lojaId = lojaId;
       _offset = 0;
       _selecionandoLoja = false;
+      _carregando = true;
+      _erro = null;
+      _contas = [];
+      _contaId = null;
+      _pagamentos = [];
     });
     try {
       await _carregarContas();
+      if (!mounted) return;
       await _carregar();
     } catch (e) {
-      if (mounted) setState(() { _erro = e.toString().replaceFirst('Exception: ', ''); _carregando = false; });
+      if (mounted) {
+        setState(() {
+          _erro = e.toString().replaceFirst('Exception: ', '');
+          _carregando = false;
+        });
+      }
     }
   }
 
@@ -179,17 +198,48 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
       ),
       lastDate: DateTime.now(),
       initialDateRange: DateTimeRange(start: _inicio, end: _fim),
+      locale: const Locale('pt', 'BR'),
+      helpText: 'Selecione o período do extrato',
+      cancelText: 'Cancelar',
+      confirmText: 'Aplicar',
     );
     if (intervalo == null || !mounted) return;
-    _inicio = intervalo.start;
-    _fim = intervalo.end;
-    _offset = 0;
-    await _carregar();
+    setState(() {
+      _inicio = intervalo.start;
+      _fim = intervalo.end;
+      _offset = 0;
+    });
+    if (!_selecionandoLoja && _lojaId != null) await _carregar();
+  }
+
+  Widget _logoLoja(Loja loja) {
+    final url = ApiConfig.buildUrl(loja.urllogoloja ?? '');
+    const fallback = Icon(Icons.storefront_outlined);
+    if (url.isEmpty) return fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        url,
+        width: 44,
+        height: 44,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      onVoltar: () {
+        if (!_selecionandoLoja && _lojas.length > 1) {
+          setState(() => _selecionandoLoja = true);
+        } else {
+          Navigator.maybePop(context);
+        }
+      },
+    ),
     body: SafeArea(
       child: Column(
         children: [
@@ -197,15 +247,27 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
             mostrarVoltar: false,
             titulo: 'Extrato Mercado Pago',
             subtitulo: 'Pagamentos da conta conectada',
-            trailing: IconButton(
-              onPressed: _periodo,
-              icon: const Icon(Icons.date_range),
-              tooltip: 'Alterar período',
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: _carregando ? null : _periodo,
+                icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                label: Text(
+                  'Período: ${DateFormat('dd/MM/yyyy').format(_inicio)} a ${DateFormat('dd/MM/yyyy').format(_fim)}',
+                ),
+              ),
             ),
           ),
           Expanded(
             child: _carregando
                 ? const Center(child: CircularProgressIndicator())
+                : _lojas.isEmpty
+                ? Center(
+                    child: Text(_erro ?? 'Nenhum estabelecimento disponível.'),
+                  )
                 : _selecionandoLoja
                 ? ListView(
                     padding: const EdgeInsets.all(16),
@@ -225,12 +287,19 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                       ..._lojas.map(
                         (loja) => Card(
                           child: ListTile(
-                            leading: const Icon(Icons.storefront),
+                            leading: _logoLoja(loja),
                             title: Text(loja.nmloja),
                             subtitle: Text(
                               (loja.sitloja ?? '').toUpperCase() == 'ATIVA'
                                   ? 'Ativo'
                                   : 'Inativo',
+                              style: TextStyle(
+                                color:
+                                    (loja.sitloja ?? '').toUpperCase() ==
+                                        'ATIVA'
+                                    ? Colors.green.shade700
+                                    : Colors.red.shade700,
+                              ),
                             ),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => _selecionarLoja(loja.lojaId),
@@ -242,28 +311,48 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                 : ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      OutlinedButton.icon(
-                        onPressed: _lojas.length > 1
-                            ? () => setState(() => _selecionandoLoja = true)
-                            : null,
-                        icon: const Icon(Icons.storefront),
-                        label: Text(
-                          'Estabelecimento: ${_lojas.firstWhere((loja) => loja.lojaId == _lojaId).nmloja}',
-                        ),
+                      Row(
+                        children: [
+                          const Icon(Icons.storefront_outlined, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Estabelecimento: ${_lojas.firstWhere((loja) => loja.lojaId == _lojaId).nmloja}',
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       if (_contas.isNotEmpty) ...[
                         DropdownButtonFormField<int>(
                           initialValue: _contaId,
-                          decoration: const InputDecoration(labelText: 'Conta Mercado Pago', border: OutlineInputBorder()),
-                          items: _contas.map((conta) => DropdownMenuItem<int>(
-                            value: conta['id'] as int,
-                            child: Text('${conta['nome'] ?? conta['conta']} • ${conta['status'] == 'ATIVA' ? 'Atual' : 'Anterior'}', overflow: TextOverflow.ellipsis),
-                          )).toList(),
-                          onChanged: (valor) { setState(() { _contaId = valor; _offset = 0; }); _carregar(); },
+                          decoration: const InputDecoration(
+                            labelText: 'Conta Mercado Pago',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _contas
+                              .map(
+                                (conta) => DropdownMenuItem<int>(
+                                  value: conta['id'] as int,
+                                  child: Text(
+                                    '${conta['nome'] ?? conta['conta']} • ${conta['status'] == 'ATIVA' ? 'Atual' : 'Anterior'}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (valor) {
+                            setState(() {
+                              _contaId = valor;
+                              _offset = 0;
+                            });
+                            _carregar();
+                          },
                         ),
                         const SizedBox(height: 12),
-                        Text('Titular da conta: ${_nomeTitularConta?.trim().isNotEmpty == true ? _nomeTitularConta : 'Não disponível'}'),
+                        Text(
+                          'Titular da conta: ${_nomeTitularConta?.trim().isNotEmpty == true ? _nomeTitularConta : 'Não disponível'}',
+                        ),
                         const SizedBox(height: 12),
                       ],
                       const Text(
