@@ -247,12 +247,12 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Produtos vendidos a retirar',
+            'Produtos vendidos a entregar',
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
           const Text(
-            'Quantidade que deve estar disponível caso todos os clientes retirem seus produtos hoje.',
+            'Quantidade que deve estar disponível para entregar aos clientes.',
             style: TextStyle(color: ClubbarColors.textoSecundario),
           ),
           const SizedBox(height: 12),
@@ -280,7 +280,7 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
           const SizedBox(height: 10),
           if (produtos.itens.isEmpty)
             const ClubbarCard(
-              child: Text('Nenhum produto aguardando retirada.'),
+              child: Text('Nenhum produto aguardando entrega.'),
             ),
           ...produtos.itens.map(
             (item) => ClubbarCard(
@@ -452,7 +452,7 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
         children: [
           ClubbarPageHeader(
             titulo: widget.tipo == TipoAcompanhamento.produtos
-                ? 'Produtos a retirar'
+                ? 'Produtos a entregar'
                 : 'Ingressos vendidos',
             subtitulo: widget.tipo == TipoAcompanhamento.produtos
                 ? 'Acompanhamento de produtos pendentes'
