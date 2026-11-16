@@ -340,20 +340,28 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
     );
   }
 
-  Widget _graficoProdutos(PainelGerencial painel) {
-    final itens = painel.produtosMaisVendidos.take(5).toList();
-    final maior = itens.fold<int>(
+  Widget _graficoProdutos(
+    List<ItemRankingGerencial> produtos, {
+    bool porValor = false,
+  }) {
+    final itens = produtos.take(5).toList();
+    final maior = itens.fold<double>(
       0,
-      (valor, item) => item.quantidade > valor ? item.quantidade : valor,
+      (valor, item) =>
+          (porValor ? item.valor : item.quantidade.toDouble()) > valor
+          ? (porValor ? item.valor : item.quantidade.toDouble())
+          : valor,
     );
     return ClubbarCard(
       elevation: 1,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Produtos mais vendidos',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          Text(
+            porValor
+                ? 'Produtos mais vendidos (por valor)'
+                : 'Produtos mais vendidos (por qtde)',
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 14),
           if (itens.isEmpty)
@@ -375,6 +383,20 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                     rightTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
                     ),
+                    leftTitles: porValor
+                        ? AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 58,
+                              getTitlesWidget: (value, meta) => Text(
+                                _moeda.format(value),
+                                style: const TextStyle(fontSize: 9),
+                              ),
+                            ),
+                          )
+                        : const AxisTitles(
+                            sideTitles: SideTitles(showTitles: true),
+                          ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
@@ -404,7 +426,9 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                       x: index,
                       barRods: [
                         BarChartRodData(
-                          toY: itens[index].quantidade.toDouble(),
+                          toY: porValor
+                              ? itens[index].valor
+                              : itens[index].quantidade.toDouble(),
                           width: 18,
                           color: _corGrafico(index),
                           borderRadius: const BorderRadius.vertical(
@@ -493,6 +517,9 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
   }
 
   Widget _conteudo(PainelGerencial painel) {
+    final produtosPorValor = produtosOrdenadosPorValor(
+      painel.produtosMaisVendidos,
+    );
     return LayoutBuilder(
       builder: (context, constraints) {
         final largo = constraints.maxWidth >= 820;
@@ -525,13 +552,15 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                   children: [
                     Expanded(child: _participacao(painel)),
                     const SizedBox(width: 14),
-                    Expanded(child: _graficoProdutos(painel)),
+                    Expanded(
+                      child: _graficoProdutos(painel.produtosMaisVendidos),
+                    ),
                   ],
                 )
               else ...[
                 _participacao(painel),
                 const SizedBox(height: 14),
-                _graficoProdutos(painel),
+                _graficoProdutos(painel.produtosMaisVendidos),
               ],
               const SizedBox(height: 14),
               if (largo)
@@ -540,7 +569,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                   children: [
                     Expanded(
                       child: _ranking(
-                        titulo: 'Ranking de produtos',
+                        titulo: 'Ranking de produtos (por qtde)',
                         coresDoGrafico: true,
                         itens: painel.produtosMaisVendidos,
                         vazio: 'Nenhum produto vendido.',
@@ -558,7 +587,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                 )
               else ...[
                 _ranking(
-                  titulo: 'Ranking de produtos',
+                  titulo: 'Ranking de produtos (por qtde)',
                   coresDoGrafico: true,
                   itens: painel.produtosMaisVendidos,
                   vazio: 'Nenhum produto vendido.',
@@ -568,6 +597,35 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                   titulo: 'Ranking de ingressos',
                   itens: painel.ingressosMaisVendidos,
                   vazio: 'Nenhum ingresso vendido.',
+                ),
+              ],
+              const SizedBox(height: 14),
+              if (largo)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _graficoProdutos(produtosPorValor, porValor: true),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _ranking(
+                        titulo: 'Ranking de produtos (por valor)',
+                        coresDoGrafico: true,
+                        itens: produtosPorValor,
+                        vazio: 'Nenhum produto vendido.',
+                      ),
+                    ),
+                  ],
+                )
+              else ...[
+                _graficoProdutos(produtosPorValor, porValor: true),
+                const SizedBox(height: 14),
+                _ranking(
+                  titulo: 'Ranking de produtos (por valor)',
+                  coresDoGrafico: true,
+                  itens: produtosPorValor,
+                  vazio: 'Nenhum produto vendido.',
                 ),
               ],
             ],
