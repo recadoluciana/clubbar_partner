@@ -25,13 +25,17 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
   final _inteiro = NumberFormat.decimalPattern('pt_BR');
 
   static const _coresGrafico = <Color>[
-    ClubbarColors.ambar,
-    ClubbarColors.info,
-    ClubbarColors.sucesso,
-    ClubbarColors.aviso,
+    Color(0xFF1F8A4C),
+    Color(0xFF1976D2),
+    Color(0xFFE64A19),
+    Color(0xFFF9A825),
     Color(0xFF7E57C2),
     Color(0xFF00838F),
   ];
+
+  Color _corGrafico(int indice) => indice < _coresGrafico.length
+      ? _coresGrafico[indice]
+      : HSVColor.fromAHSV(1, (indice * 137.508) % 360, .7, .72).toColor();
 
   PainelGerencial? _painel;
   bool _carregando = true;
@@ -101,7 +105,6 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
     if (novo.isAfter(atual)) return;
     setState(() {
       _mesSelecionado = novo;
-      _painel = null;
       _erro = null;
     });
     await _carregar();
@@ -218,53 +221,48 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
     );
   }
 
-  Widget _kpis(PainelGerencial painel) {
-    final referenciaMes = painel.periodoFim ?? HorarioBrasil.agora();
-    final nomeMes = DateFormat('MMMM', 'pt_BR').format(referenciaMes);
-
-    final itens = [
-      (
-        'Total vendido hoje',
-        _moeda.format(painel.totalHoje),
-        Icons.payments_outlined,
-      ),
-      (
-        'Total vendido no mês - $nomeMes',
-        _moeda.format(painel.totalMes),
-        Icons.bar_chart_rounded,
-      ),
-      (
-        'Total vendido em produtos no mês',
-        _moeda.format(painel.totalProdutosMes),
-        Icons.shopping_bag_outlined,
-      ),
-      (
-        'Total vendido em ingressos no mês',
-        _moeda.format(painel.totalIngressosMes),
-        Icons.confirmation_number_outlined,
-      ),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final colunas = constraints.maxWidth >= 1000
-            ? 4
-            : constraints.maxWidth >= 560
-            ? 2
-            : 1;
-        final largura = (constraints.maxWidth - (12 * (colunas - 1))) / colunas;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: itens
-              .map(
-                (item) => SizedBox(
-                  width: largura,
-                  child: _kpi(titulo: item.$1, valor: item.$2, icone: item.$3),
+  Widget _totalComDetalhes(
+    String titulo,
+    double total,
+    double? produtos,
+    double? ingressos,
+  ) {
+    return ClubbarCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(titulo, style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(
+            _moeda.format(total),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _kpi(
+                  titulo: 'Produtos',
+                  valor: produtos == null
+                      ? 'Indisponível'
+                      : _moeda.format(produtos),
+                  icone: Icons.shopping_bag_outlined,
                 ),
-              )
-              .toList(),
-        );
-      },
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _kpi(
+                  titulo: 'Ingressos',
+                  valor: ingressos == null
+                      ? 'Indisponível'
+                      : _moeda.format(ingressos),
+                  icone: Icons.confirmation_number_outlined,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -292,7 +290,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                   sections: List.generate(itens.length, (index) {
                     final item = itens[index];
                     return PieChartSectionData(
-                      color: _coresGrafico[index % _coresGrafico.length],
+                      color: _corGrafico(index),
                       value: item.valor,
                       radius: 52,
                       title: '${item.percentual.toStringAsFixed(1)}%',
@@ -317,7 +315,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                       width: 11,
                       height: 11,
                       decoration: BoxDecoration(
-                        color: _coresGrafico[index % _coresGrafico.length],
+                        color: _corGrafico(index),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -408,7 +406,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                         BarChartRodData(
                           toY: itens[index].quantidade.toDouble(),
                           width: 18,
-                          color: ClubbarColors.ambar,
+                          color: _corGrafico(index),
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(5),
                           ),
@@ -495,56 +493,76 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
         final largo = constraints.maxWidth >= 820;
         return Column(
           children: [
-            _kpis(painel),
+            _totalComDetalhes(
+              'Total vendido hoje',
+              painel.totalHoje,
+              painel.totalProdutosHoje,
+              painel.totalIngressosHoje,
+            ),
             const SizedBox(height: 14),
-            if (largo)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _participacao(painel)),
-                  const SizedBox(width: 14),
-                  Expanded(child: _graficoProdutos(painel)),
-                ],
-              )
-            else ...[
-              _participacao(painel),
-              const SizedBox(height: 14),
-              _graficoProdutos(painel),
-            ],
+            _seletorMes(),
             const SizedBox(height: 14),
-            if (largo)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _ranking(
-                      titulo: 'Ranking de produtos',
-                      itens: painel.produtosMaisVendidos,
-                      vazio: 'Nenhum produto vendido.',
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _ranking(
-                      titulo: 'Ranking de ingressos',
-                      itens: painel.ingressosMaisVendidos,
-                      vazio: 'Nenhum ingresso vendido.',
-                    ),
-                  ),
-                ],
-              )
+            if (_carregando)
+              const Center(child: CircularProgressIndicator())
+            else if (_erro != null)
+              _EstadoErro(mensagem: _erro!, onTentarNovamente: _carregar)
             else ...[
-              _ranking(
-                titulo: 'Ranking de produtos',
-                itens: painel.produtosMaisVendidos,
-                vazio: 'Nenhum produto vendido.',
+              _totalComDetalhes(
+                'Total vendido no mês',
+                painel.totalMes,
+                painel.totalProdutosMes,
+                painel.totalIngressosMes,
               ),
               const SizedBox(height: 14),
-              _ranking(
-                titulo: 'Ranking de ingressos',
-                itens: painel.ingressosMaisVendidos,
-                vazio: 'Nenhum ingresso vendido.',
-              ),
+              if (largo)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _participacao(painel)),
+                    const SizedBox(width: 14),
+                    Expanded(child: _graficoProdutos(painel)),
+                  ],
+                )
+              else ...[
+                _participacao(painel),
+                const SizedBox(height: 14),
+                _graficoProdutos(painel),
+              ],
+              const SizedBox(height: 14),
+              if (largo)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _ranking(
+                        titulo: 'Ranking de produtos',
+                        itens: painel.produtosMaisVendidos,
+                        vazio: 'Nenhum produto vendido.',
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _ranking(
+                        titulo: 'Ranking de ingressos',
+                        itens: painel.ingressosMaisVendidos,
+                        vazio: 'Nenhum ingresso vendido.',
+                      ),
+                    ),
+                  ],
+                )
+              else ...[
+                _ranking(
+                  titulo: 'Ranking de produtos',
+                  itens: painel.produtosMaisVendidos,
+                  vazio: 'Nenhum produto vendido.',
+                ),
+                const SizedBox(height: 14),
+                _ranking(
+                  titulo: 'Ranking de ingressos',
+                  itens: painel.ingressosMaisVendidos,
+                  vazio: 'Nenhum ingresso vendido.',
+                ),
+              ],
             ],
           ],
         );
@@ -562,8 +580,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
           children: [
             ClubbarPageHeader(
               titulo: _nomeOrganizacao,
-              subtitulo: _tituloMes(),
-              subtituloWidget: _seletorMes(),
+              subtitulo: 'Visão gerencial',
               trailing: _botaoAtualizar(),
             ),
             Expanded(
