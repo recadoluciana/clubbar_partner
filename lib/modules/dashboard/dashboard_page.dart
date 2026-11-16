@@ -824,18 +824,18 @@ class _DashboardPageState extends State<DashboardPage> {
                               icone: Icons.analytics_rounded,
                               filhos: [
                                 _opcao(
-                                  titulo: 'Compras de produtos',
+                                  titulo: 'Produtos vendidos / entregues',
                                   subtitulo:
-                                      'Consulte compras de todos os clientes e confirme se cada produto foi retirado.',
+                                      'Consulte os produtos vendidos e confira se foram entregues.',
                                   icone: Icons.receipt_long_rounded,
                                   onTap: _podeVerGerencial
                                       ? _abrirComprasProdutos
                                       : null,
                                 ),
                                 _opcao(
-                                  titulo: 'Produtos a retirar',
+                                  titulo: 'Produtos a entregar',
                                   subtitulo:
-                                      'Veja os produtos vendidos que ainda não foram retirados.',
+                                      'Veja os produtos vendidos que ainda não foram entregues.',
                                   icone: Icons.monitor_heart_rounded,
                                   onTap: _podeVerGerencial
                                       ? () => _abrirAcompanhamentoVendas(

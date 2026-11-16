@@ -312,8 +312,8 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: 'Compras de produtos',
-              subtitulo: 'Clientes, produtos comprados e situação de retirada',
+              titulo: 'Produtos vendidos / entregues',
+              subtitulo: 'Clientes, produtos vendidos e situação de entrega',
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -388,21 +388,21 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                           Row(
                             children: [
                               _resumo(
-                                'Unidades compradas',
+                                'Unidades vendidas',
                                 compradas,
                                 ClubbarColors.info,
                                 'TODOS',
                               ),
                               const SizedBox(width: 10),
                               _resumo(
-                                'Unidades a retirar',
+                                'Unidades a entregar',
                                 pendentes,
                                 ClubbarColors.aviso,
                                 'PENDENTES',
                               ),
                               const SizedBox(width: 10),
                               _resumo(
-                                'Unidades retiradas',
+                                'Unidades entregues',
                                 retirados,
                                 ClubbarColors.sucesso,
                                 'RETIRADOS',
@@ -498,8 +498,8 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                                           children: [
                                             _badge(
                                               texto: compra.retirado
-                                                  ? 'Retirado'
-                                                  : 'Aguardando retirada',
+                                                  ? 'Entregue'
+                                                  : 'Aguardando entrega',
                                               cor: compra.retirado
                                                   ? ClubbarColors.sucesso
                                                   : ClubbarColors.aviso,
@@ -519,7 +519,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                                             compra.dataRetirada != null) ...[
                                           const SizedBox(height: 5),
                                           Text(
-                                            'Retirada em ${_data.format(compra.dataRetirada!)}${compra.responsavelRetirada.isEmpty ? '' : ' • ${compra.responsavelRetirada}'}',
+                                            'Entregue em ${_data.format(compra.dataRetirada!)}${compra.responsavelRetirada.isEmpty ? '' : ' • ${compra.responsavelRetirada}'}',
                                             style: const TextStyle(
                                               fontSize: 11,
                                               color:
