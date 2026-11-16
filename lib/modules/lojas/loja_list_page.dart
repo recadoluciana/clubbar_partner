@@ -10,6 +10,7 @@ import '../../core/utils/horario_brasil.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/clubbar_card.dart';
+import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 import 'horario_funcionamento_screen.dart';
@@ -1324,6 +1325,7 @@ class _LojaListPageState extends State<LojaListPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: SafeArea(
         child: Column(
           children: [
