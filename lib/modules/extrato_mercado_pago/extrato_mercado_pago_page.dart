@@ -246,7 +246,10 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           ClubbarPageHeader(
             mostrarVoltar: false,
             titulo: 'Extrato Mercado Pago',
-            subtitulo: 'Pagamentos da conta conectada',
+            subtitulo: _selecionandoLoja
+                ? 'Pagamentos da conta conectada'
+                : _lojas.where((loja) => loja.lojaId == _lojaId).firstOrNull?.nmloja ??
+                      'Pagamentos da conta conectada',
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -311,18 +314,6 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                 : ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.storefront_outlined, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Estabelecimento: ${_lojas.firstWhere((loja) => loja.lojaId == _lojaId).nmloja}',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
                       if (_contas.isNotEmpty) ...[
                         DropdownButtonFormField<int>(
                           initialValue: _contaId,
