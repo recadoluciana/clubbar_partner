@@ -231,7 +231,13 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
     ),
   );
 
-  Widget _resumo(String titulo, int quantidade, Color cor, String situacao) {
+  Widget _resumo(
+    String titulo,
+    int quantidade,
+    double valor,
+    Color cor,
+    String situacao,
+  ) {
     final selecionado = _situacao == situacao;
     return Expanded(
       child: Semantics(
@@ -281,6 +287,15 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _moeda.format(valor),
+                      style: TextStyle(color: cor, fontWeight: FontWeight.w800),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -304,6 +319,16 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
     final retirados = comprasResumo
         .where((compra) => compra.retirado)
         .fold(0, (soma, compra) => soma + compra.quantidade);
+    final valorVendido = comprasResumo.fold<double>(
+      0,
+      (soma, compra) => soma + compra.valorTotal,
+    );
+    final valorPendente = comprasResumo
+        .where((compra) => !compra.retirado)
+        .fold<double>(0, (soma, compra) => soma + compra.valorTotal);
+    final valorEntregue = comprasResumo
+        .where((compra) => compra.retirado)
+        .fold<double>(0, (soma, compra) => soma + compra.valorTotal);
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
@@ -390,6 +415,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                               _resumo(
                                 'Unidades vendidas',
                                 compradas,
+                                valorVendido,
                                 ClubbarColors.info,
                                 'TODOS',
                               ),
@@ -397,6 +423,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                               _resumo(
                                 'Unidades a entregar',
                                 pendentes,
+                                valorPendente,
                                 ClubbarColors.aviso,
                                 'PENDENTES',
                               ),
@@ -404,6 +431,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                               _resumo(
                                 'Unidades entregues',
                                 retirados,
+                                valorEntregue,
                                 ClubbarColors.sucesso,
                                 'RETIRADOS',
                               ),

@@ -832,17 +832,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                       ? _abrirComprasProdutos
                                       : null,
                                 ),
-                                _opcao(
-                                  titulo: 'Produtos a entregar',
-                                  subtitulo:
-                                      'Veja os produtos vendidos que ainda não foram entregues.',
-                                  icone: Icons.monitor_heart_rounded,
-                                  onTap: _podeVerGerencial
-                                      ? () => _abrirAcompanhamentoVendas(
-                                          TipoAcompanhamento.produtos,
-                                        )
-                                      : null,
-                                ),
                               ],
                             ),
                             _grupoArvore(
