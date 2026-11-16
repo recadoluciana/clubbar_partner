@@ -7,7 +7,6 @@ import '../../core/services/storage_service.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_card.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/painel_gerencial.dart';
@@ -123,7 +122,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
         child: IconButton(
           onPressed: _carregando ? null : _carregar,
           icon: const Icon(Icons.refresh_rounded, size: 22),
-          color: ClubbarColors.preto,
+          color: Colors.white,
         ),
       ),
     );
@@ -605,14 +604,58 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        toolbarHeight: 60,
+        automaticallyImplyLeading: false,
+        titleSpacing: 8,
+        title: Row(
+          children: [
+            IconButton(
+              tooltip: 'Voltar',
+              onPressed: () => Navigator.maybePop(context),
+              icon: Image.asset(
+                'assets/images/corujao.png',
+                height: 40,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                _nomeOrganizacao,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [_botaoAtualizar(), const SizedBox(width: 12)],
+      ),
       body: SafeArea(
         child: Column(
           children: [
             ClubbarPageHeader(
-              titulo: _nomeOrganizacao,
-              subtitulo: 'Visão gerencial',
-              trailing: _botaoAtualizar(),
+              titulo: 'Visão Gerencial',
+              subtitulo: '',
+              tituloWidget: const Center(
+                child: Text(
+                  'Visão Gerencial',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: ClubbarColors.primariaEscuro,
+                  ),
+                ),
+              ),
+              subtituloWidget: const SizedBox.shrink(),
             ),
             Expanded(
               child: _carregando && _painel == null
