@@ -412,7 +412,7 @@ class _DashboardPageState extends State<DashboardPage> {
       'Para quem doar?': Color(0xFF388E3C),
       'Extrato Asaas': Color(0xFF00796B),
       'Usuários e permissões': Color(0xFF0277BD),
-      'Painel Gerencial': Color(0xFF4527A0),
+      'Visão gerencial - empresa': Color(0xFF4527A0),
       'Acompanhamento de vendas': Color(0xFF5E35B1),
       'Pedidos para entrega': Color(0xFF6D4C41),
       'Auditoria': Color(0xFF546E7A),
@@ -706,7 +706,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                             _grupoArvore(
-                              titulo: 'Financeiro',
+                              titulo: 'Mercado Pago',
                               icone: Icons.account_balance_wallet_rounded,
                               filhos: [
                                 _opcao(
@@ -767,7 +767,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                             _grupoArvore(
-                              titulo: 'Gestão e operação',
+                              titulo: 'Meu cliente',
                               icone: Icons.tune_rounded,
                               filhos: [
                                 _opcao(
@@ -799,6 +799,21 @@ class _DashboardPageState extends State<DashboardPage> {
                                       : null,
                                 ),
                                 _opcao(
+                                  titulo: 'Pedidos para entrega',
+                                  subtitulo:
+                                      'Aceite pedidos, acompanhe o despacho e a confirmação pelo QR Code.',
+                                  icone: Icons.delivery_dining_rounded,
+                                  onTap: _podeVerGerencial
+                                      ? _abrirPedidosEntrega
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Segurança',
+                              icone: Icons.security_rounded,
+                              filhos: [
+                                _opcao(
                                   titulo: 'Auditoria',
                                   subtitulo: _podeGerenciarAtracoes
                                       ? 'Consulte alterações realizadas pelos usuários da empresa.'
@@ -806,15 +821,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                   icone: Icons.fact_check_outlined,
                                   onTap: _podeGerenciarAtracoes
                                       ? _abrirAuditoria
-                                      : null,
-                                ),
-                                _opcao(
-                                  titulo: 'Pedidos para entrega',
-                                  subtitulo:
-                                      'Aceite pedidos, acompanhe o despacho e a confirmação pelo QR Code.',
-                                  icone: Icons.delivery_dining_rounded,
-                                  onTap: _podeVerGerencial
-                                      ? _abrirPedidosEntrega
                                       : null,
                                 ),
                               ],
@@ -852,11 +858,11 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                             _grupoArvore(
-                              titulo: 'Gerencial',
+                              titulo: 'Painel gerencial',
                               icone: Icons.analytics_rounded,
                               filhos: [
                                 _opcao(
-                                  titulo: 'Painel Gerencial',
+                                  titulo: 'Visão gerencial - empresa',
                                   subtitulo:
                                       'Acompanhe suas vendas por estabelecimento, produtos e ingressos.',
                                   icone: Icons.analytics_rounded,
