@@ -2,6 +2,8 @@ class PainelGerencial {
   final DateTime? periodoInicio;
   final DateTime? periodoFim;
   final double totalHoje;
+  final double? totalProdutosHoje;
+  final double? totalIngressosHoje;
   final double totalMes;
   final double totalProdutosMes;
   final double totalIngressosMes;
@@ -15,6 +17,8 @@ class PainelGerencial {
     this.periodoInicio,
     this.periodoFim,
     required this.totalHoje,
+    this.totalProdutosHoje,
+    this.totalIngressosHoje,
     required this.totalMes,
     required this.totalProdutosMes,
     required this.totalIngressosMes,
@@ -31,6 +35,12 @@ class PainelGerencial {
       periodoInicio: _data(periodo is Map ? periodo['inicio'] : null),
       periodoFim: _data(periodo is Map ? periodo['fim'] : null),
       totalHoje: _double(json['total_hoje']),
+      totalProdutosHoje: json['total_produtos_hoje'] == null
+          ? null
+          : _double(json['total_produtos_hoje']),
+      totalIngressosHoje: json['total_ingressos_hoje'] == null
+          ? null
+          : _double(json['total_ingressos_hoje']),
       totalMes: _double(json['total_mes']),
       totalProdutosMes: _double(json['total_produtos_mes']),
       totalIngressosMes: _double(json['total_ingressos_mes']),
