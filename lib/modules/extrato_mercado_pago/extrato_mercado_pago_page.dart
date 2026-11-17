@@ -7,6 +7,7 @@ import '../../core/repositories/loja_repository.dart';
 import '../../core/config/api_config.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/utils/horario_brasil.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
 import '../../models/loja.dart';
@@ -64,6 +65,111 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
         _status(status),
         style: TextStyle(color: cor, fontSize: 12, fontWeight: FontWeight.w600),
       ),
+    );
+  }
+
+  String _nomeTarifa(String tipo) => switch (tipo.toLowerCase()) {
+    'mercadopago_fee' => 'Taxa Mercado Pago',
+    'application_fee' || 'marketplace_fee' => 'Comissão do marketplace',
+    'financing_fee' => 'Taxa de financiamento',
+    'shipping_fee' => 'Taxa de envio',
+    'coupon_fee' => 'Taxa de cupom',
+    _ => 'Outra tarifa ($tipo)',
+  };
+
+  String _nomePagamento(dynamic tipo, dynamic metodo) {
+    final nome = switch (tipo?.toString()) {
+      'credit_card' => 'Cartão de crédito',
+      'debit_card' => 'Cartão de débito',
+      'bank_transfer' => 'Transferência',
+      'account_money' => 'Saldo Mercado Pago',
+      'ticket' => 'Boleto',
+      _ => null,
+    };
+    final codigo = metodo?.toString().trim() ?? '';
+    if (codigo.toLowerCase() == 'pix') return 'Pix';
+    if (nome != null && codigo.isNotEmpty) return '$nome ($codigo)';
+    return nome ?? (codigo.isNotEmpty ? codigo : 'Não informado');
+  }
+
+  Widget _detalhesFinanceiros(Map item) {
+    final liquido = item['liquido_recebido'];
+    final totalPago = item['total_pago'];
+    final taxas = item['taxas'] is List ? item['taxas'] as List : const [];
+    final liberacao = HorarioBrasil.deTextoBrasil(item['data_liberacao']);
+    final situacaoLiberacao = switch (item['situacao_liberacao']?.toString()) {
+      'released' => 'Liberado',
+      'pending' => 'Pendente',
+      'in_process' => 'Em processamento',
+      _ => null,
+    };
+    Widget linha(String titulo, String valor) => Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Text(titulo)),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              valor,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+    return ExpansionTile(
+      title: const Text(
+        'Detalhes financeiros',
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      ),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      children: [
+        linha(
+          'Pagamento',
+          _nomePagamento(item['tipo_pagamento'], item['metodo']),
+        ),
+        if (item['parcelas'] is int) linha('Parcelas', '${item['parcelas']}'),
+        linha(
+          'Total pago pelo cliente',
+          totalPago is num ? _moeda.format(totalPago) : 'Não informado',
+        ),
+        linha(
+          'Valor líquido informado',
+          liquido is num ? _moeda.format(liquido) : 'Não informado',
+        ),
+        if (taxas.isEmpty)
+          linha('Tarifas', 'Não informadas')
+        else
+          ...taxas.whereType<Map>().map((taxa) {
+            final valor = taxa['valor'];
+            final responsavel = switch (taxa['responsavel']?.toString()) {
+              'collector' => 'vendedor',
+              'payer' => 'comprador',
+              _ => null,
+            };
+            final nome = _nomeTarifa(taxa['tipo']?.toString() ?? 'outra');
+            return linha(
+              responsavel == null ? nome : '$nome ($responsavel)',
+              valor is num ? _moeda.format(valor) : 'Não informado',
+            );
+          }),
+        if (situacaoLiberacao != null)
+          linha('Situação da liberação', situacaoLiberacao),
+        if (liberacao != null)
+          linha('Data de liberação informada', _data.format(liberacao)),
+        if (item['id']?.toString().isNotEmpty == true)
+          linha('ID do pagamento', item['id'].toString()),
+        const Padding(
+          padding: EdgeInsets.only(top: 4),
+          child: Text(
+            'Valores informados pelo Mercado Pago; o valor líquido pode mudar em caso de reembolso ou contestação.',
+            style: TextStyle(fontSize: 12),
+          ),
+        ),
+      ],
     );
   }
 
@@ -388,8 +494,8 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                         const Text('Nenhum pagamento encontrado no período.')
                       else
                         ..._pagamentos.map((item) {
-                          final data = DateTime.tryParse(
-                            item['data']?.toString() ?? '',
+                          final data = HorarioBrasil.deTextoBrasil(
+                            item['data'],
                           );
                           final valor =
                               (item['valor'] as num?)?.toDouble() ?? 0;
@@ -405,35 +511,41 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                               .map((i) => '${i['quantidade']} × ${i['nome']}')
                               .join(', ');
                           return Card(
-                            child: ListTile(
-                              title: Text(_descricaoLancamento(item)),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Wrap(
+                            child: Column(
+                              children: [
+                                ListTile(
+                                  title: Text(_descricaoLancamento(item)),
+                                  subtitle: Column(
                                     crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    spacing: 6,
-                                    runSpacing: 4,
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        '$tipo • ${data == null ? 'Data indisponível' : _data.format(data.toLocal())}',
+                                      Wrap(
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: [
+                                          Text(
+                                            '$tipo • ${data == null ? 'Data indisponível' : _data.format(data)}',
+                                          ),
+                                          _badgeStatus(item['status']),
+                                        ],
                                       ),
-                                      _badgeStatus(item['status']),
+                                      Text(
+                                        itens.isEmpty
+                                            ? 'Detalhes não disponíveis'
+                                            : itens,
+                                      ),
+                                      if (estornado > 0)
+                                        Text(
+                                          'Reembolsado: ${_moeda.format(estornado)}',
+                                        ),
                                     ],
                                   ),
-                                  Text(
-                                    itens.isEmpty
-                                        ? 'Detalhes não disponíveis'
-                                        : itens,
-                                  ),
-                                  if (estornado > 0)
-                                    Text(
-                                      'Reembolsado: ${_moeda.format(estornado)}',
-                                    ),
-                                ],
-                              ),
-                              trailing: Text(_moeda.format(valor)),
+                                  trailing: Text(_moeda.format(valor)),
+                                ),
+                                _detalhesFinanceiros(item as Map),
+                              ],
                             ),
                           );
                         }),
