@@ -47,6 +47,26 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
     _ => 'Status: ${valor ?? 'indisponível'}',
   };
 
+  Widget _badgeStatus(dynamic status) {
+    final cor = switch (status?.toString()) {
+      'approved' => Colors.green.shade700,
+      'cancelled' => Colors.red.shade700,
+      'refunded' => Colors.blue.shade700,
+      _ => Colors.grey.shade700,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: cor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        _status(status),
+        style: TextStyle(color: cor, fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
   String _descricaoLancamento(Map<String, dynamic> item) {
     final nomeCliente = item['nome_cliente']?.toString().trim() ?? '';
     if (nomeCliente.isNotEmpty) return nomeCliente;
@@ -246,9 +266,21 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           ClubbarPageHeader(
             mostrarVoltar: false,
             titulo: 'Extrato Mercado Pago',
+            trailing: _selecionandoLoja
+                ? null
+                : IconButton(
+                    tooltip: 'Atualizar extrato',
+                    onPressed: _carregando || _lojaId == null
+                        ? null
+                        : _carregar,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
             subtitulo: _selecionandoLoja
                 ? 'Pagamentos da conta conectada'
-                : _lojas.where((loja) => loja.lojaId == _lojaId).firstOrNull?.nmloja ??
+                : _lojas
+                          .where((loja) => loja.lojaId == _lojaId)
+                          .firstOrNull
+                          ?.nmloja ??
                       'Pagamentos da conta conectada',
           ),
           Padding(
@@ -375,8 +407,31 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                           return Card(
                             child: ListTile(
                               title: Text(_descricaoLancamento(item)),
-                              subtitle: Text(
-                                '$tipo • ${data == null ? 'Data indisponível' : _data.format(data.toLocal())} • ${_status(item['status'])}\n${itens.isEmpty ? 'Detalhes não disponíveis' : itens}${estornado > 0 ? '\nReembolsado: ${_moeda.format(estornado)}' : ''}',
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    children: [
+                                      Text(
+                                        '$tipo • ${data == null ? 'Data indisponível' : _data.format(data.toLocal())}',
+                                      ),
+                                      _badgeStatus(item['status']),
+                                    ],
+                                  ),
+                                  Text(
+                                    itens.isEmpty
+                                        ? 'Detalhes não disponíveis'
+                                        : itens,
+                                  ),
+                                  if (estornado > 0)
+                                    Text(
+                                      'Reembolsado: ${_moeda.format(estornado)}',
+                                    ),
+                                ],
                               ),
                               trailing: Text(_moeda.format(valor)),
                             ),
