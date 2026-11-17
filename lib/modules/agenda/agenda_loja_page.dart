@@ -83,102 +83,60 @@ class _AgendaLojaPageState extends State<AgendaLojaPage> {
                           )
                         : ListView.separated(
                             padding: const EdgeInsets.all(16),
-                            itemCount: _lojas.length,
+                            itemCount: _lojas.length + 1,
                             separatorBuilder: (_, _) =>
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 4),
                             itemBuilder: (context, index) {
-                              final loja = _lojas[index];
+                              if (index == 0) {
+                                return const Padding(
+                                  padding: EdgeInsets.only(bottom: 12),
+                                  child: Text(
+                                    'Selecione o estabelecimento',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              }
+                              final loja = _lojas[index - 1];
                               final imagem = _imagem(loja);
+                              final ativo =
+                                  (loja.sitloja ?? '').toUpperCase() == 'ATIVA';
                               return Card(
-                                clipBehavior: Clip.antiAlias,
-                                child: InkWell(
+                                child: ListTile(
+                                  leading: imagem == null
+                                      ? const Icon(Icons.storefront_outlined)
+                                      : ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          child: Image.network(
+                                            imagem,
+                                            width: 44,
+                                            height: 44,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, _, _) =>
+                                                const Icon(
+                                                  Icons.storefront_outlined,
+                                                ),
+                                          ),
+                                        ),
+                                  title: Text(loja.nmloja),
+                                  subtitle: Text(
+                                    ativo ? 'Ativo' : 'Inativo',
+                                    style: TextStyle(
+                                      color: ativo
+                                          ? Colors.green.shade700
+                                          : Colors.red.shade700,
+                                    ),
+                                  ),
+                                  trailing: const Icon(Icons.chevron_right),
                                   onTap: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) =>
                                           AgendaMensalPage(loja: loja),
-                                    ),
-                                  ),
-                                  child: SizedBox(
-                                    height: 150,
-                                    child: Row(
-                                      children: [
-                                        SizedBox(
-                                          width: 125,
-                                          height: double.infinity,
-                                          child: imagem == null
-                                              ? const ColoredBox(
-                                                  color:
-                                                      ClubbarColors.ambarClaro,
-                                                  child: Icon(
-                                                    Icons.storefront,
-                                                    size: 48,
-                                                  ),
-                                                )
-                                              : Image.network(
-                                                  imagem,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, _, _) =>
-                                                      const Icon(
-                                                        Icons.storefront,
-                                                        size: 48,
-                                                      ),
-                                                ),
-                                        ),
-                                        Expanded(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(14),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  loja.nmloja,
-                                                  style: const TextStyle(
-                                                    fontSize: 17,
-                                                    fontWeight: FontWeight.w900,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 6),
-                                                Text(
-                                                  [
-                                                        loja.dsbairroloja,
-                                                        loja.nmcidade,
-                                                      ]
-                                                      .where(
-                                                        (e) =>
-                                                            e
-                                                                ?.trim()
-                                                                .isNotEmpty ==
-                                                            true,
-                                                      )
-                                                      .join(' • '),
-                                                  maxLines: 2,
-                                                ),
-                                                const SizedBox(height: 10),
-                                                const Row(
-                                                  children: [
-                                                    Text(
-                                                      'Abrir agenda',
-                                                      style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 4),
-                                                    Icon(
-                                                      Icons.arrow_forward,
-                                                      size: 18,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
                                     ),
                                   ),
                                 ),
