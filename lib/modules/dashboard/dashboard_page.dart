@@ -27,6 +27,7 @@ import '../categorias/categorias_produtos_page.dart';
 import '../agenda/agenda_loja_page.dart';
 import '../extrato_asaas/extrato_asaas_page.dart';
 import '../extrato_mercado_pago/extrato_mercado_pago_page.dart';
+import '../relatorio_split/relatorio_split_page.dart';
 import '../acompanhamento_vendas/acompanhamento_vendas_page.dart';
 import '../acompanhamento_vendas/compras_produtos_page.dart';
 import '../clientes/clientes_compras_page.dart';
@@ -748,6 +749,20 @@ class _DashboardPageState extends State<DashboardPage> {
                                           MaterialPageRoute(
                                             builder: (_) =>
                                                 const ExtratoMercadoPagoPage(),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                _opcao(
+                                  titulo: 'Relatório de vendas com split',
+                                  subtitulo:
+                                      'Consulte vendas e taxas do Mercado Pago.',
+                                  icone: Icons.assessment_outlined,
+                                  onTap: _podeReconciliarCancelamentos
+                                      ? () => Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const RelatorioSplitPage(),
                                           ),
                                         )
                                       : null,
