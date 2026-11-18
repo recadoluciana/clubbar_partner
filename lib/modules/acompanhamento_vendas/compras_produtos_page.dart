@@ -23,7 +23,6 @@ class ComprasProdutosPage extends StatefulWidget {
 class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
   final _repo = AcompanhamentoVendasRepository();
   final _lojaRepository = LojaRepository();
-  final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _data = DateFormat('dd/MM/yyyy HH:mm', 'pt_BR');
 
   List<CompraProduto> _compras = const [];
@@ -313,43 +312,6 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
     ],
   );
 
-  Widget _valorResumo(String titulo, String valor, Color cor) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cor.withValues(alpha: .08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: cor.withValues(alpha: .25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: 34,
-            child: Text(
-              titulo,
-              maxLines: 2,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              valor,
-              style: TextStyle(
-                color: cor,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
     final compras = _comprasFiltradas;
@@ -364,24 +326,6 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
     final retirados = comprasResumo
         .where((compra) => compra.retirado)
         .fold(0, (soma, compra) => soma + compra.quantidade);
-    final valorVendido = comprasResumo.fold<double>(
-      0,
-      (soma, compra) => soma + compra.valorTotal,
-    );
-    final comissaoDisponivel = comprasResumo.every(
-      (compra) => compra.valorAposComissao != null,
-    );
-    final valorAposComissao = comprasResumo.fold<double>(
-      0,
-      (soma, compra) => soma + (compra.valorAposComissao ?? 0),
-    );
-    final liquidoDisponivel = comprasResumo.every(
-      (compra) => compra.liquidoEstimado != null,
-    );
-    final liquidoEstimado = comprasResumo.fold<double>(
-      0,
-      (soma, compra) => soma + (compra.liquidoEstimado ?? 0),
-    );
 
     return PopScope(
       canPop: _lojaId == null,
@@ -465,7 +409,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                               onChanged: (valor) =>
                                   setState(() => _busca = valor),
                               decoration: InputDecoration(
-                                hintText: 'Buscar cliente ou produto',
+                                hintText: 'Cliente, produto',
                                 prefixIcon: const Icon(Icons.search_rounded),
                                 filled: true,
                                 fillColor: Colors.white,
@@ -501,44 +445,6 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                                   'RETIRADOS',
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                _valorResumo(
-                                  'Valor bruto',
-                                  _moeda.format(valorVendido),
-                                  ClubbarColors.info,
-                                ),
-                                const SizedBox(width: 10),
-                                _valorResumo(
-                                  'Após comissão Clubbar',
-                                  comissaoDisponivel
-                                      ? _moeda.format(valorAposComissao)
-                                      : 'Indisponível',
-                                  ClubbarColors.sucesso,
-                                ),
-                                const SizedBox(width: 10),
-                                _valorResumo(
-                                  'Após taxa MPago (estimativa)',
-                                  liquidoDisponivel
-                                      ? _moeda.format(liquidoEstimado)
-                                      : 'Indisponível',
-                                  ClubbarColors.sucesso,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              !comissaoDisponivel
-                                  ? 'Valor após comissão indisponível: faltam dados de uma ou mais vendas.'
-                                  : liquidoDisponivel
-                                  ? 'Estimativa com Pix 0,99% e crédito 4,99%; a tarifa real pode variar.'
-                                  : 'Líquido após processamento indisponível: faltam dados de pagamento ou comissão para uma ou mais vendas.',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: ClubbarColors.textoSecundario,
-                              ),
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -639,7 +545,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                                                     : Icons.inventory_2_rounded,
                                               ),
                                               Text(
-                                                '${compra.quantidade} un. • ${_moeda.format(compra.valorTotal)}',
+                                                '${compra.quantidade} un.',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w800,
                                                 ),
