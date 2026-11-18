@@ -72,6 +72,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
     'mercadopago_fee' => 'Taxa Mercado Pago',
     'application_fee' || 'marketplace_fee' => 'Comissão do marketplace',
     'financing_fee' => 'Taxa de financiamento',
+    'financed_advance_fee' => 'Taxa de antecipação',
     'shipping_fee' => 'Taxa de envio',
     'coupon_fee' => 'Taxa de cupom',
     _ => 'Outra tarifa ($tipo)',
