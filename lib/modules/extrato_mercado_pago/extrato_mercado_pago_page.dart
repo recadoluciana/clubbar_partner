@@ -253,6 +253,55 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
     );
   }
 
+  Widget _valoresVenda(Map item) {
+    final pago = item['total_pago'] is num ? item['total_pago'] : item['valor'];
+    final liquido = item['liquido_recebido'];
+    final reembolso = item['estornado'];
+    final liquidoConfiavel =
+        item['status'] == 'approved' &&
+        reembolso is num &&
+        reembolso == 0 &&
+        liquido is num;
+
+    Widget valor(String titulo, String texto) => Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          titulo,
+          style: const TextStyle(fontSize: 10, color: Colors.black54),
+        ),
+        Text(
+          texto,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+
+    return Container(
+      width: 112,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          valor(
+            'Valor da venda',
+            pago is num ? _moeda.format(pago) : 'Indisponível',
+          ),
+          const SizedBox(height: 4),
+          valor(
+            'Líquido informado',
+            liquidoConfiavel ? _moeda.format(liquido) : 'Ver detalhes',
+          ),
+        ],
+      ),
+    );
+  }
+
   String _descricaoLancamento(Map<String, dynamic> item) {
     final nomeCliente = item['nome_cliente']?.toString().trim() ?? '';
     if (nomeCliente.isNotEmpty) return nomeCliente;
@@ -570,10 +619,6 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                         const SizedBox(height: 12),
                       ],
                       if (_erro == null && _resumo != null) _resumoVendas(),
-                      const Text(
-                        'São exibidos pagamentos identificados pelo Clubbar para este estabelecimento. Pagamentos sem vínculo identificado não aparecem neste extrato.',
-                      ),
-                      const SizedBox(height: 10),
                       if (_erro != null)
                         Text(_erro!, style: const TextStyle(color: Colors.red))
                       else if (_pagamentos.isEmpty)
@@ -583,8 +628,6 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                           final data = HorarioBrasil.deTextoBrasil(
                             item['data'],
                           );
-                          final valor =
-                              (item['valor'] as num?)?.toDouble() ?? 0;
                           final estornado =
                               (item['estornado'] as num?)?.toDouble() ?? 0;
                           final tipo = switch (item['tipo_venda']) {
@@ -639,9 +682,9 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                                         ),
                                     ],
                                   ),
-                                  trailing: Text(_moeda.format(valor)),
+                                  trailing: _valoresVenda(item as Map),
                                 ),
-                                _detalhesFinanceiros(item as Map),
+                                _detalhesFinanceiros(item),
                               ],
                             ),
                           );

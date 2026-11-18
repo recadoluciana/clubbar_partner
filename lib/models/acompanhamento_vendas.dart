@@ -39,18 +39,18 @@ class ProdutosPendentesResumo {
     required this.itens,
   });
 
-  factory ProdutosPendentesResumo.fromJson(
-    Map<String, dynamic> json,
-  ) => ProdutosPendentesResumo(
-    quantidadeTotal: (json['quantidade_total'] as num?)?.toInt() ?? 0,
-    valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
-    itens: ((json['itens'] as List?) ?? const [])
-        .map(
-          (item) =>
-              ProdutoPendente.fromJson(Map<String, dynamic>.from(item as Map)),
-        )
-        .toList(),
-  );
+  factory ProdutosPendentesResumo.fromJson(Map<String, dynamic> json) =>
+      ProdutosPendentesResumo(
+        quantidadeTotal: (json['quantidade_total'] as num?)?.toInt() ?? 0,
+        valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
+        itens: ((json['itens'] as List?) ?? const [])
+            .map(
+              (item) => ProdutoPendente.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList(),
+      );
 }
 
 class CompraProduto {
@@ -65,6 +65,7 @@ class CompraProduto {
   final double precoUnitario;
   final double valorTotal;
   final DateTime dataCompra;
+  final double? liquidoEstimado;
   final bool retirado;
   final DateTime? dataRetirada;
   final String responsavelRetirada;
@@ -81,6 +82,7 @@ class CompraProduto {
     required this.quantidade,
     required this.precoUnitario,
     required this.valorTotal,
+    this.liquidoEstimado,
     required this.dataCompra,
     required this.retirado,
     required this.dataRetirada,
@@ -99,6 +101,7 @@ class CompraProduto {
     quantidade: (json['quantidade'] as num?)?.toInt() ?? 0,
     precoUnitario: (json['preco_unitario'] as num?)?.toDouble() ?? 0,
     valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
+    liquidoEstimado: (json['liquido_estimado'] as num?)?.toDouble(),
     dataCompra: HorarioBrasil.deTextoBrasil(json['dtcompra']) ?? DateTime(1970),
     retirado: json['retirado'] == true,
     dataRetirada: HorarioBrasil.deTextoBrasil(json['dtretirada']),

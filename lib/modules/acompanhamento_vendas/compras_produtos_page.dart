@@ -52,12 +52,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       _erro = null;
     });
     try {
-      final dados = await Future.wait([
-        StorageService.getOrganizacaoId(),
-        StorageService.getLojaId(),
-      ]);
-      final organizacaoId = dados[0];
-      final lojaVinculadaId = dados[1];
+      final organizacaoId = await StorageService.getOrganizacaoId();
       if (organizacaoId == null || organizacaoId <= 0) {
         throw Exception('Organização não identificada.');
       }
@@ -65,11 +60,9 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       if (!mounted) return;
       setState(() {
         _lojas = lojas;
-        _lojaId = lojas.any((loja) => loja.lojaId == lojaVinculadaId)
-            ? lojaVinculadaId
-            : lojas.firstOrNull?.lojaId;
+        _lojaId = null;
+        _carregando = false;
       });
-      await _carregar(mostrarCarregamento: false);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -135,8 +128,12 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       _filtrarBusca(_comprasResumo);
 
   Future<void> _selecionarLoja(int? lojaId) async {
-    if (lojaId == null || lojaId == _lojaId) return;
-    setState(() => _lojaId = lojaId);
+    if (lojaId == null) return;
+    setState(() {
+      _lojaId = lojaId;
+      _situacao = 'TODOS';
+      _busca = '';
+    });
     await _carregar();
   }
 
@@ -159,34 +156,18 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
     await _carregar();
   }
 
-  Widget _seletorEstabelecimento() {
-    if (_lojas.isEmpty) return const SizedBox.shrink();
-    return DropdownButtonFormField<int>(
-      key: ValueKey(_lojaId),
-      initialValue: _lojaId,
-      isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'Estabelecimento',
-        prefixIcon: Icon(Icons.storefront_rounded),
-        border: OutlineInputBorder(),
+  Widget _filtroPeriodo() => Card(
+    child: ListTile(
+      leading: const Icon(
+        Icons.calendar_month_outlined,
+        color: ClubbarColors.primaria,
       ),
-      items: _lojas
-          .map(
-            (loja) => DropdownMenuItem<int>(
-              value: loja.lojaId,
-              child: Text(loja.nmloja, overflow: TextOverflow.ellipsis),
-            ),
-          )
-          .toList(growable: false),
-      onChanged: _carregando ? null : _selecionarLoja,
-    );
-  }
-
-  Widget _filtroPeriodo() => OutlinedButton.icon(
-    onPressed: _carregando ? null : _selecionarPeriodo,
-    icon: const Icon(Icons.date_range_rounded),
-    label: Text(
-      'Período: ${DateFormat('dd/MM/yy').format(_inicio)} a ${DateFormat('dd/MM/yy').format(_fim)}',
+      title: const Text('Período da consulta', style: TextStyle(fontSize: 12)),
+      subtitle: Text(
+        '${DateFormat('dd/MM/yyyy').format(_inicio)} a ${DateFormat('dd/MM/yyyy').format(_fim)}',
+      ),
+      trailing: const Icon(Icons.edit_calendar_outlined),
+      onTap: _carregando ? null : _selecionarPeriodo,
     ),
   );
 
@@ -231,13 +212,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
     ),
   );
 
-  Widget _resumo(
-    String titulo,
-    int quantidade,
-    double valor,
-    Color cor,
-    String situacao,
-  ) {
+  Widget _resumo(String titulo, int quantidade, Color cor, String situacao) {
     final selecionado = _situacao == situacao;
     return Expanded(
       child: Semantics(
@@ -287,15 +262,6 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _moeda.format(valor),
-                      style: TextStyle(color: cor, fontWeight: FontWeight.w800),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -304,6 +270,74 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       ),
     );
   }
+
+  Widget _listaLojas() => ListView(
+    padding: const EdgeInsets.all(16),
+    children: [
+      const Text(
+        'Selecione o estabelecimento',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 12),
+      if (_lojas.isEmpty) const Text('Nenhum estabelecimento disponível.'),
+      ..._lojas.map((loja) {
+        final imagem = (loja.urllogoloja ?? loja.urlfachadaloja ?? '').trim();
+        final ativo = (loja.sitloja ?? '').toUpperCase() == 'ATIVA';
+        return Card(
+          child: ListTile(
+            leading: imagem.isEmpty
+                ? const Icon(Icons.storefront_outlined)
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      ApiConfig.buildUrl(imagem),
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          const Icon(Icons.storefront_outlined),
+                    ),
+                  ),
+            title: Text(loja.nmloja),
+            subtitle: Text(
+              ativo ? 'Ativo' : 'Inativo',
+              style: TextStyle(
+                color: ativo ? Colors.green.shade700 : Colors.red.shade700,
+              ),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _selecionarLoja(loja.lojaId),
+          ),
+        );
+      }),
+    ],
+  );
+
+  Widget _valorResumo(String titulo, String valor, Color cor) => Expanded(
+    child: Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cor.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cor.withValues(alpha: .25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(titulo, style: const TextStyle(fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(
+            valor,
+            style: TextStyle(
+              color: cor,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -323,250 +357,292 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       0,
       (soma, compra) => soma + compra.valorTotal,
     );
-    final valorPendente = comprasResumo
-        .where((compra) => !compra.retirado)
-        .fold<double>(0, (soma, compra) => soma + compra.valorTotal);
-    final valorEntregue = comprasResumo
-        .where((compra) => compra.retirado)
-        .fold<double>(0, (soma, compra) => soma + compra.valorTotal);
+    final liquidoDisponivel = comprasResumo.every(
+      (compra) => compra.liquidoEstimado != null,
+    );
+    final liquidoEstimado = comprasResumo.fold<double>(
+      0,
+      (soma, compra) => soma + (compra.liquidoEstimado ?? 0),
+    );
 
-    return Scaffold(
-      backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
-      body: SafeArea(
-        child: Column(
-          children: [
-            ClubbarPageHeader(
-              titulo: 'Produtos vendidos / entregues',
-              subtitulo: 'Clientes, produtos vendidos e situação de entrega',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: 'Alterar período',
-                    onPressed: _carregando ? null : _selecionarPeriodo,
-                    icon: const Icon(Icons.date_range_rounded),
-                  ),
-                  IconButton(
-                    tooltip: 'Atualizar',
-                    onPressed: _carregando ? null : _carregar,
-                    icon: const Icon(Icons.refresh_rounded),
-                  ),
-                ],
+    return PopScope(
+      canPop: _lojaId == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _lojaId != null) setState(() => _lojaId = null);
+      },
+      child: Scaffold(
+        backgroundColor: ClubbarColors.fundo,
+        appBar: ClubbarAppBar(
+          mostrarVoltar: true,
+          onVoltar: () {
+            if (_lojaId != null) {
+              setState(() => _lojaId = null);
+            } else {
+              Navigator.maybePop(context);
+            }
+          },
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              ClubbarPageHeader(
+                titulo: 'Produtos vendidos / entregues',
+                subtitulo:
+                    _lojas
+                        .where((loja) => loja.lojaId == _lojaId)
+                        .firstOrNull
+                        ?.nmloja ??
+                    'Escolha o estabelecimento',
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Atualizar',
+                      onPressed: _carregando
+                          ? null
+                          : (_lojaId == null ? _inicializar : _carregar),
+                      icon: const Icon(Icons.refresh_rounded),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: _carregando
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: ClubbarColors.primaria,
-                      ),
-                    )
-                  : _erro != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
+              Expanded(
+                child: _carregando
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: ClubbarColors.primaria,
+                        ),
+                      )
+                    : _erro != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.cloud_off_rounded, size: 48),
+                              const SizedBox(height: 10),
+                              Text(_erro!, textAlign: TextAlign.center),
+                              TextButton.icon(
+                                onPressed: _lojaId == null
+                                    ? _inicializar
+                                    : _carregar,
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('Tentar novamente'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : _lojaId == null
+                    ? _listaLojas()
+                    : RefreshIndicator(
+                        onRefresh: _carregar,
+                        child: ListView(
+                          padding: const EdgeInsets.all(16),
                           children: [
-                            const Icon(Icons.cloud_off_rounded, size: 48),
+                            _filtroPeriodo(),
                             const SizedBox(height: 10),
-                            Text(_erro!, textAlign: TextAlign.center),
-                            TextButton.icon(
-                              onPressed: _carregar,
-                              icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Tentar novamente'),
+                            TextField(
+                              onChanged: (valor) =>
+                                  setState(() => _busca = valor),
+                              decoration: InputDecoration(
+                                hintText: 'Buscar cliente ou produto',
+                                prefixIcon: const Icon(Icons.search_rounded),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: const BorderSide(
+                                    color: ClubbarColors.borda,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                _resumo(
+                                  'Unidades vendidas',
+                                  compradas,
+                                  ClubbarColors.info,
+                                  'TODOS',
+                                ),
+                                const SizedBox(width: 10),
+                                _resumo(
+                                  'Unidades a entregar',
+                                  pendentes,
+                                  ClubbarColors.aviso,
+                                  'PENDENTES',
+                                ),
+                                const SizedBox(width: 10),
+                                _resumo(
+                                  'Unidades entregues',
+                                  retirados,
+                                  ClubbarColors.sucesso,
+                                  'RETIRADOS',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                _valorResumo(
+                                  'Valor bruto',
+                                  _moeda.format(valorVendido),
+                                  ClubbarColors.info,
+                                ),
+                                const SizedBox(width: 10),
+                                _valorResumo(
+                                  'Líquido estimado',
+                                  liquidoDisponivel
+                                      ? _moeda.format(liquidoEstimado)
+                                      : 'Indisponível',
+                                  ClubbarColors.sucesso,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              liquidoDisponivel
+                                  ? 'Estimativa após comissão Clubbar e processamento (Pix 0,99%; crédito 4,99%). As tarifas reais podem variar.'
+                                  : 'Líquido indisponível: faltam dados de pagamento ou comissão para uma ou mais vendas.',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: ClubbarColors.textoSecundario,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              '${compras.length} compra${compras.length == 1 ? '' : 's'} encontrada${compras.length == 1 ? '' : 's'}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: ClubbarColors.textoSecundario,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (compras.isEmpty)
+                              const ClubbarCard(
+                                child: Text(
+                                  'Nenhuma compra de produto encontrada.',
+                                ),
+                              ),
+                            ...compras.map(
+                              (compra) => ClubbarCard(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: SizedBox(
+                                        width: 50,
+                                        height: 50,
+                                        child: _imagemProduto(compra),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  compra.produto,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w900,
+                                                  ),
+                                                ),
+                                              ),
+                                              if (compra.cortesia)
+                                                _badge(
+                                                  texto: 'Cortesia',
+                                                  cor: ClubbarColors.primaria,
+                                                  icone: Icons
+                                                      .card_giftcard_rounded,
+                                                ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            compra.cliente,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          if (compra.emailCliente.isNotEmpty)
+                                            Text(
+                                              compra.emailCliente,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: ClubbarColors
+                                                    .textoSecundario,
+                                              ),
+                                            ),
+                                          const SizedBox(height: 5),
+                                          Text(
+                                            '${compra.loja} • Compra em ${_data.format(compra.dataCompra)}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color:
+                                                  ClubbarColors.textoSecundario,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 6,
+                                            children: [
+                                              _badge(
+                                                texto: compra.retirado
+                                                    ? 'Entregue'
+                                                    : 'Aguardando entrega',
+                                                cor: compra.retirado
+                                                    ? ClubbarColors.sucesso
+                                                    : ClubbarColors.aviso,
+                                                icone: compra.retirado
+                                                    ? Icons.check_circle_rounded
+                                                    : Icons.inventory_2_rounded,
+                                              ),
+                                              Text(
+                                                '${compra.quantidade} un. • ${_moeda.format(compra.valorTotal)}',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          if (compra.retirado &&
+                                              compra.dataRetirada != null) ...[
+                                            const SizedBox(height: 5),
+                                            Text(
+                                              'Entregue em ${_data.format(compra.dataRetirada!)}${compra.responsavelRetirada.isEmpty ? '' : ' • ${compra.responsavelRetirada}'}',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: ClubbarColors
+                                                    .textoSecundario,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _carregar,
-                      child: ListView(
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          _seletorEstabelecimento(),
-                          if (_lojas.isNotEmpty) const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: _filtroPeriodo(),
-                          ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            onChanged: (valor) =>
-                                setState(() => _busca = valor),
-                            decoration: InputDecoration(
-                              hintText: 'Buscar cliente ou produto',
-                              prefixIcon: const Icon(Icons.search_rounded),
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                  color: ClubbarColors.borda,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              _resumo(
-                                'Unidades vendidas',
-                                compradas,
-                                valorVendido,
-                                ClubbarColors.info,
-                                'TODOS',
-                              ),
-                              const SizedBox(width: 10),
-                              _resumo(
-                                'Unidades a entregar',
-                                pendentes,
-                                valorPendente,
-                                ClubbarColors.aviso,
-                                'PENDENTES',
-                              ),
-                              const SizedBox(width: 10),
-                              _resumo(
-                                'Unidades entregues',
-                                retirados,
-                                valorEntregue,
-                                ClubbarColors.sucesso,
-                                'RETIRADOS',
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '${compras.length} compra${compras.length == 1 ? '' : 's'} encontrada${compras.length == 1 ? '' : 's'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: ClubbarColors.textoSecundario,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          if (compras.isEmpty)
-                            const ClubbarCard(
-                              child: Text(
-                                'Nenhuma compra de produto encontrada.',
-                              ),
-                            ),
-                          ...compras.map(
-                            (compra) => ClubbarCard(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(14),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: SizedBox(
-                                      width: 50,
-                                      height: 50,
-                                      child: _imagemProduto(compra),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                compra.produto,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w900,
-                                                ),
-                                              ),
-                                            ),
-                                            if (compra.cortesia)
-                                              _badge(
-                                                texto: 'Cortesia',
-                                                cor: ClubbarColors.primaria,
-                                                icone:
-                                                    Icons.card_giftcard_rounded,
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          compra.cliente,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        if (compra.emailCliente.isNotEmpty)
-                                          Text(
-                                            compra.emailCliente,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color:
-                                                  ClubbarColors.textoSecundario,
-                                            ),
-                                          ),
-                                        const SizedBox(height: 5),
-                                        Text(
-                                          '${compra.loja} • Compra em ${_data.format(compra.dataCompra)}',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color:
-                                                ClubbarColors.textoSecundario,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 6,
-                                          children: [
-                                            _badge(
-                                              texto: compra.retirado
-                                                  ? 'Entregue'
-                                                  : 'Aguardando entrega',
-                                              cor: compra.retirado
-                                                  ? ClubbarColors.sucesso
-                                                  : ClubbarColors.aviso,
-                                              icone: compra.retirado
-                                                  ? Icons.check_circle_rounded
-                                                  : Icons.inventory_2_rounded,
-                                            ),
-                                            Text(
-                                              '${compra.quantidade} un. • ${_moeda.format(compra.valorTotal)}',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        if (compra.retirado &&
-                                            compra.dataRetirada != null) ...[
-                                          const SizedBox(height: 5),
-                                          Text(
-                                            'Entregue em ${_data.format(compra.dataRetirada!)}${compra.responsavelRetirada.isEmpty ? '' : ' • ${compra.responsavelRetirada}'}',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color:
-                                                  ClubbarColors.textoSecundario,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
