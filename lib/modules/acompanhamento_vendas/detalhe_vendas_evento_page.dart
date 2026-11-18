@@ -60,45 +60,73 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
     IconData icone,
     Color cor, {
     VoidCallback? onDetalhes,
-  }) => Container(
-    padding: const EdgeInsets.all(13),
-    decoration: BoxDecoration(
-      color: cor.withValues(alpha: .09),
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: cor.withValues(alpha: .25)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icone, color: cor),
-            const Spacer(),
-            if (onDetalhes != null)
-              IconButton(
-                tooltip: 'Ver ingressos vendidos',
-                onPressed: onDetalhes,
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.visibility_outlined, color: cor),
-              ),
-          ],
-        ),
-        const SizedBox(height: 7),
-        Text(
-          valor,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            color: cor,
+  }) {
+    final card = Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: cor.withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: cor.withValues(alpha: .25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icone, color: cor),
+              const Spacer(),
+            ],
           ),
+          const SizedBox(height: 7),
+          Text(
+            valor,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: cor,
+            ),
+          ),
+          Text(
+            titulo,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+          if (onDetalhes != null) ...[
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Ver ingressos',
+                    style: TextStyle(
+                      color: cor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: cor, size: 16),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+    if (onDetalhes == null) return card;
+    return Semantics(
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(15),
+        child: InkWell(
+          onTap: onDetalhes,
+          borderRadius: BorderRadius.circular(15),
+          child: card,
         ),
-        Text(
-          titulo,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 
   Widget _ocupacao(EventoVendaDetalhe detalhe) {
     final percentual = detalhe.percentualOcupacao.clamp(0, 100).toDouble();
@@ -161,7 +189,7 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
         ? '1 pessoa faltante'
         : '$quantidadePendente pessoas faltantes';
 
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: Colors.orange.withValues(alpha: .09),
@@ -191,16 +219,43 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
                       color: Colors.deepOrange,
                     ),
                   ),
+                if (quantidadePendente > 0) ...[
+                  const SizedBox(height: 6),
+                  const Row(
+                    children: [
+                      Text(
+                        'Ver pendentes',
+                        style: TextStyle(
+                          color: Colors.deepOrange,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.deepOrange,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
-          if (quantidadePendente > 0)
-            IconButton(
-              tooltip: 'Ver ingressos não utilizados',
-              onPressed: onVerPendentes,
-              icon: const Icon(Icons.visibility_outlined, color: Colors.orange),
-            ),
         ],
+      ),
+    );
+    if (quantidadePendente == 0) return card;
+    return Semantics(
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(15),
+        child: InkWell(
+          onTap: onVerPendentes,
+          borderRadius: BorderRadius.circular(15),
+          child: card,
+        ),
       ),
     );
   }
