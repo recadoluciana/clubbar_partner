@@ -200,6 +200,8 @@ class EventoVendaDetalhe {
   final int quantidadeRestante;
   final double percentualOcupacao;
   final double valorTotal;
+  final double? brutoPago;
+  final double? liquidoPrevisto;
   final List<LoteVendaResumo> lotes;
 
   const EventoVendaDetalhe({
@@ -211,6 +213,8 @@ class EventoVendaDetalhe {
     required this.quantidadeRestante,
     required this.percentualOcupacao,
     required this.valorTotal,
+    this.brutoPago,
+    this.liquidoPrevisto,
     required this.lotes,
   });
 
@@ -225,6 +229,8 @@ class EventoVendaDetalhe {
     quantidadeRestante: (json['quantidade_restante'] as num?)?.toInt() ?? 0,
     percentualOcupacao: (json['percentual_ocupacao'] as num?)?.toDouble() ?? 0,
     valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
+    brutoPago: (json['bruto_pago'] as num?)?.toDouble(),
+    liquidoPrevisto: (json['liquido_previsto'] as num?)?.toDouble(),
     lotes: ((json['lotes'] as List?) ?? const [])
         .map(
           (item) =>

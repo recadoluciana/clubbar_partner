@@ -62,11 +62,18 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
       if (!mounted) return;
       setState(() {
         _lojas = lojas;
-        _lojaId = lojas.any((loja) => loja.lojaId == lojaVinculadaId)
-            ? lojaVinculadaId
-            : lojas.firstOrNull?.lojaId;
+        _lojaId = widget.tipo == TipoAcompanhamento.ingressos
+            ? null
+            : (lojas.any((loja) => loja.lojaId == lojaVinculadaId)
+                  ? lojaVinculadaId
+                  : lojas.firstOrNull?.lojaId);
+        if (_lojaId == null && widget.tipo == TipoAcompanhamento.ingressos) {
+          _carregando = false;
+        }
       });
-      await _carregar(mostrarCarregamento: false);
+      if (_lojaId != null || widget.tipo == TipoAcompanhamento.produtos) {
+        await _carregar(mostrarCarregamento: false);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -110,6 +117,48 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
     setState(() => _lojaId = lojaId);
     await _carregar();
   }
+
+  Widget _listaEstabelecimentos() => ListView(
+    padding: const EdgeInsets.all(16),
+    children: [
+      const Text(
+        'Selecione o estabelecimento',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 12),
+      if (_lojas.isEmpty) const Text('Nenhum estabelecimento disponível.'),
+      ..._lojas.map((loja) {
+        final imagem = (loja.urllogoloja ?? loja.urlfachadaloja ?? '').trim();
+        final ativo = (loja.sitloja ?? '').toUpperCase() == 'ATIVA';
+        return Card(
+          child: ListTile(
+            leading: imagem.isEmpty
+                ? const Icon(Icons.storefront_outlined)
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      ApiConfig.buildUrl(imagem),
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          const Icon(Icons.storefront_outlined),
+                    ),
+                  ),
+            title: Text(loja.nmloja),
+            subtitle: Text(
+              ativo ? 'Ativo' : 'Inativo',
+              style: TextStyle(
+                color: ativo ? Colors.green.shade700 : Colors.red.shade700,
+              ),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _selecionarLoja(loja.lojaId),
+          ),
+        );
+      }),
+    ],
+  );
 
   Widget _seletorEstabelecimento() {
     if (_lojas.isEmpty) return const SizedBox.shrink();
@@ -226,7 +275,10 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
             const SizedBox(height: 8),
             Text(_erro!, textAlign: TextAlign.center),
             TextButton.icon(
-              onPressed: _carregar,
+              onPressed:
+                  _lojaId == null && widget.tipo == TipoAcompanhamento.ingressos
+                  ? _inicializar
+                  : _carregar,
               icon: const Icon(Icons.refresh),
               label: const Text('Tentar novamente'),
             ),
@@ -417,11 +469,7 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
           const SizedBox(height: 10),
           Row(
             children: [
-              _filtroPeriodo(
-                'Futuros',
-                'FUTUROS',
-                Icons.event_rounded,
-              ),
+              _filtroPeriodo('Futuros', 'FUTUROS', Icons.event_rounded),
               const SizedBox(width: 10),
               _filtroPeriodo(
                 'Realizados',
@@ -492,31 +540,68 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
-    body: SafeArea(
-      child: Column(
-        children: [
-          ClubbarPageHeader(
-            titulo: widget.tipo == TipoAcompanhamento.produtos
-                ? 'Produtos a entregar'
-                : 'Ingressos vendidos',
-            subtitulo: widget.tipo == TipoAcompanhamento.produtos
-                ? 'Acompanhamento de produtos pendentes'
-                : 'Acompanhamento de vendas por evento',
-            trailing: IconButton(
-              onPressed: _carregando ? null : _carregar,
-              icon: const Icon(Icons.refresh_rounded),
+  Widget build(BuildContext context) => PopScope(
+    canPop: widget.tipo != TipoAcompanhamento.ingressos || _lojaId == null,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop &&
+          widget.tipo == TipoAcompanhamento.ingressos &&
+          _lojaId != null) {
+        setState(() {
+          _lojaId = null;
+          _erro = null;
+        });
+      }
+    },
+    child: Scaffold(
+      backgroundColor: ClubbarColors.fundo,
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        onVoltar: () {
+          if (widget.tipo == TipoAcompanhamento.ingressos && _lojaId != null) {
+            setState(() {
+              _lojaId = null;
+              _erro = null;
+            });
+          } else {
+            Navigator.maybePop(context);
+          }
+        },
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            ClubbarPageHeader(
+              titulo: widget.tipo == TipoAcompanhamento.produtos
+                  ? 'Produtos a entregar'
+                  : 'Ingressos vendidos',
+              subtitulo: widget.tipo == TipoAcompanhamento.produtos
+                  ? 'Acompanhamento de produtos pendentes'
+                  : _lojas
+                            .where((loja) => loja.lojaId == _lojaId)
+                            .firstOrNull
+                            ?.nmloja ??
+                        'Escolha o estabelecimento',
+              trailing: IconButton(
+                onPressed: _carregando
+                    ? null
+                    : (widget.tipo == TipoAcompanhamento.ingressos &&
+                              _lojaId == null
+                          ? _inicializar
+                          : _carregar),
+                icon: const Icon(Icons.refresh_rounded),
+              ),
             ),
-          ),
-          _seletorEstabelecimento(),
-          Expanded(
-            child: widget.tipo == TipoAcompanhamento.produtos
-                ? _conteudoProdutos()
-                : _conteudoIngressos(),
-          ),
-        ],
+            if (widget.tipo == TipoAcompanhamento.produtos)
+              _seletorEstabelecimento(),
+            Expanded(
+              child: widget.tipo == TipoAcompanhamento.produtos
+                  ? _conteudoProdutos()
+                  : _lojaId == null && !_carregando && _erro == null
+                  ? _listaEstabelecimentos()
+                  : _conteudoIngressos(),
+            ),
+          ],
+        ),
       ),
     ),
   );

@@ -324,14 +324,25 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(titulo, style: const TextStyle(fontSize: 12)),
+          SizedBox(
+            height: 34,
+            child: Text(
+              titulo,
+              maxLines: 2,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(
-            valor,
-            style: TextStyle(
-              color: cor,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              valor,
+              style: TextStyle(
+                color: cor,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -507,6 +518,14 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                                       : 'Indisponível',
                                   ClubbarColors.sucesso,
                                 ),
+                                const SizedBox(width: 10),
+                                _valorResumo(
+                                  'Após taxa MPago (estimativa)',
+                                  liquidoDisponivel
+                                      ? _moeda.format(liquidoEstimado)
+                                      : 'Indisponível',
+                                  ClubbarColors.sucesso,
+                                ),
                               ],
                             ),
                             const SizedBox(height: 6),
@@ -514,7 +533,7 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                               !comissaoDisponivel
                                   ? 'Valor após comissão indisponível: faltam dados de uma ou mais vendas.'
                                   : liquidoDisponivel
-                                  ? 'Líquido estimado após processamento: ${_moeda.format(liquidoEstimado)}. Usa Pix 0,99% e crédito 4,99%; a tarifa real pode variar.'
+                                  ? 'Estimativa com Pix 0,99% e crédito 4,99%; a tarifa real pode variar.'
                                   : 'Líquido após processamento indisponível: faltam dados de pagamento ou comissão para uma ou mais vendas.',
                               style: const TextStyle(
                                 fontSize: 11,
