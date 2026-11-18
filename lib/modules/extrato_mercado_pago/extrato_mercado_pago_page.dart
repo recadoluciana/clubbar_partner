@@ -642,47 +642,62 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                           return Card(
                             child: Column(
                               children: [
-                                ListTile(
-                                  title: Text(_descricaoLancamento(item)),
-                                  subtitle: Column(
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  child: Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Wrap(
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.center,
-                                        spacing: 6,
-                                        runSpacing: 4,
-                                        children: [
-                                          Text(
-                                            '$tipo • ${data == null ? 'Data indisponível' : _data.format(data)}',
-                                          ),
-                                          _badgeStatus(item['status']),
-                                        ],
-                                      ),
-                                      Text(
-                                        itens.isEmpty
-                                            ? 'Detalhes não disponíveis'
-                                            : itens,
-                                      ),
-                                      if (estornado > 0)
-                                        Text(
-                                          'Reembolsado: ${_moeda.format(estornado)}',
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(_descricaoLancamento(item)),
+                                            Wrap(
+                                              crossAxisAlignment:
+                                                  WrapCrossAlignment.center,
+                                              spacing: 6,
+                                              runSpacing: 4,
+                                              children: [
+                                                Text(
+                                                  '$tipo • ${data == null ? 'Data indisponível' : _data.format(data)}',
+                                                ),
+                                                _badgeStatus(item['status']),
+                                              ],
+                                            ),
+                                            Text(
+                                              itens.isEmpty
+                                                  ? 'Detalhes não disponíveis'
+                                                  : itens,
+                                            ),
+                                            if (estornado > 0)
+                                              Text(
+                                                'Reembolsado: ${_moeda.format(estornado)}',
+                                              ),
+                                            if (item['diferenca_repasse']
+                                                    is num &&
+                                                (item['diferenca_repasse']
+                                                            as num)
+                                                        .abs() >=
+                                                    0.005)
+                                              const Text(
+                                                'Diferença para conciliar',
+                                                style: TextStyle(
+                                                  color: Colors.deepOrange,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                          ],
                                         ),
-                                      if (item['diferenca_repasse'] is num &&
-                                          (item['diferenca_repasse'] as num)
-                                                  .abs() >=
-                                              0.005)
-                                        const Text(
-                                          'Diferença para conciliar',
-                                          style: TextStyle(
-                                            color: Colors.deepOrange,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      _valoresVenda(item as Map),
                                     ],
                                   ),
-                                  trailing: _valoresVenda(item as Map),
                                 ),
                                 _detalhesFinanceiros(item),
                               ],
