@@ -95,6 +95,8 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
   Widget _detalhesFinanceiros(Map item) {
     final liquido = item['liquido_recebido'];
     final totalPago = item['total_pago'];
+    final valorIngressos = item['valor_ingressos'];
+    final diferencaRepasse = item['diferenca_repasse'];
     final taxas = item['taxas'] is List ? item['taxas'] as List : const [];
     final liberacao = HorarioBrasil.deTextoBrasil(item['data_liberacao']);
     final situacaoLiberacao = switch (item['situacao_liberacao']?.toString()) {
@@ -140,6 +142,25 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           'Valor líquido informado',
           liquido is num ? _moeda.format(liquido) : 'Não informado',
         ),
+        if (valorIngressos is num && diferencaRepasse is num) ...[
+          linha('Valor dos ingressos', _moeda.format(valorIngressos)),
+          linha('Diferença para conciliação', _moeda.format(diferencaRepasse)),
+          if (diferencaRepasse.abs() >= 0.005)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                'O líquido informado difere do valor dos ingressos. Confira a operação e concilie a diferença.',
+                style: TextStyle(color: Colors.deepOrange, fontSize: 12),
+              ),
+            ),
+        ] else if (item['tipo_venda'] == 'INGRESSO')
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text(
+              'A comparação fica disponível para pagamentos aprovados e liberados, sem reembolso, quando houver dados suficientes.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
         if (taxas.isEmpty)
           linha('Tarifas', 'Não informadas')
         else
@@ -539,6 +560,17 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                                       if (estornado > 0)
                                         Text(
                                           'Reembolsado: ${_moeda.format(estornado)}',
+                                        ),
+                                      if (item['diferenca_repasse'] is num &&
+                                          (item['diferenca_repasse'] as num)
+                                                  .abs() >=
+                                              0.005)
+                                        const Text(
+                                          'Diferença para conciliar',
+                                          style: TextStyle(
+                                            color: Colors.deepOrange,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                     ],
                                   ),
