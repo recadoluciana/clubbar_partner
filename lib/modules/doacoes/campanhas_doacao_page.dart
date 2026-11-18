@@ -709,7 +709,16 @@ class _CampanhasDoacaoPageState extends State<CampanhasDoacaoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregando ? null : _carregarCampanhas,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
       bottomNavigationBar: _lojaId == null
           ? null
           : ClubbarActionBar(

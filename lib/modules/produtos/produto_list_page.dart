@@ -741,7 +741,7 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(mostrarVoltar: true, actions: [_acoesHeader()]),
       body: SafeArea(
         child: Column(
           children: [
@@ -753,7 +753,6 @@ class _ProdutoListPageState extends State<ProdutoListPage> {
                   ? 'Selecione um estabelecimento'
                   : '$nomeLoja • ${_produtos.length} '
                         '${_produtos.length == 1 ? 'produto' : 'produtos'}',
-              trailing: _acoesHeader(),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),

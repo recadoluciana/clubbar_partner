@@ -122,7 +122,16 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
         .cast<Map>();
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregar,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           ClubbarPageHeader(
@@ -135,11 +144,6 @@ class _ExtratoAsaasPageState extends State<ExtratoAsaasPage> {
                   tooltip: 'Alterar período',
                   onPressed: _selecionarPeriodo,
                   icon: const Icon(Icons.date_range_rounded),
-                ),
-                IconButton(
-                  tooltip: 'Atualizar',
-                  onPressed: _carregar,
-                  icon: const Icon(Icons.refresh_rounded),
                 ),
               ],
             ),

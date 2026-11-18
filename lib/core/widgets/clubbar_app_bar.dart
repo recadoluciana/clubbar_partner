@@ -10,6 +10,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool centralizarLogo;
   final double alturaLogo;
   final List<Widget>? actions;
+  final String? titulo;
 
   const ClubbarAppBar({
     super.key,
@@ -25,6 +26,7 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.centralizarLogo = true,
     this.alturaLogo = 52,
     this.actions,
+    this.titulo,
   });
 
   @override
@@ -43,6 +45,14 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
       toolbarHeight: 60,
       automaticallyImplyLeading: false,
       titleSpacing: 8,
+      title: titulo == null
+          ? null
+          : Text(
+              titulo!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+            ),
 
       leading: mostrarVoltar
           ? IconButton(
@@ -56,42 +66,44 @@ class ClubbarAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
 
-      flexibleSpace: SafeArea(
-        bottom: false,
-        child: IgnorePointer(
-          child: Align(
-            alignment: centralizarLogo
-                ? Alignment.center
-                : Alignment.centerLeft,
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: centralizarLogo ? 0 : (mostrarVoltar ? 64 : 18),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    logoPath,
-                    height: alturaLogo.clamp(36.0, 44.0).toDouble(),
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Clubbar Partner',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.8,
+      flexibleSpace: titulo != null
+          ? null
+          : SafeArea(
+              bottom: false,
+              child: IgnorePointer(
+                child: Align(
+                  alignment: centralizarLogo
+                      ? Alignment.center
+                      : Alignment.centerLeft,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: centralizarLogo ? 0 : (mostrarVoltar ? 64 : 18),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          logoPath,
+                          height: alturaLogo.clamp(36.0, 44.0).toDouble(),
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Clubbar Partner',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 21,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ),
 
       actions: [
         if (actions != null) ...actions!,

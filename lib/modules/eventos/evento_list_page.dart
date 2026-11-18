@@ -1188,7 +1188,7 @@ class _EventoListPageState extends State<EventoListPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(mostrarVoltar: true, actions: [_acoesHeader()]),
       bottomNavigationBar: ClubbarActionBar(
         actions: _modoSelecaoAgenda
             ? [
@@ -1218,7 +1218,6 @@ class _EventoListPageState extends State<EventoListPage> {
                   ? 'Carregando eventos padrão...'
                   : '${widget.fixarLoja && nomeLoja.isNotEmpty ? '$nomeLoja • ' : ''}${_eventos.length} '
                         '${_eventos.length == 1 ? 'evento' : 'eventos'}',
-              trailing: _acoesHeader(),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),

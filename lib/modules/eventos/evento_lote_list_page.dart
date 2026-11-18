@@ -3011,7 +3011,16 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
     length: 4,
     initialIndex: _aba,
     child: Scaffold(
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregando || _alterandoPublicacao ? null : _carregar,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           ClubbarPageHeader(
@@ -3019,16 +3028,6 @@ class _EventoLoteListPageState extends State<EventoLoteListPage> {
             subtitulo: _somenteConsulta
                 ? 'Evento realizado — disponível somente para consulta'
                 : '${_eventoPublicado ? 'Publicado' : 'Rascunho'} — gerencie evento, setores, lotes e preços',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: 'Atualizar',
-                  onPressed: _carregar,
-                  icon: const Icon(Icons.refresh_rounded),
-                ),
-              ],
-            ),
           ),
           TabBar(
             onTap: (indice) => setState(() => _aba = indice),

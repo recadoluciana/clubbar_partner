@@ -556,6 +556,18 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
       backgroundColor: ClubbarColors.fundo,
       appBar: ClubbarAppBar(
         mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregando
+                ? null
+                : (widget.tipo == TipoAcompanhamento.ingressos &&
+                          _lojaId == null
+                      ? _inicializar
+                      : _carregar),
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
         onVoltar: () {
           if (widget.tipo == TipoAcompanhamento.ingressos && _lojaId != null) {
             setState(() {
@@ -581,15 +593,6 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
                             .firstOrNull
                             ?.nmloja ??
                         'Escolha o estabelecimento',
-              trailing: IconButton(
-                onPressed: _carregando
-                    ? null
-                    : (widget.tipo == TipoAcompanhamento.ingressos &&
-                              _lojaId == null
-                          ? _inicializar
-                          : _carregar),
-                icon: const Icon(Icons.refresh_rounded),
-              ),
             ),
             if (widget.tipo == TipoAcompanhamento.produtos)
               _seletorEstabelecimento(),

@@ -629,6 +629,11 @@ class _AgendaMensalPageState extends State<AgendaMensalPage> {
       mostrarVoltar: true,
       actions: [
         IconButton(
+          tooltip: 'Atualizar',
+          onPressed: _carregar,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+        IconButton(
           tooltip: 'Compartilhar agenda',
           onPressed: _compartilharAgenda,
           icon: const Icon(Icons.share),

@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../core/repositories/acompanhamento_vendas_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/widgets/clubbar_app_bar.dart';
-import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/acompanhamento_vendas.dart';
 import 'ingressos_vendidos_evento_page.dart';
 
@@ -395,6 +394,15 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Text(
+            widget.evento.nome,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            _data.format(widget.evento.dataHora),
+            style: const TextStyle(color: ClubbarColors.textoSecundario),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -504,23 +512,17 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
-    body: SafeArea(
-      child: Column(
-        children: [
-          ClubbarPageHeader(
-            titulo: widget.evento.nome,
-            subtitulo:
-                'Ingressos vendidos • ${_data.format(widget.evento.dataHora)}',
-            tituloStyle: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-              color: Colors.blue,
-            ),
-          ),
-          Expanded(child: _conteudo()),
-        ],
-      ),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      titulo: 'Ingressos vendidos',
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar',
+          onPressed: _carregar,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
     ),
+    body: SafeArea(child: _conteudo()),
   );
 }

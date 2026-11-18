@@ -668,6 +668,13 @@ class _CaixaPageState extends State<CaixaPage> {
       mostrarVoltar: Navigator.canPop(context),
       mostrarSair: true,
       onSair: _sair,
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar',
+          onPressed: _carregando || _checkoutEmAndamento ? null : _carregar,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
     ),
     body: _carregando || _contexto == null
         ? const Center(child: CircularProgressIndicator())

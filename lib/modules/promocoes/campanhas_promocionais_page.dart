@@ -459,6 +459,16 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
       appBar: ClubbarAppBar(
         mostrarTopbar: true,
         mostrarVoltar: true,
+        actions: [
+          if (!_criando)
+            IconButton(
+              tooltip: 'Atualizar',
+              onPressed: _carregando
+                  ? null
+                  : (_loja == null ? _iniciar : _carregar),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+        ],
         onVoltar: _voltar,
       ),
       body: _carregando

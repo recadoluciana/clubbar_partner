@@ -1325,7 +1325,7 @@ class _LojaListPageState extends State<LojaListPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(mostrarVoltar: true, actions: [_acoesHeader()]),
       body: SafeArea(
         child: Column(
           children: [
@@ -1336,7 +1336,6 @@ class _LojaListPageState extends State<LojaListPage> {
               subtitulo: _carregandoOrganizacao
                   ? 'Carregando organização...'
                   : _nomeOrganizacao,
-              trailing: _acoesHeader(),
             ),
             Expanded(child: _lista(mostrarTitulo: false)),
           ],

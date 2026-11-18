@@ -534,7 +534,14 @@ class _DashboardPageState extends State<DashboardPage> {
         mostrarSair: true,
         centralizarLogo: false,
         onSair: _sair,
-        actions: const [ApiStatusIndicator(versao: '1.0.1')],
+        actions: [
+          const ApiStatusIndicator(versao: '1.0.1'),
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregarDadosUsuario,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(

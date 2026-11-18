@@ -490,7 +490,16 @@ class _BeneficiosProdutosPageState extends State<BeneficiosProdutosPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar',
+          onPressed: _carregando ? null : _carregar,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
+    ),
     body: _carregando
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(
@@ -675,10 +684,10 @@ class _SelecionarProdutoPageState extends State<_SelecionarProdutoPage> {
     final produtos = _produtosFiltrados;
 
     return Scaffold(
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: const ClubbarAppBar(mostrarVoltar: true),
       body: Column(
         children: [
-        const ClubbarPageHeader(titulo: 'Selecione o produto', subtitulo: ''),
+          const ClubbarPageHeader(titulo: 'Selecione o produto', subtitulo: ''),
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(

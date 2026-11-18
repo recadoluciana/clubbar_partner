@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/repositories/loja_repository.dart';
 import '../../core/theme/clubbar_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/horario_brasil.dart';
@@ -7,7 +8,7 @@ import '../../core/widgets/clubbar_app_bar.dart';
 import '../../core/widgets/clubbar_page_header.dart';
 import '../../models/loja.dart';
 
-class PendenciasCancelamentoPage extends StatelessWidget {
+class PendenciasCancelamentoPage extends StatefulWidget {
   final Loja loja;
   final List<Map<String, dynamic>> pendencias;
 
@@ -16,6 +17,39 @@ class PendenciasCancelamentoPage extends StatelessWidget {
     required this.loja,
     required this.pendencias,
   });
+
+  @override
+  State<PendenciasCancelamentoPage> createState() =>
+      _PendenciasCancelamentoPageState();
+}
+
+class _PendenciasCancelamentoPageState
+    extends State<PendenciasCancelamentoPage> {
+  late List<Map<String, dynamic>> pendencias = widget.pendencias;
+  Loja get loja => widget.loja;
+  bool _carregando = false;
+
+  Future<void> _atualizar() async {
+    setState(() => _carregando = true);
+    try {
+      final dados = await LojaRepository().consultarCancelamento(loja.lojaId);
+      final lista = (dados['pendencias'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+      if (mounted) setState(() => pendencias = lista);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível atualizar as pendências.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
 
   String _texto(dynamic valor, {String vazio = 'Não informado'}) {
     final texto = valor?.toString().trim() ?? '';
@@ -167,7 +201,16 @@ class PendenciasCancelamentoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar',
+          onPressed: _carregando ? null : _atualizar,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
+    ),
     body: Column(
       children: [
         ClubbarPageHeader(

@@ -365,18 +365,22 @@ class _ReconciliacaoCancelamentosPageState
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar',
+          onPressed: _carregando ? null : _carregar,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
+    ),
     body: SafeArea(
       child: Column(
         children: [
           ClubbarPageHeader(
             titulo: 'Cancelamentos em processamento',
             subtitulo: 'Reconcilie estornos do $_nomeProvedor com segurança',
-            trailing: IconButton(
-              onPressed: _carregando ? null : _carregar,
-              icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'Atualizar',
-            ),
           ),
           Expanded(child: _estado()),
         ],

@@ -336,6 +336,15 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
         backgroundColor: ClubbarColors.fundo,
         appBar: ClubbarAppBar(
           mostrarVoltar: true,
+          actions: [
+            IconButton(
+              tooltip: 'Atualizar',
+              onPressed: _carregando
+                  ? null
+                  : (_lojaId == null ? _inicializar : _carregar),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          ],
           onVoltar: () {
             if (_lojaId != null) {
               setState(() => _lojaId = null);
@@ -355,18 +364,6 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                         .firstOrNull
                         ?.nmloja ??
                     'Escolha o estabelecimento',
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Atualizar',
-                      onPressed: _carregando
-                          ? null
-                          : (_lojaId == null ? _inicializar : _carregar),
-                      icon: const Icon(Icons.refresh_rounded),
-                    ),
-                  ],
-                ),
               ),
               Expanded(
                 child: _carregando

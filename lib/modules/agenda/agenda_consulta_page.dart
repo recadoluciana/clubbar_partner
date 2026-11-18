@@ -196,7 +196,16 @@ class _AgendaConsultaPageState extends State<AgendaConsultaPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ClubbarColors.fundo,
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar',
+          onPressed: _loading ? null : (_lojaId == null ? _init : _load),
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
+    ),
     bottomNavigationBar: ClubbarActionBar(
       actions: [
         ClubbarAddButton(
