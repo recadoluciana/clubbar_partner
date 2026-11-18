@@ -382,6 +382,13 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       0,
       (soma, compra) => soma + (compra.liquidoEstimado ?? 0),
     );
+    final simulacaoDisponivel = comprasResumo.every(
+      (compra) => compra.simulacaoSemComissao != null,
+    );
+    final simulacaoSemComissao = comprasResumo.fold<double>(
+      0,
+      (soma, compra) => soma + (compra.simulacaoSemComissao ?? 0),
+    );
 
     return PopScope(
       canPop: _lojaId == null,
@@ -527,6 +534,26 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                                   ClubbarColors.sucesso,
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                _valorResumo(
+                                  'Simulação sem comissão Clubbar',
+                                  simulacaoDisponivel
+                                      ? _moeda.format(simulacaoSemComissao)
+                                      : 'Indisponível',
+                                  ClubbarColors.info,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Simulação: considera comissão Clubbar zero. A cobrança real de produtos continua seguindo a taxa cadastrada na loja.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: ClubbarColors.textoSecundario,
+                              ),
                             ),
                             const SizedBox(height: 6),
                             Text(

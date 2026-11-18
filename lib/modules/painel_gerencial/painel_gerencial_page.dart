@@ -226,6 +226,11 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          const Text(
+            'Produtos após comissão Clubbar; ingressos pelo preço base. Os valores não descontam a tarifa do Mercado Pago.',
+            style: TextStyle(fontSize: 11, color: Colors.black54),
+          ),
         ],
       ),
     );
