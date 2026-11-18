@@ -421,6 +421,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
     required List<ItemRankingGerencial> itens,
     required String vazio,
     bool coresDoGrafico = false,
+    bool? porValor,
   }) {
     return ClubbarCard(
       elevation: 1,
@@ -468,7 +469,11 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                           Text(
-                            '${_inteiro.format(item.quantidade)} vendidos • ${_moeda.format(item.valor)}',
+                            porValor == true
+                                ? _moeda.format(item.valor)
+                                : porValor == false
+                                ? '${_inteiro.format(item.quantidade)} ${item.quantidade == 1 ? 'vendido' : 'vendidos'}'
+                                : '${_inteiro.format(item.quantidade)} vendidos • ${_moeda.format(item.valor)}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: ClubbarColors.textoSecundario,
@@ -540,6 +545,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                     Expanded(
                       child: _ranking(
                         titulo: 'Ranking de produtos (por qtde)',
+                        porValor: false,
                         coresDoGrafico: true,
                         itens: painel.produtosMaisVendidos,
                         vazio: 'Nenhum produto vendido.',
@@ -558,6 +564,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
               else ...[
                 _ranking(
                   titulo: 'Ranking de produtos (por qtde)',
+                  porValor: false,
                   coresDoGrafico: true,
                   itens: painel.produtosMaisVendidos,
                   vazio: 'Nenhum produto vendido.',
@@ -581,6 +588,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                     Expanded(
                       child: _ranking(
                         titulo: 'Ranking de produtos (por valor)',
+                        porValor: true,
                         coresDoGrafico: true,
                         itens: produtosPorValor,
                         vazio: 'Nenhum produto vendido.',
@@ -593,6 +601,7 @@ class _PainelGerencialPageState extends State<PainelGerencialPage> {
                 const SizedBox(height: 14),
                 _ranking(
                   titulo: 'Ranking de produtos (por valor)',
+                  porValor: true,
                   coresDoGrafico: true,
                   itens: produtosPorValor,
                   vazio: 'Nenhum produto vendido.',
