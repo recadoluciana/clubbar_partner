@@ -418,7 +418,7 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
           ),
           const SizedBox(height: 5),
           const Text(
-            'O bruto inclui as taxas pagas pelo cliente. O líquido é uma estimativa após a comissão e o processamento; pode diferir do valor liberado pelo Mercado Pago.',
+            'O bruto inclui as taxas pagas pelo cliente. O líquido estima o repasse usando a comissão registrada e o processamento de 0,99% no Pix ou 4,99% no crédito; o valor real pode variar.',
             style: TextStyle(fontSize: 11, color: Colors.black54),
           ),
           const SizedBox(height: 10),
