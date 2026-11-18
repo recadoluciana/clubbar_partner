@@ -368,11 +368,35 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
             ),
           ),
           const SizedBox(height: 10),
-          _resumo(
-            'Total recebido',
-            _moeda.format(detalhe.valorTotal),
-            Icons.payments_rounded,
-            Colors.green,
+          Row(
+            children: [
+              Expanded(
+                child: _resumo(
+                  'Bruto pago',
+                  detalhe.brutoPago == null
+                      ? 'Indisponível'
+                      : _moeda.format(detalhe.brutoPago),
+                  Icons.payments_rounded,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _resumo(
+                  'Líquido previsto',
+                  detalhe.liquidoPrevisto == null
+                      ? 'Indisponível'
+                      : _moeda.format(detalhe.liquidoPrevisto),
+                  Icons.account_balance_wallet_rounded,
+                  Colors.green,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            'O bruto inclui as taxas pagas pelo cliente. O líquido é uma estimativa após a comissão e o processamento; pode diferir do valor liberado pelo Mercado Pago.',
+            style: TextStyle(fontSize: 11, color: Colors.black54),
           ),
           const SizedBox(height: 10),
           _ocupacao(detalhe),
