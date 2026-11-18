@@ -34,6 +34,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
   bool _selecionandoLoja = false;
   String? _erro;
   String? _nomeTitularConta;
+  Map<String, dynamic>? _resumo;
   late DateTime _inicio;
   late DateTime _fim;
 
@@ -47,6 +48,63 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
     'rejected' => 'Recusado',
     _ => 'Status: ${valor ?? 'indisponível'}',
   };
+
+  Widget _resumoVendas() {
+    final resumo = _resumo;
+    Widget total(String titulo, dynamic valor, Color cor) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: cor.withValues(alpha: 0.08),
+          border: Border.all(color: cor.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(titulo, style: const TextStyle(fontSize: 12)),
+            const SizedBox(height: 4),
+            Text(
+              valor is num ? _moeda.format(valor) : 'Indisponível',
+              style: TextStyle(
+                color: cor,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            total('Total bruto', resumo?['bruto'], Colors.blue.shade700),
+            const SizedBox(width: 8),
+            total('Total líquido', resumo?['liquido'], Colors.green.shade700),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Vendas aprovadas no período. O bruto é o valor pago pelos clientes; o líquido é informado pelo Mercado Pago e inclui valores já liberados e a liberar. Cancelamentos, recusas e reembolsos integrais não entram nos totais.',
+          style: TextStyle(fontSize: 12),
+        ),
+        if (resumo?['reembolso_parcial'] == true)
+          const Text(
+            'Há reembolso parcial: o bruto não o desconta e o líquido está indisponível para conciliação.',
+            style: TextStyle(fontSize: 12, color: Colors.deepOrange),
+          )
+        else if (resumo?['liquido'] == null)
+          const Text(
+            'O líquido está indisponível porque faltam dados financeiros para uma ou mais vendas.',
+            style: TextStyle(fontSize: 12, color: Colors.deepOrange),
+          ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
 
   Widget _badgeStatus(dynamic status) {
     final cor = switch (status?.toString()) {
@@ -296,12 +354,16 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           _pagamentos = dados['pagamentos'] as List? ?? [];
           _mais = dados['possui_mais'] == true;
           _nomeTitularConta = dados['nome_titular_conta']?.toString();
+          _resumo = dados['resumo'] is Map
+              ? Map<String, dynamic>.from(dados['resumo'] as Map)
+              : null;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _pagamentos = [];
+          _resumo = null;
           _mais = false;
           _erro = e.toString().replaceFirst('Exception: ', '');
         });
@@ -321,6 +383,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
       _contas = [];
       _contaId = null;
       _pagamentos = [];
+      _resumo = null;
     });
     try {
       await _carregarContas();
@@ -506,6 +569,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                         ),
                         const SizedBox(height: 12),
                       ],
+                      if (_erro == null && _resumo != null) _resumoVendas(),
                       const Text(
                         'São exibidos pagamentos identificados pelo Clubbar para este estabelecimento. Pagamentos sem vínculo identificado não aparecem neste extrato.',
                       ),
