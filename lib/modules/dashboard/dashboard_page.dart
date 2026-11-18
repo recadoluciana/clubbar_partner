@@ -837,22 +837,6 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                             _grupoArvore(
-                              titulo: 'Segurança',
-                              icone: Icons.security_rounded,
-                              filhos: [
-                                _opcao(
-                                  titulo: 'Auditoria',
-                                  subtitulo: _podeGerenciarAtracoes
-                                      ? 'Consulte alterações realizadas pelos usuários da empresa.'
-                                      : 'Disponível para administradores da empresa.',
-                                  icone: Icons.fact_check_outlined,
-                                  onTap: _podeGerenciarAtracoes
-                                      ? _abrirAuditoria
-                                      : null,
-                                ),
-                              ],
-                            ),
-                            _grupoArvore(
                               titulo: 'Gerencial - Produtos',
                               icone: Icons.analytics_rounded,
                               filhos: [
@@ -895,6 +879,22 @@ class _DashboardPageState extends State<DashboardPage> {
                                   icone: Icons.analytics_rounded,
                                   onTap: _podeVerGerencial
                                       ? _abrirGerencial
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            _grupoArvore(
+                              titulo: 'Segurança',
+                              icone: Icons.security_rounded,
+                              filhos: [
+                                _opcao(
+                                  titulo: 'Auditoria',
+                                  subtitulo: _podeGerenciarAtracoes
+                                      ? 'Consulte alterações realizadas pelos usuários da empresa.'
+                                      : 'Disponível para administradores da empresa.',
+                                  icone: Icons.fact_check_outlined,
+                                  onTap: _podeGerenciarAtracoes
+                                      ? _abrirAuditoria
                                       : null,
                                 ),
                               ],

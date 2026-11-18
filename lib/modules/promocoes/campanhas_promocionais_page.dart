@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../core/config/api_config.dart';
 import '../../core/repositories/loja_repository.dart';
 import '../../core/services/api_service.dart';
 import '../../models/loja.dart';
@@ -51,10 +52,8 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
       if (!mounted) return;
       setState(() {
         _lojas = lojas;
-        _loja = lojas.isEmpty ? null : lojas.first.lojaId;
         _carregando = false;
       });
-      if (_loja != null) await _carregar();
       try {
         await _carregarClientes();
       } catch (_) {
@@ -120,6 +119,77 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
       if (mounted) _erro('Não foi possível carregar as campanhas.');
     }
   }
+
+  Future<void> _selecionarLoja(Loja loja) async {
+    setState(() {
+      _loja = loja.lojaId;
+      _campanhas = [];
+      _busca.clear();
+      _titulo.clear();
+      _mensagem.clear();
+      _carregando = true;
+    });
+    try {
+      await _carregar();
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
+
+  void _voltar() {
+    if (_criando) {
+      setState(() => _criando = false);
+    } else if (_loja != null) {
+      setState(() {
+        _loja = null;
+        _campanhas = [];
+      });
+    } else {
+      Navigator.maybePop(context);
+    }
+  }
+
+  Widget _selecionarEstabelecimento() => ListView(
+    padding: const EdgeInsets.all(16),
+    children: [
+      const Text(
+        'Selecione o estabelecimento',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 12),
+      if (_lojas.isEmpty) const Text('Nenhum estabelecimento disponível.'),
+      ..._lojas.map((loja) {
+        final imagem = (loja.urllogoloja ?? loja.urlfachadaloja ?? '').trim();
+        final ativo = (loja.sitloja ?? '').toUpperCase() == 'ATIVA';
+        return Card(
+          child: ListTile(
+            leading: imagem.isEmpty
+                ? const Icon(Icons.storefront_outlined)
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      ApiConfig.buildUrl(imagem),
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          const Icon(Icons.storefront_outlined),
+                    ),
+                  ),
+            title: Text(loja.nmloja),
+            subtitle: Text(
+              ativo ? 'Ativo' : 'Inativo',
+              style: TextStyle(
+                color: ativo ? Colors.green.shade700 : Colors.red.shade700,
+              ),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _selecionarLoja(loja),
+          ),
+        );
+      }),
+    ],
+  );
 
   Future<void> _salvar() async {
     final loja = _loja;
@@ -380,182 +450,177 @@ class _CampanhasPromocionaisPageState extends State<CampanhasPromocionaisPage> {
   );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: ClubbarAppBar(
-      mostrarTopbar: true,
-      mostrarVoltar: true,
-      onVoltar: () {
-        if (_criando) {
-          setState(() => _criando = false);
-        } else {
-          Navigator.maybePop(context);
-        }
-      },
-    ),
-    body: _carregando
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClubbarPageHeader(
-                titulo: _criando ? 'Nova campanha' : 'Campanhas de Marketing',
-                subtitulo: _criando
-                    ? _lojas
-                              .where((loja) => loja.lojaId == _loja)
-                              .map((loja) => loja.nmloja)
-                              .firstOrNull ??
-                          'Estabelecimento não selecionado'
-                    : 'Consulte e envie suas campanhas.',
-                mostrarVoltar: false,
-                padding: EdgeInsets.fromLTRB(20, 14, 20, 16),
-              ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                  children: [
-                    if (!_criando)
-                      DropdownButtonFormField<int>(
-                        initialValue: _loja,
-                        decoration: const InputDecoration(
-                          labelText: 'Estabelecimento',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _lojas
-                            .map(
-                              (loja) => DropdownMenuItem(
-                                value: loja.lojaId,
-                                child: Text(loja.nmloja),
+  Widget build(BuildContext context) => PopScope(
+    canPop: _loja == null && !_criando,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) _voltar();
+    },
+    child: Scaffold(
+      appBar: ClubbarAppBar(
+        mostrarTopbar: true,
+        mostrarVoltar: true,
+        onVoltar: _voltar,
+      ),
+      body: _carregando
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClubbarPageHeader(
+                  titulo: _criando ? 'Nova campanha' : 'Campanhas de Marketing',
+                  subtitulo: _loja != null
+                      ? _lojas
+                                .where((loja) => loja.lojaId == _loja)
+                                .map((loja) => loja.nmloja)
+                                .firstOrNull ??
+                            'Estabelecimento não selecionado'
+                      : 'Escolha o estabelecimento para consultar campanhas.',
+                  mostrarVoltar: false,
+                  padding: EdgeInsets.fromLTRB(20, 14, 20, 16),
+                ),
+                Expanded(
+                  child: _loja == null
+                      ? _selecionarEstabelecimento()
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                          children: [
+                            if (_criando) ...[
+                              TextField(
+                                controller: _titulo,
+                                maxLength: 100,
+                                decoration: const InputDecoration(
+                                  labelText: 'Título da campanha',
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (_) => setState(() {}),
                               ),
-                            )
-                            .toList(),
-                        onChanged: (v) {
-                          setState(() {
-                            _loja = v;
-                            _campanhas = [];
-                          });
-                          _carregar();
-                        },
-                      ),
-                    if (!_criando) const SizedBox(height: 16),
-                    if (_criando) ...[
-                      TextField(
-                        controller: _titulo,
-                        maxLength: 100,
-                        decoration: const InputDecoration(
-                          labelText: 'Título da campanha',
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _mensagem,
-                        minLines: 3,
-                        maxLines: 6,
-                        maxLength: 1024,
-                        decoration: const InputDecoration(
-                          labelText: 'Mensagem',
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                      const SizedBox(height: 10),
-                      Card(
-                        margin: EdgeInsets.zero,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-                                child: Text(
-                                  'Enviar campanha por',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _mensagem,
+                                minLines: 3,
+                                maxLines: 6,
+                                maxLength: 1024,
+                                decoration: const InputDecoration(
+                                  labelText: 'Mensagem',
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                              const SizedBox(height: 10),
+                              Card(
+                                margin: EdgeInsets.zero,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.fromLTRB(
+                                          16,
+                                          8,
+                                          16,
+                                          4,
+                                        ),
+                                        child: Text(
+                                          'Enviar campanha por',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      CheckboxListTile(
+                                        title: const Text(
+                                          'Notificação no aplicativo',
+                                        ),
+                                        value: _push,
+                                        onChanged: (v) =>
+                                            setState(() => _push = v ?? false),
+                                      ),
+                                      CheckboxListTile(
+                                        title: const Text('E-mail'),
+                                        value: _email,
+                                        onChanged: (v) =>
+                                            setState(() => _email = v ?? false),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              CheckboxListTile(
-                                title: const Text('Notificação no aplicativo'),
-                                value: _push,
-                                onChanged: (v) =>
-                                    setState(() => _push = v ?? false),
+                              const SizedBox(height: 12),
+                              _preview(),
+                              const SizedBox(height: 12),
+                              FilledButton(
+                                onPressed: _salvar,
+                                child: const Text('Salvar rascunho'),
                               ),
-                              CheckboxListTile(
-                                title: const Text('E-mail'),
-                                value: _email,
-                                onChanged: (v) =>
-                                    setState(() => _email = v ?? false),
+                            ] else ...[
+                              TextField(
+                                controller: _busca,
+                                decoration: const InputDecoration(
+                                  labelText: 'Buscar campanha',
+                                  prefixIcon: Icon(Icons.search),
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (_) => setState(() {}),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _preview(),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: _salvar,
-                        child: const Text('Salvar rascunho'),
-                      ),
-                    ] else ...[
-                      TextField(
-                        controller: _busca,
-                        decoration: const InputDecoration(
-                          labelText: 'Buscar campanha',
-                          prefixIcon: Icon(Icons.search),
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: _loja == null
-                            ? null
-                            : () => setState(() => _criando = true),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Nova campanha'),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Campanhas',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      if (_campanhas
-                          .where(
-                            (c) => '${c['titulo']} ${c['mensagem']}'
-                                .toLowerCase()
-                                .contains(_busca.text.trim().toLowerCase()),
-                          )
-                          .isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          child: Text('Nenhuma campanha encontrada.'),
-                        ),
-                      for (final c in _campanhas.where(
-                        (c) => '${c['titulo']} ${c['mensagem']}'
-                            .toLowerCase()
-                            .contains(_busca.text.trim().toLowerCase()),
-                      ))
-                        Card(
-                          child: ListTile(
-                            title: Text('${c['titulo']}'),
-                            subtitle: Text('${c['mensagem']}\n${c['status']}'),
-                            trailing: c['status'] == 'RASCUNHO'
-                                ? TextButton(
-                                    onPressed: () => _enviar(c as Map),
-                                    child: const Text('Enviar'),
+                              const SizedBox(height: 12),
+                              FilledButton.icon(
+                                onPressed: _loja == null
+                                    ? null
+                                    : () => setState(() => _criando = true),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Nova campanha'),
+                              ),
+                              const SizedBox(height: 24),
+                              Text(
+                                'Campanhas',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              if (_campanhas
+                                  .where(
+                                    (c) => '${c['titulo']} ${c['mensagem']}'
+                                        .toLowerCase()
+                                        .contains(
+                                          _busca.text.trim().toLowerCase(),
+                                        ),
                                   )
-                                : TextButton(
-                                    onPressed: () => _resultado(c as Map),
-                                    child: const Text('Resultado'),
+                                  .isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Text('Nenhuma campanha encontrada.'),
+                                ),
+                              for (final c in _campanhas.where(
+                                (c) => '${c['titulo']} ${c['mensagem']}'
+                                    .toLowerCase()
+                                    .contains(_busca.text.trim().toLowerCase()),
+                              ))
+                                Card(
+                                  child: ListTile(
+                                    title: Text('${c['titulo']}'),
+                                    subtitle: Text(
+                                      '${c['mensagem']}\n${c['status']}',
+                                    ),
+                                    trailing: c['status'] == 'RASCUNHO'
+                                        ? TextButton(
+                                            onPressed: () => _enviar(c as Map),
+                                            child: const Text('Enviar'),
+                                          )
+                                        : TextButton(
+                                            onPressed: () =>
+                                                _resultado(c as Map),
+                                            child: const Text('Resultado'),
+                                          ),
                                   ),
-                          ),
+                                ),
+                            ],
+                          ],
                         ),
-                    ],
-                  ],
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+    ),
   );
 }
