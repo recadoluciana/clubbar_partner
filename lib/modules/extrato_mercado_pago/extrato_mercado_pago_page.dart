@@ -26,6 +26,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
   List<dynamic> _pagamentos = [];
   List<dynamic> _contas = [];
   int? _contaId;
+  Map<String, dynamic>? _contaAtual;
   int? _lojaId;
   int? _organizacaoId;
   int _offset = 0;
@@ -368,8 +369,37 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
     }
     final contas = jsonDecode(resposta.body) as List;
     _contas = contas;
-    final atual = contas.where((c) => c['status'] == 'ATIVA').firstOrNull;
-    _contaId = (atual ?? contas.firstOrNull)?['id'] as int?;
+    _contaId = null;
+  }
+
+  Widget _informacoesConta() {
+    final conta = _contaAtual;
+    final nomeConta = conta?['nome'] ?? conta?['conta'] ?? 'Não disponível';
+    final outrasContas = _contas.any((item) => item['id'] != _contaId);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InputDecorator(
+          decoration: const InputDecoration(
+            labelText: 'Conta Mercado Pago',
+            border: OutlineInputBorder(),
+          ),
+          child: Text('$nomeConta • Atual'),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Titular da conta: ${_nomeTitularConta?.trim().isNotEmpty == true ? _nomeTitularConta : 'Não disponível'}',
+        ),
+        if (outrasContas) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Este extrato apresenta somente a conta indicada; movimentações de outras contas vinculadas anteriormente não estão incluídas.',
+            style: TextStyle(fontSize: 12),
+          ),
+        ],
+        const SizedBox(height: 12),
+      ],
+    );
   }
 
   Future<void> _carregar() async {
@@ -388,7 +418,6 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           'data_inicio': data.format(_inicio),
           'data_fim': data.format(_fim),
           'offset': '$_offset',
-          if (_contaId != null) 'conta_id': '$_contaId',
         },
       );
       final resposta = await ApiService.get(uri.toString());
@@ -403,6 +432,10 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           _pagamentos = dados['pagamentos'] as List? ?? [];
           _mais = dados['possui_mais'] == true;
           _nomeTitularConta = dados['nome_titular_conta']?.toString();
+          _contaAtual = dados['conta_extrato'] is Map
+              ? Map<String, dynamic>.from(dados['conta_extrato'] as Map)
+              : null;
+          _contaId = (_contaAtual?['id'] as num?)?.toInt();
           _resumo = dados['resumo'] is Map
               ? Map<String, dynamic>.from(dados['resumo'] as Map)
               : null;
@@ -413,6 +446,8 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
         setState(() {
           _pagamentos = [];
           _resumo = null;
+          _contaAtual = null;
+          _contaId = null;
           _mais = false;
           _erro = e.toString().replaceFirst('Exception: ', '');
         });
@@ -431,6 +466,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
       _erro = null;
       _contas = [];
       _contaId = null;
+      _contaAtual = null;
       _pagamentos = [];
       _resumo = null;
     });
@@ -586,38 +622,7 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
                 : ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      if (_contas.isNotEmpty) ...[
-                        DropdownButtonFormField<int>(
-                          initialValue: _contaId,
-                          decoration: const InputDecoration(
-                            labelText: 'Conta Mercado Pago',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: _contas
-                              .map(
-                                (conta) => DropdownMenuItem<int>(
-                                  value: conta['id'] as int,
-                                  child: Text(
-                                    '${conta['nome'] ?? conta['conta']} • ${conta['status'] == 'ATIVA' ? 'Atual' : 'Anterior'}',
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (valor) {
-                            setState(() {
-                              _contaId = valor;
-                              _offset = 0;
-                            });
-                            _carregar();
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Titular da conta: ${_nomeTitularConta?.trim().isNotEmpty == true ? _nomeTitularConta : 'Não disponível'}',
-                        ),
-                        const SizedBox(height: 12),
-                      ],
+                      if (_contaAtual != null) _informacoesConta(),
                       if (_erro == null && _resumo != null) _resumoVendas(),
                       if (_erro != null)
                         Text(_erro!, style: const TextStyle(color: Colors.red))
