@@ -463,16 +463,21 @@ class _CategoriasProdutosPageState extends State<CategoriasProdutosPage> {
         .where((e) => '${e['nmcategoria']}'.toLowerCase().contains(_busca))
         .toList();
     return Scaffold(
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _ocupado ? null : _carregar,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           ClubbarPageHeader(
             titulo: 'Categoria de produto',
             subtitulo: _nomeOrganizacao,
-            trailing: IconButton(
-              onPressed: _ocupado ? null : _carregar,
-              icon: const Icon(Icons.refresh),
-            ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),

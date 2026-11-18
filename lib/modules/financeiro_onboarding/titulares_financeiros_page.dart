@@ -135,9 +135,7 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: ClubbarColors.erro,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: ClubbarColors.erro),
             child: const Text('Excluir'),
           ),
         ],
@@ -864,7 +862,16 @@ class _TitularesFinanceirosPageState extends State<TitularesFinanceirosPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregando ? null : _carregar,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           ClubbarPageHeader(

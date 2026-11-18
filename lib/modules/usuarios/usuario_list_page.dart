@@ -756,7 +756,16 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregando ? null : _carregarTudo,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
 
       bottomNavigationBar: ClubbarActionBar(
         actions: [
@@ -775,11 +784,6 @@ class _UsuarioListPageState extends State<UsuarioListPage> {
                   ? 'Usuários'
                   : 'Usuários • ${_usuarios.length} cadastrado(s)',
               subtitulo: _nomeOrganizacao,
-              trailing: IconButton(
-                tooltip: 'Atualizar',
-                onPressed: _carregando ? null : _carregarTudo,
-                icon: const Icon(Icons.refresh_rounded),
-              ),
             ),
 
             Padding(

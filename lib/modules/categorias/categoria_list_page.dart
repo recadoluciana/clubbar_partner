@@ -779,7 +779,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
 
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(mostrarVoltar: true, actions: [_acoesHeader()]),
       bottomNavigationBar: ClubbarActionBar(
         actions: [
           ClubbarAddButton(
@@ -799,7 +799,6 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
                   ? 'Selecione um estabelecimento'
                   : '$nomeLoja • ${_categorias.length} '
                         '${_categorias.length == 1 ? 'categoria' : 'categorias'}',
-              trailing: _acoesHeader(),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),

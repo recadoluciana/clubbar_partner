@@ -334,7 +334,16 @@ class _ClientesComprasPageState extends State<ClientesComprasPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregando ? null : _carregar,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -343,10 +352,6 @@ class _ClientesComprasPageState extends State<ClientesComprasPage> {
               mostrarVoltar: false,
               subtitulo:
                   'Cadastros e histórico completo de vendas da organização',
-              trailing: IconButton(
-                onPressed: _carregando ? null : _carregar,
-                icon: const Icon(Icons.refresh_rounded),
-              ),
             ),
             Expanded(
               child: _carregando

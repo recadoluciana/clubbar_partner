@@ -441,7 +441,16 @@ class _CardapioGestaoEmpresaPageState extends State<CardapioGestaoEmpresaPage> {
     final cardapio = _cardapio;
     return Scaffold(
       backgroundColor: ClubbarColors.fundo,
-      appBar: const ClubbarAppBar(mostrarVoltar: true),
+      appBar: ClubbarAppBar(
+        mostrarVoltar: true,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregar,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
       body: _carregando || cardapio == null
           ? const Center(child: CircularProgressIndicator())
           : Column(

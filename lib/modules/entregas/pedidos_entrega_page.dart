@@ -234,7 +234,16 @@ class _PedidosEntregaPageState extends State<PedidosEntregaPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF6F6F6),
-    appBar: ClubbarAppBar(mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar pedidos',
+          onPressed: _carregando ? null : _carregar,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
+    ),
     body: Column(
       children: [
         ClubbarPageHeader(
@@ -253,11 +262,6 @@ class _PedidosEntregaPageState extends State<PedidosEntregaPage> {
                   icon: const Icon(Icons.storefront_rounded),
                   tooltip: 'Trocar estabelecimento',
                 ),
-              IconButton(
-                onPressed: _carregando ? null : _carregar,
-                icon: const Icon(Icons.refresh_rounded),
-                tooltip: 'Atualizar pedidos',
-              ),
             ],
           ),
         ),

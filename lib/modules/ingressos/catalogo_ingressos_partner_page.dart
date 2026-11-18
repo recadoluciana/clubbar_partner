@@ -392,7 +392,16 @@ class _CatalogoIngressosPartnerPageState
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar',
+          onPressed: _carregar,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
+    ),
     backgroundColor: ClubbarColors.fundo,
     bottomNavigationBar: ClubbarActionBar(
       actions: [

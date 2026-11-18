@@ -239,7 +239,16 @@ class _RelatorioSplitPageState extends State<RelatorioSplitPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: const ClubbarAppBar(mostrarVoltar: true),
+    appBar: ClubbarAppBar(
+      mostrarVoltar: true,
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar relatório',
+          onPressed: _carregando || _comprovante == null ? null : _consultar,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
+    ),
     body: Column(
       children: [
         const ClubbarPageHeader(

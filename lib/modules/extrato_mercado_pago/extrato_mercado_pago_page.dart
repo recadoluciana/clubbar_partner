@@ -528,6 +528,17 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: ClubbarAppBar(
       mostrarVoltar: true,
+      actions: [
+        IconButton(
+          tooltip: 'Atualizar extrato',
+          onPressed: _carregando
+              ? null
+              : (_selecionandoLoja
+                    ? _iniciar
+                    : (_lojaId == null ? null : _carregar)),
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
       onVoltar: () {
         if (!_selecionandoLoja && _lojas.length > 1) {
           setState(() => _selecionandoLoja = true);
@@ -542,15 +553,6 @@ class _ExtratoMercadoPagoPageState extends State<ExtratoMercadoPagoPage> {
           ClubbarPageHeader(
             mostrarVoltar: false,
             titulo: 'Extrato Mercado Pago',
-            trailing: _selecionandoLoja
-                ? null
-                : IconButton(
-                    tooltip: 'Atualizar extrato',
-                    onPressed: _carregando || _lojaId == null
-                        ? null
-                        : _carregar,
-                    icon: const Icon(Icons.refresh_rounded),
-                  ),
             subtitulo: _selecionandoLoja
                 ? 'Pagamentos da conta conectada'
                 : _lojas
