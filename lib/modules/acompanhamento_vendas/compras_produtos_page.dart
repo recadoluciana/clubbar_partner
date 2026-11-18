@@ -357,6 +357,13 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
       0,
       (soma, compra) => soma + compra.valorTotal,
     );
+    final comissaoDisponivel = comprasResumo.every(
+      (compra) => compra.valorAposComissao != null,
+    );
+    final valorAposComissao = comprasResumo.fold<double>(
+      0,
+      (soma, compra) => soma + (compra.valorAposComissao ?? 0),
+    );
     final liquidoDisponivel = comprasResumo.every(
       (compra) => compra.liquidoEstimado != null,
     );
@@ -494,9 +501,9 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                                 ),
                                 const SizedBox(width: 10),
                                 _valorResumo(
-                                  'Líquido estimado',
-                                  liquidoDisponivel
-                                      ? _moeda.format(liquidoEstimado)
+                                  'Após comissão Clubbar',
+                                  comissaoDisponivel
+                                      ? _moeda.format(valorAposComissao)
                                       : 'Indisponível',
                                   ClubbarColors.sucesso,
                                 ),
@@ -504,9 +511,11 @@ class _ComprasProdutosPageState extends State<ComprasProdutosPage> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              liquidoDisponivel
-                                  ? 'Estimativa após comissão Clubbar e processamento (Pix 0,99%; crédito 4,99%). As tarifas reais podem variar.'
-                                  : 'Líquido indisponível: faltam dados de pagamento ou comissão para uma ou mais vendas.',
+                              !comissaoDisponivel
+                                  ? 'Valor após comissão indisponível: faltam dados de uma ou mais vendas.'
+                                  : liquidoDisponivel
+                                  ? 'Líquido estimado após processamento: ${_moeda.format(liquidoEstimado)}. Usa Pix 0,99% e crédito 4,99%; a tarifa real pode variar.'
+                                  : 'Líquido após processamento indisponível: faltam dados de pagamento ou comissão para uma ou mais vendas.',
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: ClubbarColors.textoSecundario,

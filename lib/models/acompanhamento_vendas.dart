@@ -66,6 +66,7 @@ class CompraProduto {
   final double valorTotal;
   final DateTime dataCompra;
   final double? liquidoEstimado;
+  final double? valorAposComissao;
   final bool retirado;
   final DateTime? dataRetirada;
   final String responsavelRetirada;
@@ -83,6 +84,7 @@ class CompraProduto {
     required this.precoUnitario,
     required this.valorTotal,
     this.liquidoEstimado,
+    this.valorAposComissao,
     required this.dataCompra,
     required this.retirado,
     required this.dataRetirada,
@@ -102,6 +104,7 @@ class CompraProduto {
     precoUnitario: (json['preco_unitario'] as num?)?.toDouble() ?? 0,
     valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
     liquidoEstimado: (json['liquido_estimado'] as num?)?.toDouble(),
+    valorAposComissao: (json['valor_apos_comissao'] as num?)?.toDouble(),
     dataCompra: HorarioBrasil.deTextoBrasil(json['dtcompra']) ?? DateTime(1970),
     retirado: json['retirado'] == true,
     dataRetirada: HorarioBrasil.deTextoBrasil(json['dtretirada']),
