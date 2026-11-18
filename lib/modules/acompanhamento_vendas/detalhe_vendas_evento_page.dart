@@ -255,17 +255,29 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                           Text(
-                            '${preco.quantidade} vendidos • ${_moeda.format(preco.valorUnitario)} cada',
+                            '${preco.quantidade} vendidos • Ingressos: ${_moeda.format(preco.valorTotal)}',
+                          ),
+                          Text(
+                            'Taxas cobradas: ${preco.taxasCobradas == null ? 'Indisponível' : _moeda.format(preco.taxasCobradas)}',
+                            style: const TextStyle(fontSize: 12),
                           ),
                         ],
                       ),
                     ),
-                    Text(
-                      _moeda.format(preco.valorTotal),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: Colors.green,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text('Total', style: TextStyle(fontSize: 11)),
+                        Text(
+                          preco.brutoItens == null
+                              ? 'Indisponível'
+                              : _moeda.format(preco.brutoItens),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -305,6 +317,17 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
     }
 
     final detalhe = _detalhe!;
+    final taxasCompletas = detalhe.lotes.every(
+      (lote) => lote.brutoItens != null,
+    );
+    final brutoDosLotes = detalhe.lotes.fold<double>(
+      0,
+      (total, lote) => total + (lote.brutoItens ?? 0),
+    );
+    final divergenciaBruto =
+        detalhe.brutoPago != null &&
+        taxasCompletas &&
+        (brutoDosLotes - detalhe.brutoPago!).abs() >= 0.005;
     final quantidadeUtilizada = detalhe.quantidade > detalhe.quantidadePendente
         ? detalhe.quantidade - detalhe.quantidadePendente
         : 0;
@@ -405,6 +428,15 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
             'Vendas por lote e setor',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
+          const Text(
+            'As taxas cobradas incluem conveniência e processamento quando registrados na venda.',
+            style: TextStyle(fontSize: 11, color: Colors.black54),
+          ),
+          if (divergenciaBruto)
+            const Text(
+              'A soma dos itens difere do bruto pago. Verifique os detalhes das vendas para conciliação.',
+              style: TextStyle(fontSize: 12, color: Colors.deepOrange),
+            ),
           const SizedBox(height: 8),
           if (detalhe.lotes.isEmpty)
             const Text('Nenhum ingresso configurado para este evento.'),

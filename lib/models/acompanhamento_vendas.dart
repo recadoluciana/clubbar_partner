@@ -159,6 +159,8 @@ class LoteVendaResumo {
   final int? capacidadeLote;
   final int? quantidadeRestante;
   final double valorTotal;
+  final double? taxasCobradas;
+  final double? brutoItens;
 
   const LoteVendaResumo({
     required this.loteId,
@@ -172,6 +174,8 @@ class LoteVendaResumo {
     required this.capacidadeLote,
     required this.quantidadeRestante,
     required this.valorTotal,
+    this.taxasCobradas,
+    this.brutoItens,
   });
 
   factory LoteVendaResumo.fromJson(Map<String, dynamic> json) =>
@@ -188,6 +192,8 @@ class LoteVendaResumo {
         capacidadeLote: (json['capacidade_lote'] as num?)?.toInt(),
         quantidadeRestante: (json['quantidade_restante'] as num?)?.toInt(),
         valorTotal: (json['valor_total'] as num?)?.toDouble() ?? 0,
+        taxasCobradas: (json['taxas_cobradas'] as num?)?.toDouble(),
+        brutoItens: (json['bruto_itens'] as num?)?.toDouble(),
       );
 }
 
