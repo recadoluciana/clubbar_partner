@@ -520,7 +520,7 @@ class _AcompanhamentoVendasPageState extends State<AcompanhamentoVendasPage> {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          '${evento.quantidade} ingressos • ${_moeda.format(evento.valorTotal)}',
+                          '${evento.quantidade} ingressos',
                           style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             color: Colors.green,

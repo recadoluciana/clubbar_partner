@@ -274,7 +274,7 @@ class _DetalheVendasEventoPageState extends State<DetalheVendasEventoPage> {
                               : _moeda.format(preco.brutoItens),
                           style: const TextStyle(
                             fontWeight: FontWeight.w900,
-                            color: Colors.green,
+                            color: Colors.blue,
                           ),
                         ),
                       ],
