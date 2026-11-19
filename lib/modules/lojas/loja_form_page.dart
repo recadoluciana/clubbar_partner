@@ -75,10 +75,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
 
   String? _validarCamposLoja() {
     final nome = _nomeController.text.trim();
-    final documentoFiscal = _documentoFiscalController.text
-        .replaceAll(RegExp(r'[^0-9A-Za-z]'), '')
-        .toUpperCase();
-    final razaoSocial = _razaoSocialController.text.trim();
     final bairro = _bairroController.text.trim();
     final endereco = _enderecoController.text.trim();
     final cep = Validators.somenteNumeros(_cepController.text);
@@ -97,23 +93,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
     }
     if (nome.length > 120) {
       return 'O nome do estabelecimento pode ter no máximo 120 caracteres.';
-    }
-    if (editando) {
-      final cpfValido =
-          documentoFiscal.length == 11 &&
-          RegExp(r'^\d{11}$').hasMatch(documentoFiscal);
-      final cnpjValido =
-          documentoFiscal.length == 14 &&
-          RegExp(r'^[0-9A-Z]{12}\d{2}$').hasMatch(documentoFiscal);
-      if (!cpfValido && !cnpjValido) {
-        return 'Informe um CPF ou CNPJ válido.';
-      }
-      if (razaoSocial.length < 2) {
-        return 'Informe a razão social ou nome completo.';
-      }
-      if (cnpjValido && _tipoEstabelecimento == null) {
-        return 'Informe se o estabelecimento é matriz ou filial.';
-      }
     }
     if (_estadoId == null || _estadoId == 0) {
       return 'Selecione o estado do estabelecimento.';
@@ -417,12 +396,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
           estadoId: _estadoId!,
           cidadeId: _cidadeId!,
           nome: _nomeController.text.trim(),
-          cpfCnpjLoja: _documentoFiscalController.text
-              .replaceAll(RegExp(r'[^0-9A-Za-z]'), '')
-              .toUpperCase(),
-          tipoEstabelecimento: _tipoEstabelecimento,
-          razaoSocial: _razaoSocialController.text.trim(),
-          titularFinanceiroId: _titularFinanceiroId,
           bairro: _bairroController.text.trim(),
           telefone: telefoneSemMascara,
           diasValidade: diasValidade,
@@ -634,7 +607,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     LengthLimitingTextInputFormatter(120),
                                   ],
                                   decoration: _decoracaoCampo(
-                                    label: 'Nome do estabelecimento',
+                                    label: 'Nome público do estabelecimento',
                                     icone: Icons.store_outlined,
                                     hint: 'Digite o nome do estabelecimento',
                                   ).copyWith(counterText: ''),
@@ -653,6 +626,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   const SizedBox(height: 14),
                                   TextFormField(
                                     controller: _razaoSocialController,
+                                    readOnly: true,
                                     textCapitalization:
                                         TextCapitalization.words,
                                     decoration: _decoracaoCampo(
@@ -663,15 +637,15 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                   const SizedBox(height: 14),
                                   TextFormField(
                                     controller: _documentoFiscalController,
+                                    readOnly: true,
                                     textCapitalization:
                                         TextCapitalization.characters,
                                     maxLength: 18,
-                                    onChanged: (_) => setState(() {}),
                                     decoration: _decoracaoCampo(
                                       label: 'CPF/CNPJ do estabelecimento',
                                       icone: Icons.badge_outlined,
                                       helperText:
-                                          'Aceita o novo formato alfanumérico do CNPJ.',
+                                          'Para corrigir, entre em contato com a equipe Clubbar.',
                                     ).copyWith(counterText: ''),
                                   ),
                                   if (_documentoFiscalController.text
@@ -698,9 +672,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                           child: Text('Filial'),
                                         ),
                                       ],
-                                      onChanged: (valor) => setState(
-                                        () => _tipoEstabelecimento = valor,
-                                      ),
+                                      onChanged: null,
                                     ),
                                   ],
                                   const SizedBox(height: 14),
@@ -710,7 +682,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                     )
                                   else if (_titularesFinanceiros.isEmpty)
                                     const Text(
-                                      'Cadastre um titular financeiro na área financeira antes de concluir este estabelecimento.',
+                                      'Nenhum titular financeiro cadastrado. Configure os recebimentos na área financeira.',
                                       style: TextStyle(
                                         color: ClubbarColors.aviso,
                                       ),
@@ -751,9 +723,6 @@ class _LojaFormPageState extends State<LojaFormPage> {
                                             ),
                                           )
                                           .toList(growable: false),
-                                      validator: (valor) => valor == null
-                                          ? 'Selecione o titular financeiro.'
-                                          : null,
                                       onChanged: null,
                                     ),
                                 ],
